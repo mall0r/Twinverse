@@ -53,41 +53,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         adjustment.connect("value-changed", self._on_num_players_changed)
         layout_group.add(self.num_players_row)
 
-        self.resolutions = ["Custom", "1920x1080", "2560x1440", "1280x720", "800x600"]
-        self.resolution_row = Adw.ComboRow(
-            title="Base Resolution", model=Gtk.StringList.new(self.resolutions)
-        )
-        self.resolution_row.get_style_context().add_class("resolution-row")
-        self.resolution_row.connect("notify::selected-item", self._on_resolution_changed)
-        self.resolution_row.connect("notify::selected-item", self._on_setting_changed)
-        layout_group.add(self.resolution_row)
-
-        self.instance_width_row = Adw.EntryRow(title="Custom Width")
-        self.instance_width_row.get_style_context().add_class("instance-width-row")
-        self.instance_width_row.connect("changed", self._on_setting_changed)
-        layout_group.add(self.instance_width_row)
-
-        self.instance_height_row = Adw.EntryRow(title="Custom Height")
-        self.instance_height_row.get_style_context().add_class("instance-height-row")
-        self.instance_height_row.connect("changed", self._on_setting_changed)
-        layout_group.add(self.instance_height_row)
-
-        self.screen_modes = ["Fullscreen", "Splitscreen"]
-        self.screen_mode_row = Adw.ComboRow(
-            title="Screen Mode", model=Gtk.StringList.new(self.screen_modes)
-        )
-        self.screen_mode_row.get_style_context().add_class("screen-mode-row")
-        self.screen_mode_row.connect("notify::selected-item", self._on_screen_mode_changed)
-        layout_group.add(self.screen_mode_row)
-
-        self.orientations = ["Horizontal", "Vertical"]
-        self.orientation_row = Adw.ComboRow(
-            title="Splitscreen Orientation", model=Gtk.StringList.new(self.orientations)
-        )
-        self.orientation_row.get_style_context().add_class("orientation-row")
-        self.orientation_row.connect("notify::selected-item", self._on_setting_changed)
-        layout_group.add(self.orientation_row)
-
         # Gamescope toggle
         self.use_gamescope_row = Adw.SwitchRow(
             title="Use Gamescope",
@@ -95,8 +60,53 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         )
         self.use_gamescope_row.get_style_context().add_class("use-gamescope-row")
         self.use_gamescope_row.get_style_context().add_class("custom-switch")
-        self.use_gamescope_row.connect("notify::active", self._on_setting_changed)
+        self.use_gamescope_row.connect("notify::active", self._on_gamescope_toggled)
         layout_group.add(self.use_gamescope_row)
+
+        # Gamescope Screen Settings
+        self.gamescope_settings_group = Adw.PreferencesGroup()
+        self.add(self.gamescope_settings_group)
+
+        gamescope_expander = Adw.ExpanderRow(
+            title="Screen Settings",
+            expanded=True
+        )
+        self.gamescope_settings_group.add(gamescope_expander)
+
+        self.resolutions = ["Custom", "1920x1080", "2560x1440", "1280x720", "800x600"]
+        self.resolution_row = Adw.ComboRow(
+            title="Base Resolution", model=Gtk.StringList.new(self.resolutions)
+        )
+        self.resolution_row.get_style_context().add_class("resolution-row")
+        self.resolution_row.connect("notify::selected-item", self._on_resolution_changed)
+        self.resolution_row.connect("notify::selected-item", self._on_setting_changed)
+        gamescope_expander.add_row(self.resolution_row)
+
+        self.instance_width_row = Adw.EntryRow(title="Custom Width")
+        self.instance_width_row.get_style_context().add_class("instance-width-row")
+        self.instance_width_row.connect("changed", self._on_setting_changed)
+        gamescope_expander.add_row(self.instance_width_row)
+
+        self.instance_height_row = Adw.EntryRow(title="Custom Height")
+        self.instance_height_row.get_style_context().add_class("instance-height-row")
+        self.instance_height_row.connect("changed", self._on_setting_changed)
+        gamescope_expander.add_row(self.instance_height_row)
+
+        self.screen_modes = ["Fullscreen", "Splitscreen"]
+        self.screen_mode_row = Adw.ComboRow(
+            title="Screen Mode", model=Gtk.StringList.new(self.screen_modes)
+        )
+        self.screen_mode_row.get_style_context().add_class("screen-mode-row")
+        self.screen_mode_row.connect("notify::selected-item", self._on_screen_mode_changed)
+        gamescope_expander.add_row(self.screen_mode_row)
+
+        self.orientations = ["Horizontal", "Vertical"]
+        self.orientation_row = Adw.ComboRow(
+            title="Splitscreen Orientation", model=Gtk.StringList.new(self.orientations)
+        )
+        self.orientation_row.get_style_context().add_class("orientation-row")
+        self.orientation_row.connect("notify::selected-item", self._on_setting_changed)
+        gamescope_expander.add_row(self.orientation_row)
 
         # Global environment variables
         self.env_group = Adw.PreferencesGroup(title="Environment Variables (Global)")
@@ -141,7 +151,9 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.orientation_row.set_visible(is_splitscreen)
 
         # Load gamescope setting
-        self.use_gamescope_row.set_active(self.profile.use_gamescope)
+        use_gamescope = self.profile.use_gamescope
+        self.use_gamescope_row.set_active(use_gamescope)
+        self.gamescope_settings_group.set_visible(use_gamescope)
 
         if is_splitscreen and self.profile.splitscreen:
             orientation = self.profile.splitscreen.orientation.capitalize()
@@ -310,6 +322,12 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         if not self._is_loading:
             self.emit("settings-changed")
 
+    def _on_gamescope_toggled(self, switch, *args):
+        is_active = switch.get_active()
+        self.gamescope_settings_group.set_visible(is_active)
+        if not self._is_loading:
+            self.emit("settings-changed")
+
     def _on_grab_input_toggled(self, switch, gparam, index):
         if self._is_loading:
             return
@@ -430,7 +448,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         self._on_setting_changed()
 
-
     def rebuild_player_rows(self):
         for row_dict in self.player_rows:
             self.players_group.remove(row_dict["expander"])
@@ -463,7 +480,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
             joystick_row = create_device_row("Gamepad", "joystick")
             refresh_button = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
-            refresh_button.set_tooltip_text("Update device list")
+            refresh_button.set_tooltip_text("Atualizar lista de dispositivos")
             refresh_button.get_style_context().add_class("flat")
             refresh_button.connect("clicked", self._on_refresh_joysticks_clicked, joystick_row)
             joystick_row.add_suffix(refresh_button)
