@@ -46,7 +46,7 @@ class InstanceService:
         """Launches a single steam instance."""
         self.logger.info(f"Preparing instance {instance_num}...")
 
-        home_path = Config.get_instance_home_path(instance_num)
+        home_path = Config.get_steam_home_path(instance_num)
         home_path.mkdir(parents=True, exist_ok=True)
         self.logger.info(f"Instance {instance_num}: Using isolated home path '{home_path}'")
 
@@ -160,19 +160,18 @@ class InstanceService:
         """
         self.logger.info(f"Preparing isolated Steam directories for instance at {home_path}...")
 
-        sandbox_local = home_path / ".local/share/Steam"
-        sandbox_common = sandbox_local / "steamapps/common"
-        sandbox_compattools = sandbox_local / "compatibilitytools.d"
+        instance_steam_local = home_path / ".local/share/Steam"
+        instance_steam_dot_steam = home_path / ".steam"
 
         # Create essential Steam directories within the instance's isolated path
-        sandbox_common.mkdir(parents=True, exist_ok=True)
-        sandbox_compattools.mkdir(parents=True, exist_ok=True)
+        (instance_steam_local / "steamapps").mkdir(parents=True, exist_ok=True)
+        instance_steam_dot_steam.mkdir(parents=True, exist_ok=True)
 
         # Copy .acf (app manifest) files from the host to the instance.
         # This makes Steam recognize games as "installed" so it can find them
         # in the shared steamapps/common directory.
         host_steamapps = Path.home() / ".local/share/Steam/steamapps"
-        dest_steamapps = sandbox_local / "steamapps"
+        dest_steamapps = instance_steam_local / "steamapps"
 
         if host_steamapps.exists():
             for acf_file in host_steamapps.glob("*.acf"):
@@ -192,7 +191,7 @@ class InstanceService:
 
         # Enable this if you experience system crashes and graphical glitches.
         env["ENABLE_GAMESCOPE_WSI"] = "0"
-        # env["LD_PRELOAD"] = ""
+        env["LD_PRELOAD"] = ""
         # Handle audio device assignment
         if device_info.get("audio_device_id_for_instance"):
             env["PULSE_SINK"] = device_info["audio_device_id_for_instance"]
@@ -206,8 +205,8 @@ class InstanceService:
     def _build_command(self, profile: Profile, device_info: dict, instance_num: int, home_path: Path, total_instances: int = 2) -> List[str]:
         """
         Builds the final command array in the correct order:
-        [gamescope] -> [bwrap] -> [steam]  (when gamescope is enabled)
-        [bwrap] -> [steam]                 (when gamescope is disabled)
+        [taskset] -> [gamescope] -> [bwrap] -> [steam]  (when gamescope is enabled)
+        [taskset] -> [bwrap] -> [steam]                  (when gamescope is disabled)
         """
         instance_idx = instance_num - 1
 
@@ -326,15 +325,20 @@ class InstanceService:
     def _build_bwrap_command(self, profile: Profile, instance_idx: int, device_info: dict, instance_num: int, home_path: Path) -> List[str]:
         """
         Builds the bwrap command for sandboxing.
-        This strategy uses the real user's home directory but mounts the instance-specific
-        home directory over the real one to achieve isolation.
+        This strategy uses the real user's home directory but mounts instance-specific
+        Steam directories over the real ones to achieve isolation.
         """
         real_home = Path.home()
+        instance_steam_local = home_path / ".local/share/Steam"
+        instance_steam_dot_steam = home_path / ".steam"
+        target_steam_local = real_home / ".local/share/Steam"
+        target_steam_dot_steam = real_home / ".steam"
 
         cmd = [
             "bwrap",
             "--dev-bind", "/", "/",
             "--dev-bind", "/dev", "/dev",
+            "--tmpfs", "/dev/shm",
             "--proc", "/proc",
             "--die-with-parent",
             "--unshare-ipc",
@@ -343,21 +347,14 @@ class InstanceService:
             "--unshare-cgroup",
             "--new-session",
             "--tmpfs", "/tmp",
-            "--tmpfs", "/dev/shm",
-
-            # Bind the isolated home directory over the real one
-            "--bind", str(home_path), str(real_home),
-
-            # X11 and Wayland
             "--bind", "/tmp/.X11-unix", "/tmp/.X11-unix",
-            # "--tmpfs", "/run/user/1000",
-            # "--bind", "/run/user/1000/wayland-0", "/run/user/1000/wayland-0",
         ]
 
         # --- Device Isolation ---
         cmd.extend(["--tmpfs", "/dev/input"])
 
         joystick_path = device_info.get("joystick_path_str_for_instance")
+        # If the instance has no physical joystick, assign the virtual one if it exists
         if not joystick_path and self._virtual_joystick_path:
             self.logger.info(f"Instance {instance_num}: Assigning virtual joystick '{self._virtual_joystick_path}'.")
             joystick_path = self._virtual_joystick_path
@@ -378,39 +375,31 @@ class InstanceService:
             cmd.extend(["--dev-bind", "/dev/input/mice", "/dev/input/mice"])
         # --- End Device Isolation ---
 
-        # --- Steam Data Sharing ---
-        # Share games and compatibility tools from the host to the sandboxed home.
-        host_steam_local = real_home / ".local/share/Steam"
-        sandbox_steam_local = real_home / ".local/share/Steam"
+        # --- Steam Directory Isolation ---
+        # Mount the instance-specific directories over the real Steam locations
+        cmd.extend([
+            "--bind", str(instance_steam_local), str(target_steam_local),
+            "--bind", str(instance_steam_dot_steam), str(target_steam_dot_steam),
+        ])
 
-        # Share common games
-        host_common_path = host_steam_local / "steamapps/common"
-        sandbox_common_path = sandbox_steam_local / "steamapps/common"
+        # Mount host's common games and compatibility tools into the sandboxed Steam directory
+        host_steam_path = str(target_steam_local)
+        sandbox_steam_path = str(target_steam_local) # Same path, but it's now a mount point
 
-        if host_common_path.exists():
-            # List all subdirs in "common".
-            for subdir in host_common_path.iterdir():
-                if subdir.is_dir():
-                    host_subdir = subdir
-                    sandbox_subtool = sandbox_common_path / host_subdir.name
-                    # Set up each tool as READ/WRITE to avoid conflicts.
-                    cmd.extend(["--bind", str(host_subdir), str(sandbox_subtool)])
-                    self.logger.info(f"Instance {instance_num}: Setting up tool '{host_subdir.name}' as read/write")
+        # Share games
+        common_path = Path(host_steam_path) / "steamapps/common"
+        if common_path.exists():
+            cmd.extend(["--bind", str(common_path), str(Path(sandbox_steam_path) / "steamapps/common")])
 
         # Share compatibility tools
-        host_compat_path = host_steam_local / "compatibilitytools.d"
-        sandbox_compat_path = sandbox_steam_local / "compatibilitytools.d"
-
-        if host_compat_path.exists():
-            # List all subdirs in "compatibilitytools.d".
-            for subdir in host_compat_path.iterdir():
-                if subdir.is_dir() and subdir.name != "LegacyRuntime":
-                    host_subdir = subdir
-                    sandbox_subtool = sandbox_compat_path / host_subdir.name
-                    # Set up each tool as READ/WRITE to avoid conflicts.
-                    cmd.extend(["--bind", str(host_subdir), str(sandbox_subtool)])
-                    self.logger.info(f"Instance {instance_num}: Setting up tool '{host_subdir.name}' as read/write")
-        # --- End Steam Data Sharing ---
+        host_compat = Path(host_steam_path) / "compatibilitytools.d"
+        sandbox_compat = Path(sandbox_steam_path) / "compatibilitytools.d"
+        if host_compat.exists():
+            ignore = {"LegacyRuntime"}
+            for folder in host_compat.iterdir():
+                if folder.is_dir() and folder.name not in ignore:
+                    cmd.extend(["--bind", str(folder), str(sandbox_compat / folder.name)])
+        # --- End Steam Directory Isolation ---
 
         # Ensure custom ENV variables reach Steam inside the sandbox
         try:
