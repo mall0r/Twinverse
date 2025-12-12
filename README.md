@@ -10,7 +10,6 @@
 
 MultiScope is currently under active development but is already fully functional for users with **AMD graphics cards**. Tests on **NVIDIA** hardware have not yet been conducted, so compatibility is not guaranteed.
 
-- **Current Version:** 0.5.0
 - **Compatibility:**
   - ✅ **AMD:** Fully compatible
   - ⚠️ **NVIDIA:** Requires testing

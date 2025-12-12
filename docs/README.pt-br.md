@@ -10,7 +10,6 @@ O **MultiScope** é uma ferramenta de código aberto para Linux que permite a cr
 
 O MultiScope está atualmente em desenvolvimento ativo, mas já é totalmente funcional para usuários com **placas de vídeo AMD**. Testes em hardware **NVIDIA** ainda não foram realizados, então a compatibilidade não é garantida.
 
-- **Versão Atual:** 0.5.0
 - **Compatibilidade:**
   - ✅ **AMD:** Totalmente compatível
   - ⚠️ **NVIDIA:** Requer testes
