@@ -2,7 +2,7 @@
 
 # MultiScope
 
-**MultiScope** es una herramienta de código abierto para Linux que permite la creación y gestión de múltiples instancias de gamescope, permitiendo que varios jugadores jueguen simultáneamente en un solo ordenador.
+**MultiScope** es una herramienta de código abierto para Linux que permite la creación y gestión de múltiples sesiones de gamescope de steam, permitiendo que varios jugadores jueguen simultáneamente en un solo ordenador.
 
 ---
 
