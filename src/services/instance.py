@@ -4,9 +4,8 @@ import copy
 import shutil
 import signal
 import subprocess
-import time
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional, Dict
 
 from ..core.config import Config
 from ..core.exceptions import DependencyError, VirtualDeviceError
@@ -25,8 +24,8 @@ class InstanceService:
         self.virtual_device_service = VirtualDeviceService(logger)
         self._virtual_joystick_path: Optional[str] = None
         self._virtual_joystick_checked: bool = False
-        self.pids: dict[int, int] = {}
-        self.processes: dict[int, subprocess.Popen] = {}
+        self.pids: Dict[int, int] = {}
+        self.processes: Dict[int, subprocess.Popen] = {}
         self.termination_in_progress = False
 
     def validate_dependencies(self, use_gamescope: bool = True) -> None:
@@ -55,7 +54,7 @@ class InstanceService:
         device_info = self._validate_input_devices(profile, instance_idx, instance_num)
 
         env = self._prepare_environment(profile, device_info, instance_num)
-        
+
         command_builder = CommandBuilder(
             self.logger,
             profile,
@@ -135,26 +134,18 @@ class InstanceService:
     def terminate_instance(self, instance_num: int) -> None:
         """Terminates a single Steam instance."""
         if instance_num not in self.processes:
-            self.logger.warning(
-                f"Attempted to terminate non-existent instance {instance_num}"
-            )
+            self.logger.warning(f"Attempted to terminate non-existent instance {instance_num}")
             return
 
         process = self.processes[instance_num]
         if process.poll() is None:
             try:
                 os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                self.logger.info(
-                    f"Sent SIGKILL to process group of PID {process.pid} for instance {instance_num}"
-                )
+                self.logger.info(f"Sent SIGKILL to process group of PID {process.pid} for instance {instance_num}")
             except ProcessLookupError:
-                self.logger.info(
-                    f"Process group for PID {process.pid} not found for instance {instance_num}."
-                )
+                self.logger.info(f"Process group for PID {process.pid} not found for instance {instance_num}.")
             except Exception as e:
-                self.logger.error(
-                    f"Failed to kill process group for PID {process.pid} for instance {instance_num}: {e}"
-                )
+                self.logger.error(f"Failed to kill process group for PID {process.pid} for instance {instance_num}: {e}")
         process.wait()
         del self.processes[instance_num]
         del self.pids[instance_num]
@@ -189,7 +180,7 @@ class InstanceService:
 
         self.logger.info("Isolated Steam directories are ready.")
 
-    def _prepare_environment(self, profile: Profile, device_info: dict, instance_num: int) -> dict:
+    def _prepare_environment(self, profile: Profile, device_info: Dict, instance_num: int) -> Dict:
         """Prepares a minimal environment for the Steam instance."""
         env = os.environ.copy()
         env.pop("PYTHONHOME", None)
@@ -208,7 +199,7 @@ class InstanceService:
         self.logger.info(f"Instance {instance_num}: Final environment prepared.")
         return env
 
-    def _validate_input_devices(self, profile: Profile, instance_idx: int, instance_num: int) -> dict:
+    def _validate_input_devices(self, profile: Profile, instance_idx: int, instance_num: int) -> Dict:
         """Validates input devices and returns information about them."""
         # Get specific player config
         player_config = (
