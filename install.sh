@@ -24,12 +24,12 @@ fi
 echo "✅ Verified executable exists."
 
 # --- 2. Create installation directory ---
-echo "🔧 Ensuring installation directory exists at '$INSTALL_DIR' நான"
+echo "🔧 Ensuring installation directory exists at '$INSTALL_DIR'"
 mkdir -p "$INSTALL_DIR"
 echo "✅ Directory created or already exists."
 
 # --- 3. Copy the binary ---
-echo "📂 Copying executable to '$INSTALL_DIR' நான"
+echo "📂 Copying executable to '$INSTALL_DIR'"
 cp "$SOURCE_DIR/$BINARY_NAME" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/$BINARY_NAME"
 echo "✅ Executable copied and made executable."
@@ -85,6 +85,32 @@ if desktop-file-validate "$DESKTOP_DIR/$DESKTOP_FILE_NAME"; then
 else
     echo "⚠️ Warning: Desktop entry created, but 'desktop-file-validate' reported issues."
     echo "   The application might not appear correctly in your application menu."
+fi
+
+# --- 6. Criar atalho na área de trabalho ---
+echo "📋 Criando atalho na área de trabalho..."
+
+# Detectar o diretório da área de trabalho
+DESKTOP_TARGET=""
+if [ -d "$HOME/Desktop" ]; then
+    DESKTOP_TARGET="$HOME/Desktop"
+elif [ -d "$HOME/Área de Trabalho" ]; then
+    DESKTOP_TARGET="$HOME/Área de Trabalho"
+elif [ -d "$HOME/Escritorio" ]; then
+    DESKTOP_TARGET="$HOME/Escritorio"
+else
+    # Tentar detectar via xdg-user-dir se disponível
+    if command -v xdg-user-dir &> /dev/null; then
+        DESKTOP_TARGET=$(xdg-user-dir DESKTOP)
+    fi
+fi
+
+if [ -n "$DESKTOP_TARGET" ] && [ -d "$DESKTOP_TARGET" ]; then
+    cp "$DESKTOP_DIR/$DESKTOP_FILE_NAME" "$DESKTOP_TARGET/"
+    echo "✅ Atalho criado na área de trabalho: $DESKTOP_TARGET/$DESKTOP_FILE_NAME"
+else
+    echo "⚠️  Não foi possível encontrar o diretório da área de trabalho."
+    echo "   O arquivo .desktop foi criado apenas em: $DESKTOP_DIR/$DESKTOP_FILE_NAME"
 fi
 
 # --- Final Instructions ---
