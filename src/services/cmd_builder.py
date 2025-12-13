@@ -80,6 +80,8 @@ class CommandBuilder:
             "-h", str(height),
             "-o", refresh_rate_str,  # Set the unfocused FPS limit
             "-r", refresh_rate_str,  # Set the focused FPS limit
+            "--backend", "sdl",
+            "--display-index", "0",
         ]
 
         if not self.profile.is_splitscreen_mode:
