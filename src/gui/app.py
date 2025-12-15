@@ -206,7 +206,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
 
 class MultiScopeApplication(Adw.Application):
     def __init__(self, **kwargs):
-        super().__init__(application_id="com.github.jules.multiscope", **kwargs)
+        super().__init__(application_id="com.github.mallor705.multiscope", **kwargs)
         self.connect("activate", self.on_activate)
 
     def on_activate(self, app):

@@ -5,7 +5,7 @@ setup(
     name="multiscope",
     version="0.5.0",
     description="A tool to launch multiple instances of Steam using Gamescope.",
-    author="Jules",
+    author="Mallor705",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     python_requires=">=3.8",
