@@ -80,8 +80,7 @@ class CommandBuilder:
             "-h", str(height),
             "-o", refresh_rate_str,  # Set the unfocused FPS limit
             "-r", refresh_rate_str,  # Set the focused FPS limit
-            "--backend", "sdl",
-            "--display-index", "0",
+            # "--backend", "sdl",
         ]
 
         if not self.profile.is_splitscreen_mode:
@@ -120,14 +119,8 @@ class CommandBuilder:
             "--tmpfs", "/dev/shm",
             "--proc", "/proc",
             "--die-with-parent",
-            "--unshare-ipc",
-            "--unshare-pid",
-            "--unshare-uts",
-            "--unshare-cgroup",
-            "--new-session",
             "--tmpfs", "/tmp",
             "--bind", "/tmp/.X11-unix", "/tmp/.X11-unix",
-            "--share-net",
         ]
 
         # --- Device Isolation ---
