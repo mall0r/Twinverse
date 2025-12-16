@@ -8,12 +8,13 @@ set -e # Exit on any error
 echo "🚀 Starting MultiScope Installation..."
 
 # --- Configuration ---
-BINARY_NAME="multi-scope"
+BINARY_NAME="multiscope"
 SOURCE_DIR="dist"
 INSTALL_DIR="$HOME/.local/bin"
 APP_NAME="MultiScope"
 DESKTOP_FILE_NAME="multiscope.desktop"
 DESKTOP_DIR="$HOME/.local/share/applications"
+ICON_DIR="$HOME/.local/share/icons"
 
 # --- 1. Verify that the binary exists ---
 if [ ! -f "$SOURCE_DIR/$BINARY_NAME" ]; then
@@ -66,16 +67,17 @@ fi
 # --- 5. Create .desktop file ---
 echo "📝 Creating desktop entry..."
 mkdir -p "$DESKTOP_DIR"
+cp "res/multiscope.svg" "$ICON_DIR"
 
 # Create the .desktop file content
 cat > "$DESKTOP_DIR/$DESKTOP_FILE_NAME" << EOF
 [Desktop Entry]
 Name=$APP_NAME
 Exec=$INSTALL_DIR/$BINARY_NAME
-Icon=utilities-terminal
+Icon=multiscope
 Type=Application
-Categories=Development;IDE;
-Comment=A tool for managing multiple application instances.
+Categories=Game;Utility;
+Comment=MultiScope is an open-source tool for Linux that enables the creation and management of gamescope sessions of steam, allowing several players to play simultaneously on a single computer.
 Terminal=false
 EOF
 

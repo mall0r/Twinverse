@@ -76,3 +76,4 @@ logs/
 relatorio_*
 # Arquivos de configuração
 # profiles/*.json
+*.lnk

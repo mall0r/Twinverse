@@ -37,7 +37,7 @@ rm -rf build/ dist/ *.spec
 
 # Create PyInstaller spec file
 echo "📝 Creating PyInstaller spec file..."
-cat > multi-scope.spec << 'EOF'
+cat > multiscope.spec << 'EOF'
 # -*- mode: python ; coding: utf-8 -*-
 
 import os
@@ -100,7 +100,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='multi-scope',
+    name='multiscope',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -118,28 +118,28 @@ EOF
 
 # Build with PyInstaller
 echo "🔨 Building executable with PyInstaller..."
-pyinstaller multi-scope.spec --clean --noconfirm
+pyinstaller multiscope.spec --clean --noconfirm
 
 # Check if build was successful
-if [ -f "dist/multi-scope" ]; then
+if [ -f "dist/multiscope" ]; then
     echo "✅ Build successful!"
-    echo "📁 Executable created at: dist/multi-scope"
-    echo "📏 File size: $(du -h dist/multi-scope | cut -f1)"
+    echo "📁 Executable created at: dist/multiscope"
+    echo "📏 File size: $(du -h dist/multiscope | cut -f1)"
 
     # Make executable
-    chmod +x dist/multi-scope
+    chmod +x dist/multiscope
 
     echo ""
     echo "🎉 MultiScope has been successfully compiled!"
     echo ""
     echo "To run the compiled version:"
-    echo "  ./dist/multi-scope"
+    echo "  ./dist/multiscope"
     echo ""
     echo "To open GUI:"
-    echo "  ./dist/multi-scope gui"
+    echo "  ./dist/multiscope gui"
     echo ""
     echo "To run a profile:"
-    echo "  ./dist/multi-scope <profile_name>"
+    echo "  ./dist/multiscope <profile_name>"
     echo ""
 
 else
@@ -148,10 +148,10 @@ else
 fi
 
 # Optional: Create a symlink for easier access
-if [ ! -L "multi-scope" ]; then
+if [ ! -L "multiscope" ]; then
     echo "🔗 Creating symlink for easier access..."
-    ln -s dist/multi-scope multi-scope
-    echo "   You can now run: ./multi-scope"
+    ln -s dist/multiscope multiscope
+    echo "   You can now run: ./multiscope"
 fi
 
 echo "✨ Build process complete!"
