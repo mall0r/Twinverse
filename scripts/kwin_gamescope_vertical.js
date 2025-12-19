@@ -70,30 +70,27 @@ function gamescopeAboveBelow() {
 
 function gamescopeSplitscreen() {
   var gamescopeClients = getGamescopeClients();
-
-  var screenMap = new Map();
   var screens = workspace.screens;
-  for (var j = 0; j < screens.length; j++) {
-    screenMap.set(screens[j], 0);
-  }
+  var totalScreens = screens.length;
 
   for (var i = 0; i < gamescopeClients.length; i++) {
-    var monitor = gamescopeClients[i].output;
+    var groupIndex = Math.floor(i / 4); // grupo de 4 instâncias
+    var monitor = screens[groupIndex % totalScreens]; // distribui entre monitores disponíveis
+
     var monitorX = monitor.geometry.x;
     var monitorY = monitor.geometry.y;
     var monitorWidth = monitor.geometry.width;
     var monitorHeight = monitor.geometry.height;
 
-    var playerCount = numGamescopeClientsInOutput(monitor);
-    var playerIndex = screenMap.get(monitor);
-    screenMap.set(monitor, playerIndex + 1);
+    var playerIndex = i % 4 + 1; // posição dentro do grupo
+    var playerCount = Math.min(4, gamescopeClients.length - groupIndex * 4);
 
     gamescopeClients[i].noBorder = true;
     gamescopeClients[i].frameGeometry = {
-      x: monitorX + x[playerCount][playerIndex] * monitorWidth,
-      y: monitorY + y[playerCount][playerIndex] * monitorHeight,
-      width: monitorWidth * width[playerCount][playerIndex],
-      height: monitorHeight * height[playerCount][playerIndex],
+      x: monitorX + x[playerCount][playerIndex - 1] * monitorWidth,
+      y: monitorY + y[playerCount][playerIndex - 1] * monitorHeight,
+      width: monitorWidth * width[playerCount][playerIndex - 1],
+      height: monitorHeight * height[playerCount][playerIndex - 1],
     };
   }
   gamescopeAboveBelow();

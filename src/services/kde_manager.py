@@ -15,18 +15,19 @@ class KdeManager:
 
     def start_kwin_script(self, profile: Profile):
         """
-        Starts the KWin splitscreen script using D-Bus.
+        Starts the appropriate KWin script using D-Bus.
         """
         if not self.is_kde_desktop():
             self.logger.warning("Not a KDE desktop, skipping KWin script.")
             return
 
+        # Se não for splitscreen, ativa o script per-monitor para fullscreen
         if not profile.is_splitscreen_mode or not profile.splitscreen:
-            self.logger.info("Not in splitscreen mode, skipping KWin script.")
-            return
-
-        orientation = profile.splitscreen.orientation
-        script_name = "kwin_gamescope_vertical.js" if orientation == "vertical" else "kwin_gamescope_horizontal.js"
+            self.logger.info("Fullscreen mode, loading KWin script.")
+            script_name = "kwin_gamescope.js"
+        else:
+            orientation = profile.splitscreen.orientation
+            script_name = "kwin_gamescope_vertical.js" if orientation == "vertical" else "kwin_gamescope_horizontal.js"
 
         script_path = Path(__file__).parent.parent.parent / "scripts" / script_name
 
