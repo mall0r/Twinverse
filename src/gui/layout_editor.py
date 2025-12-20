@@ -324,7 +324,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
     def _on_screen_mode_changed(self, combo_row, *args):
         is_splitscreen = combo_row.get_selected_item().get_string().lower() == "splitscreen"
         self.orientation_row.set_visible(is_splitscreen)
-        self._update_kwin_switch_visibility()
         if not self._is_loading:
             self.emit("settings-changed")
 
