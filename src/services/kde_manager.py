@@ -21,7 +21,7 @@ class KdeManager:
             self.logger.warning("Not a KDE desktop, skipping KWin script.")
             return
 
-        # If it's not splitscreen, enable the script for fullscreen.
+        # Se não for splitscreen, ativa o script per-monitor para fullscreen
         if not profile.is_splitscreen_mode or not profile.splitscreen:
             self.logger.info("Fullscreen mode, loading KWin script.")
             script_name = "kwin_gamescope.js"
