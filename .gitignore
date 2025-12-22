@@ -7,7 +7,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
-.Python
+AppDir/
+.Python/
 env/
 build/
 develop-eggs/
@@ -74,6 +75,6 @@ coverage.xml
 logs/
 *.log
 relatorio_*
-# Arquivos de configuração
-# profiles/*.json
 *.lnk
+*.AppImage
+*.appimage

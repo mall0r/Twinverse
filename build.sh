@@ -153,12 +153,3 @@ else
     echo "❌ Build failed! Check the output above for errors."
     exit 1
 fi
-
-# Optional: Create a symlink for easier access
-if [ ! -L "multiscope" ]; then
-    echo "🔗 Creating symlink for easier access..."
-    ln -s dist/multiscope multiscope
-    echo "   You can now run: ./multiscope"
-fi
-
-echo "✨ Build process complete!"
