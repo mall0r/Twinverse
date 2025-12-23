@@ -132,12 +132,12 @@ class InstanceService:
         Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
         self._launch_single_instance(active_profile, instance_num)
 
-    def _run_fallback_terminators(self) -> None:
+    def cleanup(self) -> None:
         """Runs a series of pkill commands to ensure all related processes are terminated."""
         self.logger.info("Running fallback process terminators...")
         commands = [
             # "pkill -9 -f multiscope 2>/dev/null || true",
-            "pkill -9 -f gamescope 2>/dev/null || true",
+            # "pkill -9 -f gamescope 2>/dev/null || true",
             "pkill -9 -f wineserver 2>/dev/null || true",
             "pkill -9 -f winedevice 2>/dev/null || true",
         ]
@@ -147,7 +147,7 @@ class InstanceService:
             except Exception as e:
                 self.logger.error(f"Error running fallback terminator '{cmd}': {e}")
 
-    def terminate_instance(self, instance_num: int, run_fallbacks: bool = True) -> None:
+    def terminate_instance(self, instance_num: int) -> None:
         """Terminates a single Steam instance gracefully."""
         if instance_num not in self.processes:
             self.logger.warning(f"Attempted to terminate non-existent instance {instance_num}")
@@ -179,24 +179,10 @@ class InstanceService:
         if process.poll() is None:
             process.wait()
 
-        if run_fallbacks:
-            self._run_fallback_terminators()
-
         if instance_num in self.processes:
             del self.processes[instance_num]
         if instance_num in self.pids:
             del self.pids[instance_num]
-
-    ## CLEAN HOME
-    # def _cleanup_instance_home(self, instance_num: int) -> None:
-    #     """Removes the home directory of a terminated instance."""
-    #     home_path = Config.get_steam_home_path(instance_num)
-    #     if home_path.exists():
-    #         try:
-    #             self.logger.info(f"Cleaning up home directory for instance {instance_num} at {home_path}")
-    #             shutil.rmtree(home_path)
-    #         except OSError as e:
-    #             self.logger.error(f"Failed to remove home directory for instance {instance_num}: {e}")
 
     def _prepare_home(self, home_path: Path) -> None:
         """
@@ -293,13 +279,14 @@ class InstanceService:
             self.logger.info("Starting termination of all instances...")
 
             for instance_num in list(self.processes.keys()):
-                self.terminate_instance(instance_num, run_fallbacks=False)
+                self.terminate_instance(instance_num)
 
             self.logger.info("Instance termination complete.")
             self.pids.clear()
             self.processes.clear()
 
-            self._run_fallback_terminators()
+            self.cleanup()
+            self.logger.info("Cleanup complete.")
 
             if self._virtual_joystick_path:
                 self.virtual_device.destroy_virtual_joystick()
