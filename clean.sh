@@ -22,6 +22,13 @@ find . -type d -name "__pycache__" -exec rm -rf {} \;
 sleep 1
 echo "   ✅ Cache limpo"
 
+# Passo 3: Limpar arquivos de build
+echo "3️⃣  Limpar arquivos de build..."
+rm -rf build dist AppDir
+rm -rf *.spec
+rm -rf *.AppImage
+sleep 1
+echo "   ✅ Arquivos de build limpos"
 
 # Passo 4: Finalizar
 echo ""
