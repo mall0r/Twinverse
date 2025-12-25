@@ -115,6 +115,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         is_splitscreen = self.profile.mode == "splitscreen"
         self.screen_mode_row.set_selected(1 if is_splitscreen else 0)
+        self._on_screen_mode_changed(self.screen_mode_row)
         self.orientation_row.set_visible(is_splitscreen)
 
         # Load gamescope setting
@@ -272,8 +273,19 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             self.emit("settings-changed")
 
     def _on_screen_mode_changed(self, combo_row, *args):
-        is_splitscreen = combo_row.get_selected_item().get_string().lower() == "splitscreen"
+        selected_mode = combo_row.get_selected_item().get_string().lower()
+        is_splitscreen = selected_mode == "splitscreen"
         self.orientation_row.set_visible(is_splitscreen)
+
+        adjustment = self.num_players_row.get_adjustment()
+        if selected_mode == "fullscreen":
+            num_monitors = len(self.display_outputs)
+            adjustment.set_upper(num_monitors)
+            if adjustment.get_value() > num_monitors:
+                adjustment.set_value(num_monitors)
+        else:
+            adjustment.set_upper(8)
+
         if not self._is_loading:
             self.emit("settings-changed")
 

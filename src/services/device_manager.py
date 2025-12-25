@@ -158,7 +158,6 @@ class DeviceManager:
         for i, monitor in enumerate(get_monitors()):
             monitors.append({
                 "id": i,
-                "name": monitor.name,
                 "x": monitor.x,
                 "y": monitor.y,
                 "width": monitor.width,
