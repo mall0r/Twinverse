@@ -88,6 +88,10 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.orientation_row.connect("notify::selected-item", self._on_setting_changed)
         gamescope_expander.add_row(self.orientation_row)
 
+        self.players_group = Adw.PreferencesGroup(title="Instance Configurations")
+        self.players_group.get_style_context().add_class("players-group")
+        self.add(self.players_group)
+
         # Global environment variables
         self.env_group = Adw.PreferencesGroup(title="Environment Variables (Global)")
         self.env_group.get_style_context().add_class("global-env-group")
@@ -103,9 +107,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.global_env_add_row.add_suffix(global_add_btn)
         self.env_group.add(self.global_env_add_row)
 
-        self.players_group = Adw.PreferencesGroup(title="Instance Configurations")
-        self.players_group.get_style_context().add_class("players-group")
-        self.add(self.players_group)
 
     def load_profile_data(self):
         self._is_loading = True
