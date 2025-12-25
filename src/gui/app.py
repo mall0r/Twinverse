@@ -66,7 +66,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.toolbar_view.add_bottom_bar(self.footer_bar)
 
         self.launch_button = Gtk.Button()
-        self.launch_button.get_style_context().add_class("suggested-action")
+        self.launch_button.get_style_context().add_class("launch-button")
         self.launch_button.get_style_context().add_class("play-button-fixed-size")
         self.launch_button.connect("clicked", self.on_launch_clicked)
         self.launch_button.set_sensitive(False)
@@ -75,7 +75,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.launch_spinner.set_spinning(False)
 
         self.launch_label = Gtk.Label(label="Play")
-        self.launch_content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, hexpand=False)
+        self.launch_content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, hexpand=False, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         self.launch_content_box.append(self.launch_label)
         
         self.launch_button.set_child(self.launch_content_box)
@@ -150,8 +150,8 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.logger.info("Launch worker finished.")
         if not self._cancel_launch_event.is_set():
             self.launch_label.set_label("Stop")
-            self.launch_button.get_style_context().remove_class("suggested-action")
-            self.launch_button.get_style_context().add_class("destructive-action")
+            self.launch_button.get_style_context().remove_class("launch-button")
+            self.launch_button.get_style_context().add_class("stop-button")
             self.layout_settings_page.set_sensitive(False)
             self.layout_settings_page.set_running_state(True)
             self._is_running = True
@@ -217,8 +217,8 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.launch_spinner.stop()
         if self.launch_spinner.get_parent() == self.launch_content_box:
             self.launch_content_box.remove(self.launch_spinner)
-        self.launch_button.get_style_context().remove_class("destructive-action")
-        self.launch_button.get_style_context().add_class("suggested-action")
+        self.launch_button.get_style_context().remove_class("stop-button")
+        self.launch_button.get_style_context().add_class("launch-button")
         self.layout_settings_page.set_sensitive(True)
         self.layout_settings_page.set_running_state(False)
         self.layout_settings_page._run_verification()
