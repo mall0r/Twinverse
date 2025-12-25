@@ -75,14 +75,13 @@ class CommandBuilder:
 
         cmd = [
             "gamescope",
-            "-e",  # Enable Steam integration
+            "-e",
             "-W", str(width),
             "-H", str(height),
             "-w", str(width),
             "-h", str(height),
-            "-o", refresh_rate_str,  # Set the unfocused FPS limit
-            "-r", refresh_rate_str,  # Set the focused FPS limit
-            # "--backend", "sdl",
+            "-o", refresh_rate_str,
+            "-r", refresh_rate_str,
         ]
 
         if not self.profile.is_splitscreen_mode:

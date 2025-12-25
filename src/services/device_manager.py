@@ -163,7 +163,6 @@ class DeviceManager:
                 "y": monitor.y,
                 "width": monitor.width,
                 "height": monitor.height,
-                "is_primary": monitor.is_primary,
             })
         return monitors
 
@@ -174,44 +173,36 @@ class DeviceManager:
         # Obtém informações dos monitores
         monitors = self.get_screen_info()
 
-        # Encontra o monitor primário
-        primary_monitor = next((m for m in monitors if m["is_primary"]), None)
-        # Ordena monitores não-primários por ID
-        secondary_monitors = sorted([m for m in monitors if not m["is_primary"]], key=lambda x: x["id"])
+        # Ordena monitores por ID
+        monitors_sorted = sorted(monitors, key=lambda x: x["id"])
 
         # Determina qual monitor usar para esta instância/grupo
         monitor_to_use = None
 
         if not profile.is_splitscreen_mode or not profile.splitscreen:
             # Modo fullscreen
-            if instance_num == 1:
-                monitor_to_use = primary_monitor
+            if instance_num <= len(monitors_sorted):
+                monitor_to_use = monitors_sorted[instance_num - 1]
             else:
-                # Para instâncias 2, 3, 4... usa monitores secundários em sequência
-                secondary_index = instance_num - 2  # -2 porque instância 2 usa índice 0
-                if secondary_index < len(secondary_monitors):
-                    monitor_to_use = secondary_monitors[secondary_index]
-                else:
-                    # Se não há mais monitores, retorna None
-                    return None, None
+                # Se não há mais monitores, retorna None
+                return None, None
         else:
             # Modo splitscreen
             orientation = profile.splitscreen.orientation
             num_players = profile.effective_num_players()
 
             if num_players < 1:
-                # Fallback para monitor primário se não há jogadores
-                monitor_to_use = primary_monitor
+                # Fallback para monitor 0 se não há jogadores
+                if monitors_sorted:
+                    monitor_to_use = monitors_sorted[0]
+                else:
+                    return None, None
             else:
                 # Lógica para grupos de até 4 instâncias
                 group_index = (instance_num - 1) // 4
 
-                if group_index == 0:
-                    # Primeiro grupo usa monitor primário
-                    monitor_to_use = primary_monitor
-                elif group_index == 1 and secondary_monitors:
-                    # Segundo grupo usa o monitor secundário com menor ID
-                    monitor_to_use = secondary_monitors[0]
+                if group_index < len(monitors_sorted):
+                    monitor_to_use = monitors_sorted[group_index]
                 else:
                     # Para mais grupos, não há monitor disponível
                     return None, None
