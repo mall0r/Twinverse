@@ -427,7 +427,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             self.profile.player_configs.append(PlayerInstanceConfig())
 
         for i in range(num_players):
-            expander = Adw.ExpanderRow(title=f"Instance {i}")
+            expander = Adw.ExpanderRow(title=f"Player {i + 1}")
             expander.get_style_context().add_class("player-expander")
             self.players_group.add(expander)
 

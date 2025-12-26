@@ -44,7 +44,7 @@ class Profile(BaseModel):
     num_players: int = Field(default=2, alias="NUM_PLAYERS")
     instance_width: Optional[int] = Field(default=1280, alias="INSTANCE_WIDTH")
     instance_height: Optional[int] = Field(default=720, alias="INSTANCE_HEIGHT")
-    mode: Optional[str] = Field(default="fullscreen", alias="MODE")
+    mode: Optional[str] = Field(default="splitscreen", alias="MODE")
     use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_kwin_script: bool = Field(default=True, alias="ENABLE_KWIN_SCRIPT")
     splitscreen: Optional[SplitscreenConfig] = Field(default=None, alias="SPLITSCREEN")
