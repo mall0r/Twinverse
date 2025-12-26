@@ -31,7 +31,7 @@ When selecting "Splitscreen," you can choose between two orientations:
 
 Positions and layouts adjust automatically based on the number of instances.
 
-Note: Instance auto-tiling only works with KDE Plasma environments.
+Note: Instance auto-tiling only works with `KDE Plasma` environments.
 
 [IMAGE]
 
@@ -61,7 +61,7 @@ Only instances that already have Steam installed can be launched with the **"Pla
 
 For the best experience, it is recommended to enable "Big Picture Mode" in Steam's settings. This provides a controller-friendly interface, ideal for MultiScope.
 
-To do this, go to `Settings > Interface` and check the box for "Start Steam in Big Picture Mode."
+To do this, go to `Settings > Interface` and check the box for `Start Steam in Big Picture Mode`.
 
 Repeat this process for all instances you wish to start in Big Picture Mode.
 
@@ -77,11 +77,11 @@ Enjoy your gaming session!
 
 ## 7. Applications (Optional)
 
-To add applications to your instance, go to `Add a Game` and click "Add a Non-Steam Game...". Select the application you wish to add.
+To add applications to your instance, go to `Add a Game` and click `Add a Non-Steam Game...`. Select the application you wish to add.
 
 ### Why do this?
 
-This allows you to run applications directly from the instance, enabling a unique configuration per instance for that application. This is because each instance has its own unique HOME directory. They can be found at `~/.local/share/multiscope/home_{n}`.
+This allows you to run applications directly from the instance, enabling a unique configuration per instance for that application. This is because each instance has its own unique `HOME` directory. They can be found at `~/.local/share/multiscope/home_{n}`.
 
 A good example is [mangojuice](https://github.com/radiolamp/mangojuice); if you want to use it with custom settings, you will need to run and configure it for each instance individually.
 

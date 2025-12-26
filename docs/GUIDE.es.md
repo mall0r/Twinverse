@@ -31,7 +31,7 @@ Al seleccionar "Splitscreen", puedes elegir entre dos orientaciones:
 
 Las posiciones y los formatos varían automáticamente según el número de instancias.
 
-Nota: La organización automática de las instancias solo funciona con entornos KDE Plasma.
+Nota: La organización automática de las instancias solo funciona con entornos `KDE Plasma`.
 
 [IMAGEN]
 
@@ -61,7 +61,7 @@ Solo las instancias que ya tienen Steam instalado pueden iniciarse con el botón
 
 Para una mejor experiencia, se recomienda activar el "Modo Big Picture" en la configuración de Steam. Esto proporcionará una interfaz amigable para controles, ideal para MultiScope.
 
-Para hacerlo, ve a `Configuración > Interfaz` y marca la casilla para "Iniciar Steam en modo Big Picture".
+Para hacerlo, ve a `Configuración > Interfaz` y marca la casilla para `Iniciar Steam en modo Big Picture`.
 
 Repite este proceso para todas las instancias que desees iniciar en Modo Big Picture.
 
@@ -77,11 +77,11 @@ Repite este proceso para todas las instancias que desees iniciar en Modo Big Pic
 
 ## 7. Aplicaciones (Opcional)
 
-Para agregar aplicaciones a tu instancia, ve a `Agregar un juego` y haz clic en "Agregar un juego que no es de Steam...". Selecciona la aplicación que deseas agregar.
+Para agregar aplicaciones a tu instancia, ve a `Agregar un juego` y haz clic en `Agregar un juego que no es de Steam...`. Selecciona la aplicación que deseas agregar.
 
 ### ¿Por qué hacer esto?
 
-Esto te permite ejecutar aplicaciones directamente desde la instancia, haciendo posible tener una configuración única por instancia para esa aplicación. Esto sucede porque cada instancia tiene su propio directorio HOME único. Se pueden encontrar en `~/.local/share/multiscope/home_{n}`.
+Esto te permite ejecutar aplicaciones directamente desde la instancia, haciendo posible tener una configuración única por instancia para esa aplicación. Esto sucede porque cada instancia tiene su propio directorio `HOME` único. Se pueden encontrar en `~/.local/share/multiscope/home_{n}`.
 
 Un buen ejemplo de uso es [mangojuice](https://github.com/radiolamp/mangojuice); si quieres usarlo con configuraciones personalizadas, necesitarás ejecutarlo y configurarlo para cada instancia individualmente.
 

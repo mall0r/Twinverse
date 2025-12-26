@@ -31,7 +31,7 @@ Ao selecionar "Splitscreen", você pode escolher entre duas orientações:
 
 Posições e formatos variam automaticamente de acordo com o número de instâncias.
 
-Obs: O auto-tiling das instâncias funciona apenas com ambientes KDE Plasma.
+Obs: O auto-tiling das instâncias funciona apenas com ambientes `KDE Plasma`.
 
 [IMAGEM]
 
@@ -61,7 +61,7 @@ Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o *
 
 Para uma melhor experiência, recomenda-se ativar o "Modo Big Picture" nas configurações do Steam. Isso fornecerá uma interface amigável a controles, ideal para o MultiScope.
 
-Para fazer isso, vá em `Configurações > Interface` e marque a caixa para "Iniciar Steam no Modo Big Picture".
+Para fazer isso, vá em `Configurações > Interface` e marque a caixa para `Iniciar Steam no Modo Big Picture`.
 
 Repita esse processo para todas as instâncias que você deseja iniciar no Modo Big Picture.
 
@@ -77,11 +77,11 @@ Divirta-se em sua sessão de jogos!
 
 ## 7. Aplicativos (Opcional)
 
-Para adicionar aplicativos à sua instância, vá em `Adicionar Jogo` e clique em "Adicionar um jogo não Steam...". Selecione o aplicativo que deseja adicionar.
+Para adicionar aplicativos à sua instância, vá em `Adicionar Jogo` e clique em `Adicionar um jogo não Steam...`. Selecione o aplicativo que deseja adicionar.
 
 ### Por que fazer isso?
 
-Isso permite que você execute aplicativos diretamente da instância, assim é possível ter uma configuração única por instância para esse aplicativo. Isso acontece pois cada instância tem seu próprio diretório HOME único. Eles podem ser encontrados em `~/.local/share/multiscope/home_{n}`.
+Isso permite que você execute aplicativos diretamente da instância, assim é possível ter uma configuração única por instância para esse aplicativo. Isso acontece pois cada instância tem seu próprio diretório `HOME` único. Eles podem ser encontrados em `~/.local/share/multiscope/home_{n}`.
 
 Um bom exemplo de uso é o [mangojuice](https://github.com/radiolamp/mangojuice); caso queira usá-lo com configurações personalizadas você precisará executar e configurá-lo para cada instância individualmente.
 
