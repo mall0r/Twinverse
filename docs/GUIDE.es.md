@@ -55,9 +55,9 @@ Para cada instancia, puedes configurar las siguientes opciones:
 
 Después de configurar una instancia, haz clic en el botón **"Iniciar"** junto a ella para lanzar una instancia aislada de Steam sin gamescope. La primera vez, Steam se instalará automáticamente; este proceso puede tomar unos minutos.
 
-Cada instancia puede iniciarse individualmente con su botón **"Iniciar"**. Para ejecutar varias a la vez, utiliza el botón **"Jugar"** ubicado en la parte inferior de la ventana.
+Cada instancia puede iniciarse individualmente con su botón **"Iniciar"**. Para ejecutar varias a la vez, utiliza el botón **"Play"** ubicado en la parte inferior de la ventana.
 
-Solo las instancias que ya tienen Steam instalado pueden iniciarse con el botón **"Jugar"**. Puedes verificarlo por el ícono de palomita (✓) en la instancia. Si el ícono no está presente, instala Steam haciendo clic en el botón **"Iniciar"** de esa instancia. Esto permite configurar, agregar juegos o aplicaciones de manera rápida y directa en una instancia específica.
+Solo las instancias que ya tienen Steam instalado pueden iniciarse con el botón **"Play"**. Puedes verificarlo por el ícono de palomita (✓) en la instancia. Si el ícono no está presente, instala Steam haciendo clic en el botón **"Iniciar"** de esa instancia. Esto permite configurar, agregar juegos o aplicaciones de manera rápida y directa en una instancia específica.
 
 <img width="708" height="185" alt="instance_config" src="https://github.com/user-attachments/assets/aaec6105-babe-4017-a130-1877f2aaf8ef" />
 

@@ -54,9 +54,9 @@ Para cada instância, você pode configurar as seguintes opções:
 
 Após configurar uma instância, clique no botão **"Start"** ao lado dela para iniciar uma instância isolada do Steam sem o gamescope. Na primeira vez, o Steam será instalado automaticamente — esse processo pode levar alguns minutos.
 
-Cada instância pode ser iniciada individualmente pelo seu botão **"Start"**. Para executar várias de uma só vez, utilize o botão **"Jogar"** localizado na parte inferior da janela.
+Cada instância pode ser iniciada individualmente pelo seu botão **"Start"**. Para executar várias de uma só vez, utilize o botão **"Play"** localizado na parte inferior da janela.
 
-Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Jogar"**. Você pode verificar isso pelo ícone de visto (check) na instância. Se o ícone não estiver presente, instale o Steam clicando no botão **"Start"** daquela instância. Isso permite configurar, adicionar jogos ou aplicativos de maneira rápida e direta em uma instância específica.
+Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Play"**. Você pode verificar isso pelo ícone de visto (check) na instância. Se o ícone não estiver presente, instale o Steam clicando no botão **"Start"** daquela instância. Isso permite configurar, adicionar jogos ou aplicativos de maneira rápida e direta em uma instância específica.
 
 <img width="708" height="185" alt="instance_config" src="https://github.com/user-attachments/assets/aaec6105-babe-4017-a130-1877f2aaf8ef" />
 
