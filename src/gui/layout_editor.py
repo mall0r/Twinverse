@@ -1,12 +1,13 @@
 import gi
 import os
+from ..core.config import Config
 from ..models.profile import Profile, SplitscreenConfig, PlayerInstanceConfig
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 from ..services.device_manager import DeviceManager
-from ..services.verification_service import VerificationService
+from ..services.steam_verifier import SteamVerifier
 from gi.repository import Adw, Gdk, GObject, Gtk
 from ..services.instance import InstanceService
 
@@ -24,7 +25,8 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.player_rows = []
         self.logger = logger
         self.instance_service = InstanceService(logger)
-        self.verification_service = VerificationService(logger)
+        self.steam_verifier = SteamVerifier(logger)
+        self.verification_statuses = {}
         self.device_manager = DeviceManager()
         self.input_devices = self.device_manager.get_input_devices()
         self.audio_devices = self.device_manager.get_audio_devices()
@@ -33,7 +35,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         self._build_ui()
         self.load_profile_data()
-        self._run_verification()
+        self._run_all_verifications()
 
     def _build_ui(self):
         self.set_title("Layout Settings")
@@ -254,6 +256,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
     def _on_num_players_changed(self, adjustment):
         if not self._is_loading:
             self.rebuild_player_rows()
+            self._run_all_verifications()
             # Ensure env sections exist after rebuilding player rows
             for idx, row_dict in enumerate(self.player_rows):
                 if "env_rows" not in row_dict:
@@ -279,13 +282,17 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.orientation_row.set_visible(is_splitscreen)
 
         adjustment = self.num_players_row.get_adjustment()
+        num_monitors = len(self.display_outputs)
+
         if selected_mode == "fullscreen":
-            num_monitors = len(self.display_outputs)
             adjustment.set_upper(num_monitors)
             if adjustment.get_value() > num_monitors:
                 adjustment.set_value(num_monitors)
-        else:
-            adjustment.set_upper(8)
+        else:  # splitscreen
+            new_limit = 4 * num_monitors if num_monitors > 0 else 4
+            adjustment.set_upper(new_limit)
+            if adjustment.get_value() > new_limit:
+                adjustment.set_value(new_limit)
 
         if not self._is_loading:
             self.emit("settings-changed")
@@ -493,21 +500,35 @@ class LayoutSettingsPage(Adw.PreferencesPage):
                 "is_running": False,
             })
 
-    def _run_verification(self):
-        for i, row_dict in enumerate(self.player_rows):
-            instance_num = i
-            status = self.verification_service.verify_instance(instance_num)
+    def _run_all_verifications(self):
+        for i in range(len(self.player_rows)):
+            self._verify_instance(i)
 
-            # Remove existing icon first
-            if row_dict["status_icon"]:
-                row_dict["expander"].remove(row_dict["status_icon"])
-                row_dict["status_icon"] = None
+    def _verify_instance(self, instance_num: int):
+        instance_path = Config.get_steam_home_path(instance_num)
+        is_verified = self.steam_verifier.verify(instance_path)
+        self.verification_statuses[instance_num] = is_verified
+        self._update_verification_status_ui(instance_num, is_verified)
 
-            if status == "Passed":
-                icon = Gtk.Image.new_from_icon_name("check-outlined-symbolic")
-                icon.get_style_context().add_class("verification-passed-icon")
-                row_dict["expander"].add_suffix(icon)
-                row_dict["status_icon"] = icon
+    def _update_verification_status_ui(self, instance_num: int, is_verified: bool):
+        if instance_num >= len(self.player_rows):
+            return
+
+        row_dict = self.player_rows[instance_num]
+
+        # Remove existing icon first, if it exists
+        if row_dict.get("status_icon") and row_dict["status_icon"].get_parent():
+            row_dict["expander"].remove(row_dict["status_icon"])
+            row_dict["status_icon"] = None
+
+        if is_verified:
+            icon = Gtk.Image.new_from_icon_name("check-outlined-symbolic")
+            icon.get_style_context().add_class("verification-passed-icon")
+            row_dict["expander"].add_suffix(icon)
+            row_dict["status_icon"] = icon
+
+    def get_instance_verification_status(self, instance_num: int) -> bool:
+        return self.verification_statuses.get(instance_num, False)
 
     def get_selected_players(self) -> list[int]:
         return [i for i, r in enumerate(self.player_rows) if r["checkbox"].get_active()]
@@ -535,7 +556,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             button.get_style_context().add_class("destructive-action")
             row_data["is_running"] = True
 
-        self._run_verification()
+        self._verify_instance(instance_num)
         self.emit("instance-state-changed")
 
     def is_any_instance_running(self):

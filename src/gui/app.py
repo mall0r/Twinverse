@@ -91,7 +91,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.profile = updated_profile
         self.profile.save()
         self.logger.info("Profile auto-saved.")
-        self.layout_settings_page._run_verification()
+        self.layout_settings_page._run_all_verifications()
         self._update_launch_button_state()
 
     def _update_launch_button_state(self, *args):
@@ -100,15 +100,11 @@ class MultiScopeWindow(Adw.ApplicationWindow):
             self.launch_button.set_sensitive(False)
             return
 
-        all_passed = True
-        for player_num in selected_players:
-            status = self.layout_settings_page.verification_service.get_instance_status(
-                player_num
-            )
-            if status != "Passed":
-                all_passed = False
-                break
-        self.launch_button.set_sensitive(all_passed)
+        all_verified = all(
+            self.layout_settings_page.get_instance_verification_status(p)
+            for p in selected_players
+        )
+        self.launch_button.set_sensitive(all_verified)
 
 
     def _launch_worker(self):
@@ -168,7 +164,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
             self.on_stop_clicked()
             return
 
-        self.layout_settings_page._run_verification()
+        self.layout_settings_page._run_all_verifications()
         selected_players = self.layout_settings_page.get_selected_players()
         if not selected_players:
             self._show_error_dialog("No instances selected to launch.")
@@ -221,7 +217,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.launch_button.get_style_context().add_class("launch-button")
         self.layout_settings_page.set_sensitive(True)
         self.layout_settings_page.set_running_state(False)
-        self.layout_settings_page._run_verification()
+        self.layout_settings_page._run_all_verifications()
         self._update_launch_button_state()
         self._is_running = False
 
