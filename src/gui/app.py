@@ -77,7 +77,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.launch_label = Gtk.Label(label="Play")
         self.launch_content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, hexpand=False, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         self.launch_content_box.append(self.launch_label)
-        
+
         self.launch_button.set_child(self.launch_content_box)
         self.footer_bar.pack_end(self.launch_button)
 
@@ -151,7 +151,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
             self.layout_settings_page.set_sensitive(False)
             self.layout_settings_page.set_running_state(True)
             self._is_running = True
-        
+
         self.launch_spinner.stop()
         if self.launch_spinner.get_parent() == self.launch_content_box:
             self.launch_content_box.remove(self.launch_spinner)
@@ -254,7 +254,11 @@ class MultiScopeApplication(Adw.Application):
         self.win.present()
 
 def run_gui():
-    """Lança a aplicação GUI."""
+    """Launches the GUI application."""
+    # Unset the old "prefer dark theme" setting to avoid Adwaita warnings
+    settings = Gtk.Settings.get_default()
+    settings.set_property("gtk-application-prefer-dark-theme", False)
+
     # Set the dark theme BEFORE instantiating the app
     style_manager = Adw.StyleManager.get_default()
     style_manager.set_color_scheme(Adw.ColorScheme.PREFER_DARK)
