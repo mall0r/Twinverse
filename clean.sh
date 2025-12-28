@@ -24,7 +24,7 @@ echo "   ✅ Cache limpo"
 
 # Passo 3: Limpar arquivos de build
 echo "3️⃣  Limpar arquivos de build..."
-rm -rf build dist AppDir
+rm -rf build dist AppDir .venv squashfs-root linuxdeploy-plugin-gtk.sh
 rm -rf *.spec
 rm -rf *.AppImage
 sleep 1

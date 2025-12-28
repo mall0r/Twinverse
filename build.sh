@@ -35,6 +35,14 @@ fi
 echo "🧹 Cleaning previous builds..."
 rm -rf build/ dist/ *.spec
 
+# Detect system paths for GTK libraries
+echo "🔍 Detecting GTK libraries..."
+GTK_LIBDIR=$(pkg-config --variable=libdir gtk4 2>/dev/null || echo "/usr/lib/x86_64-linux-gnu")
+GI_TYPELIB_PATH=$(pkg-config --variable=typelibdir gobject-introspection-1.0 2>/dev/null || echo "/usr/lib/x86_64-linux-gnu/girepository-1.0")
+
+echo "   GTK Library Path: $GTK_LIBDIR"
+echo "   GI Typelib Path: $GI_TYPELIB_PATH"
+
 # Create PyInstaller spec file
 echo "📝 Creating PyInstaller spec file..."
 cat > multiscope.spec << 'EOF'
@@ -43,6 +51,7 @@ cat > multiscope.spec << 'EOF'
 import os
 import sys
 from pathlib import Path
+import subprocess
 
 # Get the project root directory
 project_root = Path.cwd()
@@ -64,20 +73,88 @@ if scripts_path.exists():
     for js_file in scripts_path.glob('*.js'):
         js_files.append((str(js_file), 'scripts'))
 
-# Collect other resource files if needed
-data_files = css_files + js_files
+# Get GObject Introspection typelib path
+try:
+    gi_typelib_path = subprocess.check_output(
+        ['pkg-config', '--variable=typelibdir', 'gobject-introspection-1.0'],
+        text=True
+    ).strip()
+except:
+    gi_typelib_path = '/usr/lib/x86_64-linux-gnu/girepository-1.0'
+
+# Collect ALL necessary typelibs
+typelib_files = []
+required_typelibs = [
+    'Gtk-4.0', 'Gsk-4.0', 'Graphene-1.0', 'Adw-1', 'Gdk-4.0',
+    'GLib-2.0', 'GObject-2.0', 'Gio-2.0', 'GioUnix-2.0', 'GdkPixbuf-2.0',
+    'Pango-1.0', 'PangoCairo-1.0', 'PangoFT2-1.0', 'cairo-1.0',
+    'HarfBuzz-0.0', 'freetype2-2.0', 'GModule-2.0', 'xlib-2.0'
+]
+
+print(f"Collecting typelibs from: {gi_typelib_path}")
+if os.path.exists(gi_typelib_path):
+    for typelib in required_typelibs:
+        typelib_file = os.path.join(gi_typelib_path, f'{typelib}.typelib')
+        if os.path.exists(typelib_file):
+            typelib_files.append((typelib_file, 'gi_typelibs'))
+            print(f"  ✓ Found: {typelib}")
+        else:
+            print(f"  ✗ Missing: {typelib}")
+
+# Collect GTK/GDK shared libraries
+binaries = []
+try:
+    gtk_libdir = subprocess.check_output(
+        ['pkg-config', '--variable=libdir', 'gtk4'],
+        text=True
+    ).strip()
+
+    # Critical GTK4 libraries
+    gtk_libs = [
+        'libgtk-4.so.1',
+        'libadwaita-1.so.0',
+        'libgdk_pixbuf-2.0.so.0',
+        'libpango-1.0.so.0',
+        'libpangocairo-1.0.so.0',
+        'libcairo.so.2',
+        'libcairo-gobject.so.2',
+        'libharfbuzz.so.0',
+        'libgraphene-1.0.so.0',
+        'libepoxy.so.0'
+    ]
+
+    for lib in gtk_libs:
+        lib_path = os.path.join(gtk_libdir, lib)
+        if os.path.exists(lib_path):
+            binaries.append((lib_path, '.'))
+            print(f"  ✓ Including library: {lib}")
+except:
+    print("Warning: Could not detect GTK library path")
+
+# Collect other resource files
+data_files = css_files + js_files + typelib_files
 
 # Add hidden imports for PyInstaller
 hidden_imports = [
     'gi',
     'gi.repository',
     'gi.repository.Gtk',
+    'gi.repository.Gsk',
+    'gi.repository.Graphene',
     'gi.repository.Adw',
     'gi.repository.Gdk',
     'gi.repository.GLib',
     'gi.repository.Gio',
+    'gi.repository.GObject',
+    'gi.repository.GdkPixbuf',
+    'gi.repository.Pango',
+    'gi.repository.PangoCairo',
+    'gi.repository.PangoFT2',
     'pydantic',
-    'cairo'
+    'cairo',
+    'evdev',
+    'pydbus',
+    'screeninfo'
 ]
 
 block_cipher = None
@@ -85,7 +162,7 @@ block_cipher = None
 a = Analysis(
     ['multiscope.py'],
     pathex=[str(project_root)],
-    binaries=[],
+    binaries=binaries,
     datas=data_files,
     hiddenimports=hidden_imports,
     hookspath=[],
