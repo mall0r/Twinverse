@@ -100,6 +100,20 @@ REQUIRED_LIBS=(
     "libXdamage.so.1"
     "libXrandr.so.2"
     "libXinerama.so.1"
+    "libEGL.so.1"
+    "libGLX.so.0"
+    "libGL.so.1"
+    "libGLdispatch.so.0"
+    "libdrm.so.2"
+    "libgbm.so.1"
+    "libxcb.so.1"
+    "libxcb-dri2.so.0"
+    "libxcb-dri3.so.0"
+    "libxcb-present.so.0"
+    "libxcb-sync.so.1"
+    "libxcb-xfixes.so.0"
+    "libxshmfence.so.1"
+    "libX11-xcb.so.1"
 )
 
 for lib in "${REQUIRED_LIBS[@]}"; do

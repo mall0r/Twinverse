@@ -120,7 +120,13 @@ try:
         'libcairo-gobject.so.2',
         'libharfbuzz.so.0',
         'libgraphene-1.0.so.0',
-        'libepoxy.so.0'
+        'libepoxy.so.0',
+        'libEGL.so.1',
+        'libGLX.so.0',
+        'libGL.so.1',
+        'libGLdispatch.so.0',
+        'libdrm.so.2',
+        'libgbm.so.1'
     ]
 
     for lib in gtk_libs:
