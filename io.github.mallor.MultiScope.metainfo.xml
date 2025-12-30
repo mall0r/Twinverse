@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.mallor.MultiScope</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>MultiScope</name>
+  <summary>Multi-instance Gamescope manager</summary>
+
+  <description>
+    <p>
+      MultiScope is a powerful tool for managing multiple Gamescope instances
+      with advanced configuration options. It provides an intuitive GUI for
+      creating and managing gaming profiles with custom display settings,
+      input devices, and window management.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Create and manage multiple Gamescope profiles</li>
+      <li>Advanced display configuration (resolution, refresh rate, scaling)</li>
+      <li>Virtual input device management</li>
+      <li>KDE window manager integration</li>
+      <li>GTK4/Adwaita modern interface</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.mallor.MultiScope.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main application window</caption>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/yourusername/multiscope</url>
+  <url type="bugtracker">https://github.com/yourusername/multiscope/issues</url>
+
+  <provides>
+    <binary>multiscope</binary>
+  </provides>
+
+  <releases>
+    <release version="0.8.0" date="2025-01-01">
+      <description>
+        <p>Initial Flatpak release</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1" />
+
+  <categories>
+    <category>Game</category>
+    <category>Utility</category>
+  </categories>
+
+  <keywords>
+    <keyword>gamescope</keyword>
+    <keyword>gaming</keyword>
+    <keyword>display</keyword>
+    <keyword>steam</keyword>
+  </keywords>
+</component>
