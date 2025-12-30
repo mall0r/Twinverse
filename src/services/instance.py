@@ -215,14 +215,21 @@ class InstanceService:
                 except subprocess.TimeoutExpired:
                     self.logger.warning(f"Instance {instance_num} did not terminate after 10s. Sending SIGKILL.")
                     if self.is_flatpak:
-                        run_host_command(["kill", "-s", "SIGKILL", f"-{pgid}"])
+                        try:
+                            run_host_command(["kill", "-s", "SIGKILL", f"-{pgid}"])
+                        except Exception as e:
+                            self.logger.warning(f"Failed to send SIGKILL to host PGID {pgid}: {e}")
+
+                        run_host_command(["pkill", "-9", "-f", "winedevice"])
+
                     else:
                         try:
                             os.killpg(pgid, signal.SIGKILL)
                         except ProcessLookupError:
-                            self.logger.warning(
-                                f"Process group {pgid} not found when sending SIGKILL for instance {instance_num}."
-                            )
+                            self.logger.warning(f"Process group {pgid} not found when sending SIGKILL for instance {instance_num}.")
+
+                        subprocess.run(["pkill", "-9", "-f", "winedevice"], capture_output=True, text=True, check=False)
+
             else:
                 self.logger.warning(f"No PGID found for instance {instance_num}, cannot send termination signal.")
 
