@@ -10,6 +10,7 @@ if ! command -v flatpak-builder &> /dev/null; then
     echo "❌ flatpak-builder is not installed!"
     echo "Install it with: sudo apt install flatpak-builder (Debian/Ubuntu)"
     echo "                 sudo dnf install flatpak-builder (Fedora)"
+    echo "                 sudo pacman -S flatpak-builder (Arch Linux)"
     exit 1
 fi
 
