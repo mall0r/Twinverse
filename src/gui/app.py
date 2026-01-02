@@ -60,10 +60,8 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.toolbar_view.set_content(self.layout_settings_page)
 
         # Footer Bar for Play/Stop buttons
-        self.footer_bar = Adw.HeaderBar()
+        self.footer_bar = Gtk.ActionBar()
         self.footer_bar.get_style_context().add_class("footer-bar")
-        self.footer_bar.set_title_widget(Gtk.Label(label=""))
-        self.footer_bar.set_show_end_title_buttons(False)
         self.toolbar_view.add_bottom_bar(self.footer_bar)
 
         self.launch_button = Gtk.Button()
@@ -81,11 +79,6 @@ class MultiScopeWindow(Adw.ApplicationWindow):
 
         self.launch_button.set_child(self.launch_content_box)
         self.footer_bar.pack_end(self.launch_button)
-
-
-
-
-
 
     def _trigger_auto_save(self, *args):
         updated_profile = self.layout_settings_page.get_updated_data()

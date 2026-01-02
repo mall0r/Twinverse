@@ -18,8 +18,8 @@
     padding: 0 10px;
 }
 
-AdwToolbarView > AdwHeaderBar:last-child {
-    min-height: 50px;
+AdwToolbarView > GtkActionBar {
+    min-height: 60px;
 }
 
 /* Change the background color of the main content area */
