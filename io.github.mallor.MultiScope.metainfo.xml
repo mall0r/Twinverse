@@ -2,24 +2,26 @@
 <component type="desktop-application">
   <id>io.github.mallor.MultiScope</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MIT</project_license>
+  <project_license>GPL-3.0</project_license>
   <name>MultiScope</name>
-  <summary>Multi-instance Gamescope manager</summary>
+  <summary>Create and manage multiple instances of gamescope and steam simultaneously</summary>
 
   <description>
     <p>
-      MultiScope is a powerful tool for managing multiple Gamescope instances
-      with advanced configuration options. It provides an intuitive GUI for
-      creating and managing gaming profiles with custom display settings,
-      input devices, and window management.
+      MultiScope is an open-source tool for Linux/SteamOS that allows you to create and manage
+      multiple instances of `gamescope` and `steam` simultaneously.
+      This enables multiple players to enjoy their game library on a single computer,
+      either in split-screen mode or each with their own display, along with dedicated
+      audio output and input devices.
     </p>
-    <p>Features:</p>
+    <p>Key Features:</p>
     <ul>
-      <li>Create and manage multiple Gamescope profiles</li>
-      <li>Advanced display configuration (resolution, refresh rate, scaling)</li>
-      <li>Virtual input device management</li>
-      <li>KDE window manager integration</li>
-      <li>GTK4/Adwaita modern interface</li>
+      <li>Simple Multi-Instance Management: Run multiple Steam instances simultaneously.</li>
+      <li>Per-Instance Hardware Assignment: Assign specific mice, keyboards, and controllers to each game instance.</li>
+      <li>Dedicated Audio Channels: Route audio from each game instance to a separate audio output device.</li>
+      <li>Separate Home Directory: Customize settings and files for each instance individually.</li>
+      <li>Shared Game Library: Share the Steam game directory among multiple instances.</li>
+      <li>Use Any Proton: Use any version of Proton to run your games.</li>
     </ul>
   </description>
 
@@ -27,21 +29,28 @@
 
   <screenshots>
     <screenshot type="default">
+      <image>https://raw.githubusercontent.com/Mallor705/MultiScope/main/docs/assets/multiscope_ui.png</image>
       <caption>Main application window</caption>
     </screenshot>
   </screenshots>
 
-  <url type="homepage">https://github.com/yourusername/multiscope</url>
-  <url type="bugtracker">https://github.com/yourusername/multiscope/issues</url>
+  <url type="homepage">https://github.com/Mallor705/MultiScope</url>
+  <url type="bugtracker">https://github.com/Mallor705/MultiScope/issues</url>
+  <url type="donation">https://ko-fi.com/mallor705</url>
 
   <provides>
     <binary>multiscope</binary>
   </provides>
 
   <releases>
-    <release version="0.8.0" date="2025-01-01">
+    <release version="0.8.0" date="2024-07-29">
       <description>
-        <p>Initial Flatpak release</p>
+        <p>This is the first stable version of MultiScope, now with Flatpak and AppImage support.</p>
+        <ul>
+          <li>New feature: Profiles can now be edited.</li>
+          <li>New feature: Added a guide to help new users.</li>
+          <li>UI improvements and bug fixes.</li>
+        </ul>
       </description>
     </release>
   </releases>
@@ -51,6 +60,7 @@
   <categories>
     <category>Game</category>
     <category>Utility</category>
+    <category>System</category>
   </categories>
 
   <keywords>
@@ -58,5 +68,7 @@
     <keyword>gaming</keyword>
     <keyword>display</keyword>
     <keyword>steam</keyword>
+    <keyword>multiplayer</keyword>
+    <keyword>split-screen</keyword>
   </keywords>
 </component>
