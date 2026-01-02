@@ -8,7 +8,7 @@ setup(
     author="Mallor",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     install_requires=[
         "pydantic>=2.0.0",
         "PyGObject>=3.42.0",

@@ -95,20 +95,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.players_group.get_style_context().add_class("players-group")
         self.add(self.players_group)
 
-        # Global environment variables
-        self.env_group = Adw.PreferencesGroup(title="Environment Variables (Global)")
-        self.env_group.get_style_context().add_class("global-env-group")
-        self.add(self.env_group)
-        self.global_env_rows = []
 
-        self.global_env_add_row = Adw.ActionRow(title="Add environment variable")
-        self.global_env_add_row.get_style_context().add_class("global-env-add-row")
-        global_add_btn = Gtk.Button.new_from_icon_name("list-add-symbolic")
-        global_add_btn.get_style_context().add_class("add-button")
-        global_add_btn.set_valign(Gtk.Align.CENTER)
-        global_add_btn.connect("clicked", self._on_add_global_env_clicked)
-        self.global_env_add_row.add_suffix(global_add_btn)
-        self.env_group.add(self.global_env_add_row)
 
 
     def load_profile_data(self):
@@ -166,14 +153,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
                 if getattr(config, "env", None):
                     for k, v in (config.env or {}).items():
                         self._add_player_env_row_by_index(i, k, v)
-        # Populate global ENV
-        if hasattr(self, "global_env_rows"):
-            for env_row in self.global_env_rows:
-                self.env_group.remove(env_row["row"])
-        self.global_env_rows = []
-        if getattr(self.profile, "env", None):
-            for k, v in (self.profile.env or {}).items():
-                self._add_global_env_row(k, v)
+
 
         # After loading, enforce exclusivity rules on the UI
         active_grab_index = -1
@@ -221,8 +201,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.profile.use_gamescope = True       # Always enable Gamescope
         self.profile.enable_kwin_script = True  # Always enable KWin script
 
-        # Collect global environment variables
-        self.profile.env = self._collect_env_from_rows(self.global_env_rows)
+
 
         new_configs = []
         for i in range(self.profile.num_players):
@@ -360,23 +339,9 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         return {"row": row, "key": key_entry, "value": value_entry, "remove": remove_btn}
 
-    def _on_add_global_env_clicked(self, button):
-        self._add_global_env_row()
 
-    def _add_global_env_row(self, key: str = "", value: str = ""):
-        env_row = self._create_env_kv_row(self.env_group)
-        env_row["key"].set_text(str(key) if key is not None else "")
-        env_row["value"].set_text(str(value) if value is not None else "")
-        def on_remove(btn, row=env_row):
-            try:
-                self.env_group.remove(row["row"])
-            except Exception:
-                pass
-            if row in self.global_env_rows:
-                self.global_env_rows.remove(row)
-            self._on_setting_changed()
-        env_row["remove"].connect("clicked", on_remove)
-        self.global_env_rows.append(env_row)
+
+
 
     def _add_player_env_row_by_index(self, idx: int, key: str = "", value: str = ""):
         if idx < 0 or idx >= len(self.player_rows):
