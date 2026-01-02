@@ -36,14 +36,14 @@
 
   <url type="homepage">https://github.com/Mallor705/MultiScope</url>
   <url type="bugtracker">https://github.com/Mallor705/MultiScope/issues</url>
-  <url type="donation">https://ko-fi.com/mallor705</url>
+  <url type="donation">https://ko-fi.com/mallor</url>
 
   <provides>
     <binary>multiscope</binary>
   </provides>
 
   <releases>
-    <release version="0.8.0" date="2024-07-29">
+    <release version="0.9.0" date="2026-02-01">
       <description>
         <p>This is the first stable version of MultiScope, now with Flatpak and AppImage support.</p>
         <ul>
@@ -60,7 +60,6 @@
   <categories>
     <category>Game</category>
     <category>Utility</category>
-    <category>System</category>
   </categories>
 
   <keywords>
@@ -70,5 +69,9 @@
     <keyword>steam</keyword>
     <keyword>multiplayer</keyword>
     <keyword>split-screen</keyword>
+    <keyword>multi-monitor</keyword>
+    <keyword>coop</keyword>
+    <keyword>cooperative</keyword>
+    <keyword>game</keyword>
   </keywords>
 </component>
