@@ -44,7 +44,35 @@ O MultiScope foi projetado para ser uma solução flexível para múltiplos jogo
 
 ## 📦 Instalação
 
-A maneira mais fácil e recomendada de usar o MultiScope é através da versão AppImage. Este arquivo único funciona na maioria das distribuições Linux modernas sem a necessidade de instalação no sistema.
+Para usar o MultiScope, é necessário adicionar seu usuário ao grupo `input` para permitir que o programa gerencie os dispositivos de entrada.
+
+```bash
+sudo usermod -aG input $USER
+```
+**Você precisará sair e fazer login novamente para que as alterações entrem em vigor.**
+
+### Flatpak (Recomendado)
+A maneira recomendada de instalar o MultiScope é via Flatpak, que oferece um ambiente em sandbox e atualizações mais fáceis. Você pode instalá-lo do Flathub (assim que estiver disponível) ou de um arquivo `.flatpak` da [página de releases](https://github.com/Mallor705/MultiScope/releases).
+
+**Opção 1: Instalar do Flathub (Em Breve)**
+Assim que o MultiScope estiver disponível no Flathub, você poderá instalá-lo usando os seguintes comandos:
+```bash
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install flathub io.github.mallor.MultiScope
+```
+
+**Opção 2: Instalar de um arquivo .flatpak**
+1. **Baixe o último arquivo .flatpak:**
+   Acesse a página de [**Releases**](https://github.com/Mallor705/MultiScope/releases) e baixe o último arquivo `.flatpak`.
+
+2. **Instale o Flatpak:**
+   Você pode instalar o Flatpak com o seguinte comando:
+   ```bash
+   flatpak install MultiScope.flatpak
+   ```
+
+### AppImage
+Alternativamente, você pode usar a versão AppImage. Este arquivo único funciona na maioria das distribuições Linux modernas sem a necessidade de instalação no sistema.
 
 1.  **Baixe o AppImage mais recente:**
     Acesse a página de [**Releases**](https://github.com/Mallor705/MultiScope/releases) e baixe o arquivo `.AppImage` mais recente.
@@ -62,7 +90,7 @@ A maneira mais fácil e recomendada de usar o MultiScope é através da versão 
 
 Para uma melhor integração com o sistema (por exemplo, adicionar uma entrada no menu de aplicativos), você pode usar uma ferramenta como o **[Gear Lever](https://github.com/mijorus/gearlever)** para gerenciar seu AppImage.
 
-## Como Usar?
+## 📖 Como Usar?
 
 Acesse nosso [Guia](./GUIDE.pt-br.md) para mais informações sobre como usar o MultiScope.
 
@@ -118,6 +146,14 @@ O script `package-appimage.sh` automatiza o processo de criação de um AppImage
 ```bash
 ./package-appimage.sh
 ```
+
+### Empacotando um Flatpak
+O script `package-flatpak.sh` automatiza o processo de criação de um Flatpak. Ele irá construir o aplicativo e, em seguida, empacotá-lo em um arquivo `.flatpak`.
+
+```bash
+./package-flatpak.sh
+```
+
 
 ## 🤝 Como Contribuir
 
