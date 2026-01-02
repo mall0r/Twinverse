@@ -89,9 +89,3 @@ Para adicionar aplicativos à sua instância, vá em `Adicionar Jogo` e clique e
 Isso permite que você execute aplicativos diretamente da instância, assim é possível ter uma configuração única por instância para esse aplicativo. Isso acontece pois cada instância tem seu próprio diretório `HOME` único. Eles podem ser encontrados em `~/.local/share/multiscope/home_{n}`.
 
 Um bom exemplo de uso é o [mangojuice](https://github.com/radiolamp/mangojuice); caso queira usá-lo com configurações personalizadas você precisará executar e configurá-lo para cada instância individualmente.
-
-## 8. Enviroment Variables (Global)
-
-Faz o mesmo que **Enviroment Variables**, mas para todas as instâncias ao mesmo tempo.
-
-<img width="708" height="123" alt="env_var_global" src="https://github.com/user-attachments/assets/bf6d5437-feac-4f48-bfe3-5e5f8a355ad9" />

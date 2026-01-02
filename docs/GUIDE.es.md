@@ -90,9 +90,3 @@ Para agregar aplicaciones a tu instancia, ve a `Agregar un juego` y haz clic en 
 Esto te permite ejecutar aplicaciones directamente desde la instancia, haciendo posible tener una configuración única por instancia para esa aplicación. Esto sucede porque cada instancia tiene su propio directorio `HOME` único. Se pueden encontrar en `~/.local/share/multiscope/home_{n}`.
 
 Un buen ejemplo de uso es [mangojuice](https://github.com/radiolamp/mangojuice); si quieres usarlo con configuraciones personalizadas, necesitarás ejecutarlo y configurarlo para cada instancia individualmente.
-
-## 8. Enviroment Variables (Global)
-
-Hace lo mismo que las **Enviroment Variables**, pero para todas las instancias al mismo tiempo.
-
-<img width="708" height="123" alt="env_var_global" src="https://github.com/user-attachments/assets/bf6d5437-feac-4f48-bfe3-5e5f8a355ad9" />

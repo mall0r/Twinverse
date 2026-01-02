@@ -90,9 +90,3 @@ To add applications to your instance, go to `Add a Game` and click `Add a Non-St
 This allows you to run applications directly from the instance, enabling a unique configuration per instance for that application. This is because each instance has its own unique `HOME` directory. They can be found at `~/.local/share/multiscope/home_{n}`.
 
 A good example is [mangojuice](https://github.com/radiolamp/mangojuice); if you want to use it with custom settings, you will need to run and configure it for each instance individually.
-
-## 8. Enviroment Variables (Global)
-
-It does the same as **Environment Variables** but for all instances at the same time.
-
-<img width="708" height="123" alt="env_var_global" src="https://github.com/user-attachments/assets/bf6d5437-feac-4f48-bfe3-5e5f8a355ad9" />
