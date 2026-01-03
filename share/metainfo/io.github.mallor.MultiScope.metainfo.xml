@@ -29,12 +29,16 @@
 
   <screenshots>
     <screenshot>
-      <image>https://github.com/user-attachments/assets/b4618997-7136-44b4-9398-7b0a569a641e</image>
+      <image>https://raw.githubusercontent.com/Mallor705/MultiScope/master/share/screenshots/multiscope-ui.png</image>
       <caption>Main application window</caption>
     </screenshot>
     <screenshot>
-      <video>https://github.com/user-attachments/assets/7f74342f-415f-4296-8dbf-1c66e8286092</video>
+      <video>https://raw.githubusercontent.com/Mallor705/MultiScope/master/share/videos/horizontal-demo.webm</video>
       <caption>Demonstration of MultiScope in action.</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/Mallor705/MultiScope/master/share/screenshots/vertical-game.png</image>
+      <caption>Split-screen Game Vertical</caption>
     </screenshot>
   </screenshots>
 

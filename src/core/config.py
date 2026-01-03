@@ -5,7 +5,7 @@ class Config:
     """
     Global MultiScope configurations.
     """
-    APP_NAME = "MultiScope"
+    APP_NAME = "multiscope"
 
     @staticmethod
     def _get_script_dir() -> Path:
