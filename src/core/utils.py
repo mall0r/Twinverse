@@ -1,9 +1,26 @@
 import os
+import sys
+from pathlib import Path
 
 
 import subprocess
 import shlex
 from typing import List, Dict
+
+def get_base_path() -> Path:
+    """
+    Gets the base path for the application, handling PyInstaller.
+
+    - When running as a script, it returns the project root.
+    - When running as a PyInstaller bundle, it returns the path to the extracted files.
+    """
+    if getattr(sys, "frozen", False):
+        # Running in a PyInstaller bundle
+        return Path(sys._MEIPASS)
+    else:
+        # Running as a script, assuming this file is in src/core
+        return Path(__file__).resolve().parent.parent.parent
+
 
 def is_flatpak() -> bool:
     """Checks if the application is running inside a Flatpak."""

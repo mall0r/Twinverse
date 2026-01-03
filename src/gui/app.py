@@ -11,6 +11,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 from ..core.config import Config
 from ..core.exceptions import VirtualDeviceError
 from ..core.logger import Logger
+from ..core.utils import get_base_path
 from ..models.profile import Profile
 from ..services.instance import InstanceService
 from ..services.kde_manager import KdeManager
@@ -251,9 +252,10 @@ class MultiScopeWindow(Adw.ApplicationWindow):
 class MultiScopeApplication(Adw.Application):
     def __init__(self, **kwargs):
         super().__init__(application_id="io.github.mallor.MultiScope", **kwargs)
+        self.base_path = get_base_path()
 
         # Load resources
-        resource_path = Path(__file__).parent / "resources" / "compiled.gresource"
+        resource_path = self.base_path / "res" / "compiled.gresource"
         if resource_path.exists():
             resources = Gio.Resource.load(str(resource_path))
             Gio.Resource._register(resources)
@@ -264,7 +266,7 @@ class MultiScopeApplication(Adw.Application):
         self.win = MultiScopeWindow(application=app)
 
         css_provider = Gtk.CssProvider()
-        css_path = Path(__file__).parent / "style.css"
+        css_path = self.base_path / "res" / "styles" / "style.css"
         if css_path.exists():
             css_provider.load_from_path(str(css_path))
             Gtk.StyleContext.add_provider_for_display(

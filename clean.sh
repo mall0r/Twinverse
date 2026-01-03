@@ -27,7 +27,7 @@ rm -rf *.spec
 rm -rf *.AppImage
 rm -rf *.log
 rm -rf *.flatpak
-rm -f src/gui/resources/compiled.gresource
+rm -f res/compiled.gresource
 sleep 1
 echo "   ✅ Files cleaned"
 

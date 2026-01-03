@@ -30,9 +30,9 @@ pip install -r requirements.txt
 # Compile GResource
 echo "📦 Compiling GResource..."
 glib-compile-resources \
-  --target=src/gui/resources/compiled.gresource \
-  --sourcedir=src/gui/resources \
-  src/gui/resources/resources.xml
+  --target=res/compiled.gresource \
+  --sourcedir=res \
+  res/resources.xml
 
 # Install PyInstaller if not present
 if ! pip show pyinstaller >/dev/null 2>&1; then
@@ -70,11 +70,12 @@ src_path = project_root / 'src'
 gui_path = src_path / 'gui'
 scripts_path = project_root / 'scripts'
 
-# Collect all CSS files from the gui directory
+# Collect all CSS files from the res/styles directory
 css_files = []
-if gui_path.exists():
-    for css_file in gui_path.glob('style.css'):
-        css_files.append((str(css_file), 'src/gui'))
+styles_path = project_root / 'res' / 'styles'
+if styles_path.exists():
+    for css_file in styles_path.glob('*.css'):
+        css_files.append((str(css_file), 'res/styles'))
 
 # Collect all JS scripts from the scripts directory
 js_files = []
@@ -84,9 +85,9 @@ if scripts_path.exists():
 
 # Collect GResource file
 gresource_files = []
-gresource_file = gui_path / 'resources' / 'compiled.gresource'
+gresource_file = project_root / 'res' / 'compiled.gresource'
 if gresource_file.exists():
-    gresource_files.append((str(gresource_file), 'src/gui/resources'))
+    gresource_files.append((str(gresource_file), 'res'))
     print(f"  ✓ Found: {gresource_file}")
 else:
     print(f"  ✗ Missing: {gresource_file}")

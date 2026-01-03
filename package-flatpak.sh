@@ -8,9 +8,9 @@ set -e
 # Compile GResource
 echo "📦 Compiling GResource..."
 glib-compile-resources \
-  --target=src/gui/resources/compiled.gresource \
-  --sourcedir=src/gui/resources \
-  src/gui/resources/resources.xml
+  --target=res/compiled.gresource \
+  --sourcedir=res \
+  res/resources.xml
 
 echo "🚀 Starting MultiScope Flatpak build..."
 
