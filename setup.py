@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="multiscope",
-    version="0.8.0",
+    version="0.9.0",
     description="MultiScope is an open-source tool for Linux that enables the creation and management of gamescope sessions of steam, allowing several players to play simultaneously on a single computer",
     author="Mallor",
     packages=find_packages(where="src"),
