@@ -42,36 +42,36 @@ MultiScope is designed as a flexible solution for simultaneous multi-gaming on L
 
 ## 🎬 Demo
 
-<p align="center">
-  <video width="1920" height="1080" controls>
-    <source src="share/videos/horizontal-demo.webm" type="video/webm">
-    Your browser does not support the video tag.
-  </video>
-</p>
+[horizontal-demo](https://github.com/user-attachments/assets/e0ca4937-fd38-48cf-b56c-1c825b047572)
 
 ## 📦 Installation
 
 ### Flatpak (Recommended)
+
 The recommended way to install MultiScope is via Flatpak, which provides a sandboxed environment and easier updates. You can install it from Flathub (once available) or from a `.flatpak` file from the [releases page](https://github.com/Mallor705/MultiScope/releases).
 
 **Option 1: Install from Flathub (Coming Soon)**
 Once MultiScope is available on Flathub, you can install it using the following commands:
+
 ```bash
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak install flathub io.github.mallor.MultiScope
 ```
 
 **Option 2: Install from a .flatpak file**
+
 1. **Download the Latest .flatpak file:**
    Go to the [**Releases**](https://github.com/Mallor705/MultiScope/releases) page and download the latest `.flatpak` file.
 
 2. **Install the Flatpak:**
    You can install the Flatpak with the following command:
+   
    ```bash
    flatpak install MultiScope.flatpak
    ```
 
 ### AppImage
+
 Alternatively, you can use the AppImage version. This single file works on most modern Linux distributions without requiring system installation.
 
 1. **Download the Latest AppImage:**
@@ -149,12 +149,12 @@ The `package-appimage.sh` script automates the process of creating an AppImage. 
 ```
 
 ### Packaging a Flatpak
+
 The `package-flatpak.sh` script automates the process of creating a Flatpak. It will build the application and then package it into a `.flatpak` file.
 
 ```bash
 ./package-flatpak.sh
 ```
-
 
 ## 🤝 How to Contribute
 

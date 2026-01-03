@@ -42,12 +42,7 @@ O MultiScope foi projetado para ser uma solução flexível para múltiplos jogo
 
 ## 🎬 Demonstração
 
-<p align="center">
-  <video width="1920" height="1080" controls>
-    <source src="../share/videos/horizontal-demo.webm" type="video/webm">
-    Seu navegador não suporta o elemento de vídeo.
-  </video>
-</p>
+[horizontal-demo](https://github.com/user-attachments/assets/e0ca4937-fd38-48cf-b56c-1c825b047572)
 
 ## 📦 Instalação
 
