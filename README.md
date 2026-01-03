@@ -106,7 +106,7 @@ For window auto-tiling to work properly, it is recommended to use KDE Plasma 6.0
 
 MultiScope is under active development; some bugs may still be encountered.
 
-If you encounter issues, feel free to share your feedback and report bugs in the [Issues](https://github.com/Mallor705/MultiScope/issues) section.
+If you encounter issues, feel free to share your feedback and report bugs in the [Issues](https://github.com/Mallor705/MultiScope/issues/new) section.
 
 ---
 

@@ -105,7 +105,7 @@ Para que o auto-tiling das janelas funcione bem, é recomendado usar KDE Plasma 
 
 O MultiScope está em desenvolvimento ativo, alguns bugs ainda podem ser encontrados.
 
-Caso tenha problemas, sinta-se a vontade para compartilhar seu feedback e reportar bugs em [Issues](https://github.com/Mallor705/MultiScope/issues).
+Caso tenha problemas, sinta-se a vontade para compartilhar seu feedback e reportar bugs em [Issues](https://github.com/Mallor705/MultiScope/issues/new).
 
 ---
 

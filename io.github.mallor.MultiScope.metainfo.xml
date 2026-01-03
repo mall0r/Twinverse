@@ -28,14 +28,18 @@
   <launchable type="desktop-id">io.github.mallor.MultiScope.desktop</launchable>
 
   <screenshots>
-    <screenshot type="default">
-      <image>https://raw.githubusercontent.com/Mallor705/MultiScope/main/docs/assets/multiscope_ui.png</image>
+    <screenshot>
+      <image>https://github.com/user-attachments/assets/b4618997-7136-44b4-9398-7b0a569a641e</image>
       <caption>Main application window</caption>
+    </screenshot>
+    <screenshot>
+      <video>https://github.com/user-attachments/assets/7f74342f-415f-4296-8dbf-1c66e8286092</video>
+      <caption>Demonstration of MultiScope in action.</caption>
     </screenshot>
   </screenshots>
 
   <url type="homepage">https://github.com/Mallor705/MultiScope</url>
-  <url type="bugtracker">https://github.com/Mallor705/MultiScope/issues</url>
+  <url type="bugtracker">https://github.com/Mallor705/MultiScope/issues/new</url>
   <url type="donation">https://ko-fi.com/mallor</url>
 
   <provides>

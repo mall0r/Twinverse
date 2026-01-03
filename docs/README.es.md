@@ -105,7 +105,7 @@ Para que el mosaico automático de ventanas funcione correctamente, se recomiend
 
 MultiScope está en desarrollo activo; todavía se pueden encontrar algunos errores.
 
-Si encuentras problemas, no dudes en compartir tus comentarios y reportar errores en la sección de [Issues](https://github.com/Mallor705/MultiScope/issues).
+Si encuentras problemas, no dudes en compartir tus comentarios y reportar errores en la sección de [Issues](https://github.com/Mallor705/MultiScope/issues/new).
 
 ---
 
