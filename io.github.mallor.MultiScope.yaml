@@ -63,7 +63,7 @@ modules:
 
       # Install desktop file and icon
       - install -Dm644 res/multiscope.desktop /app/share/applications/io.github.mallor.MultiScope.desktop
-      - install -Dm644 res/multiscope.svg /app/share/icons/hicolor/scalable/apps/io.github.mallor.MultiScope.svg
+      - install -Dm644 res/io.github.mallor.MultiScope.svg /app/share/icons/hicolor/scalable/apps/io.github.mallor.MultiScope.svg
 
       # Update desktop file with correct app-id
       - desktop-file-edit --set-key=Icon --set-value=io.github.mallor.MultiScope /app/share/applications/io.github.mallor.MultiScope.desktop

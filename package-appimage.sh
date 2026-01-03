@@ -210,8 +210,8 @@ echo "📋 Copying desktop file and icon..."
 mkdir -p AppDir/usr/share/applications
 mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
 cp res/multiscope.desktop AppDir/usr/share/applications/
-cp res/multiscope.svg AppDir/usr/share/icons/hicolor/scalable/apps/
-cp res/multiscope.svg AppDir/multiscope.svg
+cp res/io.github.mallor.MultiScope.svg AppDir/usr/share/icons/hicolor/scalable/apps/
+cp res/io.github.mallor.MultiScope.svg AppDir/io.github.mallor.MultiScope.svg
 cp res/multiscope.desktop AppDir/multiscope.desktop
 
 # 14. Run linuxdeploy to finalize (without strip) and create AppImage
