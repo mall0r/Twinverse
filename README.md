@@ -42,12 +42,7 @@ MultiScope is designed as a flexible solution for simultaneous multi-gaming on L
 
 ## 🎬 Demo
 
-<p align="center">
-  <video width="1920" height="1080" controls>
-    <source src="share/videos/horizontal-demo.webm" type="video/webm">
-    Your browser does not support the video tag.
-  </video>
-</p>
+[horizontal-demo](share/videos/horizontal-demo.webm)
 
 ## 📦 Installation
 
