@@ -2,8 +2,8 @@ import logging
 import re
 import subprocess
 from screeninfo import get_monitors
-from ..models.profile import Profile
-from ..core.utils import is_flatpak, run_host_command
+from src.models import Profile
+from src.core import Utils
 from typing import Dict, List, Tuple, Optional, Union
 
 
@@ -133,10 +133,10 @@ class DeviceManager:
         audio_sinks = []
         command = "LANG=C pactl list sinks"
 
-        if is_flatpak():
+        if Utils.is_flatpak():
             # When using flatpak-spawn, we need to wrap the command in `sh -c`
             flatpak_command = ["sh", "-c", command]
-            pactl_output = run_host_command(flatpak_command, capture_output=True, text=True, check=True).stdout.strip()
+            pactl_output = Utils.run_host_command(flatpak_command, capture_output=True, text=True, check=True).stdout.strip()
         else:
             # _run_command uses shell=True, which handles the env var correctly.
             pactl_output = self._run_command(command)

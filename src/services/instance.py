@@ -7,22 +7,20 @@ import subprocess
 import time
 from pathlib import Path
 from typing import List, Optional
-from ..core.utils import is_flatpak, run_host_command, run_host_command_async
-from ..core.config import Config
-from ..core.exceptions import DependencyError, VirtualDeviceError
-from ..core.logger import Logger
-from ..models.profile import Profile, PlayerInstanceConfig
-from .virtual_device import VirtualDeviceService
-from .cmd_builder import CommandBuilder
-from .kde_manager import KdeManager
-from .device_manager import DeviceManager
+from src.core import Utils
+from src.core import Config
+from src.core import DependencyError, VirtualDeviceError
+from src.core import Logger
+from src.models import Profile, PlayerInstanceConfig
 
 
 class InstanceService:
     """Service responsible for managing Steam instances."""
 
-    def __init__(self, logger: Logger, kde_manager: Optional[KdeManager] = None):
+    def __init__(self, logger: Logger, kde_manager: Optional['KdeManager'] = None):
         """Initializes the instance service."""
+        from .virtual_device import VirtualDeviceService
+        from .device_manager import DeviceManager
         self.logger = logger
         self.virtual_device = VirtualDeviceService(logger)
         self.kde_manager = kde_manager
@@ -33,7 +31,6 @@ class InstanceService:
         self.pgids: dict[int, int] = {}
         self.processes: dict[int, subprocess.Popen] = {}
         self.termination_in_progress = False
-        self.is_flatpak = is_flatpak()
 
     def validate_dependencies(self, use_gamescope: bool = True) -> None:
         """Validates if all necessary commands are available on the system."""
@@ -44,10 +41,10 @@ class InstanceService:
 
         for cmd_name in required_commands:
             # If in Flatpak, check on the host. Otherwise, check locally.
-            if self.is_flatpak:
+            if Utils.is_flatpak():
                 try:
                     # We check the return code. A non-zero indicates the command is not found.
-                    run_host_command(["which", cmd_name], check=True, capture_output=True)
+                    Utils.run_host_command(["which", cmd_name], check=True, capture_output=True)
                 except subprocess.CalledProcessError:
                     raise DependencyError(f"Required command '{cmd_name}' not found on the host system")
             else:
@@ -72,6 +69,7 @@ class InstanceService:
         # Get instance-specific environment variables
         instance_env = self._prepare_environment(profile, device_info, instance_num)
 
+        from .cmd_builder import CommandBuilder
         cmd_builder = CommandBuilder(
             self.logger,
             profile,
@@ -90,7 +88,7 @@ class InstanceService:
             process: subprocess.Popen
             pgid = -1
 
-            if self.is_flatpak:
+            if Utils.is_flatpak():
                 # For Flatpak, prepend environment variables to the shell command
                 env_prefix_parts = []
                 for key, value in instance_env.items():
@@ -108,7 +106,7 @@ class InstanceService:
                 flatpak_spawn_env.pop("PYTHONPATH", None)
 
 
-                process = run_host_command_async(
+                process = Utils.run_host_command_async(
                     ["bash", "-c", shell_command],
                     stdout=subprocess.PIPE,  # Capture stdout to read the PGID
                     stderr=subprocess.DEVNULL,
@@ -161,12 +159,7 @@ class InstanceService:
         except Exception as e:
             self.logger.error(f"Failed to launch instance {instance_num}: {e}")
 
-    def launch_instance(
-        self,
-        profile: Profile,
-        instance_num: int,
-        use_gamescope_override: Optional[bool] = None,
-    ) -> None:
+    def launch_instance(self, profile: Profile, instance_num: int, use_gamescope_override: Optional[bool] = None) -> None:
         """Launches a single Steam instance."""
         if not self._virtual_joystick_checked:
             self._virtual_joystick_checked = True
@@ -217,9 +210,9 @@ class InstanceService:
             # For native, it's the PGID we created.
             pgid = self.pgids.get(instance_num)
             if pgid:
-                if self.is_flatpak:
+                if Utils.is_flatpak():
                     self.logger.info(f"Sending SIGTERM to host process group {pgid} for instance {instance_num}")
-                    run_host_command(["sh", "-c", f"kill -15 -{pgid}"])
+                    Utils.run_host_command(["sh", "-c", f"kill -15 -{pgid}"])
                 else:
                     try:
                         self.logger.info(f"Sending SIGTERM to process group {pgid} for instance {instance_num}")
@@ -232,13 +225,13 @@ class InstanceService:
                     self.logger.info(f"Instance {instance_num} terminated gracefully.")
                 except subprocess.TimeoutExpired:
                     self.logger.warning(f"Instance {instance_num} did not terminate after 10s. Sending SIGKILL.")
-                    if self.is_flatpak:
+                    if Utils.is_flatpak():
                         try:
-                            run_host_command(["sh", "-c", f"kill -9 -{pgid}"])
+                            Utils.run_host_command(["sh", "-c", f"kill -9 -{pgid}"])
                         except Exception as e:
                             self.logger.warning(f"Failed to send SIGKILL to host PGID {pgid}: {e}")
 
-                        run_host_command(["sh", "-c", "pkill -9 -f winedevice"])
+                        Utils.run_host_command(["sh", "-c", "pkill -9 -f winedevice"])
 
                     else:
                         try:

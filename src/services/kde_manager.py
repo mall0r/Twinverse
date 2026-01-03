@@ -1,17 +1,17 @@
 import os
 import subprocess
-import json
-from ..core.logger import Logger
-from pathlib import Path
-from ..models.profile import Profile
 import pydbus
-from ..core.utils import is_flatpak, run_host_command
+import json
+from src.core import Logger
+from pathlib import Path
+from src.models import Profile
+from src.core import Utils
+
 
 class KdeManager:
     def __init__(self, logger: Logger):
         self.logger = logger
         self.original_panel_states = {}
-        self.is_flatpak = is_flatpak()
         self.qdbus_command = self._find_qdbus_command()
         self.kwin_script_id = None
 
@@ -40,28 +40,28 @@ class KdeManager:
             return
 
         try:
-            if self.is_flatpak:
+            if Utils.is_flatpak():
                 self.logger.info("Loading KWin script via flatpak-spawn...")
                 script_content = script_path.read_text()
-                
+
                 # Create a temporary file on the host
-                tmp_creator = run_host_command(['mktemp'], capture_output=True, text=True, check=True)
+                tmp_creator = Utils.run_host_command(['mktemp'], capture_output=True, text=True, check=True)
                 tmp_path = tmp_creator.stdout.strip()
 
                 # Write the script content to the temporary file
-                run_host_command(['tee', tmp_path], input=script_content, text=True, check=True)
+                Utils.run_host_command(['tee', tmp_path], input=script_content, text=True, check=True)
 
                 # Load the script using qdbus
                 command = [self.qdbus_command, 'org.kde.KWin', '/Scripting', 'loadScript', tmp_path]
-                result = run_host_command(command, capture_output=True, text=True, check=True)
+                result = Utils.run_host_command(command, capture_output=True, text=True, check=True)
                 self.kwin_script_id = result.stdout.strip()
-                
+
                 # Start the script
                 start_command = [self.qdbus_command, 'org.kde.KWin', '/Scripting', 'start']
-                run_host_command(start_command, check=True)
+                Utils.run_host_command(start_command, check=True)
 
                 # Clean up the temporary file
-                run_host_command(['rm', tmp_path], check=True)
+                Utils.run_host_command(['rm', tmp_path], check=True)
             else:
                 bus = pydbus.SessionBus()
                 kwin_proxy = bus.get("org.kde.KWin", "/Scripting")
@@ -84,10 +84,10 @@ class KdeManager:
             return
 
         try:
-            if self.is_flatpak:
+            if Utils.is_flatpak():
                 self.logger.info(f"Unloading KWin script with ID: {self.kwin_script_id} via flatpak-spawn...")
                 command = [self.qdbus_command, 'org.kde.KWin', '/Scripting', 'unloadScript', str(self.kwin_script_id)]
-                run_host_command(command, check=True)
+                Utils.run_host_command(command, check=True)
             else:
                 bus = pydbus.SessionBus()
                 kwin_proxy = bus.get("org.kde.KWin", "/Scripting")
@@ -110,8 +110,8 @@ class KdeManager:
         for cmd in ["qdbus6", "qdbus"]:
             try:
                 command = [cmd, "--version"]
-                if self.is_flatpak:
-                    run_host_command(command, capture_output=True, check=True)
+                if Utils.is_flatpak():
+                    Utils.run_host_command(command, capture_output=True, check=True)
                 else:
                     subprocess.run(command, capture_output=True, check=True)
                 self.logger.info(f"Using '{cmd}' for dbus communication.")
@@ -133,8 +133,8 @@ class KdeManager:
                 "org.kde.PlasmaShell.evaluateScript",
                 script,
             ]
-            if self.is_flatpak:
-                result = run_host_command(command, capture_output=True, text=True, check=True)
+            if Utils.is_flatpak():
+                result = Utils.run_host_command(command, capture_output=True, text=True, check=True)
             else:
                 result = subprocess.run(command, capture_output=True, text=True, check=True)
             return result.stdout.strip()

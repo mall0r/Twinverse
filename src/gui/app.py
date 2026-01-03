@@ -8,14 +8,14 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
-from ..core.config import Config
-from ..core.exceptions import VirtualDeviceError
-from ..core.logger import Logger
-from ..core.utils import get_base_path
-from ..models.profile import Profile
-from ..services.instance import InstanceService
-from ..services.kde_manager import KdeManager
-from .layout_editor import LayoutSettingsPage
+from src.core import Config
+from src.core import VirtualDeviceError
+from src.core import Logger
+from src.core import Utils
+from src.models import Profile
+from src.services import InstanceService
+from src.services import KdeManager
+from src.gui.layout_editor import LayoutSettingsPage
 
 
 class MultiScopeWindow(Adw.ApplicationWindow):
@@ -27,22 +27,17 @@ class MultiScopeWindow(Adw.ApplicationWindow):
         self.logger = Logger("MultiScope-GUI", Config.LOG_DIR, reset=True)
         self.profile = Profile.load()
         self.kde_manager = KdeManager(self.logger)
-        self.instance_service = InstanceService(
-            logger=self.logger, kde_manager=self.kde_manager
-        )
-
+        self.instance_service = InstanceService(logger=self.logger, kde_manager=self.kde_manager)
         self._launch_thread = None
         self._cancel_launch_event = threading.Event()
         self._is_running = False
-
+        self.utils = Utils()
         self._build_ui()
         self._update_launch_button_state()
         self.connect("close-request", self.on_close_request)
 
     def _show_error_dialog(self, message):
-        dialog = Adw.MessageDialog(
-            transient_for=self, modal=True, title="Error", body=message
-        )
+        dialog = Adw.MessageDialog(transient_for=self, modal=True, title="Error", body=message)
         dialog.add_response("ok", "OK")
         dialog.present()
 
@@ -252,7 +247,7 @@ class MultiScopeWindow(Adw.ApplicationWindow):
 class MultiScopeApplication(Adw.Application):
     def __init__(self, **kwargs):
         super().__init__(application_id="io.github.mallor.MultiScope", **kwargs)
-        self.base_path = get_base_path()
+        self.base_path = Utils.get_base_path()
 
         # Load resources
         resource_path = self.base_path / "res" / "compiled.gresource"

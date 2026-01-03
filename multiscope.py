@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from src.gui.app import run_gui
-from src.core.config import Config
+from src import run_gui
+from src import Config
 
 def main():
     """

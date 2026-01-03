@@ -1,6 +1,7 @@
 import time
 from evdev import UInput, ecodes as e, list_devices, InputDevice, AbsInfo
-from ..core.exceptions import VirtualDeviceError
+from src.core import VirtualDeviceError
+
 
 class VirtualDeviceService:
     def __init__(self, logger):

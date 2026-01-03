@@ -1,9 +1,8 @@
 from pathlib import Path
 from typing import List, Dict, Optional
+from src.models import Profile
+from src.core import Logger
 
-from ..models.profile import Profile
-from ..core.logger import Logger
-from .device_manager import DeviceManager
 
 class CommandBuilder:
     def __init__(
@@ -11,7 +10,7 @@ class CommandBuilder:
         logger: Logger,
         profile: Profile,
         device_info: Dict,
-        device_manager: DeviceManager,
+        device_manager: 'DeviceManager',
         instance_num: int,
         home_path: Path,
         virtual_joystick_path: Optional[str],

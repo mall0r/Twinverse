@@ -1,15 +1,15 @@
 import gi
 import os
-from ..core.config import Config
-from ..models.profile import Profile, SplitscreenConfig, PlayerInstanceConfig
+from src.core import Config
+from src.models import Profile, SplitscreenConfig, PlayerInstanceConfig
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from ..services.device_manager import DeviceManager
-from ..services.steam_verifier import SteamVerifier
+from src.services import DeviceManager
+from src.services import SteamVerifier
 from gi.repository import Adw, Gdk, GObject, Gtk
-from ..services.instance import InstanceService
+from src.services import InstanceService
 
 
 class LayoutSettingsPage(Adw.PreferencesPage):

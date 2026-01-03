@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from pydantic import (BaseModel, ConfigDict, Field, ValidationError, validator)
-from ..core.config import Config
-from ..core.exceptions import ProfileNotFoundError
-from ..core.logger import Logger
+from src.core import Config
+from src.core import ProfileNotFoundError
+from src.core import Logger
 
 
 class PlayerInstanceConfig(BaseModel):

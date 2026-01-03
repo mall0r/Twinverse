@@ -1,2 +1,6 @@
-# src/models/__init__.py
-"""Data models and structures"""
+"""Data models for MultiScope."""
+
+from .instance import SteamInstance
+from .profile import PlayerInstanceConfig, Profile, SplitscreenConfig
+
+__all__ = ["SteamInstance", "PlayerInstanceConfig", "SplitscreenConfig", "Profile"]
