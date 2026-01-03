@@ -209,10 +209,12 @@ chmod +x AppDir/AppRun
 echo "📋 Copying desktop file and icon..."
 mkdir -p AppDir/usr/share/applications
 mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
+mkdir -p AppDir/usr/share/metainfo
 cp share/applications/io.github.mallor.MultiScope.desktop AppDir/usr/share/applications/
 cp share/icons/hicolor/scalable/apps/io.github.mallor.MultiScope.svg AppDir/usr/share/icons/hicolor/scalable/apps/
 cp share/icons/hicolor/scalable/apps/io.github.mallor.MultiScope.svg AppDir/io.github.mallor.MultiScope.svg
 cp share/applications/io.github.mallor.MultiScope.desktop AppDir/io.github.mallor.MultiScope.desktop
+cp share/metainfo/io.github.mallor.MultiScope.metainfo.xml AppDir/usr/share/metainfo/
 
 # 14. Run linuxdeploy to finalize (without strip) and create AppImage
 echo "🔧 Running linuxdeploy..."
