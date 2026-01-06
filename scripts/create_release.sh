@@ -1,9 +1,9 @@
 #!/bin/bash
-# Script automatizado para criar releases do MultiScope
+# Automated release script for MultiScope
 
-set -e  # Sai com erro se algum comando falhar
+set -e  # Exit on error
 
-# Funções de utilitário
+# Utility functions
 print_header() {
     echo -e "\n\033[1;34m=== $1 ===\033[0m"
 }
@@ -16,9 +16,9 @@ print_error() {
     echo -e "\033[1;31m✗ $1\033[0m" >&2
 }
 
-# Função para verificar dependências
+# Function to check dependencies
 check_dependencies() {
-    print_header "Verificando Dependências"
+    print_header "Checking Dependencies"
 
     local missing_deps=()
 
@@ -28,93 +28,93 @@ check_dependencies() {
         fi
     done
 
-    # Verifica se estamos em um repositório git
+    # Check if we're in a git repository
     if [[ ! -d ".git" ]]; then
-        print_error "Não está em um repositório git"
+        print_error "Not in a git repository"
         missing_deps+=("git-repo")
     fi
 
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
-        print_error "Dependências ausentes: ${missing_deps[*]}"
+        print_error "Missing dependencies: ${missing_deps[*]}"
         exit 1
     fi
 
-    print_success "Todas dependências verificadas"
+    print_success "All dependencies verified"
 }
 
-# Função para obter a versão atual
+# Function to get current version
 get_current_version() {
     if [[ -f "version" ]]; then
         cat version
     else
-        echo "0.9.0"  # Versão padrão
+        echo "0.9.0"  # Default version
     fi
 }
 
-# Função para verificar se há alterações não commitadas
+# Function to check for uncommitted changes
 check_git_status() {
     if [[ -n $(git status --porcelain) ]]; then
-        print_error "Há alterações não commitadas no repositório"
-        echo "Por favor, commit ou revert as alterações antes de criar uma release"
+        print_error "There are uncommitted changes in the repository"
+        echo "Please commit or revert changes before creating a release"
         exit 1
     fi
 }
 
-# Função para criar release
+# Function to create release
 create_release() {
     local version="$1"
     local release_type="$2"
 
-    print_header "Criando Release $version ($release_type)"
+    print_header "Creating Release $version ($release_type)"
 
-    # Atualiza a versão
+    # Update version
     python scripts/version_manager.py "$version"
 
-    # Commit das alterações de versionamento
-    print_header "Fazendo commit das alterações"
+    # Commit version changes
+    print_header "Committing changes"
     git add version share/metainfo/io.github.mallor.MultiScope.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh
     git commit -m "Bump version to $version"
 
-    # Cria tag
-    print_header "Criando tag"
+    # Create tag
+    print_header "Creating tag"
     git tag "v$version"
 
-    print_success "Release $version criada com sucesso!"
+    print_success "Release $version created successfully!"
     echo ""
-    echo "Próximos passos:"
-    echo "1. Faça push das alterações e da tag:"
+    echo "Next steps:"
+    echo "1. Push changes and tag:"
     echo "   git push origin main"
     echo "   git push origin v$version"
     echo ""
-    echo "2. Para criar pacotes, execute:"
-    echo "   ./scripts/package-appimage.sh  # Para AppImage"
-    echo "   ./scripts/package-flatpak.sh   # Para Flatpak"
+    echo "2. To create packages, run:"
+    echo "   ./scripts/package-appimage.sh  # For AppImage"
+    echo "   ./scripts/package-flatpak.sh   # For Flatpak"
     }
 
-# Função para mostrar ajuda
+# Function to show help
 show_help() {
     cat << EOF
-Script de Release do MultiScope
+MultiScope Release Script
 
-Uso: $0 [OPÇÕES] [VERSÃO]
+Usage: $0 [OPTIONS] [VERSION]
 
-Opções:
-  --major          Cria uma release major (x.0.0)
-  --minor          Cria uma release minor (0.y.0)
-  --patch          Cria uma release patch (0.0.z)
-  --custom <ver>   Cria uma release com versão personalizada
-  --help, -h       Mostra esta ajuda
+Options:
+  --major          Create a major release (x.0.0)
+  --minor          Create a minor release (0.y.0)
+  --patch          Create a patch release (0.0.z)
+  --custom <ver>   Create a custom release
+  --help, -h       Show this help
 
-Exemplos:
-  $0 --major              # Cria release major: 1.2.3 -> 2.0.0
-  $0 --minor              # Cria release minor: 1.2.3 -> 1.3.0
-  $0 --patch              # Cria release patch: 1.2.3 -> 1.2.4
-  $0 --custom 2.1.5       # Cria release com versão personalizada
+Examples:
+  $0 --major              # Create major release: 1.2.3 -> 2.0.0
+  $0 --minor              # Create minor release: 1.2.3 -> 1.3.0
+  $0 --patch              # Create patch release: 1.2.3 -> 1.2.4
+  $0 --custom 2.1.5       # Create custom release
 
 EOF
 }
 
-# Função para incrementar versão
+# Function to increment version
 increment_version() {
     local version="$1"
     local part="$2"
@@ -142,7 +142,7 @@ increment_version() {
     echo "${major}.${minor}.${patch}"
 }
 
-# Parse de argumentos
+# Parse arguments
 if [[ $# -eq 0 ]]; then
     show_help
     exit 1
@@ -174,7 +174,7 @@ while [[ $# -gt 0 ]]; do
                 new_version="$2"
                 shift 2
             else
-                print_error "Opção --custom requer uma versão"
+                print_error "Option --custom requires a version"
                 exit 1
             fi
             ;;
@@ -183,7 +183,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         -*)
-            print_error "Opção desconhecida: $1"
+            print_error "Unknown option: $1"
             show_help
             exit 1
             ;;
@@ -194,31 +194,31 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validação de formato de versão
+# Version format validation
 if ! [[ $new_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    print_error "Formato de versão inválido: $new_version"
-    print_error "Use o formato x.y.z (ex: 1.0.0)"
+    print_error "Invalid version format: $new_version"
+    print_error "Use format x.y.z (e.g., 1.0.0)"
     exit 1
 fi
 
-# Verifica dependências
+# Check dependencies
 check_dependencies
 
-# Verifica status do git
+# Check git status
 check_git_status
 
-# Confirmação
-print_header "Informações da Release"
-echo "Versão atual: $current_version"
-echo "Nova versão: $new_version"
-echo "Tipo: $release_type"
+# Confirmation
+print_header "Release Information"
+echo "Current version: $current_version"
+echo "New version: $new_version"
+echo "Type: $release_type"
 
-read -p "Deseja realmente criar a release $new_version? (s/N): " -n 1 -r
+read -p "Do you really want to create release $new_version? (y/N): " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Ss]$ ]]; then
-    echo "Operação cancelada."
+    echo "Operation cancelled."
     exit 0
 fi
 
-# Cria a release
+# Create the release
 create_release "$new_version" "$release_type"

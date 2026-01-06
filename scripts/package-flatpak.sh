@@ -2,14 +2,14 @@
 # MultiScope Professional Flatpak Build Script
 set -euo pipefail
 
-# ===== CONFIGURAÇÃO =====
+# ===== CONFIGURATION =====
 readonly APP_ID="io.github.mallor.MultiScope"
 readonly MANIFEST="$APP_ID.yaml"
 readonly BUILD_DIR="build-dir"
 readonly REPO_DIR="flatpak-repo"
 readonly BUNDLE_NAME="MultiScope.flatpak"
 
-# ===== FUNÇÕES =====
+# ===== FUNCTIONS =====
 print_header() {
     echo -e "\n\033[1;34m=== $1 ===\033[0m"
 }
@@ -23,176 +23,176 @@ print_error() {
 }
 
 check_dependencies() {
-    print_header "Verificando Dependências"
+    print_header "Checking Dependencies"
 
     local missing_deps=()
 
-    # Comandos obrigatórios
+    # Required commands
     for cmd in flatpak flatpak-builder ostree; do
         if ! command -v "$cmd" &> /dev/null; then
             missing_deps+=("$cmd")
         fi
     done
 
-    # Comandos opcionais (apenas para recursos)
+    # Optional commands (only for features)
     if [[ -f "res/resources.xml" ]]; then
         if ! command -v glib-compile-resources &> /dev/null; then
-            print_error "glib-compile-resources não encontrado (necessário para GResource)"
-            echo "  Instale: sudo apt install libglib2.0-dev-bin"
+            print_error "glib-compile-resources not found (required for GResource)"
+            echo "  Install: sudo apt install libglib2.0-dev-bin"
             missing_deps+=("glib-compile-resources")
         fi
     fi
 
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
-        print_error "Dependências ausentes: ${missing_deps[*]}"
+        print_error "Missing dependencies: ${missing_deps[*]}"
         exit 1
     fi
 
-    print_success "Todas dependências verificadas"
+    print_success "All dependencies verified"
 }
 
 setup_runtime() {
-    print_header "Configurando Runtime Flatpak"
+    print_header "Setting up Flatpak Runtime"
 
-    local sdk_version="49"  # Ajuste conforme necessário
+    local sdk_version="49"  # Adjust as needed
     local runtime="org.gnome.Platform"
     local sdk="org.gnome.Sdk"
 
     if ! flatpak list --runtime | grep -q "$runtime//$sdk_version"; then
-        echo "Instalando runtime GNOME $sdk_version..."
+        echo "Installing GNOME $sdk_version runtime..."
         flatpak install -y flathub "$runtime//$sdk_version" "$sdk//$sdk_version" || {
-            print_error "Falha ao instalar runtime"
+            print_error "Failed to install runtime"
             exit 1
         }
     fi
 
-    print_success "Runtime configurado"
+    print_success "Runtime configured"
 }
 
 clean_build() {
-    print_header "Limpando Builds Anteriores"
+    print_header "Cleaning Previous Builds"
 
-    # Remove diretórios de build
+    # Remove build directories
     rm -rf "$BUILD_DIR" .flatpak-builder .flatpak-builder-cache
 
-    # Remove bundle anterior se existir
+    # Remove previous bundle if exists
     [[ -f "$BUNDLE_NAME" ]] && rm -f "$BUNDLE_NAME"
 
-    # Limpa recursos compilados
+    # Clean compiled resources
     [[ -f "res/compiled.gresource" ]] && rm -f "res/compiled.gresource"
 
-    print_success "Ambiente limpo"
+    print_success "Environment cleaned"
 }
 
 compile_resources() {
-    # Só compila se resources.xml existir
+    # Only compile if resources.xml exists
     if [[ -f "res/resources.xml" ]]; then
-        print_header "Compilando Recursos"
+        print_header "Compiling Resources"
         glib-compile-resources \
             --target=res/compiled.gresource \
             --sourcedir=res \
             res/resources.xml
-        print_success "Recursos compilados"
+        print_success "Resources compiled"
     fi
 }
 
 build_flatpak() {
-    print_header "Construindo Flatpak"
+    print_header "Building Flatpak"
 
     local build_cmd=(
         flatpak-builder
         --force-clean
         --install-deps-from=flathub
         --repo="$REPO_DIR"
-        --ccache  # Habilita cache para builds mais rápidos
-        --disable-updates  # Evita atualizações automáticas durante build
-        --keep-build-dirs  # Mantém diretórios para depuração
+        --ccache
+        --disable-updates
+        --keep-build-dirs
     )
 
-    # Verifica se é uma build de desenvolvimento
+    # Check if it's a development build
     if [[ "${1:-}" == "--dev" ]]; then
-        build_cmd+=(--user)  # Instala para usuário
+        build_cmd+=(--user)  # Install for user
     fi
 
     "${build_cmd[@]}" "$BUILD_DIR" "$MANIFEST"
 
-    print_success "Flatpak construído"
+    print_success "Flatpak built"
 }
 
 create_repository() {
-    print_header "Criando Repositório Local"
+    print_header "Creating Local Repository"
 
     if [[ ! -d "$REPO_DIR" ]]; then
         ostree init --mode=archive-z2 --repo="$REPO_DIR"
     fi
 
-    print_success "Repositório pronto"
+    print_success "Repository ready"
 }
 
 create_bundle() {
-    print_header "Criando Bundle"
+    print_header "Creating Bundle"
 
-    # ★ CORREÇÃO: Lê a versão do arquivo metainfo.xml ★
+    # ★ FIX: Read version from metainfo.xml file ★
     local metainfo_path="share/metainfo/io.github.mallor.MultiScope.metainfo.xml"
     local version
     version=$(grep -oP '<release version="\K[^"]+' "$metainfo_path" | head -1)
 
-    # Nome do bundle com a versão extraída
+    # Bundle name with extracted version
     local final_bundle="MultiScope-${version:-unknown}.flatpak"
 
-    echo "📦 Criando: $final_bundle"
-    echo "📄 Fonte da versão: $metainfo_path"
+    echo "📦 Creating: $final_bundle"
+    echo "📄 Version source: $metainfo_path"
     echo "🆔 App ID: $APP_ID"
     echo ""
 
-    # Remove bundle anterior se existir
+    # Remove previous bundle if exists
     [[ -f "$final_bundle" ]] && rm -f "$final_bundle"
 
-    # Comando DIRETO - mostra logs automaticamente
+    # DIRECT command - automatically shows logs
     flatpak build-bundle "$REPO_DIR" "$final_bundle" "$APP_ID"
 
-    # Verificação simples
+    # Simple verification
     if [[ -f "$final_bundle" ]]; then
         local bundle_size
         bundle_size=$(du -h "$final_bundle" | cut -f1)
-        print_success "✅ Bundle criado com sucesso!"
-        echo "   Arquivo: $final_bundle"
-        echo "   Tamanho: $bundle_size"
-        echo "   Versão: $version"
+        print_success "✅ Bundle created successfully!"
+        echo "   File: $final_bundle"
+        echo "   Size: $bundle_size"
+        echo "   Version: $version"
         return 0
     else
-        print_error "❌ Falha ao criar bundle"
+        print_error "❌ Failed to create bundle"
         return 1
     fi
 }
 
 test_build() {
-    print_header "Testando Build"
+    print_header "Testing Build"
 
-    # Testa usando o nome do binário real (multiscope) em vez do App ID
+    # Test using the real binary name (multiscope) instead of App ID
     if timeout 5s flatpak-builder --run "$BUILD_DIR" "$MANIFEST" "multiscope" --help >/dev/null 2>&1; then
-        print_success "Build testado com sucesso"
+        print_success "Build tested successfully"
     elif timeout 5s flatpak-builder --run "$BUILD_DIR" "$MANIFEST" "multiscope" >/dev/null 2>&1; then
-        print_success "Build testado (executou sem argumentos)"
+        print_success "Build tested (ran without arguments)"
     else
-        # Teste alternativo: apenas verifica se os arquivos existem
+        # Alternative test: just check if files exist
         if [[ -f "$BUILD_DIR/files/bin/multiscope" ]]; then
-            print_success "Binário encontrado - build válido"
+            print_success "Binary found - build valid"
         else
-            print_error "Binário não encontrado no build"
+            print_error "Binary not found in build"
             return 1
         fi
     fi
 }
 
-# ===== FLUXO PRINCIPAL =====
+# ===== MAIN FLOW =====
 main() {
     print_header "🚀 MultiScope Flatpak Builder"
     echo "App ID: $APP_ID"
     echo "Manifest: $MANIFEST"
     echo ""
 
-    # Parse argumentos
+    # Parse arguments
     local dev_build=false
     local skip_tests=false
 
@@ -211,14 +211,14 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Argumento desconhecido: $1"
+                print_error "Unknown argument: $1"
                 show_help
                 exit 1
                 ;;
         esac
     done
 
-    # Fluxo de build
+    # Build flow
     check_dependencies
     setup_runtime
     clean_build
@@ -232,23 +232,23 @@ main() {
 
     create_bundle
 
-    # Informações finais
-    print_header "✅ Build Concluído"
+    # Final information
+    print_header "✅ Build Completed"
     show_usage_instructions
 }
 
 show_help() {
     cat << EOF
-Uso: $0 [OPÇÕES]
+Usage: $0 [OPTIONS]
 
-Opções:
-  --dev          Build de desenvolvimento (instala para usuário)
-  --skip-tests   Pula testes após build
-  --help, -h     Mostra esta ajuda
+Options:
+  --dev          Development build (install for user)
+  --skip-tests   Skip tests after build
+  --help, -h     Show this help
 
-Exemplos:
-  $0              # Build padrão (release)
-  $0 --dev        # Build de desenvolvimento
+Examples:
+  $0              # Default build (release)
+  $0 --dev        # Development build
   $0 --dev --skip-tests
 
 EOF
@@ -257,41 +257,34 @@ EOF
 show_usage_instructions() {
     cat << EOF
 
-📦 INSTALAÇÃO E USO:
+📦 INSTALLATION AND USAGE:
 
-  Instalar bundle localmente:
+  Install local bundle:
     flatpak install --user $BUNDLE_NAME
 
-  Executar aplicativo:
+  Run application:
     flatpak run $APP_ID
 
-  Desinstalar:
+  Uninstall:
     flatpak uninstall --user $APP_ID
 
-🔧 DEPURAÇÃO:
+🔧 DEBUGGING:
 
-  Ver logs da aplicação:
+  View application logs:
     flatpak run --command=sh $APP_ID
 
-  Acessar sandbox:
+  Access sandbox:
     flatpak run --devel $APP_ID
 
-📤 PUBLICAÇÃO NO FLATHUB:
-
-  1. Fork repositório: https://github.com/flathub/flathub
-  2. Adicione seu manifesto: $MANIFEST
-  3. Submeta Pull Request
-  4. Após aprovação, seu app estará em: https://flathub.org/apps/$APP_ID
-
-📁 ESTRUTURA CRIADA:
-  $BUILD_DIR/     - Diretório de build
-  $REPO_DIR/      - Repositório OSTree local
-  MultiScope-*.flatpak - Bundle instalável
+📁 CREATED STRUCTURE:
+  $BUILD_DIR/     - Build directory
+  $REPO_DIR/      - Local OSTree repository
+  MultiScope-*.flatpak - Installable bundle
 
 EOF
 }
 
-# ===== PONTO DE ENTRADA =====
+# ===== ENTRY POINT =====
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi

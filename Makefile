@@ -1,151 +1,151 @@
-# Makefile para operações de versionamento e build do MultiScope
+# Makefile for MultiScope versioning and build operations
 
-# Variáveis
+# Variables
 VERSION_FILE = version
 VERSION = $(shell cat $(VERSION_FILE))
 
-# Targets principais
+# Main targets
 .PHONY: help version update-version bump-major bump-minor bump-patch release-major release-minor release-patch release-custom check-deps git-status
 
-# Mostrar ajuda
+# Show help
 help:
-	@echo "MultiScope Makefile - Gerenciamento de versão e build"
+	@echo "MultiScope Makefile - Version and build management"
 	@echo ""
-	@echo "Targets disponíveis:"
-	@echo "  help              - Mostra esta ajuda"
-	@echo "  version           - Mostra a versão atual"
-	@echo "  update-version    - Atualiza a versão (uso: make update-version NEW_VERSION=1.2.3)"
-	@echo "  bump-major        - Incrementa versão major (x.0.0)"
-	@echo "  bump-minor        - Incrementa versão minor (0.y.0)"
-	@echo "  bump-patch        - Incrementa versão patch (0.0.z)"
-	@echo "  release-major     - Cria uma release major (x.0.0)"
-	@echo "  release-minor     - Cria uma release minor (0.y.0)"
-	@echo "  release-patch     - Cria uma release patch (0.0.z)"
-	@echo "  release-custom    - Cria uma release customizada (uso: make release-custom NEW_VERSION=1.2.3)"
-	@echo "  check-deps        - Verifica as dependências necessárias"
-	@echo "  git-status        - Verifica o status do repositório git"
+	@echo "Available targets:"
+	@echo "  help              - Show this help"
+	@echo "  version           - Show current version"
+	@echo "  update-version    - Update version (usage: make update-version NEW_VERSION=1.2.3)"
+	@echo "  bump-major        - Increment major version (x.0.0)"
+	@echo "  bump-minor        - Increment minor version (0.y.0)"
+	@echo "  bump-patch        - Increment patch version (0.0.z)"
+	@echo "  release-major     - Create a major release (x.0.0)"
+	@echo "  release-minor     - Create a minor release (0.y.0)"
+	@echo "  release-patch     - Create a patch release (0.0.z)"
+	@echo "  release-custom    - Create a custom release (usage: make release-custom NEW_VERSION=1.2.3)"
+	@echo "  check-deps        - Check required dependencies"
+	@echo "  git-status        - Check git repository status"
 	@echo ""
-	@echo "Exemplos:"
+	@echo "Examples:"
 	@echo "  make version"
 	@echo "  make update-version NEW_VERSION=1.2.3"
 	@echo "  make bump-patch"
 	@echo "  make release-major"
 	@echo "  make release-custom NEW_VERSION=2.1.5"
 
-# Mostrar versão atual
+# Show current version
 version:
-	@echo "Versão atual: $(VERSION)"
+	@echo "Current version: $(VERSION)"
 
-# Verificar dependências
+# Check dependencies
 check-deps:
-	@echo "Verificando dependências..."
-	@command -v git >/dev/null 2>&1 || { echo "Erro: git não encontrado"; exit 1; }
-	@command -v python3 >/dev/null 2>&1 || { echo "Erro: python3 não encontrado"; exit 1; }
-	@if [ ! -d ".git" ]; then echo "Erro: Não está em um repositório git"; exit 1; fi
-	@echo "Todas as dependências estão presentes"
+	@echo "Checking dependencies..."
+	@command -v git >/dev/null 2>&1 || { echo "Error: git not found"; exit 1; }
+	@command -v python3 >/dev/null 2>&1 || { echo "Error: python3 not found"; exit 1; }
+	@if [ ! -d ".git" ]; then echo "Error: Not in a git repository"; exit 1; fi
+	@echo "All dependencies are present"
 
-# Verificar status do git
+# Check git status
 git-status:
 	@if [ -n "$$(git status --porcelain)" ]; then \
-		echo "Há alterações não commitadas no repositório"; \
+		echo "There are uncommitted changes in the repository"; \
 		git status --porcelain; \
 		exit 1; \
 	else \
-		echo "Repositório git limpo"; \
+		echo "Git repository is clean"; \
 	fi
 
-# Atualizar versão
+# Update version
 update-version:
 ifndef NEW_VERSION
-	$(error Por favor, especifique a nova versão: make update-version NEW_VERSION=1.2.3)
+	$(error Please specify the new version: make update-version NEW_VERSION=1.2.3)
 endif
-	@echo "Atualizando versão de $(VERSION) para $(NEW_VERSION)"
+	@echo "Updating version from $(VERSION) to $(NEW_VERSION)"
 	@python scripts/version_manager.py $(NEW_VERSION)
 
-# Criar release major
+# Create major release
 release-major: check-deps git-status
-	@echo "Criando release major..."
+	@echo "Creating major release..."
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=$$(echo $$current_version | cut -d. -f2); \
 	patch=$$(echo $$current_version | cut -d. -f3); \
 	new_version=$$((major + 1)).0.0; \
-	echo "Atualizando versão de $$current_version para $$new_version"; \
+	echo "Updating version from $$current_version to $$new_version"; \
 	python scripts/version_manager.py $$new_version; \
-	echo "Fazendo commit das alterações de versionamento"; \
+	echo "Committing version changes"; \
 	git add $(VERSION_FILE) share/metainfo/io.github.mallor.MultiScope.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mallor.MultiScope.yaml scripts/package-flatpak.sh; \
 	git commit -m "Bump version to $$new_version"; \
 	git tag "v$$new_version"; \
-	echo "Release $$new_version criada com sucesso!"; \
-	echo "Para fazer push das alterações e da tag, execute:"; \
+	echo "Release $$new_version created successfully!"; \
+	echo "To push changes and tag, run:"; \
 	echo "  git push origin main"; \
 	echo "  git push origin v$$new_version"
 
-# Criar release minor
+# Create minor release
 release-minor: check-deps git-status
-	@echo "Criando release minor..."
+	@echo "Creating minor release..."
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=$$(echo $$current_version | cut -d. -f2); \
 	patch=$$(echo $$current_version | cut -d. -f3); \
 	new_version=$$major.$$((minor + 1)).0; \
-	echo "Atualizando versão de $$current_version para $$new_version"; \
+	echo "Updating version from $$current_version to $$new_version"; \
 	python scripts/version_manager.py $$new_version; \
-	echo "Fazendo commit das alterações de versionamento"; \
+	echo "Committing version changes"; \
 	git add $(VERSION_FILE) share/metainfo/io.github.mallor.MultiScope.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mallor.MultiScope.yaml scripts/package-flatpak.sh; \
 	git commit -m "Bump version to $$new_version"; \
 	git tag "v$$new_version"; \
-	echo "Release $$new_version criada com sucesso!"; \
-	echo "Para fazer push das alterações e da tag, execute:"; \
+	echo "Release $$new_version created successfully!"; \
+	echo "To push changes and tag, run:"; \
 	echo "  git push origin main"; \
 	echo "  git push origin v$$new_version"
 
-# Criar release patch
+# Create patch release
 release-patch: check-deps git-status
-	@echo "Criando release patch..."
+	@echo "Creating patch release..."
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=$$(echo $$current_version | cut -d. -f2); \
 	patch=$$(echo $$current_version | cut -d. -f3); \
 	new_version=$$major.$$minor.$$((patch + 1)); \
-	echo "Atualizando versão de $$current_version para $$new_version"; \
+	echo "Updating version from $$current_version to $$new_version"; \
 	python scripts/version_manager.py $$new_version; \
-	echo "Fazendo commit das alterações de versionamento"; \
+	echo "Committing version changes"; \
 	git add $(VERSION_FILE) share/metainfo/io.github.mallor.MultiScope.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mallor.MultiScope.yaml scripts/package-flatpak.sh; \
 	git commit -m "Bump version to $$new_version"; \
 	git tag "v$$new_version"; \
-	echo "Release $$new_version criada com sucesso!"; \
-	echo "Para fazer push das alterações e da tag, execute:"; \
+	echo "Release $$new_version created successfully!"; \
+	echo "To push changes and tag, run:"; \
 	echo "  git push origin main"; \
 	echo "  git push origin v$$new_version"
 
-# Criar release customizada
+# Create custom release
 release-custom:
 ifndef NEW_VERSION
-	$(error Por favor, especifique a nova versão: make release-custom NEW_VERSION=1.2.3)
+	$(error Please specify the new version: make release-custom NEW_VERSION=1.2.3)
 endif
 	@current_version=$$(cat $(VERSION_FILE)); \
 	if [ "$$current_version" = "$(NEW_VERSION)" ]; then \
-		echo "A versão já é $(NEW_VERSION)"; \
+		echo "Version is already $(NEW_VERSION)"; \
 	else \
 		$(MAKE) check-deps; \
 		$(MAKE) git-status; \
-		echo "Criando release customizada..."; \
-		echo "Atualizando versão de $$current_version para $(NEW_VERSION)"; \
+		echo "Creating custom release..."; \
+		echo "Updating version from $$current_version to $(NEW_VERSION)"; \
 		python scripts/version_manager.py $(NEW_VERSION); \
-		echo "Fazendo commit das alterações de versionamento"; \
+		echo "Committing version changes"; \
 		git add $(VERSION_FILE) share/metainfo/io.github.mallor.MultiScope.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mallor.MultiScope.yaml scripts/package-flatpak.sh; \
 		git commit -m "Bump version to $(NEW_VERSION)"; \
 		git tag "v$(NEW_VERSION)"; \
-		echo "Release $(NEW_VERSION) criada com sucesso!"; \
-		echo "Para fazer push das alterações e da tag, execute:"; \
+		echo "Release $(NEW_VERSION) created successfully!"; \
+		echo "To push changes and tag, run:"; \
 		echo "  git push origin main"; \
 		echo "  git push origin v$(NEW_VERSION)"; \
 	fi
 
-# Incrementar versão major
+# Increment major version
 bump-major:
-	@echo "Incrementando versão major..."
+	@echo "Incrementing major version..."
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=0; \
@@ -153,9 +153,9 @@ bump-major:
 	new_version=$$((major + 1)).$$minor.$$patch; \
 	python scripts/version_manager.py $$new_version
 
-# Incrementar versão minor
+# Increment minor version
 bump-minor:
-	@echo "Incrementando versão minor..."
+	@echo "Incrementing minor version..."
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=$$(echo $$current_version | cut -d. -f2); \
@@ -163,9 +163,9 @@ bump-minor:
 	new_version=$$major.$$((minor + 1)).$$patch; \
 	python scripts/version_manager.py $$new_version
 
-# Incrementar versão patch
+# Increment patch version
 bump-patch:
-	@echo "Incrementando versão patch..."
+	@echo "Incrementing patch version..."
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=$$(echo $$current_version | cut -d. -f2); \
