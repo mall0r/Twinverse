@@ -1,4 +1,7 @@
-[English](./GUIDE.md) | [Español](./GUIDE.es.md)
+<p align="right">
+  <a href="https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
+</p>
 
 # Guia do Twinverse
 
