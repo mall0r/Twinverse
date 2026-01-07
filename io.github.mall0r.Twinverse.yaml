@@ -58,3 +58,16 @@ modules:
     sources:
       - type: dir
         path: .
+
+    cleanup:
+      - "*.a"
+      - "*.la"
+      - "/man"
+      - "/include"
+      - "/lib/pkgconfig"
+      - "/share/aclocal"
+      - "/share/man"
+      - "/share/doc"
+      - "/share/info"
+      - "/share/gtk-doc"
+      - "/libexec"
