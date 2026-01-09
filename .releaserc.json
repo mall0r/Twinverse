@@ -38,6 +38,22 @@
       }
     ],
     [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "share/metainfo/io.github.mall0r.Twinverse.metainfo.xml",
+          "version",
+          "README.md",
+          "docs/README.pt-br.md",
+          "docs/README.es.md",
+          "scripts/package-appimage.sh",
+          "scripts/package-flatpak.sh",
+          "io.github.mall0r.Twinverse.yaml"
+        ],
+        "message": "chore(release): atualiza versão para <%= nextRelease.version %> [skip ci]\n\n<%= nextRelease.notes %>"
+      }
+    ],
+    [
       "@semantic-release/github",
       {
         "assets": ["dist/**", "*.flatpak", "*.AppImage"],

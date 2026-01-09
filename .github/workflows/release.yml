@@ -74,17 +74,58 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine version
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install semantic-release dependencies
+        run: |
+          npm install -g semantic-release @semantic-release/github @semantic-release/git @semantic-release/exec conventional-changelog-conventionalcommits
+
+      - name: Run semantic-release dry-run to determine version
         id: version
         run: |
+          # Executar o semantic-release em modo dry-run para determinar a próxima versão
+          # A saída será usada para definir as variáveis de saída
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
           else
             # Usar semantic-release para determinar versão automaticamente
-            npm install -g semantic-release @semantic-release/git @semantic-release/github
-            VERSION=$(semantic-release --dry-run --no-ci | grep 'Published release' | awk '{print $3}')
+            VERSION=$(npx semantic-release --dry-run --no-ci | grep -o 'Published release [^[:space:]]*' | awk '{print $3}' | head -1)
             if [ -z "$VERSION" ]; then
-              VERSION="v0.0.0-$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+              # Fallback se o semantic-release não encontrar uma versão
+              # Analisar os commits para determinar o tipo de release
+              LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+              COMMITS_SINCE_TAG=$(git log --oneline $LATEST_TAG..HEAD | wc -l)
+
+              if [ "$COMMITS_SINCE_TAG" -eq 0 ]; then
+                VERSION=$LATEST_TAG
+              else
+                # Analisar commits para determinar tipo de release
+                if git log $LATEST_TAG..HEAD --oneline | grep -q "^\([0-9a-f]*\) \(feat\|fix\|breaking\|perf\|refactor\|style\|docs\|test\|build\|ci\|chore\|revert\)"; then
+                  # Simular análise básica de commits
+                  if git log $LATEST_TAG..HEAD --oneline | grep -qi "breaking"; then
+                    # Major version increment
+                    IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
+                    MAJOR=$((VER_PARTS[0] + 1))
+                    VERSION="v$MAJOR.0.0"
+                  elif git log $LATEST_TAG..HEAD --oneline | grep -qi "feat"; then
+                    # Minor version increment
+                    IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
+                    MINOR=$((VER_PARTS[1] + 1))
+                    VERSION="v${VER_PARTS[0]}.$MINOR.0"
+                  else
+                    # Patch version increment
+                    IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
+                    PATCH=$((VER_PARTS[2] + 1))
+                    VERSION="v${VER_PARTS[0]}.${VER_PARTS[1]}.$PATCH"
+                  fi
+                else
+                  # Nenhuma mudança significativa, usar timestamp
+                  VERSION="v${LATEST_TAG#v}-$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+                fi
+              fi
             fi
           fi
 
@@ -104,28 +145,29 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
-          # Para manter compatibilidade com GITHUB_ENV (embora esteja obsoleto)
-          echo "version=$VERSION" >> $GITHUB_ENV
-          {
-            echo "changelog<<EOF"
-            echo "$CHANGELOG"
-            echo "EOF"
-          } >> $GITHUB_ENV
+          echo "Version determined: $VERSION"
+          echo "Changelog preview: $CHANGELOG"
 
-      - name: Update version file with semantic version
+      - name: Configure git for commits
         run: |
-          VERSION_CLEAN=${{ steps.version.outputs.version }}
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update version files and commit changes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
           # Remover o prefixo 'v' se presente
-          VERSION_CLEAN=${VERSION_CLEAN#v}
+          VERSION_CLEAN=${VERSION#v}
+
+          # Atualizar arquivos com a nova versão
           make update-version-force v=$VERSION_CLEAN
 
-      - name: Create version tag
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag -a ${{ env.version }} -m "Release ${{ env.version }}"
-          git push origin ${{ env.version }}
+          # Fazer commit das alterações
+          git add .
+          git commit -m "chore(release): atualiza versão para $VERSION [skip ci]" || echo "Nenhuma alteração para commit"
+
+          # Fazer push das alterações
+          git push origin HEAD:${{ github.ref_name }} || echo "Falha ao fazer push - talvez devido a proteção de branch"
 
   # Fase 3: Build apenas para x86_64
   build:
@@ -139,6 +181,13 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Update version file and related files with semantic version
+        run: |
+          VERSION="${{ needs.semantic.outputs.version }}"
+          # Remover o prefixo 'v' se presente
+          VERSION_CLEAN=${VERSION#v}
+          make update-version-force v=$VERSION_CLEAN
 
       - name: Set artifact name
         id: set_artifact_name
@@ -235,7 +284,7 @@ jobs:
       - name: Set up Flatpak Builder
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          manifest-path: build-aux/flatpak/io.github.mall0r.Twinverse.yaml
+          manifest-path: io.github.mall0r.Twinverse.yaml
 
       - name: Submit to Flathub
         env:
