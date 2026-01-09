@@ -18,16 +18,9 @@
       }
     ],
     [
-      "@semantic-release/github",
+      "@semantic-release/release-notes-generator",
       {
-        "assets": [
-          "**/*.{js,css,html,txt,json,md,yaml,yml,py,sh,xml}",
-          "io.github.mall0r.Twinverse.yaml",
-          "version",
-          "CHANGELOG.md"
-        ],
-        "releasedLabels": ["Status: Released"],
-        "releasedIssues": true
+        "preset": "conventionalcommits"
       }
     ],
     [
@@ -41,14 +34,15 @@
       "@semantic-release/git",
       {
         "assets": [
-          "share/metainfo/io.github.mall0r.Twinverse.metainfo.xml",
           "version",
+          "CHANGELOG.md",
           "README.md",
           "docs/README.pt-br.md",
           "docs/README.es.md",
           "scripts/package-appimage.sh",
           "scripts/package-flatpak.sh",
-          "io.github.mall0r.Twinverse.yaml"
+          "io.github.mall0r.Twinverse.yaml",
+          "share/metainfo/io.github.mall0r.Twinverse.metainfo.xml"
         ],
         "message": "chore(release): atualiza versão para <%= nextRelease.version %> [skip ci]\n\n<%= nextRelease.notes %>"
       }
@@ -56,8 +50,12 @@
     [
       "@semantic-release/github",
       {
-        "assets": ["dist/**", "*.flatpak", "*.AppImage"],
-        "releasedLabels": ["Status: Released"]
+        "assets": [
+          "*.AppImage",
+          "*.flatpak"
+        ],
+        "releasedLabels": ["Status: Released"],
+        "releasedIssues": true
       }
     ]
   ],
