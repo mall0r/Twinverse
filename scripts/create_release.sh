@@ -197,7 +197,7 @@ done
 # Version format validation
 if ! [[ $new_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     print_error "Invalid version format: $new_version"
-    print_error "Use format x.y.z (e.g., 1.0.0)"
+    print_error "Use format x.y.z (e.g., 0.11.2)"
     exit 1
 fi
 

@@ -31,10 +31,10 @@ def update_version_in_file(file_path, old_version, new_version):
     # Update version in date format in metainfo.xml
     if "metainfo.xml" in str(file_path):
         current_date = datetime.now().strftime("%Y-%m-%d")
-        # Update release date in metainfo.xml
+        # Update release date in metainfo.xml - considerando também o atributo type
         updated_content = re.sub(
-            r'<release version="[^"]+" date="[^"]+">',
-            f'<release version="{new_version}" date="{current_date}">',
+            r'<release version="[^"]+" date="[^"]+"([^>]*>)',
+            f'<release version="{new_version}" date="{current_date}"\\1',
             updated_content,
         )
 
@@ -124,7 +124,7 @@ def main():
     # Validate version format (x.y.z)
     version_pattern = r"^[0-9]+\.[0-9]+\.[0-9]+$"
     if not re.match(version_pattern, new_version):
-        print(f"Error: Invalid version format. Use x.y.z format (e.g., 1.0.0)")
+        print(f"Error: Invalid version format. Use x.y.z format (e.g., 0.11.2)")
         return 1
 
     if not set_new_version(new_version, force):

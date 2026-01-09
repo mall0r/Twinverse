@@ -140,11 +140,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Update metainfo.xml with semantic version
-        run: |
-          # A versão já foi atualizada pelo make update-version-force na etapa semantic
-          echo "Version already updated by make update-version-force in semantic step"
-
       - name: Set artifact name
         id: set_artifact_name
         run: |
