@@ -61,30 +61,16 @@ jobs:
       - name: Run static analysis
         run: pre-commit run --all-files
 
-  # Fase 2: Build multi-arquitetura
+  # Fase 2: Build apenas para x86_64
   build:
     needs: analyze
-    strategy:
-      matrix:
-        arch: [x86_64, aarch64]
-        include:
-          - arch: x86_64
-            runner: ubuntu-latest
-          - arch: aarch64
-            runner: ubuntu-latest
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: Set up QEMU for emulation
-        if: matrix.arch == 'aarch64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Install Flatpak dependencies
         run: |
@@ -117,14 +103,14 @@ jobs:
           flatpak install -y --user flathub org.gnome.Platform//49 org.gnome.Sdk//49
 
       - name: Build Flatpak
-        run: make flatpak ARCH=${{ matrix.arch }}
+        run: make flatpak
         env:
-          FLATPAK_ARCH: ${{ matrix.arch }}
+          FLATPAK_ARCH: x86_64
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: flatpak-${{ matrix.arch }}-${{ github.ref_name || github.sha }}
+          name: flatpak-x86_64-${{ github.ref_name || github.sha }}
           path: |
             build-dir/*.flatpak
             build-dir/*.json
@@ -191,12 +177,6 @@ jobs:
           name: flatpak-x86_64-${{ needs.semantic-version.outputs.version }}
           path: dist/x86_64
 
-      - name: Download ARM64 artifacts
-        uses: actions/download-artifact@v6
-        with:
-          name: flatpak-aarch64-${{ needs.semantic-version.outputs.version }}
-          path: dist/aarch64
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -205,9 +185,7 @@ jobs:
           body: ${{ needs.semantic-version.outputs.changelog }}
           files: |
             dist/x86_64/*.flatpak
-            dist/aarch64/*.flatpak
             dist/x86_64/*.json
-            dist/aarch64/*.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

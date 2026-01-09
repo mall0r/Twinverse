@@ -22,6 +22,8 @@ echo "   ✅ Processes stopped"
 # Passo 2: Cleaning cache
 echo "2️⃣  Cleaning cache..."
 find . -type d -name "__pycache__" -exec rm -rf {} \;
+find . -type d -name ".pytest_cache" -exec rm -rf {} \;
+find . -type d -name ".mypy_cache" -exec rm -rf {} \;
 sleep 1
 echo "   ✅ Cache cleaned"
 

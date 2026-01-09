@@ -45,12 +45,7 @@ build:
 # Build Flatpak package with validation
 flatpak: validate-manifest
 	@echo "Building Flatpak package..."
-	@if [ -n "$(ARCH)" ]; then \
-		export FLATPAK_ARCH="$(ARCH)"; \
-		./scripts/package-flatpak.sh; \
-	else \
-		./scripts/package-flatpak.sh; \
-	fi
+	./scripts/package-flatpak.sh
 	@echo "Flatpak package built successfully!"
 
 # Validate Flatpak manifest before building
