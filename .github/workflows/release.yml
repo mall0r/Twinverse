@@ -144,15 +144,27 @@ jobs:
 
           # Gerar changelog
           if [ -f CHANGELOG.md ]; then
-            CHANGELOG=$(head -10 CHANGELOG.md | sed 's/"/\\"/g')
+            # Extrair apenas as seções relevantes do changelog, evitando caracteres especiais
+            CHANGELOG=$(sed -n '/## \[Unreleased\]/,/## \[/p' CHANGELOG.md | head -n -1 | sed 's/"/\\"/g; s/\r$//g' | tr '\n' ' ' | sed 's/  */ /g' | head -c 500)
           else
             CHANGELOG="Release automático - $VERSION"
           fi
 
-          echo "version=$VERSION" >> $GITHUB_ENV
-          echo "changelog=$CHANGELOG" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
+          # Usar o método multilinha para definir o changelog de forma segura
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          # Para manter compatibilidade com GITHUB_ENV (embora esteja obsoleto)
+          echo "version=$VERSION" >> $GITHUB_ENV
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> $GITHUB_ENV
 
       - name: Create version tag
         if: github.ref == 'refs/heads/main'
