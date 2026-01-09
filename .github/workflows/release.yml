@@ -76,52 +76,65 @@ jobs:
         with:
           node-version: '20'
 
+
       - name: Install semantic-release dependencies
         run: |
-          npm install -g semantic-release @semantic-release/github @semantic-release/git @semantic-release/exec conventional-changelog-conventionalcommits
+          npm install --no-save semantic-release @semantic-release/github @semantic-release/git @semantic-release/exec conventional-changelog-conventionalcommits @semantic-release/commit-analyzer @semantic-release/release-notes-generator
 
-      - name: Run semantic-release dry-run to determine version
+      - name: Run semantic-release to determine version
         id: version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Executar o semantic-release em modo dry-run para determinar a próxima versão
-          # A saída será usada para definir as variáveis de saída
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
-          else
-            # Usar semantic-release para determinar versão automaticamente
-            VERSION=$(npx semantic-release --dry-run --no-ci | grep -o 'Published release [^[:space:]]*' | awk '{print $3}' | head -1)
-            if [ -z "$VERSION" ]; then
-              # Fallback se o semantic-release não encontrar uma versão
-              # Analisar os commits para determinar o tipo de release
-              LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-              COMMITS_SINCE_TAG=$(git log --oneline $LATEST_TAG..HEAD | wc -l)
+          # Criar um arquivo temporário para armazenar a saída
+          TEMP_OUTPUT="/tmp/semantic_output.txt"
 
-              if [ "$COMMITS_SINCE_TAG" -eq 0 ]; then
-                VERSION=$LATEST_TAG
+          # Executar o semantic-release em modo dry-run para determinar a próxima versão
+          # Usando o .releaserc.json existente para manter a configuração
+          npx semantic-release --dry-run --no-ci --debug > "$TEMP_OUTPUT" 2>&1 || true
+
+          # Procurar por diferentes padrões na saída para encontrar a próxima versão
+          VERSION=""
+
+          # Procurar por padrões comuns na saída do semantic-release
+          VERSION=$(grep -o 'next release [^[:space:]]*' "$TEMP_OUTPUT" | tail -1 | awk '{print $3}' | head -1)
+
+          if [ -z "$VERSION" ]; then
+            VERSION=$(grep -o 'published release [^[:space:]]*' "$TEMP_OUTPUT" | tail -1 | awk '{print $3}' | head -1)
+          fi
+
+          if [ -z "$VERSION" ]; then
+            VERSION=$(grep -o 'would publish release [^[:space:]]*' "$TEMP_OUTPUT" | tail -1 | awk '{print $4}' | head -1)
+          fi
+
+          if [ -z "$VERSION" ]; then
+            # Se não encontrar na saída, tentar determinar com base no histórico de commits
+            echo "Não foi possível determinar a versão com semantic-release, analisando commits manualmente..."
+
+            # Tenta obter a última tag ou usar v1.0.0 como padrão para primeira release
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
+            if [ $? -ne 0 ]; then
+              # Primeira release - usar v1.0.0
+              VERSION="v1.0.0"
+            else
+              # Já existe uma tag, analisar commits desde então
+              echo "Analisando commits desde a última tag: $LATEST_TAG"
+
+              # Verificar se há commits de breaking change (major)
+              if git log $LATEST_TAG..HEAD --oneline --grep="BREAKING CHANGE\|breaking" > /dev/null 2>&1; then
+                IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
+                MAJOR=$((VER_PARTS[0] + 1))
+                VERSION="v$MAJOR.0.0"
+              # Verificar se há commits de feat (minor)
+              elif git log $LATEST_TAG..HEAD --oneline --grep="^feat\|^Feat" > /dev/null 2>&1; then
+                IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
+                MINOR=$((VER_PARTS[1] + 1))
+                VERSION="v${VER_PARTS[0]}.$MINOR.0"
+              # Caso contrário, assumir patch
               else
-                # Analisar commits para determinar tipo de release
-                if git log $LATEST_TAG..HEAD --oneline | grep -q "^\([0-9a-f]*\) \(feat\|fix\|breaking\|perf\|refactor\|style\|docs\|test\|build\|ci\|chore\|revert\)"; then
-                  # Simular análise básica de commits
-                  if git log $LATEST_TAG..HEAD --oneline | grep -qi "breaking"; then
-                    # Major version increment
-                    IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
-                    MAJOR=$((VER_PARTS[0] + 1))
-                    VERSION="v$MAJOR.0.0"
-                  elif git log $LATEST_TAG..HEAD --oneline | grep -qi "feat"; then
-                    # Minor version increment
-                    IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
-                    MINOR=$((VER_PARTS[1] + 1))
-                    VERSION="v${VER_PARTS[0]}.$MINOR.0"
-                  else
-                    # Patch version increment
-                    IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
-                    PATCH=$((VER_PARTS[2] + 1))
-                    VERSION="v${VER_PARTS[0]}.${VER_PARTS[1]}.$PATCH"
-                  fi
-                else
-                  # Nenhuma mudança significativa, usar timestamp
-                  VERSION="v${LATEST_TAG#v}-$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
-                fi
+                IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
+                PATCH=$((VER_PARTS[2] + 1))
+                VERSION="v${VER_PARTS[0]}.${VER_PARTS[1]}.$PATCH"
               fi
             fi
           fi
@@ -142,36 +155,31 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
+          # Também salvar versão e changelog como saídas para uso em outras etapas
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
           echo "Version determined: $VERSION"
           echo "Changelog preview: $CHANGELOG"
+
+          # Mostrar a saída completa para debug
+          echo "=== Debug output from semantic-release ==="
+          cat "$TEMP_OUTPUT"
 
       - name: Configure git for commits
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Update version files and commit changes
+      - name: Run semantic-release to execute full release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          # Remover o prefixo 'v' se presente
-          VERSION_CLEAN=${VERSION#v}
-
-          # Atualizar arquivos com a nova versão
-          make update-version-force v=$VERSION_CLEAN
-
-          # Fazer commit das alterações
-          git add .
-          git commit -m "chore(release): atualiza versão para $VERSION [skip ci]" || echo "Nenhuma alteração para commit"
-
-          # Obter o nome da branch correta
-          BRANCH_NAME=$(echo $GITHUB_REF | sed 's|refs/heads/||')
-
-          # Fazer push para a branch
-          git push origin HEAD:$BRANCH_NAME || echo "Falha ao fazer push - talvez devido a proteção de branch"
-
-          # Criar tag para a nova versão
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION" || echo "Falha ao fazer push da tag - talvez já exista"
+          # Executar o semantic-release para realizar o processo completo de release
+          # Isso irá atualizar os arquivos, criar tags e fazer os commits conforme configurado no .releaserc.json
+          npx semantic-release --no-ci --debug || echo "Semantic release completed or skipped"
 
   # Fase 3: Build apenas para x86_64
   build:
@@ -185,13 +193,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: Update version file and related files with semantic version
-        run: |
-          VERSION="${{ needs.semantic.outputs.version }}"
-          # Remover o prefixo 'v' se presente
-          VERSION_CLEAN=${VERSION#v}
-          make update-version-force v=$VERSION_CLEAN
 
       - name: Set artifact name
         id: set_artifact_name
@@ -257,11 +258,17 @@ jobs:
           name: ${{ needs.build.outputs.artifact_name }}
           path: dist/x86_64
 
+      - name: Get version from semantic step
+        id: get_version
+        run: |
+          VERSION="${{ needs.semantic.outputs.version }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.semantic.outputs.version }}
-          name: Release ${{ needs.semantic.outputs.version }}
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: Release ${{ steps.get_version.outputs.version }}
           body: ${{ needs.semantic.outputs.changelog }}
           files: |
             dist/x86_64/*.flatpak
