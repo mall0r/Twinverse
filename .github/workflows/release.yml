@@ -73,20 +73,16 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
       - name: Install and run semantic-release
         id: release
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@v25
         with:
           semantic_version: 23
-          extra_plugins: |
-            @semantic-release/github
-            @semantic-release/git
-            @semantic-release/exec
-            conventional-changelog-conventionalcommits
+          extra_plugins: '@semantic-release/github @semantic-release/git @semantic-release/exec conventional-changelog-conventionalcommits'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
