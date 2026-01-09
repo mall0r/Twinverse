@@ -63,8 +63,8 @@ jobs:
     needs: analyze
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      changelog: ${{ steps.version.outputs.changelog }}
+      version: ${{ steps.release.outputs.new_release_version || '1.0.0' }}
+      changelog: ${{ steps.release.outputs.new_release_notes || 'Initial release' }}
 
     steps:
       - uses: actions/checkout@v6
@@ -76,110 +76,17 @@ jobs:
         with:
           node-version: '20'
 
-
-      - name: Install semantic-release dependencies
-        run: |
-          npm install --no-save semantic-release @semantic-release/github @semantic-release/git @semantic-release/exec conventional-changelog-conventionalcommits @semantic-release/commit-analyzer @semantic-release/release-notes-generator
-
-      - name: Run semantic-release to determine version
-        id: version
+      - name: Install and run semantic-release
+        id: release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 23
+          extra_plugins: |
+            @semantic-release/github
+            @semantic-release/git
+            @semantic-release/exec
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Criar um arquivo temporário para armazenar a saída
-          TEMP_OUTPUT="/tmp/semantic_output.txt"
-
-          # Executar o semantic-release em modo dry-run para determinar a próxima versão
-          # Usando o .releaserc.json existente para manter a configuração
-          npx semantic-release --dry-run --no-ci --debug > "$TEMP_OUTPUT" 2>&1 || true
-
-          # Procurar por diferentes padrões na saída para encontrar a próxima versão
-          VERSION=""
-
-          # Procurar por padrões comuns na saída do semantic-release
-          VERSION=$(grep -o 'next release [^[:space:]]*' "$TEMP_OUTPUT" | tail -1 | awk '{print $3}' | head -1)
-
-          if [ -z "$VERSION" ]; then
-            VERSION=$(grep -o 'published release [^[:space:]]*' "$TEMP_OUTPUT" | tail -1 | awk '{print $3}' | head -1)
-          fi
-
-          if [ -z "$VERSION" ]; then
-            VERSION=$(grep -o 'would publish release [^[:space:]]*' "$TEMP_OUTPUT" | tail -1 | awk '{print $4}' | head -1)
-          fi
-
-          if [ -z "$VERSION" ]; then
-            # Se não encontrar na saída, tentar determinar com base no histórico de commits
-            echo "Não foi possível determinar a versão com semantic-release, analisando commits manualmente..."
-
-            # Tenta obter a última tag ou usar v1.0.0 como padrão para primeira release
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
-            if [ $? -ne 0 ]; then
-              # Primeira release - usar v1.0.0
-              VERSION="v1.0.0"
-            else
-              # Já existe uma tag, analisar commits desde então
-              echo "Analisando commits desde a última tag: $LATEST_TAG"
-
-              # Verificar se há commits de breaking change (major)
-              if git log $LATEST_TAG..HEAD --oneline --grep="BREAKING CHANGE\|breaking" > /dev/null 2>&1; then
-                IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
-                MAJOR=$((VER_PARTS[0] + 1))
-                VERSION="v$MAJOR.0.0"
-              # Verificar se há commits de feat (minor)
-              elif git log $LATEST_TAG..HEAD --oneline --grep="^feat\|^Feat" > /dev/null 2>&1; then
-                IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
-                MINOR=$((VER_PARTS[1] + 1))
-                VERSION="v${VER_PARTS[0]}.$MINOR.0"
-              # Caso contrário, assumir patch
-              else
-                IFS='.' read -ra VER_PARTS <<< "${LATEST_TAG#v}"
-                PATCH=$((VER_PARTS[2] + 1))
-                VERSION="v${VER_PARTS[0]}.${VER_PARTS[1]}.$PATCH"
-              fi
-            fi
-          fi
-
-          # Gerar changelog
-          if [ -f CHANGELOG.md ]; then
-            # Extrair apenas as seções relevantes do changelog, evitando caracteres especiais
-            CHANGELOG=$(sed -n '/## \[Unreleased\]/,/## \[/p' CHANGELOG.md | head -n -1 | sed 's/"/\\"/g; s/\r$//g' | tr '\n' ' ' | sed 's/  */ /g' | head -c 500)
-          else
-            CHANGELOG="Release automático - $VERSION"
-          fi
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          # Usar o método multilinha para definir o changelog de forma segura
-          {
-            echo "changelog<<EOF"
-            echo "$CHANGELOG"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-
-          # Também salvar versão e changelog como saídas para uso em outras etapas
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          echo "Version determined: $VERSION"
-          echo "Changelog preview: $CHANGELOG"
-
-          # Mostrar a saída completa para debug
-          echo "=== Debug output from semantic-release ==="
-          cat "$TEMP_OUTPUT"
-
-      - name: Configure git for commits
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Run semantic-release to execute full release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Executar o semantic-release para realizar o processo completo de release
-          # Isso irá atualizar os arquivos, criar tags e fazer os commits conforme configurado no .releaserc.json
-          npx semantic-release --no-ci --debug || echo "Semantic release completed or skipped"
 
   # Fase 3: Build apenas para x86_64
   build:
