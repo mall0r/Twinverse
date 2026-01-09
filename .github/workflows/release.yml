@@ -63,10 +63,10 @@ jobs:
 
   # Fase 2: Build apenas para x86_64
   build:
-    needs: analyze
+    needs: [analyze, semantic-version]
     runs-on: ubuntu-latest
     outputs:
-      artifact_name: flatpak-${{ steps.set_artifact_name.outputs.version }}-x86_64
+      artifact_name: flatpak-${{ needs.semantic-version.outputs.version }}-x86_64
 
     steps:
       - name: Checkout repository
@@ -74,14 +74,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Update metainfo.xml with semantic version
+        run: |
+          VERSION="${{ needs.semantic-version.outputs.version }}"
+          # Remover o prefixo 'v' se presente e verificar se a versão é válida
+          VERSION_CLEAN=${VERSION#v}
+
+          # Verificar se VERSION_CLEAN é um número de versão válido (x.y.z)
+          if [[ $VERSION_CLEAN =~ ^[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+            # Atualizar o arquivo metainfo.xml com a versão do semantic-version
+            sed -i.bak "s/version=\"[0-9]*\.[0-9]*\.[0-9]*[^"]*\"/version=\"$VERSION_CLEAN\"/" share/metainfo/io.github.mall0r.Twinverse.metainfo.xml
+            echo "Updated metainfo.xml with semantic version: $VERSION_CLEAN"
+          else
+            # Fallback para 0.0.0 se a versão do semantic não for válida
+            sed -i.bak "s/version=\"[0-9]*\.[0-9]*\.[0-9]*[^"]*\"/version=\"0.0.0\"/" share/metainfo/io.github.mall0r.Twinverse.metainfo.xml
+            echo "Updated metainfo.xml with fallback version: 0.0.0 (semantic version was: $VERSION)"
+          fi
+
       - name: Set artifact name
         id: set_artifact_name
         run: |
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
-          else
-            VERSION=${{ github.ref_name || github.sha }}
-          fi
+          VERSION="${{ needs.semantic-version.outputs.version }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Install Flatpak dependencies
@@ -122,14 +135,14 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: flatpak-${{ steps.set_artifact_name.outputs.version }}-x86_64
+          name: flatpak-${{ needs.semantic-version.outputs.version }}-x86_64
           path: |
             build-dir/*.flatpak
             build-dir/*.json
 
   # Fase 3: Versionamento semântico automático
   semantic-version:
-    needs: build
+    needs: analyze
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -188,7 +201,7 @@ jobs:
 
   # Fase 4: Criar release no GitHub
   create-release:
-    needs: [build, semantic-version]
+    needs: [semantic-version, build]
     runs-on: ubuntu-latest
 
     steps:
@@ -215,7 +228,7 @@ jobs:
 
   # Fase 5: Publicar no Flathub (requer permissão)
   publish-flathub:
-    needs: create-release
+    needs: [create-release, build]
     runs-on: ubuntu-latest
     if: contains(github.ref, 'refs/tags/v') && !contains(github.ref, '-rc')
 
