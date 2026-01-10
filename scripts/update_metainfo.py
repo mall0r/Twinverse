@@ -42,8 +42,16 @@ def update_metainfo(version, notes):
 
     # Populate with new notes
     if notes:
+        # Remove version and link information from the beginning if present
+        lines = notes.strip().split("\n")
+
+        # Check if the first line contains version/link pattern and skip it
+        start_index = 0
+        if lines and re.match(r"^\[\d+\.\d+\.\d+\]\(.*?\)\s*\(\d{4}-\d{2}-\d{2}\)", lines[0]):
+            start_index = 1
+
         current_list = None
-        for line in notes.strip().split("\n"):
+        for line in lines[start_index:]:
             line = line.strip()
             if not line:  # Skip empty lines
                 current_list = None  # Reset list context on empty line
@@ -61,11 +69,23 @@ def update_metainfo(version, notes):
                 if current_list is None:
                     current_list = ET.SubElement(description, "ul")
                 li = ET.SubElement(current_list, "li")
-                li.text = line[2:].strip().replace("**", "")  # Remove list marker and markdown bold
+                # Remove various link formats from list items
+                clean_line = re.sub(r"\s*\(\[.*?\]\(.*?\)\)", "", line[2:].strip())  # Remove [text](link) format
+                clean_line = re.sub(r"\s*\([a-f0-9]{7,}\)", "", clean_line)  # Remove (hash) format
+                clean_line = re.sub(
+                    r"\s*\[.*?\]\(.*?\)", "", clean_line
+                )  # Remove [text](link) format without parentheses
+                clean_line = clean_line.replace("**", "")  # Remove markdown bold
+                li.text = clean_line.strip()
             # Handle regular paragraphs or lines not part of a list
             else:
                 p = ET.SubElement(description, "p")
-                p.text = line.strip().replace("**", "")  # Remove markdown bold
+                # Remove various link formats from paragraphs
+                clean_line = re.sub(r"\s*\(\[.*?\]\(.*?\)\)", "", line.strip())  # Remove [text](link) in parentheses
+                clean_line = re.sub(r"\s*\([a-f0-9]{7,}\)", "", clean_line)  # Remove (hash) format
+                clean_line = re.sub(r"\s*\[.*?\]\(.*?\)", "", clean_line)  # Remove [text](link) format
+                clean_line = clean_line.replace("**", "")  # Remove markdown bold
+                p.text = clean_line.strip()
                 current_list = None  # Reset list context
 
     ET.indent(tree, space="  ")
