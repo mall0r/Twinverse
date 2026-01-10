@@ -239,60 +239,6 @@ This commit introduces the `@semantic-release/changelog` plugin to the release w
 * Complete project rebrand and architectural
 simplification
 
-This commit renames the project from "Proton-Coop" to "MultiScope" and
-significantly simplifies the application architecture by removing the
-game-centric approach in favor of a simpler Steam instance launcher.
-
-### Features
-
-* Add icon and improve desktop integration ([8f87821](https://github.com/mall0r/Twinverse/commit/8f87821acb5f35d746d593fefd300d5f3a681a39))
-* Adds virtual joystick support for instances. ([4375764](https://github.com/mall0r/Twinverse/commit/43757640553c2a26c3fbf9b436a9fbbe0e2f7856))
-* Adjust player count limit by screen mode ([56fe114](https://github.com/mall0r/Twinverse/commit/56fe114b44d9cf551ffebd0703d967ba3a44fc6e))
-* Always enable Gamescope and remove UI option ([2f328f4](https://github.com/mall0r/Twinverse/commit/2f328f44e10fdbd762e51d20c7f68983fc40616a))
-* **cicd:** implements CI/CD pipeline with semantic versioning ([#14](https://github.com/mall0r/Twinverse/issues/14)) ([4c03e5b](https://github.com/mall0r/Twinverse/commit/4c03e5bf049ec2a917d08fda2b89ffc06e43f469))
-* Compile GResource and update icons ([daae1ce](https://github.com/mall0r/Twinverse/commit/daae1cee2c9b94be1b34edc716f4194d62982b12))
-* **flatpak:** Enhance Flatpak support and host system interaction ([f5ec76a](https://github.com/mall0r/Twinverse/commit/f5ec76a742bdc3050a3e2fa8e8c500d005b81d2f))
-* **gui:** Adds button to refresh gamepad list ([da06be7](https://github.com/mall0r/Twinverse/commit/da06be79eab808f52bbd25892e38ac98d6be30ee))
-* **gui:** Refactors the Gamescope screen settings UI. ([c9dab59](https://github.com/mall0r/Twinverse/commit/c9dab594a47417ade5fd6256042be3675fdb691c))
-* Implement dynamic user IDs for sandboxed instances ([8394b65](https://github.com/mall0r/Twinverse/commit/8394b657bb1ec71bfd973291ab15d0fb00d993e3))
-* **instances:** Implements advanced controls and instance verification. ([9d27e99](https://github.com/mall0r/Twinverse/commit/9d27e991dc48c577496fe813a99ef1f3666715b3))
-* **layout-editor:** Add global environment variables section ([187bcf2](https://github.com/mall0r/Twinverse/commit/187bcf2dfb62dd8bc9bde66e1d1c9729aeabaea6))
-* Overhaul build system to create a portable AppImage ([c422514](https://github.com/mall0r/Twinverse/commit/c4225146c16b26bf918cab3f2a18bcf19b05e3b1))
-* Overhaul verification system and add instance limits ([bcad48c](https://github.com/mall0r/Twinverse/commit/bcad48c49c5ffc192a5375bd2785162c4d2a9b3d))
-* Replaces installation script with AppImage packaging. ([296e79a](https://github.com/mall0r/Twinverse/commit/296e79af75a50fa18512403b15f45b5af973d9e2))
-* Restrict Steam filesystem access ([aecbb85](https://github.com/mall0r/Twinverse/commit/aecbb8545791dc077b84d80391fa1e57ac28ed0d))
-* Use XDG Base Directory specification for config paths ([d2fbf32](https://github.com/mall0r/Twinverse/commit/d2fbf3279cc100850b5f6d1ca9c71b4966e43969))
-
-### Bug Fixes
-
-* Adds the OpenGL/EGL libraries to the AppImage. ([8e84c83](https://github.com/mall0r/Twinverse/commit/8e84c836da4d1c5afb8a78cbf7017637fbe20668))
-* Adjust instance indexing and default mode ([5e6f8ba](https://github.com/mall0r/Twinverse/commit/5e6f8ba9ca0c387c8a6a73d4f33d3b44f8e10dec))
-* Audio device detection in non-English locales ([196690f](https://github.com/mall0r/Twinverse/commit/196690f981eef0e3d65c02fd99420e35e3e3a3b2))
-* **bwrap:** Correct sandbox permissions for Steam runtime ([cae39ce](https://github.com/mall0r/Twinverse/commit/cae39cea32534a53439d8956e5e37b20d7acaf96))
-* Correctly handle command execution in Flatpak ([fc69fe5](https://github.com/mall0r/Twinverse/commit/fc69fe52e0861545b28da50aa8c93958d5f1a205))
-* Do not attempt to launch without an executable ([b268c2d](https://github.com/mall0r/Twinverse/commit/b268c2df724f578a5f6ba3c6b3adb637b7d408d4))
-* Ensure consistent button height across all states ([9b28beb](https://github.com/mall0r/Twinverse/commit/9b28beb15788df7b1b35d56b7522530fbf1253fd))
-* Ensure play button has fixed size across all states ([1b49444](https://github.com/mall0r/Twinverse/commit/1b494440e5e0fdef0ae2b7b9c13a15977976e7d7))
-* **gui:** Update play button state in real-time after verification ([3ca5bc3](https://github.com/mall0r/Twinverse/commit/3ca5bc3062ab9c6926eaf7d05b29a8bb63e2f6a5))
-* Instance numbering for layout editor and commands ([58e6c1b](https://github.com/mall0r/Twinverse/commit/58e6c1b11303c444724ee2ce9d66f007c5fbc74a))
-* Maintain selection focus in the GUI after saving ([c549eb7](https://github.com/mall0r/Twinverse/commit/c549eb7e058d2e4ded58de4225c3f2f988ee8968))
-* **profile:** Ensure selected_players is used to filter instances ([c947858](https://github.com/mall0r/Twinverse/commit/c94785812dfd009724c78b8170655e5eb6acba73))
-* Remove redundant kwin switch visibility update ([0190bcb](https://github.com/mall0r/Twinverse/commit/0190bcb71ae53de2e2feb886c5f10513e7092fa1))
-* Remove unnecessary double hyphen in kill command ([d535f21](https://github.com/mall0r/Twinverse/commit/d535f2183a07b9a8470f7bb803f8813d450cc7a3))
-* Restore window layout preview in compiled builds ([9f96d03](https://github.com/mall0r/Twinverse/commit/9f96d03af2efd8f003180d111cbcd52ca7f899c8))
-* Update multiscope exec path ([ea0f227](https://github.com/mall0r/Twinverse/commit/ea0f227a621c18f3a279d8112a32c82995530a16))
-* Update version placeholder in Makefile ([d57d699](https://github.com/mall0r/Twinverse/commit/d57d6995922a713fe0683a2e7ef5ce7c609b3476))
-
-### Reverts
-
-* Revert "feat: Add GUI options for Winetricks and DXVK" ([6c8e834](https://github.com/mall0r/Twinverse/commit/6c8e834e37302c05fa3f35f552f5cfcb878650e4))
-* Revert "feat: Add GUI options for Winetricks and DXVK" ([eb3ca4c](https://github.com/mall0r/Twinverse/commit/eb3ca4c8d14897244ace13730fc703cfe262bbb9))
-* Revert "feat: Implement robust Wine prefix dependency management" ([862cd8d](https://github.com/mall0r/Twinverse/commit/862cd8de3dcea390968a9c040b75e7d100cd7592))
-
-### Code Refactoring
-
-* rename project from Proton-Coop to MultiScope ([6205ba7](https://github.com/mall0r/Twinverse/commit/6205ba74cb13e4c0aca1f09c2071bce80db12224))
-
 # Changelog
 
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
