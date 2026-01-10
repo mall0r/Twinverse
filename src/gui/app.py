@@ -1,21 +1,19 @@
 import sys
 import threading
 import time
-import gi
 from pathlib import Path
+
+import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
-from src.core import Config
-from src.core import VirtualDeviceError
-from src.core import Logger
-from src.core import Utils
-from src.models import Profile
-from src.services import InstanceService
-from src.services import KdeManager
+
+from src.core import Config, Logger, Utils, VirtualDeviceError
 from src.gui.layout_editor import LayoutSettingsPage
+from src.models import Profile
+from src.services import InstanceService, KdeManager
 
 
 class TwinverseWindow(Adw.ApplicationWindow):
@@ -64,7 +62,7 @@ class TwinverseWindow(Adw.ApplicationWindow):
             margin_top=6,
             margin_bottom=6,
             homogeneous=False,
-            halign=Gtk.Align.END  # Alinha tudo à direita
+            halign=Gtk.Align.END,  # Alinha tudo à direita
         )
 
         # Adiciona um "spacer" expansível para empurrar o botão para direita
@@ -87,7 +85,7 @@ class TwinverseWindow(Adw.ApplicationWindow):
             spacing=6,
             hexpand=False,
             halign=Gtk.Align.CENTER,
-            valign=Gtk.Align.CENTER
+            valign=Gtk.Align.CENTER,
         )
         self.launch_content_box.append(self.launch_label)
 
@@ -110,12 +108,8 @@ class TwinverseWindow(Adw.ApplicationWindow):
             self.launch_button.set_sensitive(False)
             return
 
-        all_verified = all(
-            self.layout_settings_page.get_instance_verification_status(p)
-            for p in selected_players
-        )
+        all_verified = all(self.layout_settings_page.get_instance_verification_status(p) for p in selected_players)
         self.launch_button.set_sensitive(all_verified)
-
 
     def _launch_worker(self):
         selected_players = self.profile.selected_players
@@ -270,6 +264,7 @@ class TwinverseApplication(Adw.Application):
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
         self.win.present()
+
 
 def run_gui():
     """Launches the GUI application."""

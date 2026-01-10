@@ -1,0 +1,96 @@
+{
+  "branches": [
+    {
+      "name": "main",
+      "prerelease": false,
+      "draft": true
+    },
+    {
+      "name": "beta",
+      "prerelease": true,
+      "draft": true
+    },
+    {
+      "name": "dev",
+      "prerelease": true,
+      "draft": true
+    }
+  ],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "python scripts/version_manager.py ${nextRelease.version} && echo ${nextRelease.version} | sed 's/v//' > version",
+        "publishCmd": "make flatpak"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "version",
+          "CHANGELOG.md",
+          "README.md",
+          "docs/README.pt-br.md",
+          "docs/README.es.md",
+          "scripts/package-appimage.sh",
+          "scripts/package-flatpak.sh",
+          "io.github.mall0r.Twinverse.yaml",
+          "share/metainfo/io.github.mall0r.Twinverse.metainfo.xml"
+        ],
+        "message": "chore(release): atualiza versão para <%= nextRelease.version %> [skip ci]\n\n<%= nextRelease.notes %>"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          "*.AppImage",
+          "*.flatpak"
+        ],
+        "releasedLabels": ["Status: Released"],
+        "releasedIssues": true
+      }
+    ]
+  ],
+  "preset": "conventionalcommits",
+  "releaseRules": [
+    {
+      "type": "feat",
+      "release": "minor"
+    },
+    {
+      "type": "fix",
+      "release": "patch"
+    },
+    {
+      "type": "breaking",
+      "release": "major"
+    },
+    {
+      "scope": "no-release",
+      "release": false
+    }
+  ],
+  "parserOpts": {
+    "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES", "breaking"]
+  }
+}

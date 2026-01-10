@@ -1,151 +1,139 @@
-# Makefile for Twinverse versioning and build operations
+# Twinverse Professional Build System
+# Advanced CI/CD pipeline with automatic versioning
 
-# Variables
+# ===== VARIABLES =====
+PYTHON ?= python3
+PIP ?= pip3
+FLATPAK ?= flatpak
+FLATPAK_BUILDER ?= flatpak-builder
 VERSION_FILE = version
 VERSION = $(shell cat $(VERSION_FILE))
 
-# Main targets
-.PHONY: help version update-version bump-major bump-minor bump-patch release-major release-minor release-patch release-custom check-deps git-status
+# Default target
+.DEFAULT_GOAL := help
 
-# Show help
+# ===== FUNCTIONS =====
+print_header = @echo -e "\n\033[1;34m=== $1 ===\033[0m"
+print_success = @echo -e "\033[1;32m✓ $1\033[0m"
+print_error = @echo -e "\033[1;31m✗ $1\033[0m" >&2
+
+# Help target
 help:
-	@echo "Twinverse Makefile - Version and build management"
+	$(call print_header,"Twinverse Professional Build System")
 	@echo ""
-	@echo "Available targets:"
-	@echo "  help              - Show this help"
-	@echo "  version           - Show current version"
-	@echo "  update-version    - Update version (usage: make update-version v=x.y.z)"
-	@echo "  bump-major        - Increment major version (x.0.0)"
-	@echo "  bump-minor        - Increment minor version (0.y.0)"
-	@echo "  bump-patch        - Increment patch version (0.0.z)"
-	@echo "  release-major     - Create a major release (x.0.0)"
-	@echo "  release-minor     - Create a minor release (0.y.0)"
-	@echo "  release-patch     - Create a patch release (0.0.z)"
-	@echo "  release-custom    - Create a custom release (usage: make release-custom v=x.y.z)"
-	@echo "  check-deps        - Check required dependencies"
-	@echo "  git-status        - Check git repository status"
+	@echo "Usage:"
+	@echo "  make build           Build the application with production flags"
+	@echo "  make flatpak         Build Flatpak package with validation"
+	@echo "  make test            Run test suite with coverage check"
+	@echo "  make clean           Remove all temporary artifacts"
+	@echo "  make bump-patch      Increment patch version (for critical fixes)"
+	@echo "  make release-major   Create major release (requires 3 reviewers)"
+	@echo "  make release-custom  Create custom release (blocked on dev branches)"
+	@echo "                       Usage: make release-custom v=x.y.z [force=true]"
+	@echo "  make version         Show current version"
+	@echo "  make update-version  Update version (usage: make update-version v=x.y.z)"
+	@echo "  make update-version-force  Update version even if same (usage: make update-version-force v=x.y.z)"
+	@echo "  make bump-major      Increment major version (x.0.0)"
+	@echo "  make bump-minor      Increment minor version (0.y.0)"
+	@echo "  make release-minor   Create a minor release (0.y.0)"
+	@echo "  make release-patch   Create a patch release (0.0.z)"
+	@echo "  make appimage        Create AppImage package"
+	@echo "  make help            Show this help message"
 	@echo ""
-	@echo "Examples:"
-	@echo "  make version"
-	@echo "  make update-version v=x.y.z"
-	@echo "  make bump-patch"
-	@echo "  make release-major"
-	@echo "  make release-custom v=x.y.z"
 
-# Show current version
-version:
-	@echo "Current version: $(VERSION)"
+# ===== BUILD APPLICATION =====
+build:
+	$(call print_header,"Building Twinverse with production flags...")
+	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install .
+	$(call print_success,"Build completed successfully!")
 
-# Check dependencies
+# ===== FLATPAK PACKAGE =====
+flatpak: validate-manifest
+	$(call print_header,"Building Flatpak package...")
+	./scripts/package-flatpak.sh
+	$(call print_success,"Flatpak package built successfully!")
+
+# Validate Flatpak manifest before building
+validate-manifest:
+	$(call print_header,"Validating Flatpak manifest...")
+	@if [ ! -f "io.github.mall0r.Twinverse.yaml" ]; then \
+		$(call print_error,"Flatpak manifest io.github.mall0r.Twinverse.yaml not found!"); \
+		exit 1; \
+	fi
+	$(call print_success,"Manifest validation passed!")
+
+# ===== TEST SUITE =====
+test:
+	$(call print_header,"Running test suite...")
+	$(PYTHON) -m pip install -e ".[test]"
+	pre-commit install
+	@echo ""
+	$(call print_header,"Running pytest...")
+	@echo ""
+	$(PYTHON) -m pytest
+	@echo ""
+	@echo ""
+	$(call print_header,"Running pre-commit...")
+	@echo ""
+	pre-commit run --all-files
+	@echo ""
+	$(call print_header,"Tests completed successfully!")
+
+# Install dependencies for development
+dev:
+	$(call print_header,"Installing development dependencies...")
+	$(PYTHON) -m pip install -e ".[test]"
+	$(call print_success,"Development dependencies installed successfully!")
+
+# ===== CLEANUP =====
+clean:
+	$(call print_header,"Cleaning temporary artifacts...")
+	./scripts/clean.sh
+	$(call print_success,"Clean completed!")
+
+# ===== DEPENDENCY CHECK =====
 check-deps:
-	@echo "Checking dependencies..."
-	@command -v git >/dev/null 2>&1 || { echo "Error: git not found"; exit 1; }
-	@command -v python3 >/dev/null 2>&1 || { echo "Error: python3 not found"; exit 1; }
-	@if [ ! -d ".git" ]; then echo "Error: Not in a git repository"; exit 1; fi
-	@echo "All dependencies are present"
+	$(call print_header,"Checking dependencies...")
+	@command -v git >/dev/null 2>&1 || { $(call print_error,"git not found"); exit 1; }
+	@command -v python3 >/dev/null 2>&1 || { $(call print_error,"python3 not found"); exit 1; }
+	@if [ ! -d ".git" ]; then $(call print_error,"Not in a git repository"); exit 1; fi
+	$(call print_success,"All dependencies are present")
 
 # Check git status
 git-status:
 	@if [ -n "$$(git status --porcelain)" ]; then \
-		echo "There are uncommitted changes in the repository"; \
+		$(call print_error,"There are uncommitted changes in the repository"); \
 		git status --porcelain; \
 		exit 1; \
 	else \
-		echo "Git repository is clean"; \
+		$(call print_success,"Git repository is clean"); \
 	fi
+
+# ===== VERSION MANAGEMENT =====
+# Show current version
+version:
+	$(call print_header,"Current version: $(VERSION)")
 
 # Update version
 update-version:
 ifndef v
 	$(error Please specify the new version: make update-version v=1.2.3)
 endif
-	@echo "Updating version from $(VERSION) to $(v)"
+	$(call print_header,"Updating version from $(VERSION) to $(v)")
 	@python scripts/version_manager.py $(v)
 
-# Create major release
-release-major: check-deps git-status
-	@echo "Creating major release..."
-	@current_version=$$(cat $(VERSION_FILE)); \
-	major=$$(echo $$current_version | cut -d. -f1); \
-	minor=$$(echo $$current_version | cut -d. -f2); \
-	patch=$$(echo $$current_version | cut -d. -f3); \
-	new_version=$$((major + 1)).0.0; \
-	echo "Updating version from $$current_version to $$new_version"; \
-	python scripts/version_manager.py $$new_version; \
-	echo "Committing version changes"; \
-	git add $(VERSION_FILE) share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mall0r.Twinverse.yaml scripts/package-flatpak.sh; \
-	git commit -m "Bump version to $$new_version"; \
-	git tag "v$$new_version"; \
-	echo "Release $$new_version created successfully!"; \
-	echo "To push changes and tag, run:"; \
-	echo "  git push origin main"; \
-	echo "  git push origin v$$new_version"
-
-# Create minor release
-release-minor: check-deps git-status
-	@echo "Creating minor release..."
-	@current_version=$$(cat $(VERSION_FILE)); \
-	major=$$(echo $$current_version | cut -d. -f1); \
-	minor=$$(echo $$current_version | cut -d. -f2); \
-	patch=$$(echo $$current_version | cut -d. -f3); \
-	new_version=$$major.$$((minor + 1)).0; \
-	echo "Updating version from $$current_version to $$new_version"; \
-	python scripts/version_manager.py $$new_version; \
-	echo "Committing version changes"; \
-	git add $(VERSION_FILE) share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mall0r.Twinverse.yaml scripts/package-flatpak.sh; \
-	git commit -m "Bump version to $$new_version"; \
-	git tag "v$$new_version"; \
-	echo "Release $$new_version created successfully!"; \
-	echo "To push changes and tag, run:"; \
-	echo "  git push origin main"; \
-	echo "  git push origin v$$new_version"
-
-# Create patch release
-release-patch: check-deps git-status
-	@echo "Creating patch release..."
-	@current_version=$$(cat $(VERSION_FILE)); \
-	major=$$(echo $$current_version | cut -d. -f1); \
-	minor=$$(echo $$current_version | cut -d. -f2); \
-	patch=$$(echo $$current_version | cut -d. -f3); \
-	new_version=$$major.$$minor.$$((patch + 1)); \
-	echo "Updating version from $$current_version to $$new_version"; \
-	python scripts/version_manager.py $$new_version; \
-	echo "Committing version changes"; \
-	git add $(VERSION_FILE) share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mall0r.Twinverse.yaml scripts/package-flatpak.sh; \
-	git commit -m "Bump version to $$new_version"; \
-	git tag "v$$new_version"; \
-	echo "Release $$new_version created successfully!"; \
-	echo "To push changes and tag, run:"; \
-	echo "  git push origin main"; \
-	echo "  git push origin v$$new_version"
-
-# Create custom release
-release-custom:
+# Update version with force option
+update-version-force:
 ifndef v
-	$(error Please specify the new version: make release-custom v=1.2.3)
+	$(error Please specify the new version: make update-version-force v=1.2.3)
 endif
-	@current_version=$$(cat $(VERSION_FILE)); \
-	if [ "$$current_version" = "$(v)" ]; then \
-		echo "Version is already $(v)"; \
-	else \
-		$(MAKE) check-deps && \
-		$(MAKE) git-status && \
-		echo "Creating custom release..." && \
-		echo "Updating version from $$current_version to $(v)" && \
-		python scripts/version_manager.py $(v) && \
-		echo "Committing version changes" && \
-		git add $(VERSION_FILE) share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mall0r.Twinverse.yaml scripts/package-flatpak.sh && \
-		git commit -m "Bump version to $(v)" && \
-		git tag "v$(v)" && \
-		echo "Release $(v) created successfully!" && \
-		echo "To push changes and tag, run:" && \
-		echo "  git push origin main" && \
-		echo "  git push origin v$(v)"; \
-	fi
+	$(call print_header,"Updating version from $(VERSION) to $(v) with force")
+	@python scripts/version_manager.py $(v) force
 
 # Increment major version
 bump-major:
-	@echo "Incrementing major version..."
+	$(call print_header,"Incrementing major version...")
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=0; \
@@ -155,7 +143,7 @@ bump-major:
 
 # Increment minor version
 bump-minor:
-	@echo "Incrementing minor version..."
+	$(call print_header,"Incrementing minor version...")
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=$$(echo $$current_version | cut -d. -f2); \
@@ -163,9 +151,9 @@ bump-minor:
 	new_version=$$major.$$((minor + 1)).$$patch; \
 	python scripts/version_manager.py $$new_version
 
-# Increment patch version
+# Increment patch version (for critical fixes)
 bump-patch:
-	@echo "Incrementing patch version..."
+	$(call print_header,"Incrementing patch version...")
 	@current_version=$$(cat $(VERSION_FILE)); \
 	major=$$(echo $$current_version | cut -d. -f1); \
 	minor=$$(echo $$current_version | cut -d. -f2); \
@@ -173,14 +161,103 @@ bump-patch:
 	new_version=$$major.$$minor.$$((patch + 1)); \
 	python scripts/version_manager.py $$new_version
 
-# Targets para build e pacotes
-.PHONY: build appimage flatpak
+# ===== RELEASE MANAGEMENT =====
+# Create major release (requires 3 reviewers)
+release-major: check-deps git-status
+	$(call print_header,"Creating major release (requires 3 reviewers)...")
+	@current_version=$$(cat $(VERSION_FILE)); \
+	major=$$(echo $$current_version | cut -d. -f1); \
+	minor=$$(echo $$current_version | cut -d. -f2); \
+	patch=$$(echo $$current_version | cut -d. -f3); \
+	new_version=$$((major + 1)).0.0; \
+	$(call print_header,"Updating version from $$current_version to $$new_version"); \
+	python scripts/version_manager.py $$new_version; \
+	$(call print_header,"Committing version changes"); \
+	git add $(VERSION_FILE) share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mall0r.Twinverse.yaml scripts/package-flatpak.sh; \
+	git commit -m "Bump version to $$new_version"; \
+	git tag "v$$new_version"; \
+	$(call print_success,"Release $$new_version created successfully!"); \
+	@echo "To push changes and tag, run:"; \
+	@echo "  git push origin main"; \
+	@echo "  git push origin v$$new_version"
 
-build:
-	./scripts/build.sh
+# Create minor release
+release-minor: check-deps git-status
+	$(call print_header,"Creating minor release...")
+	@current_version=$$(cat $(VERSION_FILE)); \
+	major=$$(echo $$current_version | cut -d. -f1); \
+	minor=$$(echo $$current_version | cut -d. -f2); \
+	patch=$$(echo $$current_version | cut -d. -f3); \
+	new_version=$$major.$$((minor + 1)).0; \
+	$(call print_header,"Updating version from $$current_version to $$new_version"); \
+	python scripts/version_manager.py $$new_version; \
+	$(call print_header,"Committing version changes"); \
+	git add $(VERSION_FILE) share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mall0r.Twinverse.yaml scripts/package-flatpak.sh; \
+	git commit -m "Bump version to $$new_version"; \
+	git tag "v$$new_version"; \
+	$(call print_success,"Release $$new_version created successfully!"); \
+	@echo "To push changes and tag, run:"; \
+	@echo "  git push origin main"; \
+	@echo "  git push origin v$$new_version"
 
+# Create patch release
+release-patch: check-deps git-status
+	$(call print_header,"Creating patch release...")
+	@current_version=$$(cat $(VERSION_FILE)); \
+	major=$$(echo $$current_version | cut -d. -f1); \
+	minor=$$(echo $$current_version | cut -d. -f2); \
+	patch=$$(echo $$current_version | cut -d. -f3); \
+	new_version=$$major.$$minor.$$((patch + 1)); \
+	$(call print_header,"Updating version from $$current_version to $$new_version"); \
+	python scripts/version_manager.py $$new_version; \
+	$(call print_header,"Committing version changes"); \
+	git add $(VERSION_FILE) share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mall0r.Twinverse.yaml scripts/package-flatpak.sh; \
+	git commit -m "Bump version to $$new_version"; \
+	git tag "v$$new_version"; \
+	$(call print_success,"Release $$new_version created successfully!"); \
+	@echo "To push changes and tag, run:"; \
+	@echo "  git push origin main"; \
+	@echo "  git push origin v$$new_version"
+
+# Create custom release (blocked on dev branches)
+release-custom:
+	@if git branch --show-current | grep -E 'dev|beta'; then \
+		$(call print_error,"Custom releases are blocked on development branches"); \
+		exit 1; \
+	fi
+ifndef v
+	$(error Please specify the new version: make release-custom v=1.2.3)
+endif
+	@current_version=$$(cat $(VERSION_FILE)); \
+	if [ "$$current_version" = "$(v)" ] && [ "$(force)" != "true" ]; then \
+		$(call print_error,"Version is already $(v)"); \
+		@echo "Adicione uma opção de -force para que seja possivel fazer mesmo se a Version is already."; \
+		exit 1; \
+	else \
+		$(MAKE) check-deps && \
+		$(MAKE) git-status && \
+		$(call print_header,"Creating custom release...") && \
+		$(call print_header,"Updating version from $$current_version to $(v)") && \
+		if [ "$(force)" = "true" ]; then \
+			python scripts/version_manager.py $(v) force; \
+		else \
+			python scripts/version_manager.py $(v); \
+		fi && \
+		$(call print_header,"Committing version changes") && \
+		git add $(VERSION_FILE) share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md scripts/package-appimage.sh io.github.mall0r.Twinverse.yaml scripts/package-flatpak.sh && \
+		git commit -m "Bump version to $(v)" && \
+		git tag "v$(v)" && \
+		$(call print_success,"Release $(v) created successfully!") && \
+		@echo "To push changes and tag, run:" && \
+		@echo "  git push origin main" && \
+		@echo "  git push origin v$(v)"; \
+	fi
+
+# Create AppImage package
 appimage:
+	$(call print_header,"Creating AppImage package...")
 	./scripts/package-appimage.sh
+	$(call print_success,"AppImage package created successfully!")
 
-flatpak:
-	./scripts/package-flatpak.sh
+# ===== TARGETS =====
+.PHONY: help build flatpak validate-manifest test clean bump-patch release-major release-custom version update-version update-version-force bump-major bump-minor release-minor release-patch check-deps git-status appimage dev

@@ -5,23 +5,30 @@ class TwinverseError(Exception):
     Catching this exception allows for handling of all application-specific
     errors.
     """
+
     pass
+
 
 class ProfileNotFoundError(TwinverseError):
     """
     Raised when a specified game profile `.json` file cannot be found.
     """
+
     pass
+
 
 class DependencyError(TwinverseError):
     """
     Raised when a required external dependency (e.g., `bwrap`, `gamescope`)
     is not found on the system's PATH.
     """
+
     pass
+
 
 class VirtualDeviceError(TwinverseError):
     """
     Raised when there is an error creating or managing a virtual device.
     """
+
     pass

@@ -1,10 +1,12 @@
 import logging
 import re
 import subprocess
+from typing import Dict, List, Optional, Tuple, Union
+
 from screeninfo import get_monitors
-from src.models import Profile
+
 from src.core import Utils
-from typing import Dict, List, Tuple, Optional, Union
+from src.models import Profile
 
 
 class DeviceManager:
@@ -33,13 +35,7 @@ class DeviceManager:
                  if an error occurs.
         """
         try:
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
             return result.stdout.strip()
         except FileNotFoundError:
             logging.error(f"Command not found: {command.split()[0]}")
@@ -65,9 +61,7 @@ class DeviceManager:
         name_part = re.sub(r"-event-(kbd|mouse|joystick)", "", name_part)
         name_part = re.sub(r"-if\d+", "", name_part)
         name_part = name_part.replace("usb-", "").replace("_", " ")
-        name_part = " ".join(
-            [word.capitalize() for word in name_part.split(" ")]
-        ).strip()
+        name_part = " ".join([word.capitalize() for word in name_part.split(" ")]).strip()
         return name_part
 
     def get_input_devices(self) -> Dict[str, List[Dict[str, str]]]:
@@ -86,7 +80,7 @@ class DeviceManager:
         detected_devices: Dict[str, List[Dict[str, str]]] = {
             "keyboard": [],
             "mouse": [],
-            "joystick": []
+            "joystick": [],
         }
         by_id_output = self._run_command("ls -l /dev/input/by-id/")
 
@@ -109,15 +103,11 @@ class DeviceManager:
                     elif "event-kbd" in device_name_id_raw:
                         detected_devices["keyboard"].append(device)
             except (IndexError, AttributeError) as e:
-                logging.warning(
-                    f"Could not parse input device line: '{line}'. Error: {e}"
-                )
+                logging.warning(f"Could not parse input device line: '{line}'. Error: {e}")
                 continue
 
         for dev_type in detected_devices:
-            detected_devices[dev_type] = sorted(
-                detected_devices[dev_type], key=lambda x: x['name']
-            )
+            detected_devices[dev_type] = sorted(detected_devices[dev_type], key=lambda x: x["name"])
         return detected_devices
 
     def get_audio_devices(self) -> List[Dict[str, str]]:
@@ -136,7 +126,9 @@ class DeviceManager:
         if Utils.is_flatpak():
             # When using flatpak-spawn, we need to wrap the command in `sh -c`
             flatpak_command = ["sh", "-c", command]
-            pactl_output = Utils.run_host_command(flatpak_command, capture_output=True, text=True, check=True).stdout.strip()
+            pactl_output = Utils.run_host_command(
+                flatpak_command, capture_output=True, text=True, check=True
+            ).stdout.strip()
         else:
             # _run_command uses shell=True, which handles the env var correctly.
             pactl_output = self._run_command(command)
@@ -153,26 +145,26 @@ class DeviceManager:
                 elif "Name:" in line:
                     name = line.split(":", 1)[1].strip()
             except (IndexError, AttributeError) as e:
-                logging.warning(
-                    f"Could not parse audio device line: '{line}'. Error: {e}"
-                )
+                logging.warning(f"Could not parse audio device line: '{line}'. Error: {e}")
                 continue
 
         if name:
             audio_sinks.append({"id": name, "name": desc or name})
 
-        return sorted(audio_sinks, key=lambda x: x['name'])
+        return sorted(audio_sinks, key=lambda x: x["name"])
 
     def get_screen_info(self) -> List[Dict[str, Union[int, bool]]]:
         monitors = []
         for i, monitor in enumerate(get_monitors()):
-            monitors.append({
-                "id": i,
-                "x": monitor.x,
-                "y": monitor.y,
-                "width": monitor.width,
-                "height": monitor.height,
-            })
+            monitors.append(
+                {
+                    "id": i,
+                    "x": monitor.x,
+                    "y": monitor.y,
+                    "width": monitor.width,
+                    "height": monitor.height,
+                }
+            )
         return monitors
 
     def get_instance_dimensions(self, profile: Profile, instance_num: int) -> Tuple[Optional[int], Optional[int]]:

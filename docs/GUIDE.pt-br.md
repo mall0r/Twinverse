@@ -34,7 +34,7 @@ Use o seletor numérico "Número de Instâncias" para definir a quantidade desej
 ## 2. Modo de Tela
 
 > [!NOTE]
-> Para que o auto-tiling das janelas funcione bem, é recomendado usar KDE Plasma 6.0+. 
+> Para que o auto-tiling das janelas funcione bem, é recomendado usar KDE Plasma 6.0+.
 > Em outras DE, será necessário mover as janelas você mesmo, todo o resto deve funcionar bem.
 
 Você pode escolher entre dois modos de tela:
@@ -141,7 +141,7 @@ Um bom exemplo de uso é o [mangojuice](https://github.com/radiolamp/mangojuice)
 > [!NOTE]
 > Isso deve ser adicionado diretamente no argumento dos jogos, não adicione isso ao enviroments variables.
 
-O Twinverse suporta a execução de múltiplas Games em GPUs diferentes. 
+O Twinverse suporta a execução de múltiplas Games em GPUs diferentes.
 
 Adicione a seguinte linha aos argumentos do Steam do seu jogo:
 

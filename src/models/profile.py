@@ -1,16 +1,18 @@
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
-from pydantic import (BaseModel, ConfigDict, Field, ValidationError, validator)
-from src.core import Config
-from src.core import ProfileNotFoundError
-from src.core import Logger
+from typing import Any, Dict, List, Optional, Tuple
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic.functional_validators import field_validator
+
+from src.core import Config, Logger, ProfileNotFoundError
 
 
 class PlayerInstanceConfig(BaseModel):
     """
     Defines the specific configuration for a single player's game instance.
     """
+
     model_config = ConfigDict(populate_by_name=True)
 
     physical_device_id: Optional[str] = Field(default=None, alias="PHYSICAL_DEVICE_ID")
@@ -25,10 +27,11 @@ class SplitscreenConfig(BaseModel):
     """
     Configuration for splitscreen mode.
     """
+
     model_config = ConfigDict(populate_by_name=True)
     orientation: str = Field(alias="ORIENTATION")
 
-    @validator('orientation')
+    @field_validator("orientation")
     def validate_orientation(cls, v):
         if v not in ["horizontal", "vertical"]:
             raise ValueError("Orientation must be 'horizontal' or 'vertical'.")
@@ -39,7 +42,8 @@ class Profile(BaseModel):
     """
     A profile for launching a set of Steam instances with a specific configuration.
     """
-    model_config = ConfigDict(populate_by_name=True, extra='ignore')
+
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     num_players: int = Field(default=2, alias="NUM_PLAYERS")
     instance_width: Optional[int] = Field(default=1280, alias="INSTANCE_WIDTH")
@@ -49,7 +53,10 @@ class Profile(BaseModel):
     enable_kwin_script: bool = Field(default=True, alias="ENABLE_KWIN_SCRIPT")
     splitscreen: Optional[SplitscreenConfig] = Field(default=None, alias="SPLITSCREEN")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
-    player_configs: List[PlayerInstanceConfig] = Field(default_factory=lambda: [PlayerInstanceConfig(), PlayerInstanceConfig()], alias="PLAYERS")
+    player_configs: List[PlayerInstanceConfig] = Field(
+        default_factory=lambda: [PlayerInstanceConfig(), PlayerInstanceConfig()],
+        alias="PLAYERS",
+    )
     selected_players: Optional[List[int]] = Field(default=None, alias="selected_players")
 
     @classmethod
@@ -63,7 +70,7 @@ class Profile(BaseModel):
             return default_profile
 
         try:
-            with open(profile_path, 'r', encoding='utf-8') as f:
+            with open(profile_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except (IOError, json.JSONDecodeError) as e:
             raise ValueError(f"Error reading profile file {profile_path}: {e}")
@@ -84,7 +91,7 @@ class Profile(BaseModel):
         profile_path.parent.mkdir(parents=True, exist_ok=True)
         data_to_save = self.model_dump(by_alias=True, exclude_none=True)
         json_data = json.dumps(data_to_save, indent=4)
-        profile_path.write_text(json_data, encoding='utf-8')
+        profile_path.write_text(json_data, encoding="utf-8")
 
     @property
     def is_splitscreen_mode(self) -> bool:

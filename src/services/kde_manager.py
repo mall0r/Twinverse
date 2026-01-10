@@ -1,17 +1,18 @@
+import json
 import os
 import subprocess
-import pydbus
-import json
-from src.core import Logger
 from pathlib import Path
+
+import pydbus
+
+from src.core import Logger, Utils
 from src.models import Profile
-from src.core import Utils
 
 
 class KdeManager:
     def __init__(self, logger: Logger):
         self.logger = logger
-        self.original_panel_states = {}
+        self.original_panel_states: dict[int, str] = {}
         self.qdbus_command = self._find_qdbus_command()
         self.kwin_script_id = None
 
@@ -45,23 +46,34 @@ class KdeManager:
                 script_content = script_path.read_text()
 
                 # Create a temporary file on the host
-                tmp_creator = Utils.run_host_command(['mktemp'], capture_output=True, text=True, check=True)
+                tmp_creator = Utils.run_host_command(["mktemp"], capture_output=True, text=True, check=True)
                 tmp_path = tmp_creator.stdout.strip()
 
                 # Write the script content to the temporary file
-                Utils.run_host_command(['tee', tmp_path], input=script_content, text=True, check=True)
+                Utils.run_host_command(["tee", tmp_path], input=script_content, text=True, check=True)
 
                 # Load the script using qdbus
-                command = [self.qdbus_command, 'org.kde.KWin', '/Scripting', 'loadScript', tmp_path]
+                command = [
+                    self.qdbus_command,
+                    "org.kde.KWin",
+                    "/Scripting",
+                    "loadScript",
+                    tmp_path,
+                ]
                 result = Utils.run_host_command(command, capture_output=True, text=True, check=True)
                 self.kwin_script_id = result.stdout.strip()
 
                 # Start the script
-                start_command = [self.qdbus_command, 'org.kde.KWin', '/Scripting', 'start']
+                start_command = [
+                    self.qdbus_command,
+                    "org.kde.KWin",
+                    "/Scripting",
+                    "start",
+                ]
                 Utils.run_host_command(start_command, check=True)
 
                 # Clean up the temporary file
-                Utils.run_host_command(['rm', tmp_path], check=True)
+                Utils.run_host_command(["rm", tmp_path], check=True)
             else:
                 bus = pydbus.SessionBus()
                 kwin_proxy = bus.get("org.kde.KWin", "/Scripting")
@@ -86,7 +98,13 @@ class KdeManager:
         try:
             if Utils.is_flatpak():
                 self.logger.info(f"Unloading KWin script with ID: {self.kwin_script_id} via flatpak-spawn...")
-                command = [self.qdbus_command, 'org.kde.KWin', '/Scripting', 'unloadScript', str(self.kwin_script_id)]
+                command = [
+                    self.qdbus_command,
+                    "org.kde.KWin",
+                    "/Scripting",
+                    "unloadScript",
+                    str(self.kwin_script_id),
+                ]
                 Utils.run_host_command(command, check=True)
             else:
                 bus = pydbus.SessionBus()
@@ -99,7 +117,6 @@ class KdeManager:
 
         except Exception as e:
             self.logger.error(f"Failed to stop KWin script: {e}")
-
 
     def is_kde_desktop(self):
         """Check if the current desktop environment is KDE."""

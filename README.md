@@ -1,5 +1,5 @@
 <p align="right">
-  <a href="https://github.com/mall0r/Twinverse/blob/master/README.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a> 
+  <a href="https://github.com/mall0r/Twinverse/blob/master/README.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a>
   <a href="https://github.com/mall0r/Twinverse/blob/master/docs/README.pt-br.md"><img src="https://img.shields.io/badge/PT-🇧🇷-darkgreen.svg" alt="Portuguese"/></a>
   <a href="https://github.com/mall0r/Twinverse/blob/master/docs/README.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
 </p>
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-0.9.0-blue.svg" alt="Version"/></a>
+  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"/></a>
   <a href="https://github.com/mall0r/Twinverse/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="License"/></a>
   <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK Version"/></a>
   <a href="https://gnome.pages.gitlab.gnome.org/libadwaita/"><img src="https://img.shields.io/badge/libadwaita-1.0+-purple.svg" alt="libadwaita Version"/></a>
@@ -79,7 +79,7 @@ flatpak install flathub io.github.mall0r.Twinverse
 
 2. **Install the Flatpak:**
    You can install the Flatpak with the following command:
-   
+
    ```bash
    flatpak install --user Twinverse-*.flatpak
    ```
@@ -96,7 +96,7 @@ Alternatively, you can use the AppImage version. This single file works on most 
 
 2. **Make it Executable:**
    After downloading, right-click the file, go to "Properties," and check the "Allow executing file as program" box. Alternatively, you can use the terminal:
-   
+
    ```bash
    chmod +x Twinverse-*.AppImage
    ```

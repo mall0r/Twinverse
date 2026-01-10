@@ -1,26 +1,27 @@
+import copy
 import os
 import shlex
-import copy
 import shutil
 import signal
 import subprocess
 import time
 from pathlib import Path
 from typing import List, Optional
-from src.core import Utils
-from src.core import Config
-from src.core import DependencyError, VirtualDeviceError
-from src.core import Logger
-from src.models import Profile, PlayerInstanceConfig
+
+from src.core import Config, DependencyError, Logger, Utils, VirtualDeviceError
+from src.models import PlayerInstanceConfig, Profile
+
+from .kde_manager import KdeManager
 
 
 class InstanceService:
     """Service responsible for managing Steam instances."""
 
-    def __init__(self, logger: Logger, kde_manager: Optional['KdeManager'] = None):
+    def __init__(self, logger: Logger, kde_manager: Optional[KdeManager] = None):
         """Initializes the instance service."""
-        from .virtual_device import VirtualDeviceService
         from .device_manager import DeviceManager
+        from .virtual_device import VirtualDeviceService
+
         self.logger = logger
         self.virtual_device = VirtualDeviceService(logger)
         self.kde_manager = kde_manager
@@ -70,6 +71,7 @@ class InstanceService:
         instance_env = self._prepare_environment(profile, device_info, instance_num)
 
         from .cmd_builder import CommandBuilder
+
         cmd_builder = CommandBuilder(
             self.logger,
             profile,
@@ -104,7 +106,6 @@ class InstanceService:
                 flatpak_spawn_env = os.environ.copy()
                 flatpak_spawn_env.pop("PYTHONHOME", None)
                 flatpak_spawn_env.pop("PYTHONPATH", None)
-
 
                 process = Utils.run_host_command_async(
                     ["bash", "-c", shell_command],
@@ -159,7 +160,12 @@ class InstanceService:
         except Exception as e:
             self.logger.error(f"Failed to launch instance {instance_num}: {e}")
 
-    def launch_instance(self, profile: Profile, instance_num: int, use_gamescope_override: Optional[bool] = None) -> None:
+    def launch_instance(
+        self,
+        profile: Profile,
+        instance_num: int,
+        use_gamescope_override: Optional[bool] = None,
+    ) -> None:
         """Launches a single Steam instance."""
         if not self._virtual_joystick_checked:
             self._virtual_joystick_checked = True
@@ -237,9 +243,16 @@ class InstanceService:
                         try:
                             os.killpg(pgid, signal.SIGKILL)
                         except ProcessLookupError:
-                            self.logger.warning(f"Process group {pgid} not found when sending SIGKILL for instance {instance_num}.")
+                            self.logger.warning(
+                                f"Process group {pgid} not found when sending SIGKILL for instance {instance_num}."
+                            )
 
-                        subprocess.run(["pkill", "-9", "-f", "winedevice"], capture_output=True, text=True, check=False)
+                        subprocess.run(
+                            ["pkill", "-9", "-f", "winedevice"],
+                            capture_output=True,
+                            text=True,
+                            check=False,
+                        )
 
             else:
                 self.logger.warning(f"No PGID found for instance {instance_num}, cannot send termination signal.")
@@ -253,7 +266,6 @@ class InstanceService:
             del self.pids[instance_num]
         if instance_num in self.pgids:
             del self.pgids[instance_num]
-
 
     def _prepare_home(self, home_path: Path) -> None:
         """
@@ -295,7 +307,9 @@ class InstanceService:
         # Handle audio device assignment
         if device_info.get("audio_device_id_for_instance"):
             env["PULSE_SINK"] = device_info["audio_device_id_for_instance"]
-            self.logger.info(f"Instance {instance_num}: Setting PULSE_SINK to '{device_info['audio_device_id_for_instance']}'.")
+            self.logger.info(
+                f"Instance {instance_num}: Setting PULSE_SINK to '{device_info['audio_device_id_for_instance']}'."
+            )
 
         # Custom ENV variables from the profile are set via bwrap --setenv, so we don't handle them here.
 
@@ -308,7 +322,7 @@ class InstanceService:
         player_config = (
             profile.player_configs[instance_num]
             if profile.player_configs and 0 <= instance_num < len(profile.player_configs)
-            else PlayerInstanceConfig() # Default empty config
+            else PlayerInstanceConfig()  # Default empty config
         )
 
         def _validate_device(path_str: Optional[str], device_type: str) -> Optional[str]:
@@ -316,8 +330,8 @@ class InstanceService:
                 return None
             path_obj = Path(path_str)
             if path_obj.exists() and path_obj.is_char_device():
-                 self.logger.info(f"Instance {instance_num_display}: {device_type} device '{path_str}' assigned.")
-                 return str(path_obj.resolve())
+                self.logger.info(f"Instance {instance_num_display}: {device_type} device '{path_str}' assigned.")
+                return str(path_obj.resolve())
             self.logger.warning(
                 f"Instance {instance_num_display}: {device_type} device '{path_str}' not found or not a char device."
             )
@@ -335,7 +349,7 @@ class InstanceService:
             "mouse_path_str_for_instance": mouse_path,
             "keyboard_path_str_for_instance": keyboard_path,
             "joystick_path_str_for_instance": joystick_path,
-            "audio_device_id_for_instance": audio_id if audio_id and audio_id.strip() else None,
+            "audio_device_id_for_instance": (audio_id if audio_id and audio_id.strip() else None),
             "should_add_grab_flags": player_config.grab_input_devices,
         }
 

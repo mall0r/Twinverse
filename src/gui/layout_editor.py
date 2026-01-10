@@ -1,22 +1,23 @@
-import gi
 import os
+
+import gi
+
 from src.core import Config
-from src.models import Profile, SplitscreenConfig, PlayerInstanceConfig
+from src.models import PlayerInstanceConfig, Profile, SplitscreenConfig
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from src.services import DeviceManager
-from src.services import SteamVerifier
 from gi.repository import Adw, Gdk, GObject, Gtk
-from src.services import InstanceService
+
+from src.services import DeviceManager, InstanceService, SteamVerifier
 
 
 class LayoutSettingsPage(Adw.PreferencesPage):
     __gsignals__ = {
-        "settings-changed": (GObject.SIGNAL_RUN_FIRST, None, ()),
-        "instance-state-changed": (GObject.SIGNAL_RUN_FIRST, None, ()),
-        "verification-completed": (GObject.SIGNAL_RUN_FIRST, None, ()),
+        "settings-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
+        "instance-state-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
+        "verification-completed": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
     def __init__(self, profile, logger, **kwargs):
@@ -69,16 +70,11 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.gamescope_settings_group = Adw.PreferencesGroup()
         self.add(self.gamescope_settings_group)
 
-        gamescope_expander = Adw.ExpanderRow(
-            title="Screen Settings",
-            expanded=True
-        )
+        gamescope_expander = Adw.ExpanderRow(title="Screen Settings", expanded=True)
         self.gamescope_settings_group.add(gamescope_expander)
 
         self.screen_modes = ["Fullscreen", "Splitscreen"]
-        self.screen_mode_row = Adw.ComboRow(
-            title="Screen Mode", model=Gtk.StringList.new(self.screen_modes)
-        )
+        self.screen_mode_row = Adw.ComboRow(title="Screen Mode", model=Gtk.StringList.new(self.screen_modes))
         self.screen_mode_row.get_style_context().add_class("screen-mode-row")
         self.screen_mode_row.connect("notify::selected-item", self._on_screen_mode_changed)
         gamescope_expander.add_row(self.screen_mode_row)
@@ -94,9 +90,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.players_group = Adw.PreferencesGroup(title="Instance Configurations")
         self.players_group.get_style_context().add_class("players-group")
         self.add(self.players_group)
-
-
-
 
     def load_profile_data(self):
         self._is_loading = True
@@ -125,7 +118,11 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             if i < len(self.profile.player_configs):
                 config = self.profile.player_configs[i]
                 row_dict["grab_input"].set_active(config.grab_input_devices)
-                self._set_combo_row_selection(row_dict["joystick"], self.input_devices["joystick"], config.physical_device_id)
+                self._set_combo_row_selection(
+                    row_dict["joystick"],
+                    self.input_devices["joystick"],
+                    config.physical_device_id,
+                )
                 # self._set_combo_row_selection(row_dict["mouse"], self.input_devices["mouse"], config.MOUSE_EVENT_PATH)
                 # self._set_combo_row_selection(row_dict["keyboard"], self.input_devices["keyboard"], config.KEYBOARD_EVENT_PATH)
                 self._set_combo_row_selection(row_dict["audio"], self.audio_devices, config.audio_device_id)
@@ -153,7 +150,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
                 if getattr(config, "env", None):
                     for k, v in (config.env or {}).items():
                         self._add_player_env_row_by_index(i, k, v)
-
 
         # After loading, enforce exclusivity rules on the UI
         active_grab_index = -1
@@ -185,23 +181,19 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         combo_row.set_selected(0)
 
-
-
     def get_updated_data(self) -> Profile:
         self.profile.num_players = int(self.num_players_row.get_value())
 
         self.profile.mode = self.screen_mode_row.get_selected_item().get_string().lower()
         if self.profile.mode == "splitscreen":
             orientation = self.orientation_row.get_selected_item().get_string().lower()
-            self.profile.splitscreen = SplitscreenConfig(orientation=orientation)
+            self.profile.splitscreen = SplitscreenConfig(ORIENTATION=orientation)
         else:
             self.profile.splitscreen = None
 
         # Save gamescope setting
-        self.profile.use_gamescope = True       # Always enable Gamescope
+        self.profile.use_gamescope = True  # Always enable Gamescope
         self.profile.enable_kwin_script = True  # Always enable KWin script
-
-
 
         new_configs = []
         for i in range(self.profile.num_players):
@@ -209,10 +201,14 @@ class LayoutSettingsPage(Adw.PreferencesPage):
                 row_dict = self.player_rows[i]
 
                 selected_refresh_rate_item = row_dict["refresh_rate"].get_selected_item()
-                selected_refresh_rate = int(selected_refresh_rate_item.get_string()) if selected_refresh_rate_item else 60
+                selected_refresh_rate = (
+                    int(selected_refresh_rate_item.get_string()) if selected_refresh_rate_item else 60
+                )
 
                 new_config = PlayerInstanceConfig(
-                    PHYSICAL_DEVICE_ID=self._get_combo_row_device_id(row_dict["joystick"], self.input_devices["joystick"]),
+                    PHYSICAL_DEVICE_ID=self._get_combo_row_device_id(
+                        row_dict["joystick"], self.input_devices["joystick"]
+                    ),
                     GRAB_INPUT_DEVICES=row_dict["grab_input"].get_active(),
                     AUDIO_DEVICE_ID=self._get_combo_row_device_id(row_dict["audio"], self.audio_devices),
                     ENV=self._collect_env_from_rows(row_dict.get("env_rows", [])),
@@ -222,7 +218,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
                 )
                 new_configs.append(new_config)
             else:
-                new_configs.append(PlayerInstanceConfig()) # Add empty config for new players
+                new_configs.append(PlayerInstanceConfig())  # Add empty config for new players
         self.profile.player_configs = new_configs
 
         self.profile.selected_players = self.get_selected_players()
@@ -337,11 +333,12 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             except Exception:
                 container.add_row(row)
 
-        return {"row": row, "key": key_entry, "value": value_entry, "remove": remove_btn}
-
-
-
-
+        return {
+            "row": row,
+            "key": key_entry,
+            "value": value_entry,
+            "remove": remove_btn,
+        }
 
     def _add_player_env_row_by_index(self, idx: int, key: str = "", value: str = ""):
         if idx < 0 or idx >= len(self.player_rows):
@@ -350,6 +347,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         env_row = self._create_env_kv_row(rd["expander"])
         env_row["key"].set_text(str(key) if key is not None else "")
         env_row["value"].set_text(str(value) if value is not None else "")
+
         def on_remove(btn, row=env_row, rd=rd):
             try:
                 rd["expander"].remove(row["row"])
@@ -358,6 +356,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             if "env_rows" in rd and row in rd["env_rows"]:
                 rd["env_rows"].remove(row)
             self._on_setting_changed()
+
         env_row["remove"].connect("clicked", on_remove)
         rd.setdefault("env_rows", [])
         rd["env_rows"].append(env_row)
@@ -374,9 +373,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
     def _on_refresh_joysticks_clicked(self, button, joystick_row):
         """Refreshes the joystick list for a specific ComboRow."""
         self.logger.info("Refreshing joystick list...")
-        selected_id = self._get_combo_row_device_id(
-            joystick_row, self.input_devices.get("joystick", [])
-        )
+        selected_id = self._get_combo_row_device_id(joystick_row, self.input_devices.get("joystick", []))
 
         self.input_devices = self.device_manager.get_input_devices()
         joysticks = self.input_devices.get("joystick", [])
@@ -433,7 +430,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             grab_input_switch.connect("notify::active", self._on_grab_input_toggled, i)
             expander.add_row(grab_input_switch)
 
-
             audio_model = Gtk.StringList.new(["None"] + [d["name"] for d in self.audio_devices])
             audio_row = Adw.ComboRow(title="Audio Device", model=audio_model)
             audio_row.get_style_context().add_class("audio-row")
@@ -449,22 +445,22 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             launch_button = Gtk.Button(label="Start")
             launch_button.get_style_context().add_class("configure-button")
             launch_button.set_valign(Gtk.Align.CENTER)
-            launch_button.connect(
-                "clicked", self._on_instance_launch_clicked, i
-            )
+            launch_button.connect("clicked", self._on_instance_launch_clicked, i)
             expander.add_suffix(launch_button)
 
-            self.player_rows.append({
-                "checkbox": checkbox,
-                "expander": expander,
-                "joystick": joystick_row,
-                "grab_input": grab_input_switch,
-                "audio": audio_row,
-                "refresh_rate": refresh_rate_row,
-                "status_icon": None,
-                "launch_button": launch_button,
-                "is_running": False,
-            })
+            self.player_rows.append(
+                {
+                    "checkbox": checkbox,
+                    "expander": expander,
+                    "joystick": joystick_row,
+                    "grab_input": grab_input_switch,
+                    "audio": audio_row,
+                    "refresh_rate": refresh_rate_row,
+                    "status_icon": None,
+                    "launch_button": launch_button,
+                    "is_running": False,
+                }
+            )
 
     def _run_all_verifications(self):
         for i in range(len(self.player_rows)):
@@ -520,9 +516,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             button.get_style_context().remove_class("destructive-action")
             row_data["is_running"] = False
         else:
-            self.instance_service.launch_instance(
-                self.profile, instance_num, use_gamescope_override=False
-            )
+            self.instance_service.launch_instance(self.profile, instance_num, use_gamescope_override=False)
             button.set_label("Stop")
             button.get_style_context().add_class("destructive-action")
             row_data["is_running"] = True

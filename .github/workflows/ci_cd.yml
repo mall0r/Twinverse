@@ -1,0 +1,122 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [main, beta, dev]
+  push:
+    branches: [main, beta, dev]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versão específica (ex: v1.2.3)'
+        required: true
+        default: 'v0.0.0'
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+jobs:
+  # Testes normais que rodam diretamente no Ubuntu
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install flatpak and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+          libgirepository1.0-dev \
+          libgirepository-2.0-dev \
+          make \
+          gcc \
+          libcairo2-dev \
+          pkg-config \
+          python3-dev \
+          libglib2.0-dev \
+          libxml2-dev \
+          libxslt1-dev \
+          libgtk-4-dev \
+          libadwaita-1-dev \
+          gir1.2-gtk-4.0 \
+          gir1.2-adw-1 \
+          libglib2.0-dev-bin
+
+      - name: Install pip dependencies
+        run: |
+          pip install --upgrade pip
+          pip install .[test]
+          pre-commit install
+
+      - name: Run pytest
+        run: |
+          python -m pytest tests/
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
+  # Versionamento semântico automático
+  semantic-release:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    outputs:
+      version: ${{ steps.release.outputs.new_release_version || '1.0.0' }}
+      changelog: ${{ steps.release.outputs.new_release_notes || 'Initial release' }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '25'
+
+      - name: Install Flatpak dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak \
+          flatpak-builder \
+          libgirepository1.0-dev \
+          libgirepository-2.0-dev \
+          make \
+          gcc \
+          libcairo2-dev \
+          pkg-config \
+          python3-dev \
+          libglib2.0-dev \
+          libxml2-dev \
+          libxslt1-dev \
+          libgtk-4-dev \
+          libadwaita-1-dev \
+          gir1.2-gtk-4.0 \
+          gir1.2-adw-1 \
+          libglib2.0-dev-bin
+          pip install pytest pytest-cov
+
+      - name: Add Flathub repository
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Install SDK and Platform
+        run: |
+          flatpak install -y --user flathub org.gnome.Platform//49 org.gnome.Sdk//49
+
+      - name: Install and run semantic-release
+        id: release
+        uses: cycjimmy/semantic-release-action@v6
+        with:
+          semantic_version: 25
+          extra_plugins: '@semantic-release/changelog @semantic-release/github @semantic-release/git @semantic-release/exec conventional-changelog-conventionalcommits'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

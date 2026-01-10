@@ -68,7 +68,7 @@
   </provides>
 
   <releases>
-    <release version="0.9.0" date="2026-01-05" type="stable">
+    <release version="1.0.0" date="2026-01-10" type="stable">
       <description>
         <p>Initial public release stable, with Flatpak and AppImage support.</p>
       </description>

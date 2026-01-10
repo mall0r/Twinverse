@@ -3,8 +3,8 @@
 from .config import Config
 from .exceptions import (
     DependencyError,
-    TwinverseError,
     ProfileNotFoundError,
+    TwinverseError,
     VirtualDeviceError,
 )
 from .logger import Logger

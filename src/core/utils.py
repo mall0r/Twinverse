@@ -1,9 +1,9 @@
 import os
-import sys
-import subprocess
 import shlex
+import subprocess
+import sys
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
 
 class Utils:
@@ -18,11 +18,10 @@ class Utils:
         """
         if getattr(sys, "frozen", False):
             # Running in a PyInstaller bundle
-            return Path(sys._MEIPASS)
+            return Path(sys._MEIPASS)  # type: ignore[attr-defined]
         else:
             # Running as a script, assuming this file is in src/core
             return Path(__file__).resolve().parent.parent.parent
-
 
     @staticmethod
     def is_flatpak() -> bool:
@@ -65,4 +64,4 @@ class Utils:
         command_string = "; ".join(command_parts)
 
         # We don't need to capture output or check for errors here.
-        Utils.run_host_command(['sh', '-c', command_string], check=False)
+        Utils.run_host_command(["sh", "-c", command_string], check=False)

@@ -9,8 +9,8 @@ from .core import (
     Config,
     DependencyError,
     Logger,
-    TwinverseError,
     ProfileNotFoundError,
+    TwinverseError,
     VirtualDeviceError,
 )
 from .gui.app import TwinverseApplication, TwinverseWindow, run_gui

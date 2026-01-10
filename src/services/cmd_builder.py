@@ -1,7 +1,9 @@
 from pathlib import Path
-from typing import List, Dict, Optional
-from src.models import Profile
+from typing import Dict, List, Optional
+
 from src.core import Logger
+from src.models import Profile
+from src.services.device_manager import DeviceManager
 
 
 class CommandBuilder:
@@ -10,7 +12,7 @@ class CommandBuilder:
         logger: Logger,
         profile: Profile,
         device_info: Dict,
-        device_manager: 'DeviceManager',
+        device_manager: DeviceManager,
         instance_num: int,
         home_path: Path,
         virtual_joystick_path: Optional[str],
@@ -60,24 +62,30 @@ class CommandBuilder:
 
         # Get refresh rate for the specific instance
         refresh_rate = 60  # Default
-        if self.profile.player_configs and 0 <= self.instance_num < len(
-            self.profile.player_configs
-        ):
+        if self.profile.player_configs and 0 <= self.instance_num < len(self.profile.player_configs):
             refresh_rate = self.profile.player_configs[self.instance_num].refresh_rate
         else:
-            self.logger.warning(f"Instance {self.instance_num}: Could not find player config, defaulting refresh rate to 60Hz.")
+            self.logger.warning(
+                f"Instance {self.instance_num}: Could not find player config, defaulting refresh rate to 60Hz."
+            )
 
         refresh_rate_str = str(refresh_rate)
 
         cmd = [
             "gamescope",
             "-e",
-            "-W", str(width),
-            "-H", str(height),
-            "-w", str(width),
-            "-h", str(height),
-            "-o", refresh_rate_str,
-            "-r", refresh_rate_str,
+            "-W",
+            str(width),
+            "-H",
+            str(height),
+            "-w",
+            str(width),
+            "-h",
+            str(height),
+            "-o",
+            refresh_rate_str,
+            "-r",
+            refresh_rate_str,
             "--mangoapp",
         ]
 
@@ -112,13 +120,22 @@ class CommandBuilder:
 
         cmd = [
             "bwrap",
-            "--dev-bind", "/", "/",
-            "--dev-bind", "/dev", "/dev",
-            "--tmpfs", "/dev/shm",
-            "--proc", "/proc",
+            "--dev-bind",
+            "/",
+            "/",
+            "--dev-bind",
+            "/dev",
+            "/dev",
+            "--tmpfs",
+            "/dev/shm",
+            "--proc",
+            "/proc",
             "--die-with-parent",
-            "--tmpfs", "/tmp",
-            "--bind", "/tmp/.X11-unix", "/tmp/.X11-unix",
+            "--tmpfs",
+            "/tmp",
+            "--bind",
+            "/tmp/.X11-unix",
+            "/tmp/.X11-unix",
         ]
 
         # --- Device Isolation ---
@@ -127,7 +144,9 @@ class CommandBuilder:
         joystick_path = self.device_info.get("joystick_path_str_for_instance")
         # If the instance has no physical joystick, assign the virtual one if it exists
         if not joystick_path and self.virtual_joystick_path:
-            self.logger.info(f"Instance {self.instance_num}: Assigning virtual joystick '{self.virtual_joystick_path}'.")
+            self.logger.info(
+                f"Instance {self.instance_num}: Assigning virtual joystick '{self.virtual_joystick_path}'."
+            )
             joystick_path = self.virtual_joystick_path
 
         device_paths_to_bind = [
@@ -138,9 +157,7 @@ class CommandBuilder:
         for device_path in device_paths_to_bind:
             if device_path:
                 self.logger.info(f"Instance {self.instance_num}: Exposing device '{device_path}' to sandbox.")
-                cmd.extend([
-                    "--dev-bind", device_path, device_path
-                ])
+                cmd.extend(["--dev-bind", device_path, device_path])
 
         if Path("/dev/uinput").exists():
             cmd.extend(["--dev-bind", "/dev/uinput", "/dev/uinput"])
@@ -150,9 +167,13 @@ class CommandBuilder:
 
         # --- Home Directory Isolation ---
         # Mount the instance-specific directories over the real Steam locations
-        cmd.extend([
-                "--bind", str(self.home_path), str(orig_home),
-        ])
+        cmd.extend(
+            [
+                "--bind",
+                str(self.home_path),
+                str(orig_home),
+            ]
+        )
 
         # Mount host's common games and compatibility tools into the sandboxed Steam directory
         host_steam_path = orig_local / "share/Steam"
@@ -164,9 +185,7 @@ class CommandBuilder:
         if host_common.exists():
             for folder in host_common.iterdir():
                 if folder.is_dir():
-                    cmd.extend([
-                        "--bind", str(folder), str(sandbox_common / folder.name)
-                    ])
+                    cmd.extend(["--bind", str(folder), str(sandbox_common / folder.name)])
 
         # Share compatibilitytools
         host_compat = Path(host_steam_path) / "compatibilitytools.d"
@@ -175,17 +194,13 @@ class CommandBuilder:
             ignore = {"LegacyRuntime"}
             for folder in host_compat.iterdir():
                 if folder.is_dir() and folder.name not in ignore:
-                    cmd.extend([
-                        "--bind", str(folder), str(sandbox_compat / folder.name)
-                    ])
+                    cmd.extend(["--bind", str(folder), str(sandbox_compat / folder.name)])
         # --- End Home Directory Isolation ---
 
         # Ensure custom ENV variables reach Steam inside the sandbox
         try:
             extra_env = (
-                self.profile.get_env_for_instance(instance_idx)
-                if hasattr(self.profile, "get_env_for_instance")
-                else {}
+                self.profile.get_env_for_instance(instance_idx) if hasattr(self.profile, "get_env_for_instance") else {}
             )
             for k, v in (extra_env or {}).items():
                 if v is None:
