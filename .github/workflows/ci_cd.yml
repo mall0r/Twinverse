@@ -1,11 +1,10 @@
-name: Flatpak Release Pipeline
+name: CI/CD Pipeline
 
 on:
-  workflow_run:
-    workflows: ["CI Tests"]
-    types:
-      - completed
-
+  pull_request:
+    branches: [main, master, build/workflow]
+  push:
+    branches: [main, master, build/workflow]
   workflow_dispatch:
     inputs:
       version:
@@ -19,9 +18,55 @@ permissions:
   pull-requests: write
 
 jobs:
-  # Fase 2: Versionamento semântico automático
+  # Testes normais que rodam diretamente no Ubuntu
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install flatpak and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+          libgirepository1.0-dev \
+          libgirepository-2.0-dev \
+          make \
+          gcc \
+          libcairo2-dev \
+          pkg-config \
+          python3-dev \
+          libglib2.0-dev \
+          libxml2-dev \
+          libxslt1-dev \
+          libgtk-4-dev \
+          libadwaita-1-dev \
+          gir1.2-gtk-4.0 \
+          gir1.2-adw-1 \
+          libglib2.0-dev-bin
+
+      - name: Install pip dependencies
+        run: |
+          pip install --upgrade pip
+          pip install .[test]
+          pre-commit install
+
+      - name: Run pytest
+        run: |
+          python -m pytest tests/
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
+  # Versionamento semântico automático
   semantic-release:
     runs-on: ubuntu-latest
+    needs: unit-tests
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     outputs:
       version: ${{ steps.release.outputs.new_release_version || '1.0.0' }}
       changelog: ${{ steps.release.outputs.new_release_notes || 'Initial release' }}
