@@ -39,6 +39,10 @@ jobs:
           gir1.2-adw-1 \
           libglib2.0-dev-bin
 
+      - name: Add Flathub repository
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
       - name: Install GNOME runtime and SDK
         run: |
           flatpak install -y flathub org.gnome.Sdk//49 org.gnome.Platform//49
