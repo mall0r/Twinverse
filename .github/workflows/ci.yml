@@ -38,10 +38,6 @@ jobs:
           gir1.2-adw-1 \
           libglib2.0-dev-bin
 
-      - name: Install GNOME runtime and SDK
-        run: |
-          flatpak install -y --user flathub org.gnome.Sdk//49 org.gnome.Platform//49
-
       - name: Install pip dependencies
         run: |
           pip install --upgrade pip
