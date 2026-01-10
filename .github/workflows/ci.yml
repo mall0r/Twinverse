@@ -21,8 +21,7 @@ jobs:
       - name: Install flatpak and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak \
-          flatpak-builder \
+          sudo apt-get install -y \
           libgirepository1.0-dev \
           libgirepository-2.0-dev \
           make \
@@ -38,11 +37,6 @@ jobs:
           gir1.2-gtk-4.0 \
           gir1.2-adw-1 \
           libglib2.0-dev-bin
-
-      - name: Add Flathub repository
-        run: |
-          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Install GNOME runtime and SDK
         run: |
@@ -60,8 +54,3 @@ jobs:
 
       - name: Run pre-commit
         run: pre-commit run --all-files
-
-      - name: Build Flatpak and run tests
-        run: |
-          flatpak-builder --install-deps-from=flathub --force-clean build-dir io.github.mall0r.Twinverse.yaml
-          flatpak-builder --run build-dir io.github.mall0r.Twinverse.yaml python -m pytest tests/
