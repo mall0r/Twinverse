@@ -30,6 +30,12 @@
       }
     ],
     [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
       "@semantic-release/exec",
       {
         "prepareCmd": "python scripts/version_manager.py ${nextRelease.version} && echo ${nextRelease.version} | sed 's/v//' > version",

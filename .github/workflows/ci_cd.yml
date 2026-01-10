@@ -117,6 +117,6 @@ jobs:
         uses: cycjimmy/semantic-release-action@v6
         with:
           semantic_version: 25
-          extra_plugins: '@semantic-release/github @semantic-release/git @semantic-release/exec conventional-changelog-conventionalcommits'
+          extra_plugins: '@semantic-release/changelog @semantic-release/github @semantic-release/git @semantic-release/exec conventional-changelog-conventionalcommits'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
