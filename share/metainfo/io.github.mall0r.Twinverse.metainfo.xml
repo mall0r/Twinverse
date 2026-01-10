@@ -70,7 +70,7 @@
   <releases>
     <release version="1.0.0" date="2026-01-10" type="stable">
       <description>
-        <p>Initial public release stable, with Flatpak and AppImage support.</p>
+        <p>Initial public release stable.</p>
       </description>
     </release>
   </releases>

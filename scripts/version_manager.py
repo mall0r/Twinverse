@@ -28,16 +28,6 @@ def update_version_in_file(file_path, old_version, new_version):
         updated_content,
     )
 
-    # Update version in date format in metainfo.xml
-    if "metainfo.xml" in str(file_path):
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        # Update release date in metainfo.xml - considerando também o atributo type
-        updated_content = re.sub(
-            r'<release version="[^"]+" date="[^"]+"([^>]*>)',
-            f'<release version="{new_version}" date="{current_date}"\\1',
-            updated_content,
-        )
-
     # Update version badge in README
     if "README" in str(file_path):
         updated_content = re.sub(r"Version-[0-9]+\.[0-9]+\.[0-9]+", f"Version-{new_version}", updated_content)
@@ -81,7 +71,6 @@ def set_new_version(new_version, force=False):
     # List of files that contain the version
     files_to_update = [
         "scripts/package-appimage.sh",
-        "share/metainfo/io.github.mall0r.Twinverse.metainfo.xml",
         "README.md",
         "docs/README.pt-br.md",
         "docs/README.es.md",
