@@ -5,6 +5,7 @@ This module provides the main GUI window and application classes for the
 Twinverse application.
 """
 
+import os
 import sys
 import threading
 import time
@@ -283,6 +284,7 @@ class TwinverseApplication(Adw.Application):
 
 def run_gui():
     """Launch the GUI application."""
+    os.environ["GSK_RENDERER"] = "gl"
     # Unset the old "prefer dark theme" setting to avoid Adwaita warnings
     settings = Gtk.Settings.get_default()
     settings.set_property("gtk-application-prefer-dark-theme", False)

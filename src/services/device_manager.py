@@ -126,7 +126,7 @@ class DeviceManager:
         Returns:
             List[Dict[str, str]]: A list of dictionaries, where each
             dictionary represents an audio sink and contains its 'id'
-            (PulseAudio name) and 'name' (human-readable description).
+            (PulseAudio name) and 'name' (readable description).
         """
         audio_sinks = []
         command = "LANG=C pactl list sinks"
@@ -134,9 +134,11 @@ class DeviceManager:
         if Utils.is_flatpak():
             # When using flatpak-spawn, we need to wrap the command in `sh -c`
             flatpak_command = ["sh", "-c", command]
-            pactl_output = Utils.run_host_command(
-                flatpak_command, capture_output=True, text=True, check=True
-            ).stdout.strip()
+            result = Utils.flatpak_spawn_host(flatpak_command, capture_output=True, text=True, check=True)
+            pactl_output = ""
+            if result.stdout:
+                pactl_output = result.stdout.strip()
+
         else:
             # _run_command uses shell=True, which handles the env var correctly.
             pactl_output = self._run_command(command)

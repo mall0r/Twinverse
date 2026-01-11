@@ -53,11 +53,11 @@ class KdeManager:
                 script_content = script_path.read_text()
 
                 # Create a temporary file on the host
-                tmp_creator = Utils.run_host_command(["mktemp"], capture_output=True, text=True, check=True)
+                tmp_creator = Utils.flatpak_spawn_host(["mktemp"], capture_output=True, text=True, check=True)
                 tmp_path = tmp_creator.stdout.strip()
 
                 # Write the script content to the temporary file
-                Utils.run_host_command(["tee", tmp_path], input=script_content, text=True, check=True)
+                Utils.flatpak_spawn_host(["tee", tmp_path], input=script_content, text=True, check=True)
 
                 # Load the script using qdbus
                 command = [
@@ -67,7 +67,7 @@ class KdeManager:
                     "loadScript",
                     tmp_path,
                 ]
-                result = Utils.run_host_command(command, capture_output=True, text=True, check=True)
+                result = Utils.flatpak_spawn_host(command, capture_output=True, text=True, check=True)
                 self.kwin_script_id = result.stdout.strip()
 
                 # Start the script
@@ -77,10 +77,10 @@ class KdeManager:
                     "/Scripting",
                     "start",
                 ]
-                Utils.run_host_command(start_command, check=True)
+                Utils.flatpak_spawn_host(start_command, check=True)
 
                 # Clean up the temporary file
-                Utils.run_host_command(["rm", tmp_path], check=True)
+                Utils.flatpak_spawn_host(["rm", tmp_path], check=True)
             else:
                 bus = pydbus.SessionBus()
                 kwin_proxy = bus.get("org.kde.KWin", "/Scripting")
@@ -110,7 +110,7 @@ class KdeManager:
                     "unloadScript",
                     str(self.kwin_script_id),
                 ]
-                Utils.run_host_command(command, check=True)
+                Utils.flatpak_spawn_host(command, check=True)
             else:
                 bus = pydbus.SessionBus()
                 kwin_proxy = bus.get("org.kde.KWin", "/Scripting")
@@ -133,7 +133,7 @@ class KdeManager:
             try:
                 command = [cmd, "--version"]
                 if Utils.is_flatpak():
-                    Utils.run_host_command(command, capture_output=True, check=True)
+                    Utils.flatpak_spawn_host(command, capture_output=True, check=True)
                 else:
                     subprocess.run(command, capture_output=True, check=True)
                 self.logger.info(f"Using '{cmd}' for dbus communication.")
@@ -156,7 +156,7 @@ class KdeManager:
                 script,
             ]
             if Utils.is_flatpak():
-                result = Utils.run_host_command(command, capture_output=True, text=True, check=True)
+                result = Utils.flatpak_spawn_host(command, capture_output=True, text=True, check=True)
             else:
                 result = subprocess.run(command, capture_output=True, text=True, check=True)
             return result.stdout.strip()

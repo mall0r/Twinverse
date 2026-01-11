@@ -6,11 +6,10 @@ throughout the Twinverse application.
 """
 
 import os
-import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import List, Literal, Union, overload
 
 
 class Utils:
@@ -36,36 +35,36 @@ class Utils:
         """Check if the application is running inside a Flatpak."""
         return os.path.exists("/.flatpak-info")
 
+    @overload
     @staticmethod
-    def run_host_command(command: List[str], **kwargs) -> subprocess.CompletedProcess:
-        """Execute a command on the host system using 'flatpak-spawn --host'."""
-        base_command = ["flatpak-spawn", "--host"]
-        full_command = base_command + command
-        return subprocess.run(full_command, **kwargs)
+    def flatpak_spawn_host(command: List[str], async_: Literal[True], **kwargs) -> subprocess.Popen: ...
+
+    @overload
+    @staticmethod
+    def flatpak_spawn_host(
+        command: List[str], async_: Literal[False] = False, **kwargs
+    ) -> subprocess.CompletedProcess: ...
 
     @staticmethod
-    def run_host_command_async(command: List[str], **kwargs) -> subprocess.Popen:
+    def flatpak_spawn_host(
+        command: List[str], async_: bool = False, **kwargs
+    ) -> Union[subprocess.CompletedProcess, subprocess.Popen]:
         """
-        Execute a command asynchronously on the host system using 'flatpak-spawn --host'.
+        Execute a command, using 'flatpak-spawn --host' if inside a Flatpak.
+
+        Args:
+            command (List[str]): The command to execute.
+            async_ (bool): If True, execute asynchronously and return a Popen object.
+                           Otherwise, run synchronously and return a CompletedProcess object.
+            **kwargs: Additional arguments to pass to subprocess.run or subprocess.Popen.
 
         Returns:
-            subprocess.Popen: The Popen object for the spawned process.
+            Union[subprocess.CompletedProcess, subprocess.Popen]: The result of the command execution.
         """
-        base_command = ["flatpak-spawn", "--host"]
-        full_command = base_command + command
-        return subprocess.Popen(full_command, **kwargs)
+        if Utils.is_flatpak():
+            command = ["flatpak-spawn", "--host"] + command
 
-    @staticmethod
-    def set_host_env_vars(env_vars: Dict[str, str]) -> None:
-        """Set environment variables on the host system when running in a Flatpak."""
-        if not Utils.is_flatpak():
-            return
-
-        command_parts = []
-        for key, value in env_vars.items():
-            command_parts.append(f"export {key}={shlex.quote(value)}")
-
-        command_string = "; ".join(command_parts)
-
-        # We don't need to capture output or check for errors here.
-        Utils.run_host_command(["sh", "-c", command_string], check=False)
+        if async_:
+            return subprocess.Popen(command, **kwargs)
+        else:
+            return subprocess.run(command, **kwargs)

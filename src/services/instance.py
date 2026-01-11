@@ -51,7 +51,7 @@ class InstanceService:
             if Utils.is_flatpak():
                 try:
                     # We check the return code. A non-zero indicates the command is not found.
-                    Utils.run_host_command(["which", cmd_name], check=True, capture_output=True)
+                    Utils.flatpak_spawn_host(["which", cmd_name], check=True, capture_output=True)
                 except subprocess.CalledProcessError:
                     raise DependencyError(f"Required command '{cmd_name}' not found on the host system")
             else:
@@ -113,8 +113,9 @@ class InstanceService:
                 flatpak_spawn_env.pop("PYTHONHOME", None)
                 flatpak_spawn_env.pop("PYTHONPATH", None)
 
-                process = Utils.run_host_command_async(
+                process = Utils.flatpak_spawn_host(
                     ["bash", "-c", shell_command],
+                    async_=True,
                     stdout=subprocess.PIPE,  # Capture stdout to read the PGID
                     stderr=subprocess.DEVNULL,
                     env=flatpak_spawn_env,
@@ -224,7 +225,7 @@ class InstanceService:
             if pgid:
                 if Utils.is_flatpak():
                     self.logger.info(f"Sending SIGTERM to host process group {pgid} for instance {instance_num}")
-                    Utils.run_host_command(["sh", "-c", f"kill -15 -{pgid}"])
+                    Utils.flatpak_spawn_host(["sh", "-c", f"kill -15 -{pgid}"])
                 else:
                     try:
                         self.logger.info(f"Sending SIGTERM to process group {pgid} for instance {instance_num}")
@@ -239,11 +240,11 @@ class InstanceService:
                     self.logger.warning(f"Instance {instance_num} did not terminate after 10s. Sending SIGKILL.")
                     if Utils.is_flatpak():
                         try:
-                            Utils.run_host_command(["sh", "-c", f"kill -9 -{pgid}"])
+                            Utils.flatpak_spawn_host(["sh", "-c", f"kill -9 -{pgid}"])
                         except Exception as e:
                             self.logger.warning(f"Failed to send SIGKILL to host PGID {pgid}: {e}")
 
-                        Utils.run_host_command(["sh", "-c", "pkill -9 -f winedevice"])
+                        Utils.flatpak_spawn_host(["sh", "-c", "pkill -9 -f winedevice"])
 
                     else:
                         try:
