@@ -27,7 +27,8 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-*.gresource
+builddir/
+repo/
 
 # Virtual environments
 .venv/

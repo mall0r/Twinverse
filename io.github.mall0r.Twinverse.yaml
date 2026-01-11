@@ -15,6 +15,7 @@ finish-args:
   - --device=all
 
   # For start instances, isolate devices and KDE integration
+  # This app requires access to flatpak-spawn to create sandboxed instances, move gamescope windows and isolate devices between instances
   - --talk-name=org.freedesktop.Flatpak
 
   # File system access
