@@ -60,20 +60,15 @@ class InstanceService:
 
         self.logger.info("Dependencies validated successfully")
 
-    def _launch_single_instance(self, profile: Profile, instance_num: int) -> None:
-        """Launch a single steam instance."""
-        self.logger.info(f"Preparing instance {instance_num}...")
-
+    def _prepare_instance_launch(self, profile: Profile, instance_num: int) -> tuple[list[str], dict]:
+        """Prepare and build the command for launching a single Steam instance."""
         home_path = Config.get_steam_home_path(instance_num)
         home_path.mkdir(parents=True, exist_ok=True)
         self.logger.info(f"Instance {instance_num}: Using isolated home path '{home_path}'")
 
-        # Prepare minimal home structure - Steam will auto-install on first run
         self._prepare_home(home_path)
 
         device_info = self._validate_input_devices(profile, instance_num, instance_num)
-
-        # Get instance-specific environment variables
         instance_env = self._prepare_environment(profile, device_info, instance_num)
 
         from .cmd_builder import CommandBuilder
@@ -87,78 +82,22 @@ class InstanceService:
             home_path,
             self._virtual_joystick_path,
         )
-        base_command = cmd_builder.build_command()
+        return cmd_builder.build_command(), instance_env
+
+    def _launch_single_instance(self, profile: Profile, instance_num: int) -> None:
+        """Launch a single steam instance."""
+        self.logger.info(f"Preparing instance {instance_num}...")
+
+        base_command, instance_env = self._prepare_instance_launch(profile, instance_num)
 
         log_file = Config.LOG_DIR / f"steam_instance_{instance_num}.log"
         self.logger.info(f"Launching instance {instance_num} (Log: {log_file})")
 
         try:
-            process: subprocess.Popen
-            pgid = -1
-
             if Utils.is_flatpak():
-                # For Flatpak, prepend environment variables to the shell command
-                env_prefix_parts = []
-                for key, value in instance_env.items():
-                    env_prefix_parts.append(f"export {key}={shlex.quote(value)}")
-                env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
-
-                escaped_command = shlex.join(base_command)
-                shell_command = f"{env_prefix}set -m; echo $$; exec {escaped_command}"
-
-                self.logger.info(f"Instance {instance_num}: Launching on host via shell: {shell_command}")
-
-                # Prepare a clean environment for flatpak-spawn itself
-                flatpak_spawn_env = os.environ.copy()
-                flatpak_spawn_env.pop("PYTHONHOME", None)
-                flatpak_spawn_env.pop("PYTHONPATH", None)
-
-                process = Utils.flatpak_spawn_host(
-                    ["bash", "-c", shell_command],
-                    async_=True,
-                    stdout=subprocess.PIPE,  # Capture stdout to read the PGID
-                    stderr=subprocess.DEVNULL,
-                    env=flatpak_spawn_env,
-                    cwd=Path.home(),
-                )
-
-                # Read the PGID from the host shell script's stdout
-                pgid_str = ""
-                if process.stdout:
-                    # Read the first line of output, which should be the PGID
-                    pgid_str = process.stdout.readline().decode().strip()
-
-                if pgid_str.isdigit():
-                    pgid = int(pgid_str)
-                    self.logger.info(
-                        f"Instance {instance_num} started on host with PID {process.pid} "
-                        f"and captured host PGID: {pgid}"
-                    )
-                else:
-                    self.logger.error(f"Instance {instance_num}: Failed to capture host PGID. Read: '{pgid_str}'")
-                    process.terminate()
-                    raise RuntimeError(f"Failed to get host PGID for instance {instance_num}")
-
+                process, pgid = self._launch_in_flatpak(instance_num, base_command, instance_env)
             else:
-                # For non-Flatpak, merge instance env with a clean version of the current environment
-                final_env = os.environ.copy()
-                final_env.pop("PYTHONHOME", None)
-                final_env.pop("PYTHONPATH", None)
-                final_env.update(instance_env)
-
-                # When not in Flatpak, launch the process directly and create a process group
-                self.logger.info(f"Instance {instance_num}: Full command: {shlex.join(base_command)}")
-                process = subprocess.Popen(
-                    base_command,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    env=final_env,
-                    cwd=Path.home(),
-                    preexec_fn=os.setpgrp,
-                )
-                # The PGID is the same as the PID because os.setpgrp() makes the process the group leader.
-                pgid = process.pid
-                self.logger.info(f"Instance {instance_num} started with PID: {process.pid} and PGID: {pgid}")
+                process, pgid = self._launch_natively(instance_num, base_command, instance_env)
 
             self.pids[instance_num] = process.pid
             self.pgids[instance_num] = pgid
@@ -166,6 +105,64 @@ class InstanceService:
 
         except Exception as e:
             self.logger.error(f"Failed to launch instance {instance_num}: {e}")
+
+    def _launch_in_flatpak(
+        self, instance_num: int, base_command: list[str], instance_env: dict
+    ) -> tuple[subprocess.Popen, int]:
+        """Launch a Steam instance within a Flatpak environment."""
+        env_prefix_parts = [f"export {key}={shlex.quote(value)}" for key, value in instance_env.items()]
+        env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
+        escaped_command = shlex.join(base_command)
+        shell_command = f"{env_prefix}set -m; echo $$; exec {escaped_command}"
+
+        self.logger.info(f"Instance {instance_num}: Launching on host via shell: {shell_command}")
+
+        flatpak_spawn_env = os.environ.copy()
+        flatpak_spawn_env.pop("PYTHONHOME", None)
+        flatpak_spawn_env.pop("PYTHONPATH", None)
+
+        process = Utils.flatpak_spawn_host(
+            ["bash", "-c", shell_command],
+            async_=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            env=flatpak_spawn_env,
+            cwd=Path.home(),
+        )
+
+        pgid_str = process.stdout.readline().decode().strip() if process.stdout else ""
+        if pgid_str.isdigit():
+            pgid = int(pgid_str)
+            self.logger.info(
+                f"Instance {instance_num} started on host with PID {process.pid} " f"and captured host PGID: {pgid}"
+            )
+            return process, pgid
+
+        self.logger.error(f"Instance {instance_num}: Failed to capture host PGID. Read: '{pgid_str}'")
+        process.terminate()
+        raise RuntimeError(f"Failed to get host PGID for instance {instance_num}")
+
+    def _launch_natively(
+        self, instance_num: int, base_command: list[str], instance_env: dict
+    ) -> tuple[subprocess.Popen, int]:
+        """Launch a Steam instance natively."""
+        final_env = os.environ.copy()
+        final_env.pop("PYTHONHOME", None)
+        final_env.pop("PYTHONPATH", None)
+        final_env.update(instance_env)
+
+        self.logger.info(f"Instance {instance_num}: Full command: {shlex.join(base_command)}")
+        process = subprocess.Popen(
+            base_command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env=final_env,
+            cwd=Path.home(),
+            preexec_fn=os.setpgrp,
+        )
+        pgid = process.pid
+        self.logger.info(f"Instance {instance_num} started with PID: {process.pid} and PGID: {pgid}")
+        return process, pgid
 
     def launch_instance(
         self,
