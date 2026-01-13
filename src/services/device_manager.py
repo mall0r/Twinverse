@@ -12,7 +12,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from screeninfo import get_monitors
 
-from src.core import Utils
 from src.models import Profile
 
 
@@ -30,22 +29,22 @@ class DeviceManager:
         """Initialize the DeviceManager."""
         pass
 
-    def _run_command(self, command: str) -> str:
+    def _run_command(self, command: List[str]) -> str:
         """
         Execute a shell command and return its standard output.
 
         Args:
-            command (str): The command to execute.
+            command (List[str]): The command to execute as a list of arguments.
 
         Returns:
             str: The stripped stdout from the command, or an empty string
                  if an error occurs.
         """
         try:
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
+            result = subprocess.run(command, capture_output=True, text=True, check=True)
             return result.stdout.strip()
         except FileNotFoundError:
-            logging.error(f"Command not found: {command.split()[0]}")
+            logging.error(f"Command not found: {command[0]}")
             return ""
         except subprocess.CalledProcessError as e:
             logging.error(f"Command failed: '{command}' with error: {e.stderr.strip()}")
@@ -89,7 +88,8 @@ class DeviceManager:
             "mouse": [],
             "joystick": [],
         }
-        by_id_output = self._run_command("ls -l /dev/input/by-id/")
+
+        by_id_output = self._run_command(["ls", "-l", "/dev/input/by-id/"])
 
         # A more specific regex to find symlinks to event devices.
         device_pattern = re.compile(r"\s([^\s]+)\s+->\s+\.\./event\d+")
@@ -121,27 +121,16 @@ class DeviceManager:
         """
         Detect available audio output devices (sinks) using `pactl`.
 
-        It uses `flatpak-spawn --host` when running inside a Flatpak.
-
         Returns:
             List[Dict[str, str]]: A list of dictionaries, where each
             dictionary represents an audio sink and contains its 'id'
             (PulseAudio name) and 'name' (readable description).
         """
         audio_sinks = []
-        command = "LANG=C pactl list sinks"
 
-        if Utils.is_flatpak():
-            # When using flatpak-spawn, we need to wrap the command in `sh -c`
-            flatpak_command = ["sh", "-c", command]
-            result = Utils.flatpak_spawn_host(flatpak_command, capture_output=True, text=True, check=True)
-            pactl_output = ""
-            if result.stdout:
-                pactl_output = result.stdout.strip()
+        # Comando pactl com variável de ambiente para garantir saída em inglês
+        pactl_output = self._run_command(["sh", "-c", "LANG=C pactl list sinks"])
 
-        else:
-            # _run_command uses shell=True, which handles the env var correctly.
-            pactl_output = self._run_command(command)
         desc, name = None, None
 
         for line in pactl_output.splitlines():

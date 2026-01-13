@@ -117,16 +117,16 @@ class InstanceService:
 
         self.logger.info(f"Instance {instance_num}: Launching on host via shell: {shell_command}")
 
-        flatpak_spawn_env = os.environ.copy()
-        flatpak_spawn_env.pop("PYTHONHOME", None)
-        flatpak_spawn_env.pop("PYTHONPATH", None)
+        flatpak_env = os.environ.copy()
+        flatpak_env.pop("PYTHONHOME", None)
+        flatpak_env.pop("PYTHONPATH", None)
 
         process = Utils.flatpak_spawn_host(
             ["bash", "-c", shell_command],
             async_=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
-            env=flatpak_spawn_env,
+            env=flatpak_env,
             cwd=Path.home(),
         )
 
@@ -146,17 +146,17 @@ class InstanceService:
         self, instance_num: int, base_command: list[str], instance_env: dict
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance natively."""
-        final_env = os.environ.copy()
-        final_env.pop("PYTHONHOME", None)
-        final_env.pop("PYTHONPATH", None)
-        final_env.update(instance_env)
+        native_env = os.environ.copy()
+        native_env.pop("PYTHONHOME", None)
+        native_env.pop("PYTHONPATH", None)
+        native_env.update(instance_env)
 
         self.logger.info(f"Instance {instance_num}: Full command: {shlex.join(base_command)}")
         process = subprocess.Popen(
             base_command,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            env=final_env,
+            env=native_env,
             cwd=Path.home(),
             preexec_fn=os.setpgrp,
         )

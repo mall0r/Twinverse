@@ -9,20 +9,21 @@ finish-args:
   - --device=dri
   - --socket=wayland
   - --socket=fallback-x11
+  - --socket=pulseaudio
   - --share=ipc
 
   # Input devices (evdev)
   - --device=all
 
-  # For start instances, isolate devices and KDE integration
-  # This app requires access to flatpak-spawn to create sandboxed instances, move gamescope windows and isolate devices between instances
+  # This app requires access to flatpak-spawn to create sandboxed instances
   - --talk-name=org.freedesktop.Flatpak
 
-  # KDE D-Bus integration
+  # D-Bus integration
   - --talk-name=org.freedesktop.DBus
+
+  # KDE integration
   - --talk-name=org.kde.KWin
   - --talk-name=org.kde.plasmashell
-  - --system-talk-name=org.freedesktop.login1
 
   # File system access
   - --filesystem=~/.local/share/Steam/steamapps:ro

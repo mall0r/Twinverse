@@ -84,3 +84,4 @@ relatorio_*
 *.AppImage
 *.appimage
 *.flatpak
+*.txt
