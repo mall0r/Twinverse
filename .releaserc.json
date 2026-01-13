@@ -32,7 +32,7 @@
     [
       "@semantic-release/changelog",
       {
-        "changelogFile": "CHANGELOG.md"
+        "changelogFile": "docs/CHANGELOG.md"
       }
     ],
     [
@@ -47,7 +47,7 @@
       {
         "assets": [
           "version",
-          "CHANGELOG.md",
+          "docs/CHANGELOG.md",
           "README.md",
           "docs/README.pt-br.md",
           "docs/README.es.md",

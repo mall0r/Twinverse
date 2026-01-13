@@ -13,7 +13,8 @@ import time
 import gi
 from gi.repository import Adw, Gio, GLib, Gtk
 
-from src.core import Config, Logger, Utils, VirtualDeviceError
+from src.core import Config, Logger, Utils
+from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
 from src.gui.layout_editor import LayoutSettingsPage
 from src.models import Profile
 from src.services import InstanceService, KdeManager
@@ -43,10 +44,50 @@ class TwinverseWindow(Adw.ApplicationWindow):
         self._update_launch_button_state()
         self.connect("close-request", self.on_close_request)
 
-    def _show_error_dialog(self, message):
-        dialog = Adw.MessageDialog(transient_for=self, modal=True, title="Error", body=message)
+    def _show_error_dialog(self, message, title="Error"):
+        """Show an error dialog with the given message and title."""
+        dialog = Adw.MessageDialog(transient_for=self, modal=True, title=title, body=message)
         dialog.add_response("ok", "OK")
         dialog.present()
+
+    def _handle_launch_error(self, error: Exception):
+        """Handle launch errors with appropriate messaging."""
+        error_msg = self._get_error_message(error)
+        self.instance_service.terminate_all()
+        GLib.idle_add(self._show_error_dialog, error_msg)
+        GLib.idle_add(self._restore_ui_after_failed_launch)
+
+    def _get_error_message(self, error: Exception) -> str:
+        """Generate appropriate error message based on error type."""
+        # Check for specific exception types first
+        if isinstance(error, DependencyError):
+            # Handle dependency errors
+            return f"Missing dependency: {error}"
+        elif isinstance(error, FileNotFoundError):
+            # Handle file not found errors
+            filename = getattr(error, "filename", None)
+            if filename:
+                return f"Required command '{filename}' not found. Please install the missing dependency."
+            else:
+                return f"Required file or command not found: {error}"
+        elif isinstance(error, OSError):
+            # Handle OS-level errors like "No such file or directory" (errno 2)
+            if hasattr(error, "errno") and error.errno == 2:  # ENOENT
+                filename = getattr(error, "filename", None)
+                if filename:
+                    return f"Required command '{filename}' not found. Please install the missing dependency."
+                else:
+                    return f"Required file or command not found: {error}"
+            else:
+                return f"System error: {error}"
+        elif isinstance(error, VirtualDeviceError):
+            # Handle virtual device errors
+            return f"Virtual device error: {error}"
+        elif isinstance(error, TwinverseError):
+            # Handle other specific errors
+            return f"Twinverse error: {error}"
+        else:
+            return f"Could not launch: {error}"
 
     def _build_ui(self):
         self.toolbar_view = Adw.ToolbarView()
@@ -62,7 +103,7 @@ class TwinverseWindow(Adw.ApplicationWindow):
         self.layout_settings_page.connect("verification-completed", self._update_launch_button_state)
         self.toolbar_view.set_content(self.layout_settings_page)
 
-        # Footer Bar for Play/Stop buttons - Agora uma caixa comum
+        # Footer Bar for Play/Stop buttons
         self.footer_bar = Gtk.Box(
             orientation=Gtk.Orientation.HORIZONTAL,
             spacing=0,
@@ -71,12 +112,11 @@ class TwinverseWindow(Adw.ApplicationWindow):
             margin_top=6,
             margin_bottom=6,
             homogeneous=False,
-            halign=Gtk.Align.END,  # Alinha tudo à direita
+            halign=Gtk.Align.END,
         )
 
-        # Adiciona um "spacer" expansível para empurrar o botão para direita
         spacer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        spacer.set_hexpand(True)  # Expande horizontalmente
+        spacer.set_hexpand(True)
         self.footer_bar.append(spacer)
 
         self.launch_button = Gtk.Button()
@@ -136,11 +176,8 @@ class TwinverseWindow(Adw.ApplicationWindow):
             if not self._cancel_launch_event.is_set():
                 GLib.idle_add(self._on_launch_finished)
 
-        except VirtualDeviceError as e:
-            self.logger.error(f"Caught virtual device error: {e}. Aborting launch.")
-            self.instance_service.terminate_all()
-            GLib.idle_add(self._show_error_dialog, f"Could not launch: {e}")
-            GLib.idle_add(self._restore_ui_after_failed_launch)
+        except Exception as e:
+            self._handle_launch_error(e)
 
     def _restore_ui_after_failed_launch(self):
         self.kde_manager.restore_panel_states()

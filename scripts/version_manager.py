@@ -72,6 +72,7 @@ def set_new_version(new_version, force=False):
         "README.md",
         "docs/README.pt-br.md",
         "docs/README.es.md",
+        "docs/CHANGELOG.md",
         "io.github.mall0r.Twinverse.yaml",  # Although it doesn't contain version directly, it may contain references
         "scripts/package-flatpak.sh",
     ]

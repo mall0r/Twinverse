@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic.functional_validators import field_validator
 
-from src.core import Config, ProfileNotFoundError  # noqa: F401
+from src.core import Config
 
 
 class PlayerInstanceConfig(BaseModel):
@@ -31,7 +31,7 @@ class SplitscreenConfig(BaseModel):
     """Configuration for splitscreen mode."""
 
     model_config = ConfigDict(populate_by_name=True)
-    orientation: str = Field(alias="ORIENTATION")
+    orientation: str = Field(default="horizontal", alias="ORIENTATION")
 
     @field_validator("orientation")
     def validate_orientation(cls, v):
@@ -58,7 +58,7 @@ class Profile(BaseModel):
         default_factory=lambda: [PlayerInstanceConfig(), PlayerInstanceConfig()],
         alias="PLAYERS",
     )
-    selected_players: Optional[List[int]] = Field(default=None, alias="selected_players")
+    selected_players: List[int] = Field(default_factory=list, alias="selected_players")
 
     @classmethod
     def load(cls) -> "Profile":

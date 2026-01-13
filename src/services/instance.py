@@ -14,7 +14,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-from src.core import Config, DependencyError, Logger, Utils, VirtualDeviceError
+from src.core import Config, Logger, Utils
+from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
 from src.models import PlayerInstanceConfig, Profile
 
 from .kde_manager import KdeManager
@@ -38,27 +39,6 @@ class InstanceService:
         self.pgids: dict[int, int] = {}
         self.processes: dict[int, subprocess.Popen] = {}
         self.termination_in_progress = False
-
-    def validate_dependencies(self, use_gamescope: bool = True) -> None:
-        """Validate if all necessary commands are available on the system."""
-        self.logger.info("Validating dependencies...")
-        required_commands = ["bwrap", "steam"]
-        if use_gamescope:
-            required_commands.insert(0, "gamescope")
-
-        for cmd_name in required_commands:
-            # If in Flatpak, check on the host. Otherwise, check locally.
-            if Utils.is_flatpak():
-                try:
-                    # We check the return code. A non-zero indicates the command is not found.
-                    Utils.flatpak_spawn_host(["which", cmd_name], check=True, capture_output=True)
-                except subprocess.CalledProcessError:
-                    raise DependencyError(f"Required command '{cmd_name}' not found on the host system")
-            else:
-                if not shutil.which(cmd_name):
-                    raise DependencyError(f"Required command '{cmd_name}' not found")
-
-        self.logger.info("Dependencies validated successfully")
 
     def _prepare_instance_launch(self, profile: Profile, instance_num: int) -> tuple[list[str], dict]:
         """Prepare and build the command for launching a single Steam instance."""
@@ -103,8 +83,11 @@ class InstanceService:
             self.pgids[instance_num] = pgid
             self.processes[instance_num] = process
 
+        except TwinverseError:
+            raise
         except Exception as e:
-            self.logger.error(f"Failed to launch instance {instance_num}: {e}")
+            self.logger.error(f"Failed to launch instance {instance_num}: {str(e)}")
+            raise TwinverseError(f"Failed to launch instance {instance_num}: {str(e)}")
 
     def _launch_in_flatpak(
         self, instance_num: int, base_command: list[str], instance_env: dict
@@ -121,14 +104,31 @@ class InstanceService:
         flatpak_env.pop("PYTHONHOME", None)
         flatpak_env.pop("PYTHONPATH", None)
 
-        process = Utils.flatpak_spawn_host(
-            ["bash", "-c", shell_command],
-            async_=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            env=flatpak_env,
-            cwd=Path.home(),
-        )
+        try:
+            process = Utils.flatpak_spawn_host(
+                ["bash", "-c", shell_command],
+                async_=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=flatpak_env,
+                cwd=Path.home(),
+            )
+        except FileNotFoundError as e:
+            self.logger.error(f"Instance {instance_num}: flatpak-spawn-host command not found: {e}")
+            raise DependencyError(f"flatpak-spawn-host command not found: {e}")
+        except PermissionError as e:
+            self.logger.error(f"Instance {instance_num}: Permission denied when spawning host process: {e}")
+            raise TwinverseError(f"Permission denied when launching instance {instance_num}: {e}")
+
+        import time
+
+        time.sleep(0.1)
+
+        if process.poll() is not None:
+            _, stderr_data = process.communicate()
+            error_message = stderr_data.decode() if stderr_data else "Unknown error"
+            self.logger.error(f"Instance {instance_num}: Process failed to start: {error_message}")
+            raise DependencyError(f"Command failed to start: {base_command[0]} - {error_message}")
 
         pgid_str = process.stdout.readline().decode().strip() if process.stdout else ""
         if pgid_str.isdigit():
@@ -140,7 +140,12 @@ class InstanceService:
 
         self.logger.error(f"Instance {instance_num}: Failed to capture host PGID. Read: '{pgid_str}'")
         process.terminate()
-        raise RuntimeError(f"Failed to get host PGID for instance {instance_num}")
+
+        # Try to get error output if available
+        _, stderr_data = process.communicate(timeout=1) if process.stdout else (None, None)
+        error_message = stderr_data.decode() if stderr_data else "Failed to capture host PGID"
+
+        raise TwinverseError(f"Failed to get host process group ID for instance {instance_num}: {error_message}")
 
     def _launch_natively(
         self, instance_num: int, base_command: list[str], instance_env: dict
@@ -152,14 +157,32 @@ class InstanceService:
         native_env.update(instance_env)
 
         self.logger.info(f"Instance {instance_num}: Full command: {shlex.join(base_command)}")
-        process = subprocess.Popen(
-            base_command,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            env=native_env,
-            cwd=Path.home(),
-            preexec_fn=os.setpgrp,
-        )
+        try:
+            process = subprocess.Popen(
+                base_command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=native_env,
+                cwd=Path.home(),
+                preexec_fn=os.setpgrp,
+            )
+        except FileNotFoundError as e:
+            self.logger.error(f"Instance {instance_num}: Command not found: {e}")
+            raise DependencyError(f"Command not found: {e}")
+        except PermissionError as e:
+            self.logger.error(f"Instance {instance_num}: Permission denied: {e}")
+            raise TwinverseError(f"Permission denied when launching instance {instance_num}: {e}")
+
+        import time
+
+        time.sleep(0.1)
+
+        if process.poll() is not None:
+            _, stderr_data = process.communicate()
+            error_message = stderr_data.decode() if stderr_data else "Unknown error"
+            self.logger.error(f"Instance {instance_num}: Process failed to start: {error_message}")
+            raise DependencyError(f"Command failed to start: {base_command[0]} - {error_message}")
+
         pgid = process.pid
         self.logger.info(f"Instance {instance_num} started with PID: {process.pid} and PGID: {pgid}")
         return process, pgid
@@ -191,8 +214,8 @@ class InstanceService:
                 self.logger.info("One or more instances lack a physical joystick. Creating a virtual one.")
                 try:
                     self._virtual_joystick_path = self.virtual_device.create_virtual_joystick()
-                except VirtualDeviceError:
-                    self.logger.error("Halting launch due to virtual joystick creation failure.")
+                except VirtualDeviceError as e:
+                    self.logger.error(f"Halting launch due to virtual joystick creation failure: {str(e)}")
                     # Re-raise the exception to be caught by the UI layer
                     raise
 
@@ -201,7 +224,6 @@ class InstanceService:
             active_profile = copy.deepcopy(profile)
             active_profile.use_gamescope = use_gamescope_override
 
-        self.validate_dependencies(use_gamescope=active_profile.use_gamescope)
         Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
         self._launch_single_instance(active_profile, instance_num)
 
@@ -241,6 +263,10 @@ class InstanceService:
                         except Exception as e:
                             self.logger.warning(f"Failed to send SIGKILL to host PGID {pgid}: {e}")
 
+                        self.logger.info(f"Instance {instance_num} terminated with SIGKILL.")
+
+                        # This is necessary as a temporary measure for the problem described in:
+                        # https://github.com/ValveSoftware/gamescope/issues/1482
                         Utils.flatpak_spawn_host(["sh", "-c", "pkill -9 -f winedevice"])
 
                     else:
@@ -250,14 +276,20 @@ class InstanceService:
                             self.logger.warning(
                                 f"Process group {pgid} not found when sending SIGKILL for instance {instance_num}."
                             )
+                        except PermissionError as e:
+                            self.logger.error(f"Permission denied when sending SIGKILL to process group {pgid}: {e}")
+                            raise TwinverseError(f"Permission denied when terminating instance {instance_num}: {e}")
 
+                        self.logger.info(f"Instance {instance_num} terminated with SIGKILL.")
+
+                        # This is necessary as a temporary measure for the problem described in:
+                        # https://github.com/ValveSoftware/gamescope/issues/1482
                         subprocess.run(
                             ["pkill", "-9", "-f", "winedevice"],
                             capture_output=True,
                             text=True,
                             check=False,
                         )
-
             else:
                 self.logger.warning(f"No PGID found for instance {instance_num}, cannot send termination signal.")
 
@@ -283,8 +315,15 @@ class InstanceService:
         sdbx_steam_local = home_path / ".local/share/Steam"
 
         # Create essential Steam directories within the instance's isolated path
-        (sdbx_steam_local / "steamapps").mkdir(parents=True, exist_ok=True)
-        (sdbx_steam_local / "compatibilitytools.d").mkdir(parents=True, exist_ok=True)
+        try:
+            (sdbx_steam_local / "steamapps").mkdir(parents=True, exist_ok=True)
+            (sdbx_steam_local / "compatibilitytools.d").mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            self.logger.error(f"Permission denied when creating Steam directories: {e}")
+            raise TwinverseError(f"Permission denied when creating Steam directories: {e}")
+        except OSError as e:
+            self.logger.error(f"OS error when creating Steam directories: {e}")
+            raise TwinverseError(f"OS error when creating Steam directories: {e}")
 
         # Copy .acf (app manifest) files from the host to the instance.
         # This makes Steam recognize games as "installed" so it can find them
@@ -296,9 +335,16 @@ class InstanceService:
             for acf_file in host_steamapps.glob("*.acf"):
                 dest_file = dest_steamapps / acf_file.name
                 if not dest_file.exists():
-                    shutil.copy(acf_file, dest_file)
+                    try:
+                        shutil.copy(acf_file, dest_file)
+                    except PermissionError as e:
+                        self.logger.warning(f"Permission denied when copying {acf_file.name}: {e}")
+                    except OSError as e:
+                        self.logger.warning(f"OS error when copying {acf_file.name}: {e}")
         else:
-            self.logger.warning(f"Host Steam directory '{host_steamapps}' not found. Cannot copy game manifests.")
+            self.logger.warning(
+                f"Host Steam directory '{host_steamapps}' not found. Game manifests will not be copied to the instance."
+            )
 
         self.logger.info("Isolated Steam directories are ready.")
 
