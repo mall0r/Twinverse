@@ -63,16 +63,16 @@ Twinverse should work well on any system that supports `Gamescope` and `Steam`.
 ### Flatpak (Recommended)
 
 The recommended way to install Twinverse is via Flatpak, which provides a sandboxed environment and easier updates. You can install it from Flathub (once available) or from a `.flatpak` file from the [releases page](https://github.com/mall0r/Twinverse/releases).
-
+<!--
 **Option 1: Install from Flathub (Coming Soon)**
 Once Twinverse is available on Flathub, you can install it using the following commands:
 
 ```bash
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak install flathub io.github.mall0r.Twinverse
-```
+```-->
 
-**Option 2: Install from a .flatpak file**
+**Install from a .flatpak file**
 
 1. **Download the Latest .flatpak file:**
    Go to the [**Releases**](https://github.com/mall0r/Twinverse/releases) page and download the latest `.flatpak` file.
