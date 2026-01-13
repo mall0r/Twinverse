@@ -23,7 +23,7 @@ class ProfileNotFoundError(TwinverseError):
 
 
 class DependencyError(TwinverseError):
-    """Raised when a required external dependency (e.g., `bwrap`, `gamescope`) is not found on the system's PATH."""
+    """Raised when a required external dependency (e.g., `steam`, `gamescope`) is not found on the system's PATH."""
 
     pass
 
