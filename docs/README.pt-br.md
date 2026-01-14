@@ -108,13 +108,6 @@ Acesse nosso [Guide](https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.
 
 ---
 
-## 👾 Bugs e Issues
-
-O Twinverse está em desenvolvimento ativo; alguns bugs ainda podem ser encontrados.
-Caso tenha problemas, sinta-se a vontade para compartilhar seu feedback e reportar bugs em [Issues](https://github.com/mall0r/Twinverse/issues/new).
-
----
-
 ## ⚙️ Como Funciona
 
 O Twinverse utiliza o **Bubblewrap (`bwrap`)**, uma ferramenta de sandboxing de baixo nível do Linux, para isolar cada instância do Steam Client. Isso garante que as instâncias não interfiram umas com as outras ou com o sistema principal do usuário. Além disso, a linha de comando do `Gamescope` é gerada dinamicamente com base nas configurações do usuário, envolvendo o comando `bwrap` que, por sua vez, executa o `Steam`.
@@ -178,16 +171,6 @@ Ou usando o script diretamente:
 ```bash
 ./scripts/package-flatpak.sh
 ```
-
-
-## 🤝 Como Contribuir
-
-Recebemos contribuições de todos! Se você estiver interessado em ajudar a melhorar o Twinverse, siga estes passos:
-
-1. **Faça um fork do repositório**
-2. **Crie uma branch** (`git checkout -b my-amazing-feature`)
-3. **Faça suas alterações**
-4. **Envie um pull request**
 
 ---
 
