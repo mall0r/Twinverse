@@ -185,10 +185,10 @@ O usando el script directamente:
 
 ¡Aceptamos contribuciones de todos! Si estás interesado en ayudar a mejorar Twinverse, sigue estos pasos:
 
-1.  **Haz un Fork del Repositorio:** Crea tu propia copia del proyecto en GitHub.
-2.  **Crea una Rama:** Crea una nueva rama para tu función o corrección de errores (`git checkout -b mi-funcion-increible`).
-3.  **Haz tus Cambios:** Implementa tus mejoras.
-4.  **Envía un Pull Request:** Abre un "pull request" detallando tus cambios para revisión.
+1. **Bifurca el repositorio**
+2. **Crea una rama** (`git checkout -b my-amazing-feature`)
+3. **Realiza los cambios**
+4. **Envía una solicitud de extracción**
 
 ---
 
