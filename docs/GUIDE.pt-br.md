@@ -72,11 +72,14 @@ Para cada instância, você pode configurar as seguintes opções:
 
 ## 4. Iniciando uma Instância
 
-Após configurar uma instância, clique no botão **"Start"** ao lado dela para iniciar uma instância isolada do Steam sem o gamescope. Na primeira vez, o Steam será instalado automaticamente — esse processo pode levar alguns minutos.
+Após configurar uma instância, clique no botão **"Start"** ao lado dela para iniciar uma instância Steam no modo desktop. Na primeira vez, o Cliente Steam será baixado e instalado automaticamente — esse processo pode levar alguns minutos.
 
-Cada instância pode ser iniciada individualmente pelo seu botão **"Start"**. Para executar várias de uma só vez, utilize o botão **"Play"** localizado na parte inferior da janela.
+Você deve fazer login no modo desktop. Após logar e configurar seu Cliente Steam basta encerrar a instancia.
 
-Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Play"**. Você pode verificar isso pelo ícone de visto (check) na instância. Se o ícone não estiver presente, instale o Steam clicando no botão **"Start"** daquela instância. Isso permite configurar, adicionar jogos ou aplicativos de maneira rápida e direta em uma instância específica.
+o Botão **"Play"**, executa todas as instancias marcadas e com um check, ele vai executar todas com o gamescope e vai redimensionar cada uma.
+Se você estiver usando KDE Plasma, tambem vai move-las automaticamente para dividir a tela idealmente pra seu monitor principal, ou move-las entre seu monitores caso tenha selecionado fullscreen.
+
+Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Play"**. Você pode verificar isso pelo ícone de check <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/check-icon.svg" /> na instância. Se o ícone for um <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/alert-icon.svg" />, instale o Steam clicando no botão **"Start"** daquela instância.
 
 <img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/instance-config.png" />
 
