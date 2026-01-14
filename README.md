@@ -189,10 +189,10 @@ Or using the script directly:
 
 We welcome contributions from everyone! If you are interested in helping improve Twinverse, follow these steps:
 
-1. **Fork the Repository:** Create your own copy of the project on GitHub.
-2. **Create a Branch:** Create a new branch for your feature or bug fix (`git checkout -b my-amazing-feature`).
-3. **Make Your Changes:** Implement your improvements.
-4. **Submit a Pull Request:** Open a pull request detailing your changes for review.
+1. **Fork the Repository**
+2. **Create a Branch** (`git checkout -b my-amazing-feature`)
+3. **Make Your Changes**
+4. **Submit a Pull Request**
 
 ---
 
