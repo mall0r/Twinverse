@@ -4,7 +4,7 @@
   <a href="https://github.com/mall0r/Twinverse/blob/master/docs/README.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
 </p>
 
-# Twinverse
+# What is Twinverse?
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="128" height="128">
@@ -42,11 +42,10 @@ Twinverse is designed as a flexible solution for simultaneous multi-gaming on Li
 4. **Separate Home Directory:** Twinverse allows you to have a new, separate home for each instance, enabling you to customize settings and files individually. (Does not interfere with your standard Home directory)
 5. **Shared Game Library:** Twinverse allows you to share the Steam game directory among multiple instances, saving disk space and making game updates easier. (Users need to own the game in their Steam libraries to run it)
 6. **Use Any Proton:** Twinverse lets you use any version of Proton to run your games, including custom protons like [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom).
-7. **Play What You Want:** Instances are not limited to playing the same game; each instance can play whichever game it wants (provided the user owns the game in their Steam library).
+7. **Play Whatever You Want:** Instances are not limited to playing the same game; each instance can play whichever game it wants (provided the user owns the game in their Steam library).
+8. **Flexible Screen Modes:** Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor).
 
 ---
-
-## 🎬 Demo
 
 [horizontal-demo](https://github.com/user-attachments/assets/e0ca4937-fd38-48cf-b56c-1c825b047572)
 
@@ -62,7 +61,7 @@ Twinverse should work well on any system that supports `Gamescope` and `Steam`.
 
 ### Flatpak (Recommended)
 
-The recommended way to install Twinverse is via Flatpak, which provides a sandboxed environment and easier updates. You can install it from Flathub (once available) or from a `.flatpak` file from the [releases page](https://github.com/mall0r/Twinverse/releases).
+The recommended way to install Twinverse is via Flatpak, which provides a sandboxed environment and easier updates.
 <!--
 **Option 1: Install from Flathub (Coming Soon)**
 Once Twinverse is available on Flathub, you can install it using the following commands:
@@ -108,7 +107,7 @@ Alternatively, you can use the AppImage version. This single file works on most 
 
 For better system integration (e.g., adding a menu entry), you can use a tool like **[Gear Lever](https://github.com/mijorus/gearlever)** to manage your AppImage.
 
-## 📖 How to Use It?
+## 📖 How to Use?
 
 Access our [Guide](https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.md) for more information on how to use Twinverse.
 
@@ -123,7 +122,7 @@ If you encounter issues, feel free to share your feedback and report bugs in the
 
 ## ⚙️ How It Works
 
-Twinverse uses **Bubblewrap (`bwrap`)**, a low-level Linux sandboxing tool, to isolate each Steam instance. This ensures that the instances do not interfere with each other or with the user's main system. Furthermore, the `Gamescope` command line is dynamically generated based on the user's settings, involving the `bwrap` command which, in turn, launches `Steam`.
+Twinverse uses **Bubblewrap (`bwrap`)**, a low-level Linux sandboxing tool, to isolate each Steam Client instance. This ensures that the instances do not interfere with each other or with the user's main system. Furthermore, the `Gamescope` command line is dynamically generated based on the user's settings, involving the `bwrap` command which, in turn, launches `Steam`.
 
 ---
 
