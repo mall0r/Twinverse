@@ -47,12 +47,10 @@ You can choose between two screen modes:
 
 When selecting "Splitscreen," you can choose between two orientations:
 
-- **Horizontal:** Instances are arranged side by side.
-- **Vertical:** Instances are arranged stacked on top of each other.
+- **Horizontal:** Instances are arranged stacked on top of each other.
+- **Vertical:** Instances are arranged side by side.
 
 Positions and layouts adjust automatically based on the number of instances.
-
-Note: Instance auto-tiling only works with `KDE Plasma` environments.
 
 <img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/horizontal-game.png" />
 <img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/vertical-game.png" />
