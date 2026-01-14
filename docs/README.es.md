@@ -4,7 +4,7 @@
   <a href="https://github.com/mall0r/Twinverse/blob/master/docs/README.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
 </p>
 
-# Twinverse
+# ¿Qué es Twinverse?
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="128" height="128">
