@@ -79,15 +79,13 @@ Only instances that already have Steam installed can be launched with the **"Pla
 
 <img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/instance-config.png" />
 
-## 5. Steam Big Picture Mode (Optional)
+## 5. Disable Shader Pre-Caching (Optional)
 
-For the best experience, it is recommended to enable "Big Picture Mode" in Steam's settings. This provides a controller-friendly interface, ideal for Twinverse.
+To save disk space, disable shader pre-caching on Steam. I also recommend doing this if you have any problems with pre-caching downloads.
 
-To do this, go to `Settings > Interface` and check the box for `Start Steam in Big Picture Mode`.
+To do this, go to `Settings > Downloads` and disable the `Enable shader pre-caching` option.
 
-Repeat this process for all instances you wish to start in Big Picture Mode.
-
-<img width="850" height="722" alt="enable-bigpicture" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/enable-bigpicture.png" />
+<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/disable-shader-pre_caching.png" />
 
 ## 6. Play
 
