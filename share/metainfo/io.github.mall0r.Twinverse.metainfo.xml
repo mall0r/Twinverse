@@ -17,19 +17,14 @@
     </p>
     <p>Key Features:</p>
     <ul>
-      <li>Simple Multi-Instance Management: Run multiple Steam instances simultaneously.</li>
+      <li>Simple Multi-Instance Management:** Run multiple Steam Client simultaneously, allowing you and your friends to enjoy your game libraries separately.</li>
       <li>Per-Instance Hardware Assignment: Assign specific mice, keyboards, and controllers to each game instance.</li>
       <li>Dedicated Audio Channels: Route audio from each game instance to a separate audio output device.</li>
       <li>Separate Home Directory: Customize settings and files for each instance individually.</li>
       <li>Shared Game Library: Share the Steam game directory among multiple instances.</li>
       <li>Use Any Proton: Use any version of Proton to run your games.</li>
+      <li>Play Whatever You Want: Instances are not limited to playing the same game; each instance can play whichever game it wants.</li>
       <li>Flexible Screen Modes: Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor).</li>
-      <li>Auto-tiling Support: Automatic window tiling for KDE Plasma environments.</li>
-      <li>Environment Variables: Define specific environment variables for each instance.</li>
-      <li>Multi-GPU Support: Run games on different GPUs using DRI_PRIME.</li>
-      <li>Big Picture Mode Compatible: Optimized for Steam's Big Picture Mode.</li>
-      <li>Sandboxed Execution: Uses Bubblewrap for secure isolation of each Steam Client instance.</li>
-      <li>Non-interfering: Does not modify, patch, reverse engineer, or alter any Steam files.</li>
     </ul>
     <p>How it Works:</p>
     <p>Twinverse uses Bubblewrap (bwrap), a low-level Linux sandboxing tool, to isolate each Steam Client instance. This ensures that the instances do not interfere with each other or with the user's main system. Furthermore, the Gamescope command line is dynamically generated based on the user's settings, involving the bwrap command which, in turn, launches Steam.</p>
@@ -53,7 +48,6 @@
   </screenshots>
 
   <url type="homepage">https://github.com/mall0r/Twinverse</url>
-  <url type="vcs-browser">https://github.com/mall0r/Twinverse</url>
   <url type="donation">https://ko-fi.com/mallor</url>
   <url type="bugtracker">https://github.com/mall0r/Twinverse/issues/new</url>
   <url type="help">https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.md</url>
