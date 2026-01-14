@@ -86,7 +86,7 @@ Para ahorrar espacio en disco, desactiva el prealmacenamiento en caché de shade
 
 Para ello, ve a `Configuración` > `Descargas` y desactive la opción `Activar precarga en caché de sombreadores`.
 
-<img width="850" height="722" alt="enable-bigpicture" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/enable-bigpicture.png" />
+<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/disable-shader-pre_caching.png" />
 
 ## 6. Jugar
 
