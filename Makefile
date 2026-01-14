@@ -26,6 +26,7 @@ help:
 	@echo "  make flatpak         Build Flatpak package with validation"
 	@echo "  make test            Run test suite with coverage check"
 	@echo "  make clean           Remove all temporary artifacts"
+	@echo "  make dev             Install development dependencies and setup virtual environment"
 	@echo "  make bump-patch      Increment patch version (for critical fixes)"
 	@echo "  make release-major   Create major release (requires 3 reviewers)"
 	@echo "  make release-custom  Create custom release (blocked on dev branches)"
@@ -42,16 +43,17 @@ help:
 	@echo ""
 
 # ===== BUILD APPLICATION =====
-build:
+build: dev
 	$(call print_header,"Building Twinverse with production flags...")
-	$(PYTHON) -m pip install --upgrade pip
-	$(PYTHON) -m pip install .
+	@echo "Installing Twinverse in the virtual environment..."
+	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip > /dev/null 2>&1 && $(PYTHON) -m pip install . > /dev/null 2>&1
 	$(call print_success,"Build completed successfully!")
 
 # ===== FLATPAK PACKAGE =====
-flatpak: validate-manifest
+flatpak: dev validate-manifest
 	$(call print_header,"Building Flatpak package...")
-	./scripts/package-flatpak.sh
+	@echo "Running Flatpak packaging script..."
+	@./scripts/package-flatpak.sh > /dev/null 2>&1
 	$(call print_success,"Flatpak package built successfully!")
 
 # Validate Flatpak manifest before building
@@ -64,27 +66,34 @@ validate-manifest:
 	$(call print_success,"Manifest validation passed!")
 
 # ===== TEST SUITE =====
-test:
+test: dev
 	$(call print_header,"Running test suite...")
-	$(PYTHON) -m pip install -e ".[test]"
-	pre-commit install
-	@echo ""
-	$(call print_header,"Running pytest...")
-	@echo ""
-	$(PYTHON) -m pytest
-	@echo ""
+	@echo "Running pytest..."
+	@. .venv/bin/activate && $(PYTHON) -m pytest > /dev/null 2>&1
 	@echo ""
 	$(call print_header,"Running pre-commit...")
-	@echo ""
-	pre-commit run --all-files
+	@echo "Running pre-commit checks..."
+	@. .venv/bin/activate && pre-commit run --all-files > /dev/null 2>&1
 	@echo ""
 	$(call print_header,"Tests completed successfully!")
 
 # Install dependencies for development
 dev:
-	$(call print_header,"Installing development dependencies...")
-	$(PYTHON) -m pip install -e ".[test]"
-	$(call print_success,"Development dependencies installed successfully!")
+	$(call print_header,"Setting up development environment...")
+	@bash -c 'if [ ! -d ".venv" ]; then \
+		$(PYTHON) -m venv .venv; \
+		echo "Virtual environment created"; \
+	else \
+		echo "Virtual environment already exists"; \
+	fi'
+	@echo "Installing/updating pip..."                                                                                                                                                            │
+	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip > /dev/null 2>&1                                                                                                              │
+	@echo "Installing project dependencies..."                                                                                                                                                    │
+	@. .venv/bin/activate && $(PYTHON) -m pip install -e ".[test]" > /dev/null 2>&1                                                                                                               │
+ 	@echo "Installing pre-commit hooks..."
+	@. .venv/bin/activate && pre-commit install > /dev/null 2>&1
+	$(call print_success,"Development environment set up successfully!")
+	@echo "To activate the virtual environment in the future, run: source .venv/bin/activate"
 
 # ===== CLEANUP =====
 clean:
@@ -254,9 +263,10 @@ endif
 	fi
 
 # Create AppImage package
-appimage:
+appimage: dev
 	$(call print_header,"Creating AppImage package...")
-	./scripts/package-appimage.sh
+	@echo "Running AppImage packaging script..."
+	@./scripts/package-appimage.sh > /dev/null 2>&1
 	$(call print_success,"AppImage package created successfully!")
 
 # ===== TARGETS =====
