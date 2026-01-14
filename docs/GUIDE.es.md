@@ -48,12 +48,10 @@ Puedes elegir entre dos modos de pantalla:
 
 Al seleccionar "Splitscreen", puedes elegir entre dos orientaciones:
 
-- **Horizontal:** Las instancias se colocan una al lado de la otra.
-- **Vertical:** Las instancias se colocan una encima de la otra.
+- **Horizontal:** Las instancias se colocan una encima de la otra.
+- **Vertical:** Las instancias se colocan una al lado de la otra.
 
 Las posiciones y los formatos varían automáticamente según el número de instancias.
-
-Nota: La organización automática de las instancias solo funciona con entornos `KDE Plasma`.
 
 <img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/horizontal-game.png" />
 <img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/vertical-game.png" />
