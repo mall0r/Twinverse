@@ -71,11 +71,15 @@ For each instance, you can configure the following options:
 
 ## 4. Starting an Instance
 
-After configuring an instance, click the **"Start"** button next to it to launch an isolated Steam instance without gamescope. The first time, Steam will be installed automatically — this process may take a few minutes.
+After setting up an instance, click the **"Start"** button next to it to launch a Steam instance in desktop mode. The first time, the Steam Client will be downloaded and installed automatically — this process may take a few minutes.
 
-Each instance can be started individually via its **"Start"** button. To run multiple instances at once, use the **"Play"** button located at the bottom of the window.
+You must log in to desktop mode. After logging in and configuring your Steam Client, simply close the instance.
 
-Only instances that already have Steam installed can be launched with the **"Play"** button. You can verify this by the checkmark icon on the instance. If the icon is not present, install Steam by clicking that instance's **"Start"** button. This allows for quick and direct configuration, game, or application setup for a specific instance.
+The **"Play"** button runs all selected instances, and with a checkmark, it will run them all with the gamescope and resize each one.
+
+If you are using KDE Plasma, it will also automatically move them to ideally split the screen for your main monitor, or move them between your monitors if you have selected fullscreen.
+
+Only instances that already have Steam installed can be started with **"Play"**. You can verify this by the check icon <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/check-icon.svg" /> on the instance. If the icon is an <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/alert-icon.svg" />, install Steam by clicking the **"Start"** button on that instance.
 
 <img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/instance-config.png" />
 

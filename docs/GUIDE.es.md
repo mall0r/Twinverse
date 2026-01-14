@@ -72,11 +72,15 @@ Para cada instancia, puedes configurar las siguientes opciones:
 
 ## 4. Iniciar una instancia
 
-Después de configurar una instancia, haz clic en el botón **"Iniciar"** junto a ella para lanzar una instancia aislada de Steam sin gamescope. La primera vez, Steam se instalará automáticamente; este proceso puede tomar unos minutos.
+Tras configurar una instancia, haz clic en el botón **"Iniciar"** junto a ella para iniciar una instancia de Steam en modo escritorio. La primera vez, el cliente de Steam se descargará e instalará automáticamente; este proceso puede tardar unos minutos.
 
-Cada instancia puede iniciarse individualmente con su botón **"Iniciar"**. Para ejecutar varias a la vez, utiliza el botón **"Play"** ubicado en la parte inferior de la ventana.
+Debes iniciar sesión en modo escritorio. Tras iniciar sesión y configurar tu cliente de Steam, simplemente cierra la instancia.
 
-Solo las instancias que ya tienen Steam instalado pueden iniciarse con el botón **"Play"**. Puedes verificarlo por el ícono de palomita (✓) en la instancia. Si el ícono no está presente, instala Steam haciendo clic en el botón **"Iniciar"** de esa instancia. Esto permite configurar, agregar juegos o aplicaciones de manera rápida y directa en una instancia específica.
+El botón **"Reproducir"** ejecuta todas las instancias seleccionadas y, al marcarlas, las ejecutará todas con el GameScope y ajustará el tamaño de cada una.
+
+Si usas KDE Plasma, también las moverá automáticamente para dividir la pantalla de tu monitor principal, o bien, las moverá entre monitores si has seleccionado pantalla completa.
+
+Solo las instancias que ya tienen Steam instalado pueden iniciarse con **"Reproducir"**. Puedes verificarlo con el icono de verificación <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/check-icon.svg" /> en la instancia. Si el icono es un <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/alert-icon.svg" />, instala Steam haciendo clic en el botón **"Iniciar"** en esa instancia.
 
 <img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/instance-config.png" />
 
