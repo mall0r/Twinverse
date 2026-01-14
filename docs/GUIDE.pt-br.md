@@ -80,15 +80,13 @@ Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o *
 
 <img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/instance-config.png" />
 
-## 5. Modo Big Picture do Steam (Opicional)
+## 5. Desabilitar Download Prévio de Sombreadores (Opicional)
 
-Para uma melhor experiência, recomenda-se ativar o "Modo Big Picture" nas configurações do Steam. Isso fornecerá uma interface amigável a controles, ideal para o Twinverse.
+Para meconomizar espaço em disco, desabilite o download prévio de sombreadores no Steam. Tambem recomendo fazer isso caso tenha qualquer problema com o Download de Shaders Pre-Caching.
 
-Para fazer isso, vá em `Configurações > Interface` e marque a caixa para `Iniciar Steam no Modo Big Picture`.
+Para fazer isso, vá em `Configurações > Downloads` e desabilita a opção `Ativar download prévio de sombreadores`.
 
-Repita esse processo para todas as instâncias que você deseja iniciar no Modo Big Picture.
-
-<img width="850" height="722" alt="enable-bigpicture" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/enable-bigpicture.png" />
+<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/disable-shader-pre_caching.png" />
 
 ## 6. Jogar
 
@@ -123,18 +121,6 @@ Super + G       Alternar captura de tela com o teclado
 ```
 
 # Opcional
-
-## Aplicativos
-
-Para adicionar aplicativos à sua instância, vá em `Adicionar Jogo` e clique em `Adicionar um jogo não Steam...`. Selecione o aplicativo que deseja adicionar.
-
-<img width="364" height="142" alt="add-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/add-game.png" />
-
-### Por que fazer isso?
-
-Isso permite que você execute aplicativos diretamente da instância, assim é possível ter uma configuração única por instância para esse aplicativo. Isso acontece pois cada instância tem seu próprio diretório `HOME` único. Eles podem ser encontrados em `~/.local/share/twinverse/home_{n}`.
-
-Um bom exemplo de uso é o [mangojuice](https://github.com/radiolamp/mangojuice); caso queira usá-lo com configurações personalizadas você precisará executar e configurá-lo para cada instância individualmente.
 
 ## Suporte a Multiplas GPUs
 
