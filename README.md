@@ -4,10 +4,8 @@
   <a href="https://github.com/mall0r/Twinverse/blob/master/docs/README.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
 </p>
 
-# What is Twinverse?
-
 <p align="center">
-  <img src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="128" height="128">
+  <img src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="176" height="176">
 </p>
 
 <p align="center">
@@ -24,9 +22,9 @@
   <a href="https://www.w3.org/Style/CSS/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/CSS3-66309A?style=for-the-badge&logo=css3&logoColor=white" alt="CSS"/></a>
 </p>
 
-**Twinverse** is an tool for Linux/SteamOS that allows you to create and manage multiple instances of `gamescope` and `steam` simultaneously. This enables multiple players to enjoy their game library on a single computer, either in split-screen mode or each with their own display, along with dedicated audio output and input devices.
+# What is Twinverse?
 
----
+**Twinverse** is an tool for Linux/SteamOS that allows you to create and manage multiple instances of `gamescope` and `steam` simultaneously. This enables multiple players to enjoy their game library on a single computer, either in split-screen mode or each with their own display, along with dedicated audio output and input devices.
 
 <p align="center">
   <img alt="twinverse_ui" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/twinverse-ui.png" />

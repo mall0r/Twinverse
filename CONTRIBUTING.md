@@ -152,4 +152,10 @@ source .venv/bin/activate
 ```
 
 ## Donations
-If you would like to contribute financially to support the project, check out the links under the "Sponsor this Project" section of the [repository homepage](https://github.com/mall0r/Twinverse). Donations are always appreciated, but completely voluntary!
+If you would like to contribute financially to support the project, check out the links under the "Sponsor this Project" section of the [repository homepage](https://github.com/mall0r/Twinverse), or select one of the options below.
+<p align="center">
+  <a href="https://ko-fi.com/mallor" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi"/></a>
+  <a href="https://github.com/sponsors/mall0r" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/GitHub%20Sponsors-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"/></a>
+</p>
+
+Donations are always appreciated, but completely voluntary!
