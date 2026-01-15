@@ -11,6 +11,7 @@ from pathlib import Path
 import pydbus
 
 from src.core import Logger
+from src.core.config import Config
 from src.models import Profile
 
 
@@ -59,8 +60,9 @@ class KdeManager:
             # Read script content
             script_content = script_path.read_text()
 
-            # Create a temporary file accessible to KWin (in /tmp)
-            shared_temp_path = f"/tmp/kwin_script_{os.getpid()}_{script_name}"
+            # Create a temporary file accessible to KWin (in XDG cache dir)
+            cache_dir = Config.CACHE_DIR
+            shared_temp_path = cache_dir / f"kwin_script_{os.getpid()}_{script_name}"
             with open(shared_temp_path, "w") as f:
                 f.write(script_content)
 
@@ -71,7 +73,7 @@ class KdeManager:
             kwin_scripting = self.session_bus.get("org.kde.KWin", "/Scripting")
             self.logger.info(f"Loading KWin script from: {shared_temp_path}")
 
-            self.kwin_script_id = kwin_scripting.loadScript(shared_temp_path)
+            self.kwin_script_id = kwin_scripting.loadScript(str(shared_temp_path))
             kwin_scripting.start()
 
             self.logger.info(f"KWin script loaded and started with ID: {self.kwin_script_id}")
@@ -80,10 +82,10 @@ class KdeManager:
             self.logger.error(f"Failed to load KWin script: {e}")
 
             # Cleanup only if files were created
-            if shared_temp_path and os.path.exists(shared_temp_path):
-                os.unlink(shared_temp_path)
-            if temp_script_path and os.path.exists(temp_script_path):
-                os.unlink(temp_script_path)
+            if shared_temp_path and shared_temp_path.exists():
+                shared_temp_path.unlink()
+            if temp_script_path and temp_script_path.exists():
+                temp_script_path.unlink()
 
     def stop_kwin_script(self):
         """Stop and unload the KWin script."""
