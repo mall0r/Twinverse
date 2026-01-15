@@ -30,6 +30,7 @@ class Config:
 
     LOCAL_DIR: Path = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / APP_NAME
     CONFIG_DIR: Path = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / APP_NAME
+    CACHE_DIR: Path = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / APP_NAME
     LOG_DIR: Path = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / APP_NAME / "logs"
 
     @staticmethod

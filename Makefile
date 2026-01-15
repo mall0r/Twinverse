@@ -14,8 +14,8 @@ VERSION = $(shell cat $(VERSION_FILE))
 
 # ===== FUNCTIONS =====
 print_header = @echo -e "\n\033[1;34m=== $1 ===\033[0m"
-print_success = @echo -e "\033[1;32m✓ $1\033[0m"
-print_error = @echo -e "\033[1;31m✗ $1\033[0m" >&2
+print_success = @echo -e "\033[1;32m $1\033[0m"
+print_error = @echo -e "\033[1;31m $1\033[0m" >&2
 
 # Help target
 help:
@@ -69,11 +69,11 @@ validate-manifest:
 test: dev
 	$(call print_header,"Running test suite...")
 	@echo "Running pytest..."
-	@. .venv/bin/activate && $(PYTHON) -m pytest > /dev/null 2>&1
+	@. .venv/bin/activate && $(PYTHON) -m pytest
 	@echo ""
 	$(call print_header,"Running pre-commit...")
 	@echo "Running pre-commit checks..."
-	@. .venv/bin/activate && pre-commit run --all-files > /dev/null 2>&1
+	@. .venv/bin/activate && pre-commit run --all-files
 	@echo ""
 	$(call print_header,"Tests completed successfully!")
 
@@ -86,11 +86,11 @@ dev:
 	else \
 		echo "Virtual environment already exists"; \
 	fi'
-	@echo "Installing/updating pip..."                                                                                                                                                            │
-	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip > /dev/null 2>&1                                                                                                              │
-	@echo "Installing project dependencies..."                                                                                                                                                    │
-	@. .venv/bin/activate && $(PYTHON) -m pip install -e ".[test]" > /dev/null 2>&1                                                                                                               │
- 	@echo "Installing pre-commit hooks..."
+	@echo "Installing/updating pip..."
+	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip > /dev/null 2>&1
+	@echo "Installing project dependencies..."
+	@. .venv/bin/activate && $(PYTHON) -m pip install -e ".[test]" > /dev/null 2>&1
+	@echo "Installing pre-commit hooks..."
 	@. .venv/bin/activate && pre-commit install > /dev/null 2>&1
 	$(call print_success,"Development environment set up successfully!")
 	@echo "To activate the virtual environment in the future, run: source .venv/bin/activate"
@@ -240,7 +240,7 @@ endif
 	@current_version=$$(cat $(VERSION_FILE)); \
 	if [ "$$current_version" = "$(v)" ] && [ "$(force)" != "true" ]; then \
 		$(call print_error,"Version is already $(v)"); \
-		@echo "Adicione uma opção de -force para que seja possivel fazer mesmo se a Version is already."; \
+		@echo "Adicione uma opo de -force para que seja possivel fazer mesmo se a Version is already."; \
 		exit 1; \
 	else \
 		$(MAKE) check-deps && \
