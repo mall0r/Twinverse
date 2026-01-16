@@ -63,6 +63,13 @@ For testing your changes, first ensure you have the development dependencies ins
 make dev
 ```
 
+if you need to activate the virtual environment manually, use:
+
+```bash
+source .venv/bin/activate
+```
+
+
 This will create a virtual environment (if it doesn't exist), install all necessary dependencies, and set up pre-commit hooks.
 
 Then run the comprehensive test suite using:
@@ -81,8 +88,6 @@ make clean
 
 > [!IMPORTANT]
 > The `make clean` command will remove all temporary files, build artifacts, virtual environments, and cached data. This includes the `.venv` directory, `__pycache__` directories, and build outputs. Only use this if you want to completely reset your development environment.
-
-Once you have made and tested your changes, you can package Twinverse in different formats:
 
 - For Flatpak (primary distribution format): `make flatpak` (this will automatically set up the development environment if needed)
 - For AppImage: `make appimage` (this will automatically set up the development environment if needed)
@@ -138,13 +143,6 @@ Currently, there is no set release schedule, and releases will be published when
 * Use type hints wherever possible to improve code maintainability.
 * Follow the existing code structure and naming conventions in the project.
 * Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification and [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) when creating commits and proposing changes.
-
-#### Virtual Environment
-The project uses a virtual environment to manage dependencies. Always run `make dev` to set up the development environment before working on the project. If you need to activate the virtual environment manually, use:
-
-```bash
-source .venv/bin/activate
-```
 
 ## Donations
 If you would like to contribute financially to support the project, check out the links under the "Sponsor this Project" section of the [repository homepage](https://github.com/mall0r/Twinverse), or select one of the options below.
