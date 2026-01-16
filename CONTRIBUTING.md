@@ -2,15 +2,10 @@
 
 Want to help out with the project? We'd love it! There are lots of different ways that you can help, whether it is developing game handlers, contributing to the project codebase, or simply a donation - all are appreciated.
 
-<!--## Join Discord!
-The "developers" channel on the [official Discord Server](https://discord.gg/<template>) is a great place to get started! Introduce yourself! Chat with the current project developers about what you would like to work on! This is a great way to get to know those working on the project and can also help guide your development contributions, coordinate work better, etc. -->
-
 
 ## Issue Contribution
 
 If you encounter an issue while using Twinverse, or have an idea for a new feature, you can [create an issue](https://github.com/mall0r/Twinverse/issues/new/choose). This will take you to a selection page where you can choose the most relevant template for your issue. We are always open to suggestions!
-
-If you want to suggest a new feature or report a bug for any of our _other_ projects (for example our discord bot, or websites), please check out the [appropriate repositories](https://github.com/orgs/mall0r/repositories).
 
 
 ## Security Note
