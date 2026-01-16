@@ -9,7 +9,7 @@ description = "Play any game from your Steam library in splitscreen or with mult
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
 authors = [
-    {name = "Andreas Mallero", email = "andreas.mallero@proton.me"},
+    {name = "Messias Junior", email = "messiasjuniormj705@gmail.com"},
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
