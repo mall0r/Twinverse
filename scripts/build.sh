@@ -5,8 +5,6 @@
 
 set -e  # Exit on any error
 
-./scripts/clean.sh
-
 echo "🚀 Starting Twinverse Build Process..."
 
 # Get the directory where the script is located and go to project root
@@ -26,7 +24,7 @@ source .venv/bin/activate
 
 # Install dependencies
 echo "📥 Installing dependencies..."
-pip install .[test]
+pip install .
 
 # Compile GResource
 echo "📦 Compiling GResource..."
@@ -84,72 +82,8 @@ for res_file in (project_root / 'res').rglob('*'):
         rel_path = res_file.relative_to(project_root / 'res')
         res_files.append((str(res_file), f'res/{rel_path.parent}'))
 
-# Get GObject Introspection typelib path
-try:
-    gi_typelib_path = subprocess.check_output(
-        ['pkg-config', '--variable=typelibdir', 'gobject-introspection-1.0'],
-        text=True
-    ).strip()
-except:
-    gi_typelib_path = '/usr/lib/x86_64-linux-gnu/girepository-1.0'
-
-# Collect ALL necessary typelibs
-typelib_files = []
-required_typelibs = [
-    'Gtk-4.0', 'Gsk-4.0', 'Graphene-1.0', 'Adw-1', 'Gdk-4.0',
-    'GLib-2.0', 'GObject-2.0', 'Gio-2.0', 'GioUnix-2.0', 'GdkPixbuf-2.0',
-    'Pango-1.0', 'PangoCairo-1.0', 'PangoFT2-1.0', 'cairo-1.0',
-    'HarfBuzz-0.0', 'freetype2-2.0', 'GModule-2.0', 'xlib-2.0'
-]
-
-print(f"Collecting typelibs from: {gi_typelib_path}")
-if os.path.exists(gi_typelib_path):
-    for typelib in required_typelibs:
-        typelib_file = os.path.join(gi_typelib_path, f'{typelib}.typelib')
-        if os.path.exists(typelib_file):
-            typelib_files.append((typelib_file, 'gi_typelibs'))
-            print(f"  ✓ Found: {typelib}")
-        else:
-            print(f"  ✗ Missing: {typelib}")
-
-# Collect GTK/GDK shared libraries
-binaries = []
-try:
-    gtk_libdir = subprocess.check_output(
-        ['pkg-config', '--variable=libdir', 'gtk4'],
-        text=True
-    ).strip()
-
-    # Critical GTK4 libraries
-    gtk_libs = [
-        'libgtk-4.so.1',
-        'libadwaita-1.so.0',
-        'libgdk_pixbuf-2.0.so.0',
-        'libpango-1.0.so.0',
-        'libpangocairo-1.0.so.0',
-        'libcairo.so.2',
-        'libcairo-gobject.so.2',
-        'libharfbuzz.so.0',
-        'libgraphene-1.0.so.0',
-        'libepoxy.so.0',
-        'libEGL.so.1',
-        'libGLX.so.0',
-        'libGL.so.1',
-        'libGLdispatch.so.0',
-        'libdrm.so.2',
-        'libgbm.so.1'
-    ]
-
-    for lib in gtk_libs:
-        lib_path = os.path.join(gtk_libdir, lib)
-        if os.path.exists(lib_path):
-            binaries.append((lib_path, '.'))
-            print(f"  ✓ Including library: {lib}")
-except:
-    print("Warning: Could not detect GTK library path")
-
 # Collect other resource files
-data_files = src_files + res_files + typelib_files
+data_files = src_files + res_files
 
 # Add hidden imports for PyInstaller
 hidden_imports = [
@@ -179,7 +113,7 @@ block_cipher = None
 a = Analysis(
     ['twinverse.py'],
     pathex=[str(project_root)],
-    binaries=binaries,
+    binaries=[],
     datas=data_files,
     hiddenimports=hidden_imports,
     hookspath=[],

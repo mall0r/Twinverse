@@ -91,7 +91,7 @@ REQUIRED_LIBS=(
     "libpng16.so.16"
     "libjpeg.so.8"
     "libtiff.so.6"
-    "libxml2.so.2"
+    "libxml2.so.16"
     "libxkbcommon.so.0"
     "libwayland-client.so.0"
     "libwayland-cursor.so.0"
