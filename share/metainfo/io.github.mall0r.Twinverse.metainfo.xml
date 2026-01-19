@@ -4,30 +4,87 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0</project_license>
   <name>Twinverse</name>
-  <summary>Play any game from your Steam library in splitscreen or with multiple monitors.</summary>
+  <summary>Play any game in splitscreen</summary>
+  <summary xml:lang="pt-BR">Jogue qualquer jogo em tela dividida</summary>
+  <summary xml:lang="es">Juega cualquier juego en pantalla dividida</summary>
   <developer_name>Messias Junior</developer_name>
 
   <description>
     <p>
-      Twinverse is an open-source tool for Linux that allows you to create and manage
-      multiple instances of `gamescope` and `steam` simultaneously.
-      This enables multiple players to enjoy their game library on a single computer,
-      either in splitscreen mode or each with their own display, along with dedicated
-      audio output and input devices.
+      Twinverse is an tool that allows you to create and manage multiple instances
+      of `gamescope` and `steam` simultaneously. This enables multiple players to enjoy
+      their game library on a single computer, either in splitscreen mode or each with
+      their own display, along with dedicated audio output and input devices.
     </p>
     <p>Key Features:</p>
     <ul>
-      <li>Simple Multi-Instance Management: Run multiple Steam Client simultaneously, allowing you and your friends to enjoy your game libraries separately.</li>
-      <li>Per-Instance Hardware Assignment: Assign specific mice, keyboards, and controllers to each game instance.</li>
-      <li>Dedicated Audio Channels: Route audio from each game instance to a separate audio output device.</li>
-      <li>Separate Home Directory: Customize settings and files for each instance individually.</li>
-      <li>Shared Game Library: Share the Steam game directory among multiple instances.</li>
+      <li>Simple Multi-Instance Management: Run multiple Steam Client simultaneously, allowing you and your friends to enjoy your game libraries separately</li>
+      <li>Per-Instance Hardware Assignment: Assign specific mice, keyboards, and controllers to each game instance</li>
+      <li>Dedicated Audio Channels: Route audio from each game instance to a separate audio output device</li>
+      <li>Separate Home Directory: Customize settings and files for each instance individually</li>
+      <li>Shared Game Library: Share the Steam game directory among multiple instances</li>
       <li>Use Any Proton: Use any version of Proton to run your games.</li>
-      <li>Play Whatever You Want: Instances are not limited to playing the same game; each instance can play whichever game it wants.</li>
-      <li>Flexible Screen Modes: Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor).</li>
+      <li>Play Whatever You Want: Instances are not limited to playing the same game; each instance can play whichever game it wants</li>
+      <li>Flexible Screen Modes: Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor)</li>
     </ul>
     <p>How it Works:</p>
-    <p>Twinverse uses Bubblewrap (bwrap), a low-level Linux sandboxing tool, to isolate each Steam Client instance. This ensures that the instances do not interfere with each other or with the user's main system. Furthermore, the Gamescope command line is dynamically generated based on the user's settings, involving the bwrap command which, in turn, launches Steam.</p>
+    <p>Twinverse uses Bubblewrap (bwrap), a low-level Linux sandboxing tool, to isolate each Steam Client instance.
+       This ensures that the instances do not interfere with each other or with the user's main system.
+       Furthermore, the Gamescope command line is dynamically generated based on the user's settings,
+       involving the bwrap command which, in turn, launches Steam.
+    </p>
+  </description>
+
+  <description xml:lang="pt-BR">
+    <p>
+      Twinverse é uma ferramenta que permite criar e gerenciar múltiplas instâncias
+      de `gamescope` e `steam` simultaneamente. Isso permite que vários jogadores desfrutem
+      da sua biblioteca de jogos em um único computador, seja em modo de tela dividida ou cada um com
+      seu próprio display, juntamente com dispositivos dedicados de áudio de saída e entrada.
+    </p>
+    <p>Principais recursos:</p>
+    <ul>
+      <li>Gerenciamento Simples de Múltiplas Instâncias: Execute vários clientes Steam simultaneamente, permitindo que você e seus amigos desfrutem das suas bibliotecas de jogos separadamente</li>
+      <li>Atribuição de Hardware por Instância: Atribua mouses específicos, teclados e controles a cada instância de jogo</li>
+      <li>Canais de Áudio Dedicados: Roteie o áudio de cada instância de jogo para um dispositivo de saída de áudio separado</li>
+      <li>Diretório Home Separado: Personalize configurações e arquivos para cada instância individualmente</li>
+      <li>Biblioteca de Jogos Compartilhada: Compartilhe o diretório de jogos Steam entre múltiplas instâncias</li>
+      <li>Use Qualquer Proton: Use qualquer versão do Proton para executar seus jogos</li>
+      <li>Jogue O Que Quiser: As instâncias não são limitadas a jogar o mesmo jogo; cada instância pode jogar qualquer jogo que quiser</li>
+      <li>Modos de Tela Flexíveis: Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor)</li>
+    </ul>
+    <p>Como Funciona:</p>
+    <p>O Twinverse usa o Bubblewrap (bwrap), uma ferramenta de sandboxing de baixo nível do Linux, para isolar cada instância do Cliente Steam.
+       Isso garante que as instâncias não interfiram umas com as outras ou com o sistema principal do usuário.
+       Além disso, a linha de comando do Gamescope é gerada dinamicamente com base nas configurações do usuário,
+       envolvendo o comando bwrap que, por sua vez, inicia o Steam.
+    </p>
+  </description>
+
+  <description xml:lang="es">
+    <p>
+      Twinverse es una herramienta que le permite crear y gestionar múltiples instancias
+      de `gamescope` y `steam` simultáneamente. Esto permite que varios jugadores disfruten
+      de su biblioteca de juegos en una sola computadora, ya sea en modo de pantalla dividida o cada uno con
+      su propia pantalla, junto con dispositivos dedicados de entrada y salida de audio.
+    </p>
+    <p>Características principales:</p>
+    <ul>
+      <li>Administración Simple de Múltiples Instancias: Ejecute múltiples clientes de Steam simultáneamente, lo que le permite a usted y a sus amigos disfrutar de sus bibliotecas de juegos por separado</li>
+      <li>Asignación de Hardware por Instancia: Asigne ratones, teclados y controles específicos a cada instancia de juego</li>
+      <li>Canales de Audio Dedicados: Dirija el audio de cada instancia de juego a un dispositivo de salida de audio separado</li>
+      <li>Directorio Home Separado: Personalice la configuración y los archivos para cada instancia individualmente</li>
+      <li>Biblioteca de Juegos Compartida: Comparta el directorio de juegos de Steam entre múltiples instancias</li>
+      <li>Use Cualquier Proton: Use cualquier versión de Proton para ejecutar sus juegos</li>
+      <li>Juegue Lo Que Quiera: Las instancias no están limitadas a jugar el mismo juego; cada instancia puede jugar cualquier juego que desee</li>
+      <li>Modos de Pantalla Flexibles: Elija entre pantalla dividida (hasta 4 instancias por monitor) o pantalla completa (1 instancia por monitor)</li>
+    </ul>
+    <p>Cómo Funciona:</p>
+    <p>Twinverse utiliza Bubblewrap (bwrap), una herramienta de aislamiento de bajo nivel de Linux, para aislar cada instancia del cliente de Steam.
+       Esto garantiza que las instancias no interfieran entre sí ni con el sistema principal del usuario.
+       Además, la línea de comandos de Gamescope se genera dinámicamente según la configuración del usuario,
+       involucrando el comando bwrap que, a su vez, inicia Steam.
+    </p>
   </description>
 
   <launchable type="desktop-id">io.github.mall0r.Twinverse.desktop</launchable>
@@ -71,33 +128,10 @@
   </releases>
 
   <content_rating type="oars-1.1">
-    <content_attribute id="violence-cartoon">none</content_attribute>
-    <content_attribute id="violence-fantasy">none</content_attribute>
-    <content_attribute id="violence-realistic">none</content_attribute>
-    <content_attribute id="violence-bloodshed">none</content_attribute>
-    <content_attribute id="violence-sexual">none</content_attribute>
-    <content_attribute id="violence-desecration">none</content_attribute>
-    <content_attribute id="violence-slavery">none</content_attribute>
-    <content_attribute id="violence-worship">none</content_attribute>
-    <content_attribute id="drugs-alcohol">none</content_attribute>
-    <content_attribute id="drugs-narcotics">none</content_attribute>
-    <content_attribute id="drugs-tobacco">none</content_attribute>
-    <content_attribute id="sex-nudity">none</content_attribute>
-    <content_attribute id="sex-themes">none</content_attribute>
-    <content_attribute id="sex-homosexuality">none</content_attribute>
-    <content_attribute id="sex-prostitution">none</content_attribute>
-    <content_attribute id="sex-adultery">none</content_attribute>
-    <content_attribute id="sex-appearance">none</content_attribute>
-    <content_attribute id="language-profanity">none</content_attribute>
-    <content_attribute id="language-humor">none</content_attribute>
-    <content_attribute id="language-discrimination">none</content_attribute>
-    <content_attribute id="social-chat">none</content_attribute>
-    <content_attribute id="social-info">none</content_attribute>
-    <content_attribute id="social-audio">none</content_attribute>
-    <content_attribute id="social-location">none</content_attribute>
-    <content_attribute id="social-contacts">none</content_attribute>
-    <content_attribute id="money-purchasing">none</content_attribute>
-    <content_attribute id="money-gambling">none</content_attribute>
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-info">intense</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
+    <content_attribute id="money-purchasing">intense</content_attribute>
   </content_rating>
 
   <categories>
@@ -149,7 +183,7 @@
   </custom>
 
   <branding>
-    <color type="primary" scheme_preference="light">#4a86cf</color>
-    <color type="primary" scheme_preference="dark">#5d9df0</color>
+    <color type="primary" scheme_preference="light">#99c1f1</color>
+    <color type="primary" scheme_preference="dark">#1c4376</color>
   </branding>
 </component>
