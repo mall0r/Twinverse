@@ -16,11 +16,13 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "pydantic>=2.0.0",
@@ -44,13 +46,14 @@ multi_line_output = 3
 
 [tool.black]
 line-length = 120
-target-version = ['py313']
+target-version = ['py313', 'py314']
 
 [tool.pytest.ini_options]
 addopts = [
     "--strict-markers",
     "--strict-config",
     "--ignore=build-dir",
+    "--ignore=builddir",
     "--ignore=.flatpak-builder",
     "--ignore=flatpak-repo",
 ]
