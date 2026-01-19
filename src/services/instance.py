@@ -352,8 +352,7 @@ class InstanceService:
         """Prepare a dictionary of environment variables for the Steam instance."""
         env = {}
 
-        # Enable this if you experience system crashes and graphical glitches.
-        env["ENABLE_GAMESCOPE_WSI"] = "0"
+        # env["ENABLE_GAMESCOPE_WSI"] = "0"
 
         # Handle audio device assignment
         if device_info.get("audio_device_id_for_instance"):
