@@ -97,9 +97,9 @@ dev:
 
 # ===== CLEANUP =====
 clean:
-	$(call print_header,"Cleaning temporary artifacts...")
-	./scripts/clean.sh
-	$(call print_success,"Clean completed!")
+	@$(call print_header,"Cleaning temporary artifacts...")
+	@./scripts/clean.sh
+	@$(call print_success,"Clean completed!")
 
 # ===== DEPENDENCY CHECK =====
 check-deps:
@@ -263,10 +263,10 @@ endif
 	fi
 
 # Create AppImage package
-appimage: dev
+appimage:
 	$(call print_header,"Creating AppImage package...")
 	@echo "Running AppImage packaging script..."
-	@./scripts/package-appimage.sh > /dev/null 2>&1
+	@./scripts/package-appimage.sh
 	$(call print_success,"AppImage package created successfully!")
 
 # ===== TARGETS =====

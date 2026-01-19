@@ -63,12 +63,13 @@ For testing your changes, first ensure you have the development dependencies ins
 make dev
 ```
 
-if you need to activate the virtual environment manually, use:
+Or, if you prefer to do it manually in your terminal, use:
 
 ```bash
+python3 -m venv .venv
 source .venv/bin/activate
+pip install -e .
 ```
-
 
 This will create a virtual environment (if it doesn't exist), install all necessary dependencies, and set up pre-commit hooks.
 
@@ -96,6 +97,44 @@ make clean
 As a reminder, please take care to follow the [Code Standards](#code-standards) for the project when adding any code-based contributions.
 
 Test your changes **thoroughly** before submitting a Pull Request. Whenever appropriate, it is strongly recommended that you develop unit-tests with a good test spread to make sure that your new features are working as intended and are capable of handling anticipated edge cases. In cases where this is not possible, please be sure to follow a similar testing paradigm where both average and edge use cases are tested. In the long run, this will save the project a lot of time, avoiding tedious backtracking and bug-smashing by proactively ensuring that easily preventable bugs don't sneak into the master build.
+
+### Building from Source
+
+Before building Twinverse, make sure you have installed all required system dependencies as listed in the [CONTRIBUTING.md](../CONTRIBUTING.md) file.
+
+Twinverse provides a Makefile to manage builds and versioning. For more details, use:
+
+```bash
+make help
+```
+
+### Packaging an AppImage
+
+The `scripts/package-appimage.sh` script automates the process of creating an AppImage. It uses linuxdeploy with GTK and Python plugins to create a professional AppImage that properly bundles all GTK4 dependencies and Python runtime components, compatible with GIRepository 2.0 and including Adwaita theme support. Make sure you have installed all required system dependencies as listed in the [CONTRIBUTING.md](../CONTRIBUTING.md) file.
+
+```bash
+make appimage
+```
+
+Or using the script directly:
+
+```bash
+./scripts/package-appimage.sh
+```
+
+### Packaging a Flatpak
+
+The `scripts/package-flatpak.sh` script automates the process of creating a Flatpak. It will build the application and then package it into a `.flatpak` file. Make sure you have installed all required system dependencies as listed in the [CONTRIBUTING.md](../CONTRIBUTING.md) file.
+
+```bash
+make flatpak
+```
+
+Or using the script directly:
+
+```bash
+./scripts/package-flatpak.sh
+```
 
 ### Submitting Changes
 

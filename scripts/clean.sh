@@ -29,9 +29,10 @@ echo "   ✅ Cache cleaned"
 
 # Passo 3: Cleaning files build
 echo "3️⃣  Cleaning files build..."
-rm -rf build dist AppDir .venv squashfs-root build-dir
+rm -rf build dist AppDir *.AppDir .venv squashfs-root build-dir
 rm -rf builddir repo flatpak-repo .flatpak-builder
 rm -rf *.spec
+rm -rf linuxdeploy-plugin-gtk.sh
 rm -rf *.AppImage
 rm -rf *.log
 rm -rf *.flatpak

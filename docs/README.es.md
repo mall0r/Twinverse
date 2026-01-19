@@ -101,6 +101,19 @@ Alternativamente, puedes usar la versión AppImage. Este archivo único funciona
 
 Para una mejor integración con el sistema (por ejemplo, agregar una entrada en el menú de aplicaciones), puedes usar una herramienta como **[Gear Lever](https://github.com/mijorus/gearlever)** para gestionar tu AppImage.
 
+### Ejecutar desde el Código Fuente
+
+El script `run.sh` proporciona una forma rápida de configurar un entorno local y ejecutar la aplicación. Creará automáticamente un entorno virtual e instalará las dependencias necesarias.
+
+```bash
+# Clona el repositorio
+git clone https://github.com/mall0r/Twinverse.git
+cd Twinverse
+
+# Ejecuta el script de lanzamiento
+./run.sh
+```
+
 ## 📖 ¿Cómo usarlo?
 
 Consulta nuestra [Guide](https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.es.md) para obtener más información sobre cómo usar Twinverse.
@@ -115,61 +128,7 @@ Twinverse utiliza **Bubblewrap (`bwrap`)**, una herramienta de sandbox de bajo n
 
 ## 🛠️ Para Desarrolladores
 
-Si deseas contribuir a Twinverse o ejecutarlo directamente desde el código fuente, sigue las instrucciones a continuación.
-
-### Ejecutar desde el Código Fuente
-
-El script `run.sh` proporciona una forma rápida de configurar un entorno local y ejecutar la aplicación. Creará automáticamente un entorno virtual e instalará las dependencias necesarias.
-
-```bash
-# Clona el repositorio
-git clone https://github.com/mall0r/Twinverse.git
-cd Twinverse
-
-# Ejecuta el script de lanzamiento
-./run.sh
-```
-
-### Compilar desde el Código Fuente
-
-Twinverse proporciona un Makefile para gestionar compilaciones y versiones. Puedes compilar la aplicación usando el siguiente comando:
-
-```bash
-make build
-```
-
-Alternativamente, puedes usar el script de compilación directamente:
-
-```bash
-./scripts/build.sh
-```
-
-### Empaquetar un AppImage
-
-El script `scripts/package-appimage.sh` automatiza el proceso de creación de un AppImage. Primero ejecuta el script de compilación y luego usa `linuxdeploy` para empaquetar la aplicación en un archivo `.appimage` distribuible.
-
-```bash
-make appimage
-```
-
-O usando el script directamente:
-
-```bash
-./scripts/package-appimage.sh
-```
-
-### Empaquetar un Flatpak
-El script `scripts/package-flatpak.sh` automatiza el proceso de creación de un Flatpak. Construirá la aplicación y luego la empaquetará en un archivo `.flatpak`.
-
-```bash
-make flatpak
-```
-
-O usando el script directamente:
-
-```bash
-./scripts/package-flatpak.sh
-```
+Si deseas contribuir a Twinverse, por favor consulta el archivo [CONTRIBUTING.md](../CONTRIBUTING.md) para obtener instrucciones detalladas sobre cómo empezar, flujos de trabajo de desarrollo y estándares de código.
 
 ---
 
