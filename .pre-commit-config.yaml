@@ -31,6 +31,11 @@ repos:
         additional_dependencies:
           - flake8-docstrings
           - flake8-bugbear
+          - flake8-comprehensions
+          - flake8-isort
+          - flake8-debugger
+          - flake8-deprecated
+          # - flake8-quotes
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.19.1

@@ -82,28 +82,24 @@ class CommandBuilder:
 
         refresh_rate_str = str(refresh_rate)
 
+        # fmt: off
         cmd = [
             "gamescope",
             "-e",
-            "-W",
-            str(width),
-            "-H",
-            str(height),
-            "-w",
-            str(width),
-            "-h",
-            str(height),
-            "-o",
-            refresh_rate_str,
-            "-r",
-            refresh_rate_str,
-            "--mangoapp",
+            "-W", str(width),
+            "-H", str(height),
+            "-w", str(width),
+            "-h", str(height),
+            "-o", refresh_rate_str,
+            "-r", refresh_rate_str,
+            "--adaptive-sync",
         ]
+        # fmt: on
 
         if not self.profile.is_splitscreen_mode:
-            cmd.extend(["-f", "--adaptive-sync"])
+            cmd.append("-f")
         else:
-            cmd.append("-b")  # Borderless
+            cmd.append("-b")
 
         if should_add_grab_flags:
             self.logger.info(f"Instance {self.instance_num}: Using dedicated mouse. Grabbing input.")
@@ -115,7 +111,7 @@ class CommandBuilder:
         """Build the base steam command."""
         if self.profile.use_gamescope:
             self.logger.info(f"Instance {self.instance_num}: Using Steam command with Gamescope flags.")
-            return ["steam", "-gamepadui", "-steamdeck", "-steamos3"]
+            return ["steam", "-gamepadui", "-steamos3"]
         else:
             self.logger.info(f"Instance {self.instance_num}: Using plain Steam command.")
             return ["steam"]
@@ -130,27 +126,21 @@ class CommandBuilder:
         orig_home = Path.home()
         orig_local = orig_home / ".local"
 
+        # fmt: off
         cmd = [
             "bwrap",
-            "--dev-bind",
-            "/",
-            "/",
-            "--dev-bind",
-            "/dev",
-            "/dev",
-            "--tmpfs",
-            "/dev/shm",
-            "--proc",
-            "/proc",
+            "--dev-bind", "/", "/",
+            "--dev-bind", "/dev", "/dev",
+            "--tmpfs", "/dev/shm",
+            "--proc", "/proc",
             "--die-with-parent",
-            "--tmpfs",
-            "/tmp",
-            "--bind",
-            "/tmp/.X11-unix",
-            "/tmp/.X11-unix",
+            "--tmpfs", "/tmp",
+            "--bind", "/tmp/.X11-unix", "/tmp/.X11-unix",
         ]
+        # fmt: on
 
         # --- Device Isolation ---
+
         cmd.extend(["--tmpfs", "/dev/input"])
 
         joystick_path = self.device_info.get("joystick_path_str_for_instance")
@@ -179,14 +169,11 @@ class CommandBuilder:
 
         # --- Home Directory Isolation ---
         # Mount the instance-specific directories over the real Steam locations
-        cmd.extend(
-            [
-                "--bind",
-                str(self.home_path),
-                str(orig_home),
-            ]
-        )
+        # fmt: off
 
+        cmd.extend(["--bind", str(self.home_path), str(orig_home)])
+
+        # fmt: on
         # Mount host's common games and compatibility tools into the sandboxed Steam directory
         host_steam_path = orig_local / "share/Steam"
         sandbox_steam_path = orig_local / "share/Steam"  # Same path, but it's now a mount point
