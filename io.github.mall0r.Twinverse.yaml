@@ -17,9 +17,6 @@ finish-args:
   # This app requires access to flatpak-spawn to create sandboxed instances
   - --talk-name=org.freedesktop.Flatpak
 
-  # D-Bus access
-  - --talk-name=org.freedesktop.DBus
-
   # KDE access
   - --talk-name=org.kde.KWin
   - --talk-name=org.kde.plasmashell
