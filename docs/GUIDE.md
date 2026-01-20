@@ -77,7 +77,7 @@ The **"Play"** button runs all selected instances, and with a checkmark, it will
 
 If you are using KDE Plasma, it will also automatically move them to ideally split the screen for your main monitor, or move them between your monitors if you have selected fullscreen.
 
-Only instances that already have Steam installed can be started with **"Play"**. You can verify this by the check icon <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/check-icon.svg" /> on the instance. If the icon is an <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/alert-icon.svg" />, install Steam by clicking the **"Start"** button on that instance.
+Only instances that already have Steam installed can be started with **"Play"**. You can verify this by the check icon <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/check-icon.svg" /> on the instance. If the icon is an <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/alert-icon.svg" />, install Steam by clicking the **"Install"** button on that instance.
 
 <img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/instance-config.png" />
 

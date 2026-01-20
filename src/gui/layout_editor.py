@@ -430,7 +430,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
             joystick_row = create_device_row("Gamepad", "joystick", expander)
             refresh_button = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
-            refresh_button.set_tooltip_text("Atualizar lista de dispositivos")
+            refresh_button.set_tooltip_text("Update device list")
             refresh_button.get_style_context().add_class("flat")
             refresh_button.connect("clicked", self._on_refresh_joysticks_clicked, joystick_row)
             joystick_row.add_suffix(refresh_button)
@@ -454,30 +454,43 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             refresh_rate_row.connect("notify::selected-item", self._on_setting_changed)
             expander.add_row(refresh_rate_row)
 
-            launch_button = Gtk.Button(label="Start")
+            # Determines the initial button label based on verification
+            instance_path = Config.get_steam_home_path(i)
+            is_verified = self.steam_verifier.verify(instance_path)
+            initial_label = "Start" if is_verified else "Install"
+
+            launch_button = Gtk.Button(label=initial_label)
             launch_button.get_style_context().add_class("configure-button")
             launch_button.set_valign(Gtk.Align.CENTER)
             launch_button.connect("clicked", self._on_instance_launch_clicked, i)
             expander.add_suffix(launch_button)
 
-            self.player_rows.append(
-                {
-                    "checkbox": checkbox,
-                    "expander": expander,
-                    "joystick": joystick_row,
-                    "grab_input": grab_input_switch,
-                    "audio": audio_row,
-                    "refresh_rate": refresh_rate_row,
-                    "status_icon": None,
-                    "launch_button": launch_button,
-                    "is_running": False,
-                }
-            )
+            row_dict = {
+                "checkbox": checkbox,
+                "expander": expander,
+                "joystick": joystick_row,
+                "grab_input": grab_input_switch,
+                "audio": audio_row,
+                "refresh_rate": refresh_rate_row,
+                "status_icon": None,
+                "launch_button": launch_button,
+                "is_running": False,
+            }
+
+            # Updates the button using the helper function to ensure the style is correct
+            self._update_button_label(row_dict, False, is_verified)
+
+            self.player_rows.append(row_dict)
 
     def _run_all_verifications(self):
         """Run verifications for all instances."""
         for i in range(len(self.player_rows)):
             self._verify_instance(i)
+        # Ensures that the button states are updated after all verifications
+        for i, row_data in enumerate(self.player_rows):
+            is_verified = self.verification_statuses.get(i, False)
+            # Updates the button using the helper function
+            self._update_button_label(row_data, row_data["is_running"], is_verified)
 
     def _verify_instance(self, instance_num: int):
         instance_path = Config.get_steam_home_path(instance_num)
@@ -485,6 +498,18 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.verification_statuses[instance_num] = is_verified
         self._update_verification_status_ui(instance_num, is_verified)
         self.emit("verification-completed")
+
+    def _update_button_label(self, row_dict, is_running, is_verified):
+        """Update the button label and style based on execution and verification states."""
+        if is_running:
+            row_dict["launch_button"].set_label("Stop")
+            row_dict["launch_button"].get_style_context().add_class("destructive-action")
+        elif is_verified:
+            row_dict["launch_button"].set_label("Start")
+            row_dict["launch_button"].get_style_context().remove_class("destructive-action")
+        else:
+            row_dict["launch_button"].set_label("Install")
+            row_dict["launch_button"].get_style_context().remove_class("destructive-action")
 
     def _update_verification_status_ui(self, instance_num: int, is_verified: bool):
         if instance_num >= len(self.player_rows):
@@ -497,11 +522,16 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             row_dict["expander"].remove(row_dict["status_icon"])
             row_dict["status_icon"] = None
 
+        # Updates the button based on verification and execution state
+        self._update_button_label(row_dict, row_dict["is_running"], is_verified)
+
         if is_verified:
             icon = Gtk.Image.new_from_resource("/io/github/mall0r/Twinverse/icons/check-icon.svg")
+            icon.set_tooltip_text("Press 'Start' to open this instance in desktop mode.")
             icon.get_style_context().add_class("verification-passed-icon")
         else:
             icon = Gtk.Image.new_from_resource("/io/github/mall0r/Twinverse/icons/alert-icon.svg")
+            icon.set_tooltip_text("Press 'Install' to configure this instance")
             icon.get_style_context().add_class("verification-failed-icon")
 
         row_dict["expander"].add_suffix(icon)
@@ -526,16 +556,16 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         instance_num = instance_idx
 
         if row_data["is_running"]:
+            # Stop the instance
             self.instance_service.terminate_instance(instance_num)
-            button.set_label("Start")
-            button.get_style_context().remove_class("destructive-action")
             row_data["is_running"] = False
         else:
+            # Regardless of whether it is verified or not, start the instance
+            # The "Install" vs "Start" state is only visual for the user
             self.instance_service.launch_instance(self.profile, instance_num, use_gamescope_override=False)
-            button.set_label("Stop")
-            button.get_style_context().add_class("destructive-action")
             row_data["is_running"] = True
 
+        # Update the interface state after any operation
         self._verify_instance(instance_num)
         self.emit("instance-state-changed")
 
@@ -547,10 +577,8 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         """Set the running state for all player rows."""
         for row_data in self.player_rows:
             row_data["is_running"] = is_running
-            button = row_data["launch_button"]
-            if is_running:
-                button.set_label("Stop")
-                button.get_style_context().add_class("destructive-action")
-            else:
-                button.set_label("Start")
-                button.get_style_context().remove_class("destructive-action")
+            # Gets the verification status for this instance
+            instance_idx = self.player_rows.index(row_data)
+            is_verified = self.verification_statuses.get(instance_idx, False)
+            # Updates the button using the helper function
+            self._update_button_label(row_data, is_running, is_verified)
