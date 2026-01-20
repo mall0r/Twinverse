@@ -100,8 +100,6 @@ Test your changes **thoroughly** before submitting a Pull Request. Whenever appr
 
 ### Building from Source
 
-Before building Twinverse, make sure you have installed all required system dependencies as listed in the [CONTRIBUTING.md](../CONTRIBUTING.md) file.
-
 Twinverse provides a Makefile to manage builds and versioning. For more details, use:
 
 ```bash
@@ -110,7 +108,7 @@ make help
 
 ### Packaging an AppImage
 
-The `scripts/package-appimage.sh` script automates the process of creating an AppImage. It uses linuxdeploy with GTK and Python plugins to create a professional AppImage that properly bundles all GTK4 dependencies and Python runtime components, compatible with GIRepository 2.0 and including Adwaita theme support. Make sure you have installed all required system dependencies as listed in the [CONTRIBUTING.md](../CONTRIBUTING.md) file.
+The `scripts/package-appimage.sh` script automates the process of creating an AppImage. It uses linuxdeploy with GTK and Python plugins to create a professional AppImage that properly bundles all GTK4 dependencies and Python runtime components, compatible with GIRepository 2.0 and including Adwaita theme support.
 
 ```bash
 make appimage
@@ -124,7 +122,7 @@ Or using the script directly:
 
 ### Packaging a Flatpak
 
-The `scripts/package-flatpak.sh` script automates the process of creating a Flatpak. It will build the application and then package it into a `.flatpak` file. Make sure you have installed all required system dependencies as listed in the [CONTRIBUTING.md](../CONTRIBUTING.md) file.
+The `scripts/package-flatpak.sh` script automates the process of creating a Flatpak. It will build the application and then package it into a `.flatpak` file.
 
 ```bash
 make flatpak
