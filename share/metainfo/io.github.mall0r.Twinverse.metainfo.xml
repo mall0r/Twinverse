@@ -7,80 +7,72 @@
   <summary>Play any game in splitscreen</summary>
   <summary xml:lang="pt-BR">Jogue qualquer jogo em tela dividida</summary>
   <summary xml:lang="es">Juega cualquier juego en pantalla dividida</summary>
-  <developer_name>Messias Junior</developer_name>
+  <developer id="io.github.mall0r">
+    <name>Messias Junior</name>
+  </developer>
 
   <description>
     <p>
-      Twinverse is an tool that allows you to create and manage multiple instances
+      Twinverse is a tool that allows you to create and manage multiple instances
       of `gamescope` and `steam` simultaneously. This enables multiple players to enjoy
       their game library on a single computer, either in splitscreen mode or each with
       their own display, along with dedicated audio output and input devices.
     </p>
-    <p>Key Features:</p>
-    <ul>
-      <li>Simple Multi-Instance Management: Run multiple Steam Client simultaneously, allowing you and your friends to enjoy your game libraries separately</li>
-      <li>Per-Instance Hardware Assignment: Assign specific mice, keyboards, and controllers to each game instance</li>
-      <li>Dedicated Audio Channels: Route audio from each game instance to a separate audio output device</li>
-      <li>Separate Home Directory: Customize settings and files for each instance individually</li>
-      <li>Shared Game Library: Share the Steam game directory among multiple instances</li>
-      <li>Use Any Proton: Use any version of Proton to run your games.</li>
-      <li>Play Whatever You Want: Instances are not limited to playing the same game; each instance can play whichever game it wants</li>
-      <li>Flexible Screen Modes: Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor)</li>
-    </ul>
-    <p>How it Works:</p>
-    <p>Twinverse uses Bubblewrap (bwrap), a low-level Linux sandboxing tool, to isolate each Steam Client instance.
-       This ensures that the instances do not interfere with each other or with the user's main system.
-       Furthermore, the Gamescope command line is dynamically generated based on the user's settings,
-       involving the bwrap command which, in turn, launches Steam.
-    </p>
-  </description>
-
-  <description xml:lang="pt-BR">
-    <p>
+    <p xml:lang="pt-BR">
       Twinverse é uma ferramenta que permite criar e gerenciar múltiplas instâncias
       de `gamescope` e `steam` simultaneamente. Isso permite que vários jogadores desfrutem
       da sua biblioteca de jogos em um único computador, seja em modo de tela dividida ou cada um com
       seu próprio display, juntamente com dispositivos dedicados de áudio de saída e entrada.
     </p>
-    <p>Principais recursos:</p>
-    <ul>
-      <li>Gerenciamento Simples de Múltiplas Instâncias: Execute vários clientes Steam simultaneamente, permitindo que você e seus amigos desfrutem das suas bibliotecas de jogos separadamente</li>
-      <li>Atribuição de Hardware por Instância: Atribua mouses específicos, teclados e controles a cada instância de jogo</li>
-      <li>Canais de Áudio Dedicados: Roteie o áudio de cada instância de jogo para um dispositivo de saída de áudio separado</li>
-      <li>Diretório Home Separado: Personalize configurações e arquivos para cada instância individualmente</li>
-      <li>Biblioteca de Jogos Compartilhada: Compartilhe o diretório de jogos Steam entre múltiplas instâncias</li>
-      <li>Use Qualquer Proton: Use qualquer versão do Proton para executar seus jogos</li>
-      <li>Jogue O Que Quiser: As instâncias não são limitadas a jogar o mesmo jogo; cada instância pode jogar qualquer jogo que quiser</li>
-      <li>Modos de Tela Flexíveis: Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor)</li>
-    </ul>
-    <p>Como Funciona:</p>
-    <p>O Twinverse usa o Bubblewrap (bwrap), uma ferramenta de sandboxing de baixo nível do Linux, para isolar cada instância do Cliente Steam.
-       Isso garante que as instâncias não interfiram umas com as outras ou com o sistema principal do usuário.
-       Além disso, a linha de comando do Gamescope é gerada dinamicamente com base nas configurações do usuário,
-       envolvendo o comando bwrap que, por sua vez, inicia o Steam.
-    </p>
-  </description>
-
-  <description xml:lang="es">
-    <p>
+    <p xml:lang="es">
       Twinverse es una herramienta que le permite crear y gestionar múltiples instancias
       de `gamescope` y `steam` simultáneamente. Esto permite que varios jugadores disfruten
       de su biblioteca de juegos en una sola computadora, ya sea en modo de pantalla dividida o cada uno con
       su propia pantalla, junto con dispositivos dedicados de entrada y salida de audio.
     </p>
-    <p>Características principales:</p>
+    <p>Key Features:</p>
+    <p xml:lang="pt-BR">Principais recursos:</p>
+    <p xml:lang="es">Características principales:</p>
     <ul>
-      <li>Administración Simple de Múltiples Instancias: Ejecute múltiples clientes de Steam simultáneamente, lo que le permite a usted y a sus amigos disfrutar de sus bibliotecas de juegos por separado</li>
-      <li>Asignación de Hardware por Instancia: Asigne ratones, teclados y controles específicos a cada instancia de juego</li>
-      <li>Canales de Audio Dedicados: Dirija el audio de cada instancia de juego a un dispositivo de salida de audio separado</li>
-      <li>Directorio Home Separado: Personalice la configuración y los archivos para cada instancia individualmente</li>
-      <li>Biblioteca de Juegos Compartida: Comparta el directorio de juegos de Steam entre múltiples instancias</li>
-      <li>Use Cualquier Proton: Use cualquier versión de Proton para ejecutar sus juegos</li>
-      <li>Juegue Lo Que Quiera: Las instancias no están limitadas a jugar el mismo juego; cada instancia puede jugar cualquier juego que desee</li>
-      <li>Modos de Pantalla Flexibles: Elija entre pantalla dividida (hasta 4 instancias por monitor) o pantalla completa (1 instancia por monitor)</li>
+      <li>Simple Multi-Instance Management: Run multiple Steam Client simultaneously, allowing you and your friends to enjoy your game libraries separately</li>
+      <li xml:lang="pt-BR">Gerenciamento Simples de Múltiplas Instâncias: Execute vários clientes Steam simultaneamente, permitindo que você e seus amigos desfrutem das suas bibliotecas de jogos separadamente</li>
+      <li xml:lang="es">Administración Simple de Múltiples Instancias: Ejecute múltiples clientes de Steam simultáneamente, lo que le permite a usted y a sus amigos disfrutar de sus bibliotecas de juegos por separado</li>
+      <li>Per-Instance Hardware Assignment: Assign specific mice, keyboards, and controllers to each game instance</li>
+      <li xml:lang="pt-BR">Atribuição de Hardware por Instância: Atribua mouses específicos, teclados e controles a cada instância de jogo</li>
+      <li xml:lang="es">Asignación de Hardware por Instancia: Asigne ratones, teclados y controles específicos a cada instancia de juego</li>
+      <li>Dedicated Audio Channels: Route audio from each game instance to a separate audio output device</li>
+      <li xml:lang="pt-BR">Canais de Áudio Dedicados: Roteie o áudio de cada instância de jogo para um dispositivo de saída de áudio separado</li>
+      <li xml:lang="es">Canales de Audio Dedicados: Dirija el audio de cada instancia de juego a un dispositivo de salida de audio separado</li>
+      <li>Separate Home Directory: Customize settings and files for each instance individually</li>
+      <li xml:lang="pt-BR">Diretório Home Separado: Personalize configurações e arquivos para cada instância individualmente</li>
+      <li xml:lang="es">Directorio Home Separado: Personalice la configuración y los archivos para cada instancia individualmente</li>
+      <li>Shared Game Library: Share the Steam game directory among multiple instances</li>
+      <li xml:lang="pt-BR">Biblioteca de Jogos Compartilhada: Compartilhe o diretório de jogos Steam entre múltiplas instâncias</li>
+      <li xml:lang="es">Biblioteca de Juegos Compartida: Comparta el directorio de juegos de Steam entre múltiples instancias</li>
+      <li>Use Any Proton: Use any version of Proton to run your games.</li>
+      <li xml:lang="pt-BR">Use Qualquer Proton: Use qualquer versão do Proton para executar seus jogos</li>
+      <li xml:lang="es">Use Cualquier Proton: Use cualquier versión de Proton para ejecutar sus juegos</li>
+      <li>Play Whatever You Want: Instances are not limited to playing the same game; each instance can play whichever game it wants</li>
+      <li xml:lang="pt-BR">Jogue O Que Quiser: As instâncias não são limitadas a jogar o mesmo jogo; cada instância pode jogar qualquer jogo que quiser</li>
+      <li xml:lang="es">Juegue Lo Que Quiera: Las instancias no están limitadas a jugar el mismo juego; cada instancia puede jugar cualquier juego que desee</li>
+      <li>Flexible Screen Modes: Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor)</li>
+      <li xml:lang="pt-BR">Modos de Tela Flexíveis: Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor)</li>
+      <li xml:lang="es">Modos de Pantalla Flexibles: Elija entre pantalla dividida (hasta 4 instancias por monitor) o pantalla completa (1 instancia por monitor)</li>
     </ul>
-    <p>Cómo Funciona:</p>
-    <p>Twinverse utiliza Bubblewrap (bwrap), una herramienta de aislamiento de bajo nivel de Linux, para aislar cada instancia del cliente de Steam.
+    <p>How it Works:</p>
+    <p xml:lang="pt-BR">Como Funciona:</p>
+    <p xml:lang="es">Cómo Funciona:</p>
+    <p>Twinverse uses Bubblewrap (bwrap), a low-level Linux sandboxing tool, to isolate each Steam Client instance.
+       This ensures that the instances do not interfere with each other or with the user's main system.
+       Furthermore, the Gamescope command line is dynamically generated based on the user's settings,
+       involving the bwrap command which, in turn, launches Steam.
+    </p>
+    <p xml:lang="pt-BR">O Twinverse usa o Bubblewrap (bwrap), uma ferramenta de sandboxing de baixo nível do Linux, para isolar cada instância do Cliente Steam.
+       Isso garante que as instâncias não interfiram umas com as outras ou com o sistema principal do usuário.
+       Além disso, a linha de comando do Gamescope é gerada dinamicamente com base nas configurações do usuário,
+       envolvendo o comando bwrap que, por sua vez, inicia o Steam.
+    </p>
+    <p xml:lang="es">Twinverse utiliza Bubblewrap (bwrap), una herramienta de aislamiento de bajo nivel de Linux, para aislar cada instancia del cliente de Steam.
        Esto garantiza que las instancias no interfieran entre sí ni con el sistema principal del usuario.
        Además, la línea de comandos de Gamescope se genera dinámicamente según la configuración del usuario,
        involucrando el comando bwrap que, a su vez, inicia Steam.
@@ -92,10 +84,14 @@
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/twinverse-ui.png</image>
+      <caption>Main application window</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/multiscope_ui_config.png</image>
       <caption>Main application window showing instance configuration</caption>
     </screenshot>
     <screenshot>
-      <video>https://raw.githubusercontent.com/mall0r/Twinverse/master/share/videos/horizontal-demo.webm</video>
+      <video codec="vp9" type="video/webm">https://raw.githubusercontent.com/mall0r/Twinverse/master/share/videos/horizontal-demo.webm</video>
       <caption>Demonstration of Twinverse running multiple instances in horizontal splitscreen mode.</caption>
     </screenshot>
     <screenshot>
@@ -113,10 +109,6 @@
   <provides>
     <binary>twinverse</binary>
     <mediatype>application/x-executable</mediatype>
-    <input>pointer</input>
-    <input>keyboard</input>
-    <input>gamepad</input>
-    <input>joystick</input>
   </provides>
 
   <releases>
@@ -140,23 +132,60 @@
   </categories>
 
   <keywords>
+    <keyword>twinverse</keyword>
+    <keyword xml:lang="pt-BR">twinverse</keyword>
+    <keyword xml:lang="es">twinverse</keyword>
     <keyword>gamescope</keyword>
+    <keyword xml:lang="pt-BR">escopo-de-jogo</keyword>
+    <keyword xml:lang="es">gamescope</keyword>
     <keyword>gaming</keyword>
+    <keyword xml:lang="pt-BR">jogos</keyword>
+    <keyword xml:lang="es">juego</keyword>
     <keyword>display</keyword>
+    <keyword xml:lang="pt-BR">tela</keyword>
+    <keyword xml:lang="es">pantalla</keyword>
     <keyword>steam</keyword>
+    <keyword xml:lang="pt-BR">steam</keyword>
+    <keyword xml:lang="es">steam</keyword>
     <keyword>multiplayer</keyword>
+    <keyword xml:lang="pt-BR">multijogador</keyword>
+    <keyword xml:lang="es">multijugador</keyword>
     <keyword>split-screen</keyword>
+    <keyword xml:lang="pt-BR">tela-dividida</keyword>
+    <keyword xml:lang="es">pantalla-dividida</keyword>
     <keyword>multi-monitor</keyword>
+    <keyword xml:lang="pt-BR">multi-monitor</keyword>
+    <keyword xml:lang="es">multi-monitor</keyword>
     <keyword>coop</keyword>
+    <keyword xml:lang="pt-BR">coop</keyword>
+    <keyword xml:lang="es">coop</keyword>
     <keyword>cooperative</keyword>
+    <keyword xml:lang="pt-BR">cooperativo</keyword>
+    <keyword xml:lang="es">cooperativo</keyword>
     <keyword>game</keyword>
+    <keyword xml:lang="pt-BR">jogo</keyword>
+    <keyword xml:lang="es">juego</keyword>
     <keyword>linux</keyword>
+    <keyword xml:lang="pt-BR">linux</keyword>
+    <keyword xml:lang="es">linux</keyword>
     <keyword>steamdeck</keyword>
+    <keyword xml:lang="pt-BR">steamdeck</keyword>
+    <keyword xml:lang="es">steamdeck</keyword>
     <keyword>games</keyword>
+    <keyword xml:lang="pt-BR">jogos</keyword>
+    <keyword xml:lang="es">juegos</keyword>
     <keyword>multi-instance</keyword>
+    <keyword xml:lang="pt-BR">multi-instancia</keyword>
+    <keyword xml:lang="es">multi-instancia</keyword>
     <keyword>proton</keyword>
+    <keyword xml:lang="pt-BR">proton</keyword>
+    <keyword xml:lang="es">proton</keyword>
     <keyword>gaming-setup</keyword>
+    <keyword xml:lang="pt-BR">configuracao-de-jogo</keyword>
+    <keyword xml:lang="es">configuracion-de-juego</keyword>
     <keyword>local-multiplayer</keyword>
+    <keyword xml:lang="pt-BR">multijogador-local</keyword>
+    <keyword xml:lang="es">multijugador-local</keyword>
   </keywords>
 
   <requires>
