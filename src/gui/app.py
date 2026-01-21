@@ -94,8 +94,29 @@ class TwinverseWindow(Adw.ApplicationWindow):
         self.toolbar_view.get_style_context().add_class("main-content")
         self.set_content(self.toolbar_view)
 
+        # Create menu items
+        menu_items = Gio.Menu.new()
+
+        # Add About menu item
+        about_action = Gio.SimpleAction.new("about", None)
+        about_action.connect("activate", self.show_about_dialog)
+        self.add_action(about_action)
+        menu_items.append("About", "win.about")
+
+        # Add Preferences menu item
+        prefs_action = Gio.SimpleAction.new("preferences", None)
+        prefs_action.connect("activate", self.show_preferences_dialog)
+        self.add_action(prefs_action)
+        menu_items.append("Preferences", "win.preferences")
+
+        # Create menu button with hamburger icon
+        menu_button = Gtk.MenuButton()
+        menu_button.set_icon_name("open-menu-symbolic")
+        menu_button.set_menu_model(menu_items)
+
         header_bar = Adw.HeaderBar()
         header_bar.get_style_context().add_class("header-bar")
+        header_bar.pack_end(menu_button)  # Pack menu button to the end (right side)
         self.toolbar_view.add_top_bar(header_bar)
 
         self.layout_settings_page = LayoutSettingsPage(self.profile, self.logger)
@@ -236,9 +257,17 @@ class TwinverseWindow(Adw.ApplicationWindow):
         self.launch_spinner.start()
         self.layout_settings_page.set_sensitive(False)
 
+        # Minimize the GUI after 2 seconds
+        GLib.timeout_add(2000, self.minimize_window)
+
         self._cancel_launch_event.clear()
         self._launch_thread = threading.Thread(target=self._launch_worker)
         self._launch_thread.start()
+
+    def minimize_window(self):
+        """Minimize the main window."""
+        self.minimize()
+        return False  # Return False to prevent repeated calls
 
     def on_stop_clicked(self):
         """Handle the stop button click event."""
@@ -272,6 +301,138 @@ class TwinverseWindow(Adw.ApplicationWindow):
         self.layout_settings_page._run_all_verifications()
         self._update_launch_button_state()
         self._is_running = False
+
+    def show_about_dialog(self, action, param):
+        """Show the about dialog."""
+        # Read version from the version file
+        # The version file is guaranteed to be available both in development and Flatpak environments
+        version_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "version")
+        with open(version_file_path, "r") as f:
+            version = f.read().strip()
+
+        about = Adw.AboutDialog(
+            application_name="Twinverse",
+            application_icon="io.github.mall0r.Twinverse",  # This should match your application ID
+            developer_name="Messias Junior (mall0r)",
+            version=version,
+            developers=["mall0r"],
+            website="https://github.com/mall0r/Twinverse/blob/main/README.md",
+            issue_url="https://github.com/mall0r/Twinverse/issues",
+            license_type=Gtk.License.GPL_3_0,
+            comments=(
+                "A tool for Linux/SteamOS that allows you to create and manage multiple instances of gamescope and steam simultaneously. "
+                "Twinverse uses Bubblewrap (bwrap), a low-level Linux sandboxing tool, to isolate each Steam Client instance."
+            ),
+            artists=["mall0r"],
+            support_url="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md",
+        )
+        # Add additional links using the proper API
+        about.add_link("Contributing", "https://github.com/mall0r/Twinverse/blob/main/CONTRIBUTING.md")
+        about.add_link("Donate", "https://ko-fi.com/mallor")
+
+        # Get the original comments and append the disclaimer with clickable license link
+        disclaimer_text = (
+            "Twinverse is an independent open-source project and is not affiliated with, "
+            "endorsed by, or in any way officially connected to Valve Corporation or Steam.\n\n"
+            "This tool acts as an orchestration layer that leverages sandboxing technologies "
+            "(bubblewrap) to run multiple isolated instances of the official Steam client. "
+            "Twinverse does not modify, patch, reverse engineer, or alter any Steam files "
+            "or its normal operation. All Steam instances launched by this tool are the "
+            "official, unmodified versions provided by Valve.\n\n"
+            "Users are solely responsible for complying with the terms of the Steam Subscriber Agreement.\n\n"
+            "This application comes without any warranty whatsoever. "
+            'See the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License, version 3 or later</a> for more details.'
+        )
+
+        # Set the combined comments with markup
+        about.set_license(disclaimer_text)
+
+        # Show the about dialog
+        about.present(parent=self)
+
+    def show_preferences_dialog(self, action, param):
+        """Show the preferences dialog."""
+        # Create preferences window
+        prefs_window = Adw.PreferencesWindow()
+        prefs_window.set_transient_for(self)
+        prefs_window.set_modal(True)
+        prefs_window.set_title("Preferences")
+
+        # Create preferences page
+        prefs_page = Adw.PreferencesPage()
+        prefs_page.set_title("Options")
+        prefs_page.set_icon_name("preferences-other-symbolic")
+
+        # Create preferences group
+        prefs_group = Adw.PreferencesGroup(
+            title="Advanced Options", description="Only modify if you know what you are doing"
+        )
+
+        # Create SteamDeck tag row (this already contains a switch)
+        steamdeck_row = Adw.SwitchRow()
+        steamdeck_row.set_title("SteamDeck Tag")
+        steamdeck_row.set_subtitle("Add --mangoapp to Gamescope and -steamdeck to Steam command when enabled")
+        steamdeck_row.set_active(self.profile.use_steamdeck_tag)
+        steamdeck_row.connect("notify::active", self._on_steamdeck_tag_toggled_from_row)
+
+        # Add SteamDeck row to group
+        prefs_group.add(steamdeck_row)
+
+        # Create Gamescope toggle row
+        gamescope_row = Adw.SwitchRow()
+        gamescope_row.set_title("Use Gamescope")
+        gamescope_row.set_subtitle("Disable to run Steam directly in bwrap without Gamescope")
+        gamescope_row.set_active(self.profile.use_gamescope)
+        gamescope_row.connect("notify::active", self._on_gamescope_toggled_from_preferences)
+
+        # Add Gamescope row to group
+        prefs_group.add(gamescope_row)
+
+        # Create Gamescope WSI toggle row
+        gamescope_wsi_row = Adw.SwitchRow()
+        gamescope_wsi_row.set_title("Enable Gamescope WSI")
+        gamescope_wsi_row.set_subtitle("Enable Gamescope Wayland Support Interface (WSI)")
+        gamescope_wsi_row.set_active(self.profile.enable_gamescope_wsi)
+        gamescope_wsi_row.connect("notify::active", self._on_gamescope_wsi_toggled_from_preferences)
+
+        # Add Gamescope WSI row to group
+        prefs_group.add(gamescope_wsi_row)
+
+        # Add group to page
+        prefs_page.add(prefs_group)
+
+        # Add page to window
+        prefs_window.add(prefs_page)
+
+        # Show the preferences window
+        prefs_window.present()
+
+    def _on_steamdeck_tag_toggled(self, switch, state):
+        """Handle SteamDeck tag switch toggled event."""
+        self.profile.use_steamdeck_tag = state
+        self.profile.save()
+        self.logger.info(f"SteamDeck tag option {'enabled' if state else 'disabled'}")
+
+    def _on_steamdeck_tag_toggled_from_row(self, switch_row, pspec):
+        """Handle SteamDeck tag switch toggled event from SwitchRow."""
+        state = switch_row.get_active()
+        self.profile.use_steamdeck_tag = state
+        self.profile.save()
+        self.logger.info(f"SteamDeck tag option {'enabled' if state else 'disabled'}")
+
+    def _on_gamescope_toggled_from_preferences(self, switch_row, pspec):
+        """Handle Gamescope toggle switch toggled event from SwitchRow."""
+        state = switch_row.get_active()
+        self.profile.use_gamescope = state
+        self.profile.save()
+        self.logger.info(f"Gamescope option {'enabled' if state else 'disabled'}")
+
+    def _on_gamescope_wsi_toggled_from_preferences(self, switch_row, pspec):
+        """Handle Gamescope WSI toggle switch toggled event from SwitchRow."""
+        state = switch_row.get_active()
+        self.profile.enable_gamescope_wsi = state
+        self.profile.save()
+        self.logger.info(f"Gamescope WSI option {'enabled' if state else 'disabled'}")
 
     def on_close_request(self, *args):
         """Handle the close request event."""

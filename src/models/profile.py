@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic.functional_validators import field_validator
 
-from src.core import Config
+from src.core import Config, Utils
 
 
 class PlayerInstanceConfig(BaseModel):
@@ -50,7 +50,6 @@ class Profile(BaseModel):
     instance_width: Optional[int] = Field(default=1280, alias="INSTANCE_WIDTH")
     instance_height: Optional[int] = Field(default=720, alias="INSTANCE_HEIGHT")
     mode: Optional[str] = Field(default="splitscreen", alias="MODE")
-    use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_kwin_script: bool = Field(default=True, alias="ENABLE_KWIN_SCRIPT")
     splitscreen: Optional[SplitscreenConfig] = Field(default=None, alias="SPLITSCREEN")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
@@ -59,6 +58,9 @@ class Profile(BaseModel):
         alias="PLAYERS",
     )
     selected_players: List[int] = Field(default_factory=list, alias="selected_players")
+    use_steamdeck_tag: bool = Field(default=False, alias="USE_STEAMDECK_TAG")
+    use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
+    enable_gamescope_wsi: bool = Field(default=Utils.is_wayland(), alias="ENABLE_GAMESCOPE_WSI")
 
     @classmethod
     def load(cls) -> "Profile":

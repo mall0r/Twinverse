@@ -51,6 +51,7 @@ modules:
       - cp -r src /app/lib/twinverse/
       - cp -r res /app/lib/twinverse/
       - cp twinverse.py /app/lib/twinverse/
+      - cp version /app/lib/twinverse/
 
       # Create bin directory and wrapper script
       - mkdir -p /app/bin

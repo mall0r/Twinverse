@@ -3,5 +3,6 @@
     <gresource prefix="/io/github/mall0r/Twinverse">
         <file>icons/check-icon.svg</file>
         <file>icons/alert-icon.svg</file>
+        <file alias="icons/io.github.mall0r.Twinverse.svg">../share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg</file>
     </gresource>
 </gresources>

@@ -65,16 +65,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         adjustment.connect("value-changed", self._on_num_players_changed)
         layout_group.add(self.num_players_row)
 
-        # # Gamescope toggle
-        # self.use_gamescope_row = Adw.SwitchRow(
-        #     title="Use Gamescope",
-        #     subtitle="Disable to run Steam directly in bwrap without Gamescope"
-        # )
-        # self.use_gamescope_row.get_style_context().add_class("use-gamescope-row")
-        # self.use_gamescope_row.get_style_context().add_class("custom-switch")
-        # self.use_gamescope_row.connect("notify::active", self._on_gamescope_toggled)
-        # layout_group.add(self.use_gamescope_row)
-
         # Gamescope Screen Settings
         self.gamescope_settings_group = Adw.PreferencesGroup()
         self.add(self.gamescope_settings_group)
@@ -114,9 +104,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         # Load gamescope setting
         self.profile.enable_kwin_script = True  # Always enable KWin script by default
-        # use_gamescope = self.profile.use_gamescope
-        # self.use_gamescope_row.set_active(use_gamescope)
-        self.gamescope_settings_group.set_visible(True)
+        self.gamescope_settings_group.set_visible(self.profile.use_gamescope)
 
         if is_splitscreen and self.profile.splitscreen:
             orientation = self.profile.splitscreen.orientation.capitalize()
@@ -203,7 +191,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             self.profile.splitscreen = None
 
         # Save gamescope setting
-        self.profile.use_gamescope = True  # Always enable Gamescope
         self.profile.enable_kwin_script = True  # Always enable KWin script
 
         new_configs = []
@@ -419,16 +406,31 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             checkbox.connect("toggled", self._on_player_selected_changed)
             expander.add_prefix(checkbox)
 
-            def create_device_row(title, device_type, target_expander):
+            def create_device_row(title, device_type, target_expander, tooltip=None):
                 devices = self.input_devices.get(device_type, [])
                 model = Gtk.StringList.new(["None"] + [d["name"] for d in devices])
                 row = Adw.ComboRow(title=title, model=model)
                 row.get_style_context().add_class(f"{device_type}-row")
                 row.connect("notify::selected-item", self._on_setting_changed)
+
+                # Add info icon if tooltip is provided
+                if tooltip:
+                    info_icon = Gtk.Image.new_from_icon_name("dialog-information-symbolic")
+                    info_icon.set_tooltip_text(tooltip)
+                    info_icon.set_margin_start(6)
+                    row.add_suffix(info_icon)
+
                 target_expander.add_row(row)
                 return row
 
-            joystick_row = create_device_row("Gamepad", "joystick", expander)
+            joystick_row = create_device_row(
+                "Gamepad",
+                "joystick",
+                expander,
+                "If the gamepads don't appear, you'll need\n"
+                "to add your user to the input group;\n"
+                "see the GUIDE for more information.",
+            )
             refresh_button = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
             refresh_button.set_tooltip_text("Update device list")
             refresh_button.get_style_context().add_class("flat")
