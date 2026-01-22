@@ -225,7 +225,7 @@ class MainPresenter:
         self.window.show_launching_state()
 
         # Schedule window minimization
-        GLib.timeout_add(2000, self.window.minimize_window)
+        GLib.timeout_add(5000, self.window.minimize_window)
 
         # Launch instances
         self._logger.info("Initiating launch of instances...")
