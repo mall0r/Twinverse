@@ -3,6 +3,16 @@
     <gresource prefix="/io/github/mall0r/Twinverse">
         <file>icons/check-icon.svg</file>
         <file>icons/alert-icon.svg</file>
+        <file>icons/four-square-symbolic.svg</file>
+        <file>icons/fullscreen-square-symbolic.svg</file>
+        <file>icons/gamepad-symbolic.svg</file>
+        <file>icons/horizontal-square-symbolic.svg</file>
+        <file>icons/horizontal-three-square-symbolic.svg</file>
+        <file>icons/moon-outline-symbolic.svg</file>
+        <file>icons/mouse-wireless-symbolic.svg</file>
+        <file>icons/sun-outline-symbolic.svg</file>
+        <file>icons/vertical-square-symbolic.svg</file>
+        <file>icons/vertical-three-square-symbolic.svg</file>
         <file alias="icons/io.github.mall0r.Twinverse.svg">../share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg</file>
     </gresource>
 </gresources>

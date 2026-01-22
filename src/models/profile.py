@@ -47,11 +47,11 @@ class Profile(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     num_players: int = Field(default=2, alias="NUM_PLAYERS")
-    instance_width: Optional[int] = Field(default=1280, alias="INSTANCE_WIDTH")
-    instance_height: Optional[int] = Field(default=720, alias="INSTANCE_HEIGHT")
+    instance_width: Optional[int] = Field(default=1920, alias="INSTANCE_WIDTH")
+    instance_height: Optional[int] = Field(default=1080, alias="INSTANCE_HEIGHT")
     mode: Optional[str] = Field(default="splitscreen", alias="MODE")
     enable_kwin_script: bool = Field(default=True, alias="ENABLE_KWIN_SCRIPT")
-    splitscreen: Optional[SplitscreenConfig] = Field(default=None, alias="SPLITSCREEN")
+    splitscreen: Optional[SplitscreenConfig] = Field(default_factory=SplitscreenConfig, alias="SPLITSCREEN")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
     player_configs: List[PlayerInstanceConfig] = Field(
         default_factory=lambda: [PlayerInstanceConfig(), PlayerInstanceConfig()],
