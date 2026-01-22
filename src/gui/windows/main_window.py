@@ -73,9 +73,9 @@ class MainWindow(Adw.ApplicationWindow):
 
         # Set initial icon based on current theme
         if style_manager.get_dark():
-            self.theme_toggle_button.set_icon_name("sun-outline-symbolic")  # Sun icon for light mode
+            self.theme_toggle_button.set_icon_name("moon-outline-symbolic")  # Moon icon for dark mode
         else:
-            self.theme_toggle_button.set_icon_name("moon-outline-symbolic")  # Alternative for dark mode
+            self.theme_toggle_button.set_icon_name("sun-outline-symbolic")  # Sun icon for light mode
 
         self.theme_toggle_button.connect("clicked", self._toggle_theme)
         self.theme_toggle_button.set_tooltip_text("Toggle Theme")
@@ -217,9 +217,9 @@ class MainWindow(Adw.ApplicationWindow):
         """Update the theme toggle button icon based on current theme."""
         style_manager = Adw.StyleManager.get_default()
         if style_manager.get_dark():
-            button.set_icon_name("sun-outline-symbolic")  # Sun icon for light mode
+            button.set_icon_name("moon-outline-symbolic")  # Moon icon for dark mode
         else:
-            button.set_icon_name("moon-outline-symbolic")  # Alternative for dark mode
+            button.set_icon_name("sun-outline-symbolic")  # Sun icon for light mode
 
     def _on_theme_changed(self, style_manager, pspec):
         """Handle theme change."""
