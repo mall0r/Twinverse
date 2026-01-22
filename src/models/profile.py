@@ -31,7 +31,7 @@ class SplitscreenConfig(BaseModel):
     """Configuration for splitscreen mode."""
 
     model_config = ConfigDict(populate_by_name=True)
-    orientation: str = Field(default="horizontal", alias="ORIENTATION")
+    orientation: str = Field(default="vertical", alias="ORIENTATION")
 
     @field_validator("orientation")
     def validate_orientation(cls, v):

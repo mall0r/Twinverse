@@ -6,7 +6,7 @@ This module mediates between the view (window) and controllers.
 
 import os
 
-from gi.repository import Adw, GLib
+from gi.repository import Adw, GLib, Gtk
 
 from src.core import Logger
 from src.gui.controllers import (
@@ -163,35 +163,20 @@ class MainPresenter:
             application_icon="io.github.mall0r.Twinverse",
             developer_name="Messias Junior (mall0r)",
             version=version,
-            developers=["mall0r"],
+            developers=["Messias Junior"],
             website="https://github.com/mall0r/Twinverse/blob/main/README.md",
             issue_url="https://github.com/mall0r/Twinverse/issues",
-            license_type=4,  # GPL_3_0
+            license_type=Gtk.License.GPL_3_0,
             comments=(
-                "A tool for Linux/SteamOS that allows you to create and manage multiple instances "
-                "of gamescope and steam simultaneously. Twinverse uses Bubblewrap (bwrap), a low-level "
-                "Linux sandboxing tool, to isolate each Steam Client instance."
+                "Twinverse is a tool for Linux/SteamOS that allows you to create and manage multiple "
+                "instances of gamescope and steam simultaneously. Twinverse uses Bubblewrap (bwrap), "
+                "a low-level Linux sandboxing tool, to isolate each Steam Client instance."
             ),
-            artists=["mall0r"],
             support_url="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md",
         )
 
         about.add_link("Contributing", "https://github.com/mall0r/Twinverse/blob/main/CONTRIBUTING.md")
         about.add_link("Donate", "https://ko-fi.com/mallor")
-
-        disclaimer = (
-            "Twinverse is an independent open-source project and is not affiliated with, "
-            "endorsed by, or in any way officially connected to Valve Corporation or Steam.\n\n"
-            "This tool acts as an orchestration layer that leverages sandboxing technologies "
-            "(bubblewrap) to run multiple isolated instances of the official Steam client. "
-            "Twinverse does not modify, patch, reverse engineer, or alter any Steam files "
-            "or its normal operation. All Steam instances launched by this tool are the "
-            "official, unmodified versions provided by Valve.\n\n"
-            "Users are solely responsible for complying with the terms of the Steam Subscriber Agreement.\n\n"
-            "This application comes without any warranty whatsoever. "
-            'See the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License, version 3 or later</a> for more details.'
-        )
-        about.set_license(disclaimer)
         about.present(parent=self.window)
 
     def on_close_requested(self):

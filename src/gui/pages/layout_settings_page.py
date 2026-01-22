@@ -39,7 +39,9 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         # Obter valores atuais
         screen_mode = self.screen_mode_row.get_selected_item().get_string().lower()
-        num_instances = int(self.num_players_row.get_value())
+
+        # Contar apenas instâncias com checkbox marcado
+        num_instances = sum(1 for player_row in self.player_rows if player_row.is_selected())
 
         if screen_mode == "fullscreen":
             icon_name = "fullscreen-square-symbolic"
