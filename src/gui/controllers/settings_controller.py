@@ -62,7 +62,10 @@ class SettingsController:
                 new_player_configs.append(PlayerInstanceConfig())
 
         self._profile.player_configs = new_player_configs
-        self._profile.selected_players = ui_data["selected_players"]
+
+        # Filter selected_players to only include valid indices based on the new number of players
+        valid_selected_players = [idx for idx in ui_data["selected_players"] if 0 <= idx < self._profile.num_players]
+        self._profile.selected_players = valid_selected_players
 
         # Always enable KWin script
         self._profile.enable_kwin_script = True

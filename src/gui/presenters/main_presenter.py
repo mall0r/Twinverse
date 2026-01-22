@@ -76,14 +76,31 @@ class MainPresenter:
         layout_page = self.window.get_layout_page()
         old_num_players = len(layout_page.player_rows)
 
-        self._save_current_settings()
+        # Get UI data first to check if number of players changed
+        ui_data = layout_page.get_data()
+        new_num_players = ui_data["num_players"]
 
-        # Get the new number of players after saving
-        profile = self._settings_controller.get_profile()
-        new_num_players = profile.num_players
-
-        # If the number of players changed, reload the UI to rebuild player rows
+        # If the number of players changed, reload the UI first to update player_rows
         if old_num_players != new_num_players:
+            # Update the profile temporarily to reflect new number of players
+            profile = self._settings_controller.get_profile()
+            profile.num_players = new_num_players
+
+            # Reload UI to update player_rows
+            devices_info = self._settings_controller.get_devices_info()
+            verification_statuses = self._verification_controller.get_all_statuses()
+            layout_page.load_data(profile, devices_info, verification_statuses)
+
+            # Get fresh UI data after UI update
+            ui_data = layout_page.get_data()
+
+        # Now save the current settings with updated UI data
+        self._settings_controller.update_from_ui_data(ui_data)
+        self._settings_controller.save_profile()
+
+        # Reload UI again to ensure everything is consistent (especially if other settings changed)
+        if old_num_players != new_num_players:
+            profile = self._settings_controller.get_profile()
             devices_info = self._settings_controller.get_devices_info()
             verification_statuses = self._verification_controller.get_all_statuses()
             layout_page.load_data(profile, devices_info, verification_statuses)
