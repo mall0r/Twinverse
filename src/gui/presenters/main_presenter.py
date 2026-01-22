@@ -109,19 +109,45 @@ class MainPresenter:
         player_row = player_rows[instance_num]
 
         if player_row._is_running:
-            # Stop the instance
+            # Stop only this specific instance
             self._launch_controller.terminate_single_instance(
                 instance_num, on_complete=lambda: self._on_single_instance_stopped(instance_num)
             )
         else:
-            # Launch the instance
-            self._launch_controller.launch_single_instance(
-                profile,
-                instance_num,
-                use_gamescope_override=False,
-                on_complete=lambda: self._on_single_instance_launched(instance_num),
-                on_error=lambda e: self._on_single_instance_error(instance_num, e),
-            )
+            # Launch without verification (different from main Play button)
+            self._logger.info(f"Launch requested for instance {instance_num} (no verification required).")
+
+            # Save current settings
+            self._save_current_settings()
+
+            # Update UI to show launching state for this specific instance
+            player_row.set_running_state(True)
+            player_row._update_button_state()
+
+            # Launch this specific instance using the same setup flow as the main Play button
+            # but disable gamescope for individual instances and skip verification
+            self._logger.info(f"Initiating launch of instance {instance_num}...")
+
+            # Setup KDE if enabled for this instance (same as main Play button)
+            if profile.enable_kwin_script:
+                self._logger.info("Starting KDE script setup...")
+                self._kde_manager.start_kwin_script(profile)
+
+            # Launch only this specific instance with gamescope disabled
+            try:
+                self._instance_service.launch_instance(profile, instance_num, use_gamescope_override=False)
+                self._logger.info(f"Instance {instance_num} launch initiated successfully (gamescope disabled).")
+
+                # Update UI to reflect that this instance is now running
+                GLib.idle_add(lambda: self._on_single_instance_launched(instance_num))
+            except Exception as e:
+                self._logger.error(f"Failed to launch instance {instance_num}: {e}")
+                self._logger.exception("Exception details:")
+                error_msg = ErrorHandler.format_error(e)
+                GLib.idle_add(self.window.show_error, error_msg)
+                # Reset the button state to previous state
+                player_row.set_running_state(False)
+                player_row._update_button_state()
 
     def on_preferences_clicked(self):
         """Handle preferences menu clicked."""
@@ -186,6 +212,8 @@ class MainPresenter:
 
     def _on_launch_requested(self):
         """Handle launch request."""
+        self._logger.info("Launch requested by user.")
+
         # Save current settings
         self._save_current_settings()
 
@@ -197,8 +225,11 @@ class MainPresenter:
         selected_players = layout_page.get_selected_players()
 
         if not selected_players:
+            self._logger.warning("No instances selected to launch.")
             self.window.show_error("No instances selected to launch.")
             return
+
+        self._logger.info(f"Selected players for launch: {selected_players}")
 
         # Update profile with selected players
         profile = self._settings_controller.get_profile()
@@ -212,6 +243,7 @@ class MainPresenter:
         GLib.timeout_add(2000, self.window.minimize_window)
 
         # Launch instances
+        self._logger.info("Initiating launch of instances...")
         self._launch_controller.launch_instances(
             profile,
             on_progress=self._on_launch_progress,
@@ -228,6 +260,11 @@ class MainPresenter:
     def _on_launch_progress(self, instance_num: int):
         """Handle launch progress update."""
         self._logger.info(f"Launched instance {instance_num}")
+        # Update UI to reflect that this instance is now running
+        layout_page = self.window.get_layout_page()
+        if 0 <= instance_num < len(layout_page.player_rows):
+            player_row = layout_page.player_rows[instance_num]
+            player_row.set_running_state(True)
 
     def _on_launch_complete(self):
         """Handle launch complete."""
@@ -235,6 +272,8 @@ class MainPresenter:
 
     def _on_launch_error(self, error: Exception):
         """Handle launch error."""
+        self._logger.error(f"Launch error: {error}")
+        self._logger.exception("Exception details:")
         error_msg = ErrorHandler.format_error(error)
         GLib.idle_add(self.window.show_error, error_msg)
         GLib.idle_add(self._restore_after_failed_launch)
@@ -247,14 +286,27 @@ class MainPresenter:
 
     def _on_single_instance_launched(self, instance_num: int):
         """Handle single instance launched."""
+        # Update the specific player row to reflect running state
+        layout_page = self.window.get_layout_page()
+        if 0 <= instance_num < len(layout_page.player_rows):
+            player_row = layout_page.player_rows[instance_num]
+            player_row.set_running_state(True)
+
         GLib.idle_add(self._verify_instance, instance_num)
 
     def _on_single_instance_stopped(self, instance_num: int):
         """Handle single instance stopped."""
+        # Update the specific player row to reflect stopped state
+        layout_page = self.window.get_layout_page()
+        if 0 <= instance_num < len(layout_page.player_rows):
+            player_row = layout_page.player_rows[instance_num]
+            player_row.set_running_state(False)
+
         GLib.idle_add(self._verify_instance, instance_num)
 
     def _on_single_instance_error(self, instance_num: int, error: Exception):
         """Handle single instance error."""
+        self._logger.error(f"Error in instance {instance_num}: {error}")
         error_msg = ErrorHandler.format_error(error)
         GLib.idle_add(self.window.show_error, error_msg)
 

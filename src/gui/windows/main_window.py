@@ -22,7 +22,7 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(*args, application=application, **kwargs)
         self._presenter = presenter
         self.set_title("Twinverse")
-        self.set_default_size(820, 750)
+        self.set_default_size(810, 740)
         self.theme_toggle_button = None  # Store reference to theme toggle button
         self._build_ui()
         self.connect("close-request", self._on_close_request)

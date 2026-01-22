@@ -122,10 +122,12 @@ class LaunchController:
         try:
             # Setup KDE if enabled
             if profile.enable_kwin_script:
+                self._logger.info("Starting KDE script setup...")
                 self._kde_manager.start_kwin_script(profile)
 
             self._kde_manager.save_panel_states()
             self._kde_manager.set_panels_dodge_windows()
+            self._logger.info("KDE panel states saved and updated.")
 
             # Launch each instance
             for instance_num in selected_players:
@@ -135,16 +137,22 @@ class LaunchController:
 
                 self._logger.info(f"Worker launching instance {instance_num}...")
                 self._instance_service.launch_instance(profile, instance_num)
+                self._logger.info(f"Instance {instance_num} launch initiated successfully.")
 
                 if on_progress:
                     on_progress(instance_num)
 
+                # Sleep between launches to allow each instance to initialize properly
+                self._logger.info("Waiting 5 seconds before launching next instance...")
                 time.sleep(5)
 
             if not self._cancel_event.is_set():
+                self._logger.info("All instances launched successfully. Updating running state.")
                 self._is_running = True
                 if on_complete:
                     on_complete()
+            else:
+                self._logger.info("Launch sequence was cancelled.")
 
         except Exception as e:
             self._logger.error(f"Launch error: {e}")
@@ -174,11 +182,13 @@ class LaunchController:
     ):
         """Worker thread for launching a single instance."""
         try:
+            self._logger.info(f"Starting single instance worker for instance {instance_num}")
             self._instance_service.launch_instance(profile, instance_num, use_gamescope_override=use_gamescope_override)
+            self._logger.info(f"Successfully launched instance {instance_num}")
             if on_complete:
                 on_complete()
         except Exception as e:
-            self._logger.error(f"Single instance launch error: {e}")
+            self._logger.error(f"Single instance launch error for instance {instance_num}: {e}")
             self._logger.logger.exception("Exception details:")  # Use underlying logger for exception details
             if on_error:
                 on_error(e)

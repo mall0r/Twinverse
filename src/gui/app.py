@@ -28,7 +28,9 @@ class TwinverseApplication(Adw.Application):
         """Initialize the application and set up resources."""
         super().__init__(application_id="io.github.mall0r.Twinverse", **kwargs)
         self.base_path = Utils.get_base_path()
-        self.logger = Logger("Twinverse-App", Config.LOG_DIR, reset=True)
+        import logging
+
+        self.logger = Logger("Twinverse-App", Config.LOG_DIR, reset=True, level=logging.DEBUG)
 
         print("Loading resources...")
         self._load_resources()
