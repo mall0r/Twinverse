@@ -314,7 +314,29 @@ class MainPresenter:
 
     def _on_preference_changed(self, key: str, value):
         """Handle preference changed."""
-        self._settings_controller.update_preference(key, value)
+        # Update the specific preference
+        if hasattr(self._settings_controller.get_profile(), key):
+            setattr(self._settings_controller.get_profile(), key, value)
+            self._settings_controller.save_profile()
+            self._logger.info(f"Preference '{key}' updated to: {value}")
+        else:
+            self._settings_controller.update_preference(key, value)
+
+        # If player configs were changed, reload the UI to reflect the changes
+        if key == "player_configs":
+            # Reload UI to update player configurations
+            profile = self._settings_controller.get_profile()
+            devices_info = self._settings_controller.get_devices_info()
+            layout_page = self.window.get_layout_page()
+
+            # Preserve verification statuses to avoid losing them during reload
+            verification_statuses = self._verification_controller.get_all_statuses()
+
+            # Reload data into the layout page
+            layout_page.load_data(profile, devices_info, verification_statuses)
+
+            # Run verifications again to update the verification status after player config changes
+            self._run_all_verifications()
 
     def _save_current_settings(self):
         """Save current settings from UI."""

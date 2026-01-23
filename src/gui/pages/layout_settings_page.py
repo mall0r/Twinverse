@@ -70,6 +70,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             icon_name = "horizontal-square-symbolic"
 
         self.screen_settings_icon.set_from_icon_name(icon_name)
+        self.screen_settings_icon.set_tooltip_text("Layout Preview")
 
     def _build_ui(self):
         """Build the UI."""
