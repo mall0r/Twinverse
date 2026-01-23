@@ -1,48 +1,48 @@
 #!/usr/bin/env python3
 """Módulo de teste mínimo para a aplicação Twinverse."""
 
-import os
-import sys
-
-import gi
-from gi.repository import Adw, Gtk
-
-gi.require_version("Gtk", "4.0")
-gi.require_version("Adw", "1")
+from src.core import Config
+from src.models import Profile
+from src.models.instance import SteamInstance
 
 
-class MinimalTestApp(Adw.Application):
-    """Aplicação de teste mínima para a Twinverse."""
+def test_minimal_functionality():
+    """Testa a funcionalidade mínima da aplicação Twinverse sem GUI."""
+    print("Testing minimal functionality without GUI...")
 
-    def __init__(self):
-        """Inicializa a aplicação de teste mínima."""
-        super().__init__(application_id="io.github.mall0r.Twinverse.MinimalTest")
-        self.connect("activate", self.on_activate)
-        print("MinimalTestApp initialized")
+    # Testa importações principais sem inicializar GUI
+    try:
+        # Importa módulos principais
+        import gi  # noqa: F401
 
-    def on_activate(self, app):
-        """Ativa a janela principal da aplicação."""
-        print("MinimalTestApp activated!")
-        window = Gtk.Window(application=app)
-        window.set_title("Minimal Test App")
-        window.set_default_size(400, 300)
-        window.present()
-        print("Minimal window presented")
+        from src.core.logger import Logger  # noqa: F401
+        from src.services import DeviceManager, InstanceService  # noqa: F401
+
+        print("All core modules imported successfully")
+
+        # Testa criação de objetos básicos
+        Config()
+
+        print("Config created successfully")
+
+        # Testa modelos
+        Profile(name="test_profile", num_players=2)
+        SteamInstance(instance_num=1, name="test_instance")
+
+        print("Profile and SteamInstance created successfully")
+
+        assert True  # Se chegou até aqui, tudo funcionou
+        print("Minimal functionality test passed!")
+
+    except Exception as e:
+        print(f"Error in minimal functionality test: {e}")
+        raise AssertionError(f"Falha no teste de funcionalidade mínima: {e}")
 
 
 def run_minimal_test():
     """Executa o teste mínimo da aplicação Twinverse."""
     print("Setting up minimal test...")
-    os.environ["GSK_RENDERER"] = "gl"
-
-    # Set the dark theme
-    style_manager = Adw.StyleManager.get_default()
-    style_manager.set_color_scheme(Adw.ColorScheme.PREFER_DARK)
-
-    app = MinimalTestApp()
-    print("About to run minimal test app...")
-    result = app.run(sys.argv)
-    print(f"Minimal test app finished with result: {result}")
+    test_minimal_functionality()
 
 
 if __name__ == "__main__":
