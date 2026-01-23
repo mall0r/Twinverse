@@ -99,6 +99,7 @@ class MainPresenter:
         self._settings_controller.save_profile()
 
         # Reload UI again to ensure everything is consistent (especially if other settings changed)
+        # BUT only reload if the number of players changed to avoid mode switching issues
         if old_num_players != new_num_players:
             profile = self._settings_controller.get_profile()
             devices_info = self._settings_controller.get_devices_info()
@@ -108,7 +109,8 @@ class MainPresenter:
             # Run verifications since the number of players changed
             self._run_all_verifications()
         else:
-            # Just run verifications if the number of players didn't change
+            # For mode changes without player count changes, just run verifications
+            # without reloading the UI to prevent mode switching issues
             self._run_all_verifications()
 
         self._update_launch_button_state()

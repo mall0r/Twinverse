@@ -30,6 +30,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.player_rows = []
         self._num_monitors = 1  # Will be set from devices_info
         self.screen_settings_icon = None  # Will be initialized in _build_ui
+        self._last_user_selected_mode = None  # Track the last mode explicitly selected by the user
         self._build_ui()
 
     def _update_screen_settings_icon(self):
@@ -140,7 +141,8 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         adj = self.num_players_row.get_adjustment()
         adj.set_value(profile.num_players)
 
-        is_splitscreen = profile.mode == "splitscreen"
+        # Use the last user-selected mode if available, otherwise use the profile mode
+        is_splitscreen = (self._last_user_selected_mode or profile.mode) == "splitscreen"
         self.screen_mode_row.set_selected(1 if is_splitscreen else 0)
         self._update_num_players_limits(is_splitscreen)
         self.orientation_row.set_visible(is_splitscreen)
@@ -273,8 +275,19 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         is_splitscreen = selected_mode == "splitscreen"
         self.orientation_row.set_visible(is_splitscreen)
 
+        # Record the user's selection
+        self._last_user_selected_mode = selected_mode
+
         # Update the number of players limits based on screen mode
         self._update_num_players_limits(is_splitscreen)
+
+        # Adjust the value if it exceeds the new upper limit
+        adjustment = self.num_players_row.get_adjustment()
+        current_value = adjustment.get_value()
+        new_upper_limit = adjustment.get_upper()
+
+        if current_value > new_upper_limit:
+            adjustment.set_value(new_upper_limit)
 
         if not self._is_loading:
             self.emit("settings-changed")
@@ -296,18 +309,9 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         # Update the adjustment limits
         adjustment = self.num_players_row.get_adjustment()
-        current_value = adjustment.get_value()
 
         # Set the new upper limit
         adjustment.set_upper(max_players)
-
-        # Adjust the current value if it exceeds the new limit
-        if current_value > max_players:
-            adjustment.set_value(max_players)
-
-        # Update the screen settings icon since the number of players affects the icon
-        if not self._is_loading:
-            self._update_screen_settings_icon()
 
     def _on_setting_changed(self, *args):
         """Handle any setting changed."""
