@@ -41,6 +41,9 @@ class MainPresenter:
         # Create window
         self.window = MainWindow(application, self)
 
+        # Initialize bulk operation state
+        self._bulk_operation_in_progress = False
+
         # Load initial data
         self._load_initial_data()
 
@@ -226,6 +229,8 @@ class MainPresenter:
         """Handle launch request."""
         self._logger.info("Launch requested by user.")
 
+        self._bulk_operation_in_progress = True
+
         # Save current settings
         self._save_current_settings()
 
@@ -239,6 +244,7 @@ class MainPresenter:
         if not selected_players:
             self._logger.warning("No instances selected to launch.")
             self.window.show_error("No instances selected to launch.")
+            self._bulk_operation_in_progress = False
             return
 
         self._logger.info(f"Selected players for launch: {selected_players}")
@@ -267,6 +273,8 @@ class MainPresenter:
         """Handle stop request."""
         self.window.show_stopping_state()
 
+        self._bulk_operation_in_progress = True
+
         self._launch_controller.stop_instances(on_complete=self._on_stop_complete)
 
     def _on_launch_progress(self, instance_num: int):
@@ -282,6 +290,7 @@ class MainPresenter:
         """Handle launch complete."""
         GLib.idle_add(self.window.show_running_state)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
+        GLib.idle_add(self._clear_bulk_operation_flag)
 
     def _on_launch_error(self, error: Exception):
         """Handle launch error."""
@@ -291,6 +300,7 @@ class MainPresenter:
         GLib.idle_add(self.window.show_error, error_msg)
         GLib.idle_add(self._restore_after_failed_launch)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
+        GLib.idle_add(self._clear_bulk_operation_flag)
 
     def _on_stop_complete(self):
         """Handle stop complete."""
@@ -298,6 +308,7 @@ class MainPresenter:
         GLib.idle_add(self._run_all_verifications)
         GLib.idle_add(self._update_launch_button_state)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
+        GLib.idle_add(self._clear_bulk_operation_flag)
 
     def _on_single_instance_launched(self, instance_num: int):
         """Handle single instance launched."""
@@ -413,14 +424,15 @@ class MainPresenter:
 
     def _update_play_button_for_individual_instances(self, is_any_running):
         """Update the Play button sensitivity based on individual instances state."""
-        # If any individual instances are running, disable the main Play button
-        # This prevents conflicts between individual instances and bulk operations
-        if is_any_running:
-            # Disable the Play button
+        if hasattr(self, "_bulk_operation_in_progress") and self._bulk_operation_in_progress:
             self.window.launch_button.set_sensitive(False)
         else:
-            # Re-enable the Play button based on the normal verification criteria
             self._update_launch_button_state()
+
+    def _clear_bulk_operation_flag(self):
+        """Clear the bulk operation flag."""
+        self._bulk_operation_in_progress = False
+        self._update_launch_button_state()
 
     def _restore_after_failed_launch(self):
         """Restore UI after a failed launch."""
@@ -428,6 +440,7 @@ class MainPresenter:
         self._run_all_verifications()
         self._update_launch_button_state()
         self._update_number_of_instances_sensitivity()
+        self._bulk_operation_in_progress = False
 
     def _get_version(self) -> str:
         """Get application version."""
