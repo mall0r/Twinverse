@@ -23,7 +23,7 @@ class Logger:
         logger (logging.Logger): The underlying standard Python logger instance.
     """
 
-    def __init__(self, name: str, log_dir: Path, reset: bool = False):
+    def __init__(self, name: str, log_dir: Path, reset: bool = False, level: int = logging.INFO):
         """
         Initialize the logger and set up its handlers.
 
@@ -35,11 +35,13 @@ class Logger:
                 calling module.
             log_dir (Path): The path to the directory for storing log files.
             reset (bool): If True, the log file will be cleared on startup.
+            level (int): The logging level (e.g., logging.DEBUG, logging.INFO).
+                         Defaults to logging.INFO.
         """
         self.log_dir = log_dir
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(level)
         self._handlers_setup = False
         self._setup_handlers(reset)
 
@@ -59,7 +61,7 @@ class Logger:
         # Console handler to stderr
         console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setFormatter(formatter)
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(logging.DEBUG)  # Changed from INFO to DEBUG
         self.logger.addHandler(console_handler)
 
         # File handler
@@ -67,7 +69,7 @@ class Logger:
         file_mode = "w" if reset else "a"
         file_handler = logging.FileHandler(log_file, mode=file_mode, encoding="utf-8")
         file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(logging.DEBUG)  # Changed from INFO to DEBUG
         self.logger.addHandler(file_handler)
 
         self._handlers_setup = True
@@ -113,6 +115,26 @@ class Logger:
         """
         if self._should_log(logging.WARNING):
             self.logger.warning(message)
+
+    def debug(self, message: str):
+        """
+        Log a debug message.
+
+        Args:
+            message (str): The message to log.
+        """
+        if self._should_log(logging.DEBUG):
+            self.logger.debug(message)
+
+    def exception(self, message: str):
+        """
+        Log an exception with traceback.
+
+        Args:
+            message (str): The message to log along with the exception.
+        """
+        if self._should_log(logging.ERROR):
+            self.logger.exception(message)
 
     def flush(self):
         """

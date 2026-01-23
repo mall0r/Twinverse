@@ -96,6 +96,9 @@ class CommandBuilder:
         ]
         # fmt: on
 
+        if self.profile.use_steamdeck_tag:
+            cmd.append("--mangoapp")
+
         if not self.profile.is_splitscreen_mode:
             cmd.append("-f")
         else:
@@ -109,12 +112,18 @@ class CommandBuilder:
 
     def _build_base_steam_command(self) -> List[str]:
         """Build the base steam command."""
+        cmd = ["steam"]
+
+        if self.profile.use_steamdeck_tag:
+            cmd.append("-steamdeck")
+
         if self.profile.use_gamescope:
             self.logger.info(f"Instance {self.instance_num}: Using Steam command with Gamescope flags.")
-            return ["steam", "-gamepadui", "-steamos3"]
+            cmd.extend(["-gamepadui", "-steamos3"])
         else:
             self.logger.info(f"Instance {self.instance_num}: Using plain Steam command.")
-            return ["steam"]
+
+        return cmd
 
     def _build_bwrap_command(self, instance_idx: int) -> List[str]:
         """

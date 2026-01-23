@@ -1,16 +1,16 @@
 <p align="right">
-  <a href="https://github.com/mall0r/Twinverse/blob/master/README.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/master/docs/README.pt-br.md"><img src="https://img.shields.io/badge/PT-🇧🇷-darkgreen.svg" alt="Portuguese"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/master/docs/README.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/README.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.pt-br.md"><img src="https://img.shields.io/badge/PT-🇧🇷-darkgreen.svg" alt="Portuguese"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="176" height="176">
+  <img src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="176" height="176">
 </p>
 
 <p align="center">
   <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="License"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="License"/></a>
   <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK Version"/></a>
   <a href="https://gnome.pages.gitlab.gnome.org/libadwaita/"><img src="https://img.shields.io/badge/libadwaita-1.0+-purple.svg" alt="libadwaita Version"/></a>
 </p>
@@ -27,7 +27,7 @@
 **Twinverse** is an tool for Linux/SteamOS that allows you to create and manage multiple instances of `gamescope` and `steam` simultaneously. This enables multiple players to enjoy their game library on a single computer, either in split-screen mode or each with their own display, along with dedicated audio output and input devices.
 
 <p align="center">
-  <img alt="twinverse_ui" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/twinverse-ui.png" />
+  <img alt="twinverse_ui" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/twinverse-ui.png" />
 </p>
 
 ## ✨ Key Features
@@ -120,7 +120,7 @@ cd Twinverse
 
 ## 📖 How to Use?
 
-Access our [Guide](https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.md) for more information on how to use Twinverse.
+Access our [Guide](https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md) for more information on how to use Twinverse.
 
 ---
 

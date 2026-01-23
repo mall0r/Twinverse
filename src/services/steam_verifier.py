@@ -16,8 +16,8 @@ class SteamVerifier:
 
     def verify(self, instance_path: Path) -> bool:
         """Verify if Steam is properly installed at the given instance path."""
-        steam_sh_path = instance_path / ".local/share/Steam/steam.sh"
-        self.logger.info(f"Verifying Steam installation at: {steam_sh_path}")
-        is_verified = steam_sh_path.exists()
+        steam_path = instance_path / ".local/share/Steam/steamclient64.dll"
+        self.logger.info(f"Verifying Steam installation at: {steam_path}")
+        is_verified = steam_path.exists()
         self.logger.info(f"Verification result: {'Passed' if is_verified else 'Failed'}")
         return is_verified

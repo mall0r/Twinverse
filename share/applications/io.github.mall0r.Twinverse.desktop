@@ -5,5 +5,5 @@ Exec=twinverse
 Icon=io.github.mall0r.Twinverse
 Type=Application
 Categories=Game;Utility;
-Comment=Play any game from your Steam library in splitscreen or with multiple monitors.
+Comment=Play any game in splitscreen or with multiple monitors.
 Terminal=false

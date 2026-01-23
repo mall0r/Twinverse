@@ -31,6 +31,11 @@ class Utils:
             return Path(__file__).resolve().parent.parent.parent
 
     @staticmethod
+    def is_wayland() -> bool:
+        """Check if the application is running on Wayland."""
+        return os.environ.get("XDG_SESSION_TYPE") == "wayland"
+
+    @staticmethod
     def is_flatpak() -> bool:
         """Check if the application is running inside a Flatpak."""
         return os.path.exists("/.flatpak-info")
