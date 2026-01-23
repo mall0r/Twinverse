@@ -318,3 +318,12 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         if not self._is_loading:
             self.emit("settings-changed")
             self._update_screen_settings_icon()
+
+    def set_number_of_instances_sensitive(self, sensitive: bool):
+        """Set the sensitivity of the number of instances spin button."""
+        self.num_players_row.set_sensitive(sensitive)
+
+    def set_screen_settings_sensitive(self, sensitive: bool):
+        """Set the sensitivity of the screen settings controls."""
+        self.screen_mode_row.set_sensitive(sensitive)
+        self.orientation_row.set_sensitive(sensitive)

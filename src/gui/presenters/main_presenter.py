@@ -70,6 +70,9 @@ class MainPresenter:
         else:
             self._on_launch_requested()
 
+        # Update the sensitivity of the number of instances spin button
+        self._update_number_of_instances_sensitivity()
+
     def on_settings_changed(self):
         """Handle settings changed in UI."""
         # Get the current number of players before saving
@@ -278,6 +281,7 @@ class MainPresenter:
     def _on_launch_complete(self):
         """Handle launch complete."""
         GLib.idle_add(self.window.show_running_state)
+        GLib.idle_add(self._update_number_of_instances_sensitivity)
 
     def _on_launch_error(self, error: Exception):
         """Handle launch error."""
@@ -286,12 +290,14 @@ class MainPresenter:
         error_msg = ErrorHandler.format_error(error)
         GLib.idle_add(self.window.show_error, error_msg)
         GLib.idle_add(self._restore_after_failed_launch)
+        GLib.idle_add(self._update_number_of_instances_sensitivity)
 
     def _on_stop_complete(self):
         """Handle stop complete."""
         GLib.idle_add(self.window.show_idle_state)
         GLib.idle_add(self._run_all_verifications)
         GLib.idle_add(self._update_launch_button_state)
+        GLib.idle_add(self._update_number_of_instances_sensitivity)
 
     def _on_single_instance_launched(self, instance_num: int):
         """Handle single instance launched."""
@@ -302,6 +308,7 @@ class MainPresenter:
             player_row.set_running_state(True)
 
         GLib.idle_add(self._verify_instance, instance_num)
+        GLib.idle_add(self._update_number_of_instances_sensitivity)
 
     def _on_single_instance_stopped(self, instance_num: int):
         """Handle single instance stopped."""
@@ -312,6 +319,7 @@ class MainPresenter:
             player_row.set_running_state(False)
 
         GLib.idle_add(self._verify_instance, instance_num)
+        GLib.idle_add(self._update_number_of_instances_sensitivity)
 
     def _on_single_instance_error(self, instance_num: int, error: Exception):
         """Handle single instance error."""
@@ -387,11 +395,37 @@ class MainPresenter:
 
         self.window.update_launch_button_sensitivity(all_verified)
 
+    def _update_number_of_instances_sensitivity(self):
+        """Update the sensitivity of the number of instances spin button."""
+        layout_page = self.window.get_layout_page()
+
+        # Check if any individual player instances are running
+        is_any_running = any(getattr(player_row, "_is_running", False) for player_row in layout_page.player_rows)
+
+        # Access the spin button through the layout page
+        layout_page.set_number_of_instances_sensitive(not is_any_running)
+        # Also update screen settings sensitivity
+        layout_page.set_screen_settings_sensitive(not is_any_running)
+        # Also update the main Play button sensitivity
+        self._update_play_button_for_individual_instances(is_any_running)
+
+    def _update_play_button_for_individual_instances(self, is_any_running):
+        """Update the Play button sensitivity based on individual instances state."""
+        # If any individual instances are running, disable the main Play button
+        # This prevents conflicts between individual instances and bulk operations
+        if is_any_running:
+            # Disable the Play button
+            self.window.launch_button.set_sensitive(False)
+        else:
+            # Re-enable the Play button based on the normal verification criteria
+            self._update_launch_button_state()
+
     def _restore_after_failed_launch(self):
         """Restore UI after a failed launch."""
         self.window.show_idle_state()
         self._run_all_verifications()
         self._update_launch_button_state()
+        self._update_number_of_instances_sensitivity()
 
     def _get_version(self) -> str:
         """Get application version."""
