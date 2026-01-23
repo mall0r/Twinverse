@@ -103,7 +103,14 @@ def update_metainfo(version, notes):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update metainfo.xml with new release info.")
     parser.add_argument("--version", required=True, help="The new version (e.g., v1.2.3).")
-    parser.add_argument("--notes", required=True, help="The release notes (in Markdown).")
+    parser.add_argument("--notes", help="The release notes (in Markdown).")
+    parser.add_argument("--notes-file", help="Path to a file containing the release notes (in Markdown).")
     args = parser.parse_args()
 
-    update_metainfo(args.version, args.notes)
+    if args.notes_file:
+        with open(args.notes_file, "r", encoding="utf-8") as f:
+            notes_content = f.read()
+    else:
+        notes_content = args.notes
+
+    update_metainfo(args.version, notes_content)
