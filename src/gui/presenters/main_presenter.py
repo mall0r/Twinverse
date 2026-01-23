@@ -406,6 +406,8 @@ class MainPresenter:
         layout_page.set_number_of_instances_sensitive(not is_any_running)
         # Also update screen settings sensitivity
         layout_page.set_screen_settings_sensitive(not is_any_running)
+        # Also update the checkboxes sensitivity
+        layout_page.set_checkboxes_sensitive(not is_any_running)
         # Also update the main Play button sensitivity
         self._update_play_button_for_individual_instances(is_any_running)
 

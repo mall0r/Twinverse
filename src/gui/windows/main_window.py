@@ -155,6 +155,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.launch_content_box.append(self.launch_spinner)
         self.launch_spinner.start()
         self.layout_settings_page.set_sensitive(False)
+        # Also disable the checkboxes
+        self.layout_settings_page.set_checkboxes_sensitive(False)
 
     def show_running_state(self):
         """Update UI to show running state."""
@@ -167,6 +169,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.launch_button.set_sensitive(True)
         self.layout_settings_page.set_sensitive(False)
         self.layout_settings_page.set_running_state(True)
+        # Also disable the checkboxes
+        self.layout_settings_page.set_checkboxes_sensitive(False)
 
     def show_stopping_state(self):
         """Update UI to show stopping state."""
@@ -185,6 +189,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.launch_button.get_style_context().add_class("launch-button")
         self.layout_settings_page.set_sensitive(True)
         self.layout_settings_page.set_running_state(False)
+        # Also enable the checkboxes
+        self.layout_settings_page.set_checkboxes_sensitive(True)
 
     def update_launch_button_sensitivity(self, enabled: bool):
         """Update launch button enabled state."""

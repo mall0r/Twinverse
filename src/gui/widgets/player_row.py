@@ -293,6 +293,10 @@ class PlayerRow(Adw.ExpanderRow):
         """Set grab input switch sensitivity."""
         self.grab_input_switch.set_sensitive(sensitive)
 
+    def set_checkbox_sensitive(self, sensitive: bool):
+        """Set checkbox sensitivity."""
+        self.checkbox.set_sensitive(sensitive)
+
     def _collect_env_vars(self) -> dict:
         """Collect environment variables from rows."""
         env = {}

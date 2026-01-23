@@ -327,3 +327,8 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         """Set the sensitivity of the screen settings controls."""
         self.screen_mode_row.set_sensitive(sensitive)
         self.orientation_row.set_sensitive(sensitive)
+
+    def set_checkboxes_sensitive(self, sensitive: bool):
+        """Set the sensitivity of the instance checkboxes."""
+        for player_row in self.player_rows:
+            player_row.set_checkbox_sensitive(sensitive)
