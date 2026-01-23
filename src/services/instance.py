@@ -261,6 +261,10 @@ class InstanceService:
             active_profile = copy.deepcopy(profile)
             active_profile.use_gamescope = use_gamescope_override
 
+            # Also override ENABLE_GAMESCOPE_WSI when gamescope is disabled
+            if use_gamescope_override is False:
+                active_profile.enable_gamescope_wsi = False
+
         Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
         self._launch_single_instance(active_profile, instance_num)
 
@@ -389,6 +393,8 @@ class InstanceService:
         """Prepare a dictionary of environment variables for the Steam instance."""
         env = {}
 
+        # Use the profile setting for ENABLE_GAMESCOPE_WSI
+        # Note: This will be affected by profile changes made in launch_instance if needed
         env["ENABLE_GAMESCOPE_WSI"] = "1" if profile.enable_gamescope_wsi else "0"
 
         # Handle audio device assignment

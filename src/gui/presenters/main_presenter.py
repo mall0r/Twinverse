@@ -155,10 +155,12 @@ class MainPresenter:
                 self._logger.info("Starting KDE script setup...")
                 self._kde_manager.start_kwin_script(profile)
 
-            # Launch only this specific instance with gamescope disabled
+            # Launch only this specific instance with gamescope and ENABLE_GAMESCOPE_WSI disabled
             try:
                 self._instance_service.launch_instance(profile, instance_num, use_gamescope_override=False)
-                self._logger.info(f"Instance {instance_num} launch initiated successfully (gamescope disabled).")
+                self._logger.info(
+                    f"Instance {instance_num} launch initiated successfully (gamescope and gamescope-WSI disabled)."
+                )
 
                 # Update UI to reflect that this instance is now running
                 GLib.idle_add(lambda: self._on_single_instance_launched(instance_num))

@@ -34,7 +34,7 @@ AdwToolbarView > GtkActionBar {
 
 /* Light theme override - using Adwaita's built-in classes */
 .main-content.light {
-    background-color: #FFFFFF; /* Light theme background */
+    background-color: #fafafb; /* Light theme background */
 }
 
 /* Use Adwaita's system theme detection */
