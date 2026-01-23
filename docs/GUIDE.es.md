@@ -1,12 +1,53 @@
 <p align="right">
-  <a href="https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.pt-br.md"><img src="https://img.shields.io/badge/PT-🇧🇷-darkgreen.svg" alt="Portuguese"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt-br.md"><img src="https://img.shields.io/badge/PT-🇧🇷-darkgreen.svg" alt="Portuguese"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
 </p>
 
 # Guía de Twinverse
 
 ¡Bienvenido a la guía de Twinverse! Este documento te guiará por el proceso de configuración y uso de la aplicación Twinverse para ejecutar múltiples instancias de Steam.
+
+## 1. Número de instancias
+
+Primero, necesitas decidir cuántas instancias de Steam deseas ejecutar. Twinverse soporta hasta 8 instancias en total.
+
+- **Pantalla dividida (Splitscreen):** Puedes ejecutar un máximo de 4 instancias por monitor.
+- **Pantalla completa (Fullscreen):** Puedes ejecutar un máximo de 1 instancia por monitor.
+
+Usa el selector numérico "Número de instancias" para definir la cantidad deseada.
+
+<img width="708" height="127" alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/general-layout.png" />
+
+## 2. Modo de pantalla
+
+> [!NOTE]
+> Para que el mosaico automático de ventanas funcione correctamente, se recomienda usar KDE Plasma 6.0+.
+> En otros DE, deberá mover las ventanas usted mismo, todo el resto debería funcionar bien.
+
+Puedes elegir entre dos modos de pantalla:
+
+- **Pantalla completa (Fullscreen):** Cada instancia se ejecutará en un monitor separado.
+- **Pantalla dividida (Splitscreen):** Las instancias se distribuirán en un solo monitor, ya sea horizontal o verticalmente.
+
+<img width="708" height="204" alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/screen-settings.png" />
+
+### Opciones de Pantalla dividida
+
+Al seleccionar "Splitscreen", puedes elegir entre dos orientaciones:
+
+- **Horizontal:** Las instancias se colocan una encima de la otra.
+- **Vertical:** Las instancias se colocan una al lado de la otra.
+
+Las posiciones y los formatos varían automáticamente según el número de instancias.
+Puede ver una vista previa del diseño haciendo clic en el ícono <img width="32" height="32" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/fullscreen-square-symbolic.svg" /> de la izquierda en Configuración de pantalla.
+
+<img width="32" height="32" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/horizontal-square-symbolic.svg" />
+<img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/horizontal-game.png" />
+<img width="32" height="32" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/vertical-square-symbolic.svg" />
+<img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/vertical-game.png" />
+
+## 3. Configuración de la instancia
 
 > [!IMPORTANT]
 > Para usar Twinverse, es necesario agregar su usuario al grupo `input` para permitir que el programa gestione los dispositivos de entrada.
@@ -20,44 +61,6 @@
 > ```
 > **Reinicie el sistema para que los cambios surtan efecto.**
 
-## 1. Número de instancias
-
-Primero, necesitas decidir cuántas instancias de Steam deseas ejecutar. Twinverse soporta hasta 8 instancias en total.
-
-- **Pantalla dividida (Splitscreen):** Puedes ejecutar un máximo de 4 instancias por monitor.
-- **Pantalla completa (Fullscreen):** Puedes ejecutar un máximo de 1 instancia por monitor.
-
-Usa el selector numérico "Número de instancias" para definir la cantidad deseada.
-
-<img width="708" height="127" alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/general-layout.png" />
-
-## 2. Modo de pantalla
-
-> [!NOTE]
-> Para que el mosaico automático de ventanas funcione correctamente, se recomienda usar KDE Plasma 6.0+.
-> En otros DE, deberá mover las ventanas usted mismo, todo el resto debería funcionar bien.
-
-Puedes elegir entre dos modos de pantalla:
-
-- **Pantalla completa (Fullscreen):** Cada instancia se ejecutará en un monitor separado.
-- **Pantalla dividida (Splitscreen):** Las instancias se distribuirán en un solo monitor, ya sea horizontal o verticalmente.
-
-<img width="708" height="204" alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/screen-settings.png" />
-
-### Opciones de Pantalla dividida
-
-Al seleccionar "Splitscreen", puedes elegir entre dos orientaciones:
-
-- **Horizontal:** Las instancias se colocan una encima de la otra.
-- **Vertical:** Las instancias se colocan una al lado de la otra.
-
-Las posiciones y los formatos varían automáticamente según el número de instancias.
-
-<img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/horizontal-game.png" />
-<img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/vertical-game.png" />
-
-## 3. Configuración de la instancia
-
 Para cada instancia, puedes configurar las siguientes opciones:
 
 - **Control (Gamepad):** Asignar un control específico a la instancia.
@@ -66,7 +69,7 @@ Para cada instancia, puedes configurar las siguientes opciones:
 - **Tasa de actualización (Refresh Rate):** Definir la tasa de actualización para la instancia. Es útil si quieres limitar los FPS o usar una tasa de actualización específica.
 - **Variables de entorno (Environment Variables):** Definir variables de entorno específicas para la instancia.
 
-<img width="595" height="409" alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/player-config.png" />
+<img width="595" height="409" alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/player-config.png" />
 
 ## 4. Iniciar una instancia
 
@@ -78,9 +81,9 @@ El botón **"Play"** ejecuta todas las instancias seleccionadas y, al marcarlas,
 
 Si usas KDE Plasma, también las moverá automáticamente para dividir la pantalla de tu monitor principal, o bien, las moverá entre monitores si has seleccionado pantalla completa.
 
-Solo las instancias que ya tienen Steam instalado pueden iniciarse con **"Play"**. Puedes verificarlo con el icono de verificación <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/check-icon.svg" /> en la instancia. Si el icono es un <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/res/icons/alert-icon.svg" />, instala Steam haciendo clic en el botón **"Install"** en esa instancia.
+Solo las instancias que ya tienen Steam instalado pueden iniciarse con **"Play"**. Puedes verificarlo con el icono de verificación <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/check-icon.svg" /> en la instancia. Si el icono es un <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/alert-icon.svg" />, instala Steam haciendo clic en el botón **"Install"** en esa instancia.
 
-<img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/instance-config.png" />
+<img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/instance-config.png" />
 
 ## 5. Desactivar el prealmacenamiento en caché de shaders (opcional)
 
@@ -88,7 +91,7 @@ Para ahorrar espacio en disco, desactiva el prealmacenamiento en caché de shade
 
 Para ello, ve a `Configuración` > `Descargas` y desactive la opción `Activar precarga en caché de sombreadores`.
 
-<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/disable-shader-pre_caching.png" />
+<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/disable-shader-pre_caching.png" />
 
 ## 6. Jugar
 
@@ -139,3 +142,9 @@ DRI_PRIME=1!
 ```
 
 Esto hace que se use la GPU 1 en el juego. Puedes ajustar los valores según la configuración de tu sistema.
+
+## Directorios Home
+
+Puede eliminar o administrar los archivos del directorio de inicio de cada instancia accediendo a `Preferences` -> `Instances`.
+
+<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/preferences-instances.png" />
