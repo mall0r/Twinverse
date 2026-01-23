@@ -104,6 +104,9 @@ class MainPresenter:
             devices_info = self._settings_controller.get_devices_info()
             verification_statuses = self._verification_controller.get_all_statuses()
             layout_page.load_data(profile, devices_info, verification_statuses)
+
+            # Run verifications since the number of players changed
+            self._run_all_verifications()
         else:
             # Just run verifications if the number of players didn't change
             self._run_all_verifications()
@@ -336,6 +339,11 @@ class MainPresenter:
             layout_page.load_data(profile, devices_info, verification_statuses)
 
             # Run verifications again to update the verification status after player config changes
+            self._run_all_verifications()
+
+        # If the number of players was changed, update verifications
+        if key == "num_players":
+            # Run verifications again to update the verification status after player count changes
             self._run_all_verifications()
 
     def _save_current_settings(self):

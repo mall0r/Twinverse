@@ -73,46 +73,65 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         self.add(self._advanced_prefs_page)
 
-        # Players management page
-        self._players_prefs_page = Adw.PreferencesPage()
-        self._players_prefs_page.set_title("Players")
-        self._players_prefs_page.set_icon_name("avatar-default-symbolic")
+        # Instances management page
+        self._instances_prefs_page = Adw.PreferencesPage()
+        self._instances_prefs_page.set_title("Instances")
+        self._instances_prefs_page.set_icon_name("avatar-default-symbolic")
 
-        # Players management group
-        self._players_prefs_group = Adw.PreferencesGroup(
-            title="Manage Players", description="View and manage player instances and their configurations"
+        # Instances management group
+        self._instances_prefs_group = Adw.PreferencesGroup(
+            title="Manage Instances", description="View and manage instance files"
         )
 
-        # Create a list box to hold player rows
-        self._player_list_box = Gtk.ListBox()
-        self._player_list_box.set_selection_mode(Gtk.SelectionMode.NONE)
-        self._player_list_box.add_css_class("boxed-list")
+        # Create a list box to hold instance rows
+        self._instance_list_box = Gtk.ListBox()
+        self._instance_list_box.set_selection_mode(Gtk.SelectionMode.NONE)
+        self._instance_list_box.add_css_class("boxed-list")
 
         # Populate the list with players
         self._populate_player_list()
 
-        self._players_prefs_group.add(self._player_list_box)
-        self._players_prefs_page.add(self._players_prefs_group)
+        self._instances_prefs_group.add(self._instance_list_box)
+        self._instances_prefs_page.add(self._instances_prefs_group)
 
-        self.add(self._players_prefs_page)
+        self.add(self._instances_prefs_page)
 
     def _populate_player_list(self):
         """Populate the list with player entries."""
         # Clear existing rows
         children = []
-        child = self._player_list_box.get_first_child()
+        child = self._instance_list_box.get_first_child()
         while child is not None:
             children.append(child)
             child = child.get_next_sibling()
 
         for child in children:
-            self._player_list_box.remove(child)
+            self._instance_list_box.remove(child)
 
-        # Add a row for each player
-        num_players = max(len(self._profile.player_configs), self._profile.num_players)
-        for i in range(num_players):
-            row = self._create_player_row(i)
-            self._player_list_box.append(row)
+        # Determine the maximum player index to consider
+        # First, find the highest player index that has a home directory
+        max_home_index = -1
+        for i in range(8):  # Check up to 8 players (maximum allowed)
+            home_path = Config.get_steam_home_path(i)
+            if home_path.exists():
+                max_home_index = i
+
+        # Calculate the total range we need to consider
+        # We need to check both the number of players and the length of player configs
+        max_config_index = max(len(self._profile.player_configs), self._profile.num_players) - 1
+        max_index = min(7, max(max_home_index, max_config_index))  # Limit to maximum of 8 players (0-7)
+
+        # Add a row for each player index up to the maximum
+        for i in range(max_index + 1):
+            home_path = Config.get_steam_home_path(i)
+            # Show the player if it has a home directory
+            # We only show players that have an actual home directory
+            # This way, when a player is deleted (home dir removed), it won't appear anymore
+            has_home = home_path.exists()
+
+            if has_home:
+                row = self._create_player_row(i)
+                self._instance_list_box.append(row)
 
     def _create_player_row(self, player_index):
         """Create a row for a specific player with an associated delete button."""
@@ -182,7 +201,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         dialog = Adw.MessageDialog(
             transient_for=self,
             heading=f"Reset Player {player_index + 1}?",
-            body="This will reset the player settings to default and permanently delete Player 1's home directory, along with all its contents. This action cannot be undone.",
+            body=f"This will reset the player settings to default and permanently delete Player {player_index + 1}'s home directory, along with all its contents. This action cannot be undone.",
         )
 
         dialog.add_response("cancel", "Cancel")
@@ -195,22 +214,23 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def _on_confirmation_response(self, dialog, response, player_index):
         """Handle the confirmation dialog response."""
         if response == "reset":
+            # Remove the player's home directory
+            home_path = Config.get_steam_home_path(player_index)
+            self._remove_home_directory(home_path)
+
             # Reset the player's configuration to default
+            # We don't actually remove from the list to maintain proper indexing
+            # Instead, we just reset the configuration to default values
             default_player_config = PlayerInstanceConfig()
 
-            # Update the profile with default player config
             if player_index < len(self._profile.player_configs):
                 # Update the specific player config with default values
                 self._profile.player_configs[player_index] = default_player_config
             else:
-                # If the player index is out of bounds, extend the list with defaults
+                # If the player index is out of bounds, extend the list with defaults up to this index
                 while len(self._profile.player_configs) <= player_index:
                     self._profile.player_configs.append(PlayerInstanceConfig())
                 self._profile.player_configs[player_index] = default_player_config
-
-            # Remove the player's home directory
-            home_path = Config.get_steam_home_path(player_index)
-            self._remove_home_directory(home_path)
 
             # Refresh the player list to reflect changes
             self._populate_player_list()
