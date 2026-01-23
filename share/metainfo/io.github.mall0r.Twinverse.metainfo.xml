@@ -8,7 +8,7 @@
   <summary xml:lang="pt-BR">Jogue qualquer jogo em tela dividida</summary>
   <summary xml:lang="es">Juega cualquier juego en pantalla dividida</summary>
   <developer id="io.github.mall0r">
-    <name>Messias Junior</name>
+    <name>Messias Junior (mall0r)</name>
   </developer>
 
   <description>
@@ -83,19 +83,19 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/twinverse-ui.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/twinverse-ui.png</image>
       <caption>Main application window</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/multiscope_ui_config.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/multiscope_ui_config.png</image>
       <caption>Main application window showing instance configuration</caption>
     </screenshot>
     <screenshot>
-      <video codec="vp9" type="video/webm">https://raw.githubusercontent.com/mall0r/Twinverse/master/share/videos/horizontal-demo.webm</video>
+      <video codec="vp9" type="video/webm">https://raw.githubusercontent.com/mall0r/Twinverse/main/share/videos/horizontal-demo.webm</video>
       <caption>Demonstration of Twinverse running multiple instances in horizontal splitscreen mode.</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/master/share/screenshots/vertical-game.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/vertical-game.png</image>
       <caption>Vertical split-screen gameplay with multiple instances</caption>
     </screenshot>
   </screenshots>
@@ -104,7 +104,7 @@
   <url type="vcs-browser">https://github.com/mall0r/Twinverse</url>
   <url type="donation">https://ko-fi.com/mallor</url>
   <url type="bugtracker">https://github.com/mall0r/Twinverse/issues/new</url>
-  <url type="help">https://github.com/mall0r/Twinverse/blob/master/docs/GUIDE.md</url>
+  <url type="help">https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md</url>
 
   <provides>
     <binary>twinverse</binary>

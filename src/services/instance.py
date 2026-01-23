@@ -72,21 +72,28 @@ class InstanceService:
 
         log_file = Config.LOG_DIR / f"steam_instance_{instance_num}.log"
         self.logger.info(f"Launching instance {instance_num} (Log: {log_file})")
+        self.logger.debug(f"Instance {instance_num}: Environment: {dict(instance_env)}")
 
         try:
             if Utils.is_flatpak():
+                self.logger.info(f"Instance {instance_num}: Launching in Flatpak environment")
                 process, pgid = self._launch_in_flatpak(instance_num, base_command, instance_env)
             else:
+                self.logger.info(f"Instance {instance_num}: Launching natively")
                 process, pgid = self._launch_natively(instance_num, base_command, instance_env)
 
             self.pids[instance_num] = process.pid
             self.pgids[instance_num] = pgid
             self.processes[instance_num] = process
 
+            self.logger.info(f"Instance {instance_num}: Successfully launched with PID {process.pid}")
+
         except TwinverseError:
+            self.logger.error(f"Instance {instance_num}: TwinverseError during launch")
             raise
         except Exception as e:
-            self.logger.error(f"Failed to launch instance {instance_num}: {str(e)}")
+            self.logger.error(f"Instance {instance_num}: Unexpected error during launch: {str(e)}")
+            self.logger.exception(f"Instance {instance_num}: Exception details:")
             raise TwinverseError(f"Failed to launch instance {instance_num}: {str(e)}")
 
     def _launch_in_flatpak(
@@ -119,15 +126,22 @@ class InstanceService:
         except PermissionError as e:
             self.logger.error(f"Instance {instance_num}: Permission denied when spawning host process: {e}")
             raise TwinverseError(f"Permission denied when launching instance {instance_num}: {e}")
+        except Exception as e:
+            self.logger.error(f"Instance {instance_num}: Unexpected error when spawning host process: {e}")
+            raise TwinverseError(f"Unexpected error when launching instance {instance_num}: {e}")
 
         import time
 
         time.sleep(0.1)
 
         if process.poll() is not None:
-            _, stderr_data = process.communicate()
-            error_message = stderr_data.decode() if stderr_data else "Unknown error"
-            self.logger.error(f"Instance {instance_num}: Process failed to start: {error_message}")
+            stdout_data, stderr_data = process.communicate()
+            stdout_str = stdout_data.decode() if stdout_data else ""
+            stderr_str = stderr_data.decode() if stderr_data else ""
+            error_message = (
+                f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}" if (stdout_str or stderr_str) else "Unknown error"
+            )
+            self.logger.error(f"Instance {instance_num}: Process failed to start:\n{error_message}")
             raise DependencyError(f"Command failed to start: {base_command[0]} - {error_message}")
 
         pgid_str = process.stdout.readline().decode().strip() if process.stdout else ""
@@ -142,8 +156,14 @@ class InstanceService:
         process.terminate()
 
         # Try to get error output if available
-        _, stderr_data = process.communicate(timeout=1) if process.stdout else (None, None)
-        error_message = stderr_data.decode() if stderr_data else "Failed to capture host PGID"
+        stdout_data, stderr_data = process.communicate(timeout=1) if process.stdout else (None, None)
+        stdout_str = stdout_data.decode() if stdout_data else ""
+        stderr_str = stderr_data.decode() if stderr_data else ""
+        error_message = (
+            f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}"
+            if (stdout_str or stderr_str)
+            else "Failed to capture host PGID"
+        )
 
         raise TwinverseError(f"Failed to get host process group ID for instance {instance_num}: {error_message}")
 
@@ -157,6 +177,16 @@ class InstanceService:
         native_env.update(instance_env)
 
         self.logger.info(f"Instance {instance_num}: Full command: {shlex.join(base_command)}")
+
+        # Log environment variables for debugging
+        self.logger.debug(f"Instance {instance_num}: Environment variables: {list(instance_env.keys())}")
+
+        # Check if required binaries exist before launching
+        if not shutil.which(base_command[0]):
+            error_msg = f"Command '{base_command[0]}' not found in PATH"
+            self.logger.error(f"Instance {instance_num}: {error_msg}")
+            raise DependencyError(error_msg)
+
         try:
             process = subprocess.Popen(
                 base_command,
@@ -172,15 +202,22 @@ class InstanceService:
         except PermissionError as e:
             self.logger.error(f"Instance {instance_num}: Permission denied: {e}")
             raise TwinverseError(f"Permission denied when launching instance {instance_num}: {e}")
+        except OSError as e:
+            self.logger.error(f"Instance {instance_num}: OS error when launching: {e}")
+            raise TwinverseError(f"OS error when launching instance {instance_num}: {e}")
 
         import time
 
         time.sleep(0.1)
 
         if process.poll() is not None:
-            _, stderr_data = process.communicate()
-            error_message = stderr_data.decode() if stderr_data else "Unknown error"
-            self.logger.error(f"Instance {instance_num}: Process failed to start: {error_message}")
+            stdout_data, stderr_data = process.communicate()
+            stdout_str = stdout_data.decode() if stdout_data else ""
+            stderr_str = stderr_data.decode() if stderr_data else ""
+            error_message = (
+                f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}" if (stdout_str or stderr_str) else "Unknown error"
+            )
+            self.logger.error(f"Instance {instance_num}: Process failed to start:\n{error_message}")
             raise DependencyError(f"Command failed to start: {base_command[0]} - {error_message}")
 
         pgid = process.pid
@@ -223,6 +260,10 @@ class InstanceService:
         if use_gamescope_override is not None:
             active_profile = copy.deepcopy(profile)
             active_profile.use_gamescope = use_gamescope_override
+
+            # Also override ENABLE_GAMESCOPE_WSI when gamescope is disabled
+            if use_gamescope_override is False:
+                active_profile.enable_gamescope_wsi = False
 
         Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
         self._launch_single_instance(active_profile, instance_num)
@@ -352,7 +393,9 @@ class InstanceService:
         """Prepare a dictionary of environment variables for the Steam instance."""
         env = {}
 
-        # env["ENABLE_GAMESCOPE_WSI"] = "0"
+        # Use the profile setting for ENABLE_GAMESCOPE_WSI
+        # Note: This will be affected by profile changes made in launch_instance if needed
+        env["ENABLE_GAMESCOPE_WSI"] = "1" if profile.enable_gamescope_wsi else "0"
 
         # Handle audio device assignment
         if device_info.get("audio_device_id_for_instance"):

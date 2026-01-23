@@ -1,10 +1,14 @@
 """GUI components for the Twinverse application."""
 
-from .dialogs import ConfirmationDialog, TextInputDialog
-from .layout_editor import LayoutSettingsPage
+from .app import TwinverseApplication
+from .dialogs import ConfirmationDialog, ErrorDialog, TextInputDialog
+from .windows import MainWindow, PreferencesWindow
 
 __all__ = [
+    "TwinverseApplication",
+    "MainWindow",
+    "PreferencesWindow",
     "ConfirmationDialog",
+    "ErrorDialog",
     "TextInputDialog",
-    "LayoutSettingsPage",
 ]

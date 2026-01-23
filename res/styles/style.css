@@ -18,6 +18,10 @@
     padding: 0 10px;
 }
 
+.reset-action {
+    color: #e76f51;
+}
+
 AdwToolbarView > GtkActionBar {
     min-height: 60px;
 }
@@ -25,7 +29,29 @@ AdwToolbarView > GtkActionBar {
 /* Change the background color of the main content area */
 
 .main-content {
-    background-color: #1B1B1B;
+    background-color: #1B1B1B; /* Dark theme default */
+}
+
+/* Light theme override - using Adwaita's built-in classes */
+.main-content.light {
+    background-color: #fafafb; /* Light theme background */
+}
+
+/* Use Adwaita's system theme detection */
+.adw-view-switcher,
+.adw-header-bar,
+.adw-card,
+.adw-preferences-page {
+    /* These will automatically adapt to system theme */
+}
+
+/* Override for specific elements to follow system theme */
+.osd,
+.app-notification,
+.tooltip,
+ popover.background,
+.context-menu {
+    /* These elements will follow system theme automatically */
 }
 
 

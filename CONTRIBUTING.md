@@ -96,7 +96,7 @@ make clean
 
 As a reminder, please take care to follow the [Code Standards](#code-standards) for the project when adding any code-based contributions.
 
-Test your changes **thoroughly** before submitting a Pull Request. Whenever appropriate, it is strongly recommended that you develop unit-tests with a good test spread to make sure that your new features are working as intended and are capable of handling anticipated edge cases. In cases where this is not possible, please be sure to follow a similar testing paradigm where both average and edge use cases are tested. In the long run, this will save the project a lot of time, avoiding tedious backtracking and bug-smashing by proactively ensuring that easily preventable bugs don't sneak into the master build.
+Test your changes **thoroughly** before submitting a Pull Request. Whenever appropriate, it is strongly recommended that you develop unit-tests with a good test spread to make sure that your new features are working as intended and are capable of handling anticipated edge cases. In cases where this is not possible, please be sure to follow a similar testing paradigm where both average and edge use cases are tested. In the long run, this will save the project a lot of time, avoiding tedious backtracking and bug-smashing by proactively ensuring that easily preventable bugs don't sneak into the main build.
 
 ### Building from Source
 
@@ -170,7 +170,7 @@ At this point, the contributor's work is complete! If your pull request has reac
 Thank you for contributing!
 
 #### Release Builds
-Periodically, the current lead developer(s) of Twinverse will decide when enough changes have been incorporated into the master branch to justify a new release. To ensure build stability, a release will be created and published alongside a change log of implemented changes after sufficient testing by maintainers. The releases include the source code and packages in flatpak and appimage formats.
+Periodically, the current lead developer(s) of Twinverse will decide when enough changes have been incorporated into the main branch to justify a new release. To ensure build stability, a release will be created and published alongside a change log of implemented changes after sufficient testing by maintainers. The releases include the source code and packages in flatpak and appimage formats.
 
 Currently, there is no set release schedule, and releases will be published when ready and verified stable.
 

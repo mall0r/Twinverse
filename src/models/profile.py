@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic.functional_validators import field_validator
 
-from src.core import Config
+from src.core import Config, Utils
 
 
 class PlayerInstanceConfig(BaseModel):
@@ -31,7 +31,7 @@ class SplitscreenConfig(BaseModel):
     """Configuration for splitscreen mode."""
 
     model_config = ConfigDict(populate_by_name=True)
-    orientation: str = Field(default="horizontal", alias="ORIENTATION")
+    orientation: str = Field(default="vertical", alias="ORIENTATION")
 
     @field_validator("orientation")
     def validate_orientation(cls, v):
@@ -47,18 +47,20 @@ class Profile(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     num_players: int = Field(default=2, alias="NUM_PLAYERS")
-    instance_width: Optional[int] = Field(default=1280, alias="INSTANCE_WIDTH")
-    instance_height: Optional[int] = Field(default=720, alias="INSTANCE_HEIGHT")
+    instance_width: Optional[int] = Field(default=1920, alias="INSTANCE_WIDTH")
+    instance_height: Optional[int] = Field(default=1080, alias="INSTANCE_HEIGHT")
     mode: Optional[str] = Field(default="splitscreen", alias="MODE")
-    use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_kwin_script: bool = Field(default=True, alias="ENABLE_KWIN_SCRIPT")
-    splitscreen: Optional[SplitscreenConfig] = Field(default=None, alias="SPLITSCREEN")
+    splitscreen: Optional[SplitscreenConfig] = Field(default_factory=SplitscreenConfig, alias="SPLITSCREEN")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
     player_configs: List[PlayerInstanceConfig] = Field(
         default_factory=lambda: [PlayerInstanceConfig(), PlayerInstanceConfig()],
         alias="PLAYERS",
     )
     selected_players: List[int] = Field(default_factory=list, alias="selected_players")
+    use_steamdeck_tag: bool = Field(default=False, alias="USE_STEAMDECK_TAG")
+    use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
+    enable_gamescope_wsi: bool = Field(default=Utils.is_wayland(), alias="ENABLE_GAMESCOPE_WSI")
 
     @classmethod
     def load(cls) -> "Profile":
