@@ -84,7 +84,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         self.num_players_row = Adw.SpinRow(
             title="Number of Instances",
-            subtitle="How many Steam instances to launch",
+            subtitle="Choose the player count",
         )
         self.num_players_row.add_css_class("num-players-row")
         adjustment = Gtk.Adjustment(value=2, lower=1, upper=8, step_increment=1)
