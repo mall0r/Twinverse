@@ -83,13 +83,8 @@ AdwToolbarView > GtkActionBar {
 
 .env-key-entry,
 .env-value-entry {
-    background-color: #222222;
-    color: #eeeeee;
     min-width: 232px;
-    /*font-size: 1.2em;*/
 }
-
-
 /* Change the style of the switch's */
 
 .custom-switch switch:checked {
