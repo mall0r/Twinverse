@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from screeninfo import get_monitors
 
+from src.core import LayoutCalculator
 from src.models import Profile
 
 
@@ -207,30 +208,25 @@ class DeviceManager:
                 instance_in_group = instance_num % 4
                 num_players_in_group = min(4, num_players - group_index * 4)
 
-                if monitor_to_use:
-                    width = monitor_to_use["width"]
-                    height = monitor_to_use["height"]
-
+                if monitor_to_use and num_players_in_group > 0:
+                    # Special case: if there's only 1 player in the group, return full monitor size
                     if num_players_in_group == 1:
+                        return monitor_to_use["width"], monitor_to_use["height"]
+
+                    if instance_in_group < num_players_in_group:
+                        # Use the new layout calculator
+                        x, y, width, height = LayoutCalculator.calculate_position(
+                            monitor_to_use["width"],
+                            monitor_to_use["height"],
+                            num_players_in_group,
+                            instance_in_group,
+                            orientation,
+                        )
                         return width, height
-                    elif num_players_in_group == 2:
-                        if orientation == "vertical":
-                            return width // 2, height
-                        else:
-                            return width, height // 2
-                    elif num_players_in_group == 3:
-                        if orientation == "vertical":
-                            if instance_in_group == 0:
-                                return width // 2, height
-                            else:
-                                return width // 2, height // 2
-                        else:
-                            if instance_in_group == 0:
-                                return width, height // 2
-                            else:
-                                return width // 2, height // 2
-                    elif num_players_in_group == 4:
-                        return width // 2, height // 2
+                    else:
+                        # If instance_in_group is greater than or equal to num_players_in_group,
+                        # return None, None as in the original logic
+                        return None, None
 
         if monitor_to_use:
             return monitor_to_use["width"], monitor_to_use["height"]

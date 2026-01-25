@@ -97,9 +97,9 @@ class PlayerRow(Adw.ExpanderRow):
         # Add info icon
         info_icon = Gtk.Image.new_from_icon_name("dialog-information-symbolic")
         info_icon.set_tooltip_text(
-            "If the gamepads don't appear, you'll need\n"
-            "to add your user to the input group;\n"
-            "see the GUIDE for more information."
+            "If the gamepads don't appear, you'll need \n"
+            "to add your user to the input group; \n"
+            "see the GUIDE for more details."
         )
         info_icon.set_margin_start(6)
         self.joystick_row.add_suffix(info_icon)

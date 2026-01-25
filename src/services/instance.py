@@ -393,8 +393,6 @@ class InstanceService:
         """Prepare a dictionary of environment variables for the Steam instance."""
         env = {}
 
-        # Use the profile setting for ENABLE_GAMESCOPE_WSI
-        # Note: This will be affected by profile changes made in launch_instance if needed
         env["ENABLE_GAMESCOPE_WSI"] = "1" if profile.enable_gamescope_wsi else "0"
 
         # Handle audio device assignment

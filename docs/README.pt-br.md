@@ -1,7 +1,6 @@
 <p align="right">
-  <a href="https://github.com/mall0r/Twinverse/blob/main/README.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.pt-br.md"><img src="https://img.shields.io/badge/PT-🇧🇷-darkgreen.svg" alt="Portuguese"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/README.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
 </p>
 
 <p align="center">
@@ -44,7 +43,7 @@ O Twinverse foi projetado para ser uma solução flexível para múltiplos jogos
 8. **Modos de tela flexíveis:** Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor).
 ---
 
-[horizontal-demo](https://github.com/user-attachments/assets/e0ca4937-fd38-48cf-b56c-1c825b047572)
+[1920x1080-RX_6600_XT-demo](https://github.com/user-attachments/assets/e0ca4937-fd38-48cf-b56c-1c825b047572)
 
 ---
 
@@ -56,7 +55,7 @@ O Twinverse foi projetado para ser uma solução flexível para múltiplos jogos
 
 Twinverse deve funcionar bem em qualquer sistema que suporte `Gamescope` e `Steam`.
 
-### Flatpak (Recomendado)
+### Flatpak
 
 A maneira recomendada de instalar o Twinverse é via Flatpak, que oferece um ambiente em sandbox e atualizações mais fáceis.
 

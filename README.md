@@ -1,7 +1,6 @@
 <p align="right">
-  <a href="https://github.com/mall0r/Twinverse/blob/main/README.md"><img src="https://img.shields.io/badge/EN-🇬🇧-darkblue.svg" alt="English"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.pt-br.md"><img src="https://img.shields.io/badge/PT-🇧🇷-darkgreen.svg" alt="Portuguese"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.es.md"><img src="https://img.shields.io/badge/ES-🇪🇸-darkred.svg" alt="Spanish"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/README.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
+  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
 </p>
 
 <p align="center">
@@ -45,7 +44,7 @@ Twinverse is designed as a flexible solution for simultaneous multi-gaming on Li
 
 ---
 
-[horizontal-demo](https://github.com/user-attachments/assets/e0ca4937-fd38-48cf-b56c-1c825b047572)
+[1920x1080-RX_6600_XT-demo](https://github.com/user-attachments/assets/e0ca4937-fd38-48cf-b56c-1c825b047572)
 
 ---
 
@@ -57,7 +56,7 @@ Twinverse is designed as a flexible solution for simultaneous multi-gaming on Li
 
 Twinverse should work well on any system that supports `Gamescope` and `Steam`.
 
-### Flatpak (Recommended)
+### Flatpak
 
 The recommended way to install Twinverse is via Flatpak, which provides a sandboxed environment and easier updates.
 <!--

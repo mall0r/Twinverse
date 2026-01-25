@@ -7,6 +7,7 @@ from .exceptions import (
     TwinverseError,
     VirtualDeviceError,
 )
+from .layout import LayoutCalculator
 from .logger import Logger
 from .utils import Utils
 
@@ -16,6 +17,7 @@ __all__ = [
     "TwinverseError",
     "ProfileNotFoundError",
     "VirtualDeviceError",
+    "LayoutCalculator",
     "Logger",
     "Utils",
 ]

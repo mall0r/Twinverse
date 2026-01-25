@@ -7,6 +7,7 @@ This module provides the UI for configuring layout settings - presentation only.
 import gi
 from gi.repository import Adw, GObject, Gtk
 
+from src.core.layout import LayoutCalculator
 from src.gui.widgets import PlayerRow
 
 gi.require_version("Gtk", "4.0")
@@ -34,41 +35,37 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self._build_ui()
 
     def _update_screen_settings_icon(self):
-        """Atualiza o ícone de configurações de tela com base nas configurações atuais."""
+        """Update the screen settings icon based on current settings."""
         if not self.screen_settings_icon:
             return
 
-        # Obter valores atuais
         screen_mode = self.screen_mode_row.get_selected_item().get_string().lower()
-
-        # Contar apenas instâncias com checkbox marcado
         num_instances = sum(1 for player_row in self.player_rows if player_row.is_selected())
+
+        icon_name = ""
 
         if screen_mode == "fullscreen":
             icon_name = "fullscreen-square-symbolic"
         elif screen_mode == "splitscreen":
-            if num_instances == 1:
+            # Consider groups of up to 4 instances per monitor
+            first_group_size = min(num_instances, 4)
+
+            if first_group_size == 1:
                 icon_name = "fullscreen-square-symbolic"
-            elif num_instances == 4:
+            elif first_group_size == 4:
                 icon_name = "four-square-symbolic"
             else:
                 orientation = self.orientation_row.get_selected_item().get_string().lower()
-                if orientation == "horizontal":
-                    if num_instances == 2:
-                        icon_name = "horizontal-square-symbolic"
-                    elif num_instances == 3:
-                        icon_name = "horizontal-three-square-symbolic"
-                elif orientation == "vertical":
-                    if num_instances == 2:
-                        icon_name = "vertical-square-symbolic"
-                    elif num_instances == 3:
-                        icon_name = "vertical-three-square-symbolic"
+
+                # Use LayoutCalculator to determine layout for the first group
+                LayoutCalculator.get_layout_coordinates(first_group_size, orientation)
+
+                if first_group_size == 2:
+                    icon_name = f"{orientation}-square-symbolic"
+                elif first_group_size == 3:
+                    icon_name = f"{orientation}-three-square-symbolic"
                 else:
-                    # Caso padrão se a orientação não for reconhecida
-                    icon_name = "horizontal-square-symbolic"
-        else:
-            # Caso padrão se o modo de tela não for reconhecido
-            icon_name = "horizontal-square-symbolic"
+                    icon_name = f"{orientation}-square-symbolic"
 
         self.screen_settings_icon.set_from_icon_name(icon_name)
         self.screen_settings_icon.set_tooltip_text("Layout Preview")
