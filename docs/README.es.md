@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="176" height="176">
+  <img src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="176" height="176">
 </p>
 
 <p align="center">
@@ -27,7 +27,7 @@
 **Twinverse** es una herramienta para Linux/SteamOS que te permite crear y gestionar múltiples instancias de `gamescope` y `steam` simultáneamente. Esto permite que varios jugadores disfruten de su biblioteca de juegos en una sola computadora, ya sea en pantalla dividida o cada uno con su propia pantalla, además de contar con salida de audio y dispositivos de entrada dedicados.
 
 <p align="center">
-  <img alt="twinverse_ui" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/twinverse-ui.png" />
+  <img alt="twinverse_ui" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/twinverse-ui.png" />
 </p>
 
 ## ✨ Características Principales

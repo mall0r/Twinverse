@@ -17,7 +17,7 @@ Primeiro, você precisa decidir quantas instâncias do Steam deseja executar. O 
 
 Use o seletor numérico "Número de Instâncias" para definir a quantidade desejada.
 
-<img width="708" height="127" alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/general-layout.png" />
+<img width="708" height="127" alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/general-layout.png" />
 
 ## 2. Modo de Tela
 
@@ -30,7 +30,7 @@ Você pode escolher entre dois modos de tela:
 - **Tela Cheia (Fullscreen):** Cada instância será executada em um monitor separado.
 - **Tela Dividida (Splitscreen):** As instâncias serão dispostas em um único monitor, seja horizontal ou verticalmente.
 
-<img width="708" height="204" alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/screen-settings.png" />
+<img width="708" height="204" alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/screen-settings.png" />
 
 ### Opções de Tela Dividida
 
@@ -40,12 +40,12 @@ Ao selecionar "Splitscreen", você pode escolher entre duas orientações:
 - **Vertical:** As instâncias são dispostas lado a lado.
 
 Posições e formatos variam de acordo com o número de instâncias.
-É possível ver um preview do layout no ícone <img width="32" height="32" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/fullscreen-square-symbolic.svg" /> a esquerda em Screen Settings.
+É possível ver um preview do layout no ícone <img width="32" height="32" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> a esquerda em Screen Settings.
 
-<img width="32" height="32" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/horizontal-square-symbolic.svg" />
-<img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/horizontal-game.png" />
-<img width="32" height="32" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/vertical-square-symbolic.svg" />
-<img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/vertical-game.png" />
+<img width="32" height="32" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-square-symbolic.svg" />
+<img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/horizontal-game.png" />
+<img width="32" height="32" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-square-symbolic.svg" />
+<img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/vertical-game.png" />
 
 ## 3. Configuração da Instância
 
@@ -69,7 +69,7 @@ Para cada instância, você pode configurar as seguintes opções:
 - **Taxa de Atualização (Refresh Rate):** Definir a taxa de atualização para a instância. Util se você quer travar o FPS ou usar uma taxa de atualização específica.
 - **Variável de Ambiente (Environment Variables):** Definir variáveis de ambiente específicas para a instância.
 
-<img width="595" height="409" alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/player-config.png" />
+<img width="595" height="409" alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />
 
 ## 4. Iniciando uma Instância
 
@@ -80,9 +80,9 @@ Você deve fazer login no modo desktop. Após logar e configurar seu Cliente Ste
 o Botão **"Play"**, executa todas as instancias marcadas e com um check, ele vai executar todas com o gamescope e vai redimensionar cada uma.
 Se você estiver usando KDE Plasma, tambem vai move-las automaticamente para dividir a tela idealmente pra seu monitor principal, ou move-las entre seu monitores caso tenha selecionado fullscreen.
 
-Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Play"**. Você pode verificar isso pelo ícone de check <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/check-icon.svg" /> na instância. Se o ícone for um <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/alert-icon.svg" />, instale o Steam clicando no botão **"Install"** daquela instância.
+Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Play"**. Você pode verificar isso pelo ícone de check <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/check-icon.svg" /> na instância. Se o ícone for um <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/alert-icon.svg" />, instale o Steam clicando no botão **"Install"** daquela instância.
 
-<img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/instance-config.png" />
+<img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/instance-config.png" />
 
 ## 5. Desabilitar Download Prévio de Sombreadores (Opicional)
 
@@ -90,7 +90,7 @@ Para meconomizar espaço em disco, desabilite o download prévio de sombreadores
 
 Para fazer isso, vá em `Configurações > Downloads` e desabilita a opção `Ativar download prévio de sombreadores`.
 
-<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/disable-shader-pre_caching.png" />
+<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/disable-shader-pre_caching.png" />
 
 ## 6. Jogar
 
@@ -146,4 +146,4 @@ Isso faz a GPU 1 ser usada no jogo. Você pode ajustar os numeros de acordo com 
 
 Você pode excluir ou gerenciar os arquivos o diretorio home de cada instância, acessando `Preferences` -> `Instances`.
 
-<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/preferences-instances.png" />
+<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />
