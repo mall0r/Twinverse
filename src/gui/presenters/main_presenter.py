@@ -191,9 +191,9 @@ class MainPresenter:
         about = Adw.AboutDialog(
             application_name="Twinverse",
             application_icon="io.github.mall0r.Twinverse",
-            developer_name="Messias Junior (mall0r)",
+            developer_name="Mallor (mall0r)",
             version=version,
-            developers=["Messias Junior"],
+            developers=["Mallor"],
             website="https://github.com/mall0r/Twinverse/blob/main/README.md",
             issue_url="https://github.com/mall0r/Twinverse/issues",
             license_type=Gtk.License.GPL_3_0,
