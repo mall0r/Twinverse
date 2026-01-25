@@ -17,7 +17,7 @@ First, you need to decide how many Steam instances you want to run. Twinverse su
 
 Use the numeric selector "Number of Instances" to set the desired amount.
 
-<img width="708" height="127" alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/general-layout.png" />
+<img width="708" height="127" alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/general-layout.png" />
 
 ## 2. Screen Mode
 
@@ -30,7 +30,7 @@ You can choose between two screen modes:
 - **Fullscreen:** Each instance will run on a separate monitor.
 - **Splitscreen:** Instances will be arranged on a single monitor, either horizontally or vertically.
 
-<img width="708" height="204" alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/screen-settings.png" />
+<img width="708" height="204" alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/screen-settings.png" />
 
 ### Splitscreen Options
 
@@ -40,12 +40,12 @@ When selecting "Splitscreen," you can choose between two orientations:
 - **Vertical:** Instances are arranged side by side.
 
 Positions and layouts adjust automatically based on the number of instances.
-You can see a preview of the layout by clicking the icon <img width="32" height="32" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/fullscreen-square-symbolic.svg" /> on the left in Screen Settings.
+You can see a preview of the layout by clicking the icon <img width="32" height="32" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> on the left in Screen Settings.
 
-<img width="32" height="32" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/horizontal-square-symbolic.svg" />
-<img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/horizontal-game.png" />
-<img width="32" height="32" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/vertical-square-symbolic.svg" />
-<img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/vertical-game.png" />
+<img width="32" height="32" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-square-symbolic.svg" />
+<img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/horizontal-game.png" />
+<img width="32" height="32" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-square-symbolic.svg" />
+<img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/vertical-game.png" />
 
 ## 3. Instance Configuration
 
@@ -68,7 +68,7 @@ For each instance, you can configure the following options:
 - **Refresh Rate:** Set the refresh rate for the instance. Useful if you want to cap FPS or use a specific refresh rate.
 - **Environment Variables:** Define specific environment variables for the instance.
 
-<img width="595" height="409" alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/player-config.png" />
+<img width="595" height="409" alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />
 
 ## 4. Starting an Instance
 
@@ -80,9 +80,9 @@ The **"Play"** button runs all selected instances, and with a checkmark, it will
 
 If you are using KDE Plasma, it will also automatically move them to ideally split the screen for your main monitor, or move them between your monitors if you have selected fullscreen.
 
-Only instances that already have Steam installed can be started with **"Play"**. You can verify this by the check icon <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/check-icon.svg" /> on the instance. If the icon is an <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/res/icons/alert-icon.svg" />, install Steam by clicking the **"Install"** button on that instance.
+Only instances that already have Steam installed can be started with **"Play"**. You can verify this by the check icon <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/check-icon.svg" /> on the instance. If the icon is an <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/alert-icon.svg" />, install Steam by clicking the **"Install"** button on that instance.
 
-<img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/instance-config.png" />
+<img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/instance-config.png" />
 
 ## 5. Disable Shader Pre-Caching (Optional)
 
@@ -90,7 +90,7 @@ To save disk space, disable shader pre-caching on Steam. I also recommend doing 
 
 To do this, go to `Settings > Downloads` and disable the `Enable shader pre-caching` option.
 
-<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/disable-shader-pre_caching.png" />
+<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/disable-shader-pre_caching.png" />
 
 ## 6. Play
 
@@ -145,4 +145,4 @@ This makes GPU 1 be used in the game. You can adjust the numbers according to yo
 
 You can delete or manage the files in the home directory of each instance by accessing `Preferences` -> `Instances`.
 
-<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/preferences-instances.png" />
+<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />

@@ -39,15 +39,15 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/twinverse-ui.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/twinverse-ui.png</image>
       <caption>Main application window</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/multiscope_ui_config.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/multiscope_ui_config.png</image>
       <caption>Main application window showing player configuration</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/main/share/screenshots/horizontal-steam.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/horizontal-steam.png</image>
       <caption>Horizontal split-screen</caption>
     </screenshot>
   </screenshots>
