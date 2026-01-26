@@ -31,6 +31,16 @@ class Utils:
             return Path(__file__).resolve().parent.parent.parent
 
     @staticmethod
+    def get_version() -> str:
+        """Get application version."""
+        try:
+            version_file = Utils.get_base_path() / "version"
+            with open(version_file, "r") as f:
+                return f.read().strip()
+        except Exception:
+            return "Unknown"
+
+    @staticmethod
     def is_wayland() -> bool:
         """Check if the application is running on Wayland."""
         return os.environ.get("XDG_SESSION_TYPE") == "wayland"

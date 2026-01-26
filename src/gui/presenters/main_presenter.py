@@ -4,11 +4,9 @@ Main presenter module.
 This module mediates between the view (window) and controllers.
 """
 
-import os
-
 from gi.repository import Adw, GLib, Gtk
 
-from src.core import Logger
+from src.core import Logger, Utils
 from src.gui.controllers import (
     LaunchController,
     SettingsController,
@@ -187,12 +185,11 @@ class MainPresenter:
 
     def on_about_clicked(self):
         """Handle about menu clicked."""
-        version = self._get_version()
         about = Adw.AboutDialog(
             application_name="Twinverse",
             application_icon="io.github.mall0r.Twinverse",
             developer_name="Mallor (mall0r)",
-            version=version,
+            version=Utils.get_version(),
             developers=["Mallor"],
             website="https://github.com/mall0r/Twinverse/blob/main/README.md",
             issue_url="https://github.com/mall0r/Twinverse/issues",
@@ -441,14 +438,3 @@ class MainPresenter:
         self._update_launch_button_state()
         self._update_number_of_instances_sensitivity()
         self._bulk_operation_in_progress = False
-
-    def _get_version(self) -> str:
-        """Get application version."""
-        try:
-            version_file = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "version"
-            )
-            with open(version_file, "r") as f:
-                return f.read().strip()
-        except Exception:
-            return "Unknown"
