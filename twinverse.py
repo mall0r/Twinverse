@@ -6,12 +6,12 @@ This module serves as the entry point for the Twinverse application,
 launching the GUI interface.
 """
 
-from src import run_gui
+from src import TwinverseApplication
 
 
 def main():
     """Run the Twinverse GUI application."""
-    run_gui()
+    TwinverseApplication.run_gui()
 
 
 if __name__ == "__main__":
