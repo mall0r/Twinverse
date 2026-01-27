@@ -9,6 +9,9 @@ FLATPAK_BUILDER ?= flatpak-builder
 VERSION_FILE = version
 VERSION = $(shell cat $(VERSION_FILE))
 
+# Compile GResource file
+COMPILE_RESOURCES_TARGET := $(shell [ -f res/twinverse.gresources.xml ] && echo "compile-resources")
+
 # Default target
 .DEFAULT_GOAL := help
 
@@ -41,6 +44,16 @@ help:
 	@echo "  make appimage        Create AppImage package"
 	@echo "  make help            Show this help message"
 	@echo ""
+
+# ===== COMPILE RESOURCES =====
+compile-resources:
+	@echo -e "\n\033[1;34m=== Compiling GResource... ===\033[0m"
+	@if [ -f res/twinverse.gresources.xml ]; then \
+		glib-compile-resources --sourcedir=res res/twinverse.gresources.xml --target=res/twinverse.gresource; \
+		echo -e "\033[1;32m GResource compiled successfully!\033[0m"; \
+	else \
+		echo -e "\033[1;31m twinverse.gresources.xml not found!\033[0m" >&2; \
+	fi
 
 # ===== BUILD APPLICATION =====
 build: dev

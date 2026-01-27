@@ -35,7 +35,7 @@ check_dependencies() {
     done
 
     # Optional commands (only for features)
-    if [[ -f "res/resources.xml" ]]; then
+    if [[ -f "res/twinverse.gresources.xml" ]]; then
         if ! command -v glib-compile-resources &> /dev/null; then
             print_error "glib-compile-resources not found (required for GResource)"
             echo "  Install: sudo apt install libglib2.0-dev-bin"
@@ -80,19 +80,19 @@ clean_build() {
     [[ -f "$BUNDLE_NAME" ]] && rm -f "$BUNDLE_NAME"
 
     # Clean compiled resources
-    [[ -f "res/compiled.gresource" ]] && rm -f "res/compiled.gresource"
+    [[ -f "res/twinverse.gresource" ]] && rm -f "res/twinverse.gresource"
 
     print_success "Environment cleaned"
 }
 
 compile_resources() {
-    # Only compile if resources.xml exists
-    if [[ -f "res/resources.xml" ]]; then
+    # Only compile if twinverse.gresources.xml exists
+    if [[ -f "res/twinverse.gresources.xml" ]]; then
         print_header "Compiling Resources"
         glib-compile-resources \
-            --target=res/compiled.gresource \
+            --target=res/twinverse.gresource \
             --sourcedir=res \
-            res/resources.xml
+            res/twinverse.gresources.xml
         print_success "Resources compiled"
     fi
 }

@@ -14,5 +14,6 @@
         <file>icons/vertical-square-symbolic.svg</file>
         <file>icons/vertical-three-square-symbolic.svg</file>
         <file alias="icons/io.github.mall0r.Twinverse.svg">../share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg</file>
+        <file>styles/style.css</file>
     </gresource>
 </gresources>
