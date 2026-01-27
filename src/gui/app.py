@@ -57,12 +57,12 @@ class TwinverseApplication(Adw.Application):
 
     def _load_resources(self):
         """Load application resources."""
-        resource_path = self.base_path / "res" / "compiled.gresource"
+        resource_path = self.base_path / "res" / "twinverse.gresource"
         print(f"Looking for resource file at: {resource_path}")
         print(f"Resource file exists: {resource_path.exists()}")
         if resource_path.exists():
             resources = Gio.Resource.load(str(resource_path))
-            Gio.Resource._register(resources)
+            Gio.resources_register(resources)
             print("Resources registered")
         else:
             print("Resource file not found!")
@@ -95,14 +95,12 @@ class TwinverseApplication(Adw.Application):
     def _load_css(self):
         """Load application CSS."""
         css_provider = Gtk.CssProvider()
-        css_path = self.base_path / "res" / "styles" / "style.css"
-        if css_path.exists():
-            css_provider.load_from_path(str(css_path))
-            Gtk.StyleContext.add_provider_for_display(
-                self.win.get_display(),
-                css_provider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-            )
+        css_provider.load_from_resource("/io/github/mall0r/Twinverse/styles/style.css")
+        Gtk.StyleContext.add_provider_for_display(
+            self.win.get_display(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
 
     @staticmethod
     def run_gui() -> None:

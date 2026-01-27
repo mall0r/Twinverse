@@ -29,9 +29,9 @@ pip install .
 # Compile GResource
 echo "📦 Compiling GResource..."
 glib-compile-resources \
-  --target=res/compiled.gresource \
+  --target=res/twinverse.gresource \
   --sourcedir=res \
-  res/resources.xml
+  res/twinverse.gresources.xml
 
 # Install PyInstaller if not present
 if ! pip show pyinstaller >/dev/null 2>&1; then

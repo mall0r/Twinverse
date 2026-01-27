@@ -5,9 +5,9 @@ cd "$(dirname "$0")"
 # Compile GResource
 echo "📦 Compiling GResource..."
 glib-compile-resources \
-  --target=res/compiled.gresource \
+  --target=res/twinverse.gresource \
   --sourcedir=res \
-  res/resources.xml
+  res/twinverse.gresources.xml
 
 # Create venv if it doesn't exist
 if [ ! -d ".venv" ]; then
