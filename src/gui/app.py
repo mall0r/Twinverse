@@ -104,29 +104,29 @@ class TwinverseApplication(Adw.Application):
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
 
+    @staticmethod
+    def run_gui() -> None:
+        """Launch the GUI application."""
+        os.environ["GSK_RENDERER"] = "gl"
 
-def run_gui():
-    """Launch the GUI application."""
-    os.environ["GSK_RENDERER"] = "gl"
+        print("Creating TwinverseApplication instance...")
+        app = TwinverseApplication()
+        print("TwinverseApplication instance created")
 
-    print("Creating TwinverseApplication instance...")
-    app = TwinverseApplication()
-    print("TwinverseApplication instance created")
+        # Print debug info
+        print("Starting Twinverse Application...")
 
-    # Print debug info
-    print("Starting Twinverse Application...")
+        # Check if we're running from command line or IDE
+        print(f"sys.argv: {sys.argv}")
 
-    # Check if we're running from command line or IDE
-    print(f"sys.argv: {sys.argv}")
+        try:
+            print("About to call app.run()")
+            result = app.run(sys.argv)
+            print(f"app.run() returned with result: {result}")
+            return result
+        except Exception as e:
+            print(f"Error running application: {e}")
+            import traceback
 
-    try:
-        print("About to call app.run()")
-        result = app.run(sys.argv)
-        print(f"app.run() returned with result: {result}")
-        return result
-    except Exception as e:
-        print(f"Error running application: {e}")
-        import traceback
-
-        traceback.print_exc()
-        raise
+            traceback.print_exc()
+            raise

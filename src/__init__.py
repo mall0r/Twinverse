@@ -13,7 +13,7 @@ from .core import (
     TwinverseError,
     VirtualDeviceError,
 )
-from .gui.app import TwinverseApplication, run_gui
+from .gui.app import TwinverseApplication
 from .gui.windows import MainWindow, PreferencesWindow
 from .models import Profile, SteamInstance
 from .services import DeviceManager, InstanceService, KdeManager
@@ -28,7 +28,6 @@ __all__ = [
     "TwinverseApplication",
     "MainWindow",
     "PreferencesWindow",
-    "run_gui",
     "Profile",
     "SteamInstance",
     "DeviceManager",
