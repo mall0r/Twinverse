@@ -23,33 +23,37 @@
 
 # What is Twinverse?
 
-**Twinverse** is an tool for Linux/SteamOS that allows you to create and manage multiple instances of `gamescope` and `steam` simultaneously. This enables multiple players to enjoy their game library on a single computer, either in split-screen mode or each with their own display, along with dedicated audio output and input devices.
+**Twinverse** is an tool for Linux/SteamOS that allows you to create and manage multiple instances of `Steam Big Picture` simultaneously. This enables multiple players to enjoy their game library on a single computer, either in split-screen mode or each with their own display, along with dedicated audio output and input devices.
 
 <p align="center">
   <img alt="twinverse_ui" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/twinverse-ui.png" />
 </p>
 
+> [!WARNING]
+> This project does not support piracy; all players must own the game in their Steam libraries to be able to play it.
+
 ## ✨ Key Features
+
+> [!NOTE]
+> Mouse/Keyboard can only be assigned to one instance at a time
 
 Twinverse is designed as a flexible solution for splitscreen gaming on Linux. Here are some of its main features:
 
-1. **Simple Multi-Instance Management:** Run multiple Steam instances simultaneously, allowing you and your friends to enjoy your game libraries separately
+1. **Multiple Instances:** Run multiple instances of Steam Client simultaneously
 
-2. **Per-Instance Hardware Assignment:** Assign specific mice, keyboards, and controllers to each game instance
-    > Mouse/Keyboard can only be assigned to one instance at a time
+2. **Device Assignment:** Assign specific mouse, keyboard, and controller to each game instance
 
-3. **Dedicated Audio Channels:** Route audio from each game instance to a separate audio output device
+3. **Dedicated Audio Channels:** Direct audio from each instance to a separate audio output device
 
-4. **Separate Home Directory:** Twinverse allows you to have a dedicated home for each instance, enabling you to customize settings and files individually
+4. **Dedicated Home Directory:** Twinverse allows you to have a dedicated home directory for each instance, enabling individual customization of settings and files
 
-5. **Shared Game Library:** Twinverse allows you to share the Steam game directory among multiple instances, saving disk space and making game updates easier.
-    > Users need to own the game in their Steam libraries to run it
+5. **Shared Game Folder:** Share the Steam game directory across multiple instances, so you don’t need to download the game again for each instance, saving disk space
 
 6. **Use Any Proton:** Twinverse lets you use any version of Proton to run your games, including custom protons like [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)
 
-7. **Play Whatever You Want:** Instances are not limited to playing the same game; each instance can play whichever game it wants
+7. **Play What You Want:** Instances are not limited to running the same game; each instance can run a different game
 
-8. **Flexible Screen Modes:** Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor)
+8. **Flexible Display Modes:** Choose between split screen (up to 4 instances per monitor) or full screen (1 instance per monitor)
 
 ---
 
@@ -57,13 +61,22 @@ Twinverse is designed as a flexible solution for splitscreen gaming on Linux. He
 
 ---
 
+## 📦 Requirements
+
+To use Twinverse without issues, ensure the following requirements are met:
+
+You need to have the *native* `gamescope` and `steam` packages from your distribution installed.
+
+For Gamescope to function correctly, based on your GPU, you will need:
+
+  - **AMD:** Mesa 20.3 or newer
+  - **Intel:** Mesa 21.2 or newer
+  - **NVIDIA:** Proprietary drivers 515.43.04 or newer, or NVIDIA Open Kernel Module drivers
+
+> [!NOTE]
+> *SteamOS* (AMD) and *Bazzite* generally have all dependencies included by default.
+
 ## 📦 Installation
-
-> [!IMPORTANT]
-> You need to have installed the `gamescope`, `steam` and `mangoapp` packages native to your distro.
-> SteamOS and Bazzite usually have all dependencies included by default.
-
-Twinverse should work well on any system that supports `Gamescope` and `Steam`.
 
 ### Flatpak
 
