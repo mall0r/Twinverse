@@ -51,7 +51,7 @@ O Twinverse foi projetado para ser uma solução flexível para jogar em tela di
 
 6.  **Use Qualquer Proton:** Twinverse permite que você use qualquer versão do Proton para executar seus jogos, incluindo protons personalizados como o [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)
 
-7.  **Jogue o Que Quiser** A instancias não precisam se limitar a jogar o mesmo jogo; cada instancia pode jogar o jogo que quiser
+7.  **Jogue o Que Quiser** A instâncias não precisam se limitar a jogar o mesmo jogo; cada instância pode jogar o jogo que quiser
 
 8.  **Modos de tela flexíveis:** Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor)
 
@@ -143,7 +143,9 @@ Acesse nosso [Guide](https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt
 
 ## ⚙️ Como Funciona
 
-O Twinverse utiliza o **Bubblewrap (`bwrap`)**, uma ferramenta de sandboxing de baixo nível do Linux, para isolar cada instância do Steam Client. Isso garante que as instâncias não interfiram umas com as outras ou com o sistema principal do usuário. Além disso, a linha de comando do `Gamescope` é gerada dinamicamente com base nas configurações do usuário, envolvendo o comando `bwrap` que, por sua vez, executa o `Steam`.
+O Twinverse utiliza **Gamescope** (cria o ambiente de jogo e gerencia a composição) e o **Bubblewrap** (bwrap - ferramenta para a construção de ambientes sandbox), para isolar cada instância do Cliente Steam. O `bwrap` nesse projeto, é utilizado com uma camada extra de isolamento somada ao gamescope, fornecendo um isolamento mais robusto e permitindo um controle granular sobre o que deve ou não ser exposto ou mascarado dentro do contêiner, permitindo ignorar dispositivos desnecessários para aquela sessão ou recriar um diretório *home* dedicado por instância. Isso permite que cada Steam seja executado em seu próprio ambiente estereo e independente. Assim, a instância não pode interferir com sua área de trabalho e sua área de trabalho não pode interferir com ela.
+
+A linha de comando final é montada dinamicamente com base nas configurações do usuário, seguindo uma estrutura de encapsulamento onde o **Gamescope** é a camada mais externa, que executa o **`bwrap`**, o qual, por sua vez, inicia o **Steam**.
 
 ---
 
@@ -162,7 +164,7 @@ Este projeto está licenciado sob a **Licença Pública Geral GNU v3.0 (GPL-3.0)
 >
 > O Twinverse é um projeto independente de código aberto e não é afiliado, endossado por, ou de qualquer forma oficialmente conectado à Valve Corporation ou ao Steam.
 >
-> Esta ferramenta atua como uma camada de orquestração que aproveita tecnologias de sandboxing (`bubblewrap`) para executar múltiplas instâncias isoladas do cliente oficial do Steam. O Twinverse **não modifica, aplica patches, faz engenharia reversa ou altera** quaisquer arquivos do Steam ou seu funcionamento normal. Todas as instâncias do Steam iniciadas por esta ferramenta são as versões oficiais e não modificadas fornecidas pela Valve.
+> Esta ferramenta atua como uma camada de orquestração que aproveita tecnologias de sandboxing para executar múltiplas instâncias isoladas do cliente oficial do Steam. O Twinverse **não modifica, aplica patches, faz engenharia reversa ou altera** quaisquer arquivos do Steam ou seu funcionamento normal. Todas as instâncias do Steam iniciadas por esta ferramenta são as versões oficiais e não modificadas fornecidas pela Valve.
 >
 > Os usuários são os únicos responsáveis por cumprir os termos do Acordo de Assinante do Steam.
 

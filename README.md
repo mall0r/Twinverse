@@ -147,7 +147,9 @@ Access our [Guide](https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md) 
 
 ## ⚙️ How It Works
 
-Twinverse uses **Bubblewrap (`bwrap`)**, a low-level Linux sandboxing tool, to isolate each Steam Client instance. This ensures that the instances do not interfere with each other or with the user's main system. Furthermore, the `Gamescope` command line is dynamically generated based on the user's settings, involving the `bwrap` command which, in turn, launches `Steam`.
+Twinverse uses **Gamescope** (which creates the gaming environment and manages composition) and **Bubblewrap** (bwrap – a tool for building sandbox environments) to isolate each Steam Client instance. In this project, `bwrap` is used with an extra layer of isolation on top of Gamescope, providing a more robust sandbox and allowing granular control over what should or should not be exposed or masked inside the container. This makes it possible to ignore devices unnecessary for that session or to recreate a dedicated *home* directory per instance. This allows each Steam to run in its own separate, independent environment. Thus, the instance cannot interfere with your desktop, and your desktop cannot interfere with it.
+
+The final command line is assembled dynamically based on the user's configuration, following a nested structure where **Gamescope** is the outermost layer, which runs **`bwrap`**, which, in turn, launches **Steam**.
 
 ---
 
@@ -166,7 +168,7 @@ This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**
 >
 > Twinverse is an independent open-source project and is not affiliated with, endorsed by, or in any way officially connected to Valve Corporation or Steam.
 >
-> This tool acts as an orchestration layer that leverages sandboxing technologies (`bubblewrap`) to run multiple isolated instances of the official Steam client. Twinverse **does not modify, patch, reverse engineer, or alter** any Steam files or  its normal operation. All Steam instances launched by this tool are the official, unmodified versions provided by Valve.
+> This tool acts as an orchestration layer that leverages sandboxing technologies to run multiple isolated instances of the official Steam client. Twinverse **does not modify, patch, reverse engineer, or alter** any Steam files or  its normal operation. All Steam instances launched by this tool are the official, unmodified versions provided by Valve.
 >
 > Users are solely responsible for complying with the terms of the Steam Subscriber Agreement.
 
