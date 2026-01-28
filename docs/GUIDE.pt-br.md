@@ -82,9 +82,9 @@ Para cada instância, você pode configurar as seguintes opções:
 
 Após configurar uma instância, clique no botão **"Start"** ao lado dela para iniciar uma instância Steam no modo desktop. Na primeira vez, o Cliente Steam será baixado e instalado automaticamente — esse processo pode levar alguns minutos.
 
-Você deve fazer login no modo desktop. Após logar e configurar seu Cliente Steam basta encerrar a instancia.
+Você deve fazer login no modo desktop. Após logar e configurar seu Cliente Steam basta encerrar a instância.
 
-o Botão **"Play"**, executa todas as instancias marcadas e com um check, ele vai executar todas com o gamescope e vai redimensionar cada uma.
+o Botão **"Play"**, executa todas as instâncias marcadas e com um check, ele vai executar todas com o gamescope e vai redimensionar cada uma.
 Se você estiver usando KDE Plasma, tambem vai move-las automaticamente para dividir a tela idealmente pra seu monitor principal, ou move-las entre seu monitores caso tenha selecionado fullscreen.
 
 Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Play"**. Você pode verificar isso pelo ícone de check <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/check-icon.svg" /> na instância. Se o ícone for um <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/alert-icon.svg" />, instale o Steam clicando no botão **"Install"** daquela instância.
@@ -105,7 +105,38 @@ Quando todas as suas instâncias estiverem configuradas e em execução, você p
 
 Divirta-se em sua sessão de jogos!
 
-### Atalhos de teclado:
+
+# Dicas
+
+## 1. Suporte a Multiplas GPUs
+
+O Twinverse funciona com jogos em diferentes GPUs.
+
+Adicione a seguinte linha aos argumentos do Steam do seu jogo:
+
+```bash
+DRI_PRIME=1
+```
+
+Ou force com:
+
+```bash
+DRI_PRIME=1!
+```
+
+Você pode ajustar os numeros de acordo com a configuração do seu sistema.
+
+> [!WARNING]
+>
+> Isso deve ser adicionado diretamente no argumento do jogo na instância Steam que deseja usar a GPU, não adicione isso ao `Enviroments Variables`.
+
+## 2. Diretorios Home
+
+Você pode excluir ou gerenciar os arquivos o diretorio home de cada instância, acessando `Preferences` -> `Instances`.
+
+<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />
+
+### 3. Atalhos de teclado do Gamescope:
 ```
 Super + F       Alternar tela cheia
 ```
@@ -130,33 +161,3 @@ Super + S       Tirar uma captura de tela
 ```
 Super + G       Alternar captura de tela com o teclado
 ```
-
-# Dicas
-
-## 1. Suporte a Multiplas GPUs
-
-O Twinverse funciona com os jogos em diferentes GPUs.
-
-Adicione a seguinte linha aos argumentos do Steam do seu jogo:
-
-```bash
-DRI_PRIME=1
-```
-
-Ou force com:
-
-```bash
-DRI_PRIME=1!
-```
-
-Você pode ajustar os numeros de acordo com a configuração do seu sistema.
-
-> [!WARNING]
->
-> Isso deve ser adicionado diretamente no argumento do jogo na instancia Steam que deseja usar a GPU, não adicione isso ao `Enviroments Variables`.
-
-## 2. Diretorios Home
-
-Você pode excluir ou gerenciar os arquivos o diretorio home de cada instância, acessando `Preferences` -> `Instances`.
-
-<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />

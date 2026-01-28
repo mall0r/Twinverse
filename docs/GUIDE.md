@@ -103,32 +103,6 @@ When all your instances are configured and running, you can start playing! Each 
 
 Enjoy your gaming session!
 
-## Keyboard shortcuts:
-```
-Super + F      Toggle fullscreen
-```
-```
-Super + N      Toggle nearest neighbour filtering
-```
-```
-Super + U      Toggle FSR upscaling
-```
-```
-Super + Y      Toggle NIS upscaling
-```
-```
-Super + I      Increase FSR sharpness by 1
-```
-```
-Super + O      Decrease FSR sharpness by 1
-```
-```
-Super + S      Take a screenshot
-```
-```
-Super + G      Toggle keyboard grab
-```
-
 # Tips
 
 ## 1. Multi-GPU Support
@@ -158,3 +132,29 @@ You can adjust the numbers according to your system configuration.
 You can delete or manage the files in the home directory of each instance by accessing `Preferences` -> `Instances`.
 
 <img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />
+
+## 3. Gamescope Keyboard shortcuts:
+```
+Super + F      Toggle fullscreen
+```
+```
+Super + N      Toggle nearest neighbour filtering
+```
+```
+Super + U      Toggle FSR upscaling
+```
+```
+Super + Y      Toggle NIS upscaling
+```
+```
+Super + I      Increase FSR sharpness by 1
+```
+```
+Super + O      Decrease FSR sharpness by 1
+```
+```
+Super + S      Take a screenshot
+```
+```
+Super + G      Toggle keyboard grab
+```
