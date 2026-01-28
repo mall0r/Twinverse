@@ -23,33 +23,37 @@
 
 # O que é o Twinverse?
 
-O **Twinverse** é uma ferramenta código aberto para Linux/SteamOS que permite criar e gerenciar múltiplas instâncias do `gamescope` e `steam` simultaneamente. Isso possibilita que vários jogadores aproveitem sua biblioteca de jogos em um único computador, seja em tela dividida ou cada um com sua própria tela, além de saída de áudio e dispositivos de entrada dedicados.
+O **Twinverse** é uma ferramenta para Linux/SteamOS que permite criar e gerenciar múltiplas instâncias do `Steam Big Picture` simultaneamente. Isso possibilita que vários jogadores aproveitem sua biblioteca de jogos em um único computador, seja em tela dividida ou cada um com sua própria tela, além de saída de áudio e dispositivos de entrada dedicados.
 
 <p align="center">
   <img alt="twinverse_ui" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/twinverse-ui.png" />
 </p>
 
+> [!WARNING]
+> Este projeto não apoia a pirataria; todos os jogadores devem possuir o jogo em suas bibliotecas Steam para poderem jogá-lo
+
 ## ✨ Principais Funcionalidades
+
+> [!NOTE]
+> Mouse/Teclado só podem ser atribuídos a uma instância por vez
 
 O Twinverse foi projetado para ser uma solução flexível para jogar em tela dividida no Linux. Aqui estão algumas de suas principais funcionalidades:
 
-1.  **Gerenciamento Simples de Múltiplas Instâncias:** Execute várias instâncias da steam simultaneamente, permitindo que você e seus amigos aproveitem suas bibliotecas de jogos separadamente
+1.  **Múltiplas Instâncias:** Execute várias instâncias do Cliente Steam simultaneamente
 
-2.  **Atribuição de Hardware por Instância:** Atribua mouse, teclado e controle específicos para cada instância do jogo
-    > Mouse/Teclado só podem ser atribuídos a uma instância por vez
+2.  **Atribuição de Dispositivos:** Atribua mouse, teclado e controle específicos para cada instância dos jogos
 
-3.  **Canais de Áudio Dedicados:** Direcione o áudio de cada instância do jogo para um dispositivo de saída de áudio separado
+3.  **Canais de Áudio Dedicados:** Direcione o áudio de cada instância para um dispositivo de saída de áudio separado
 
-4.  **Home Separada:** O Twinverse permite que você tenha um diretório home dedicado para cada instância, possibilitando a personalização individual de configurações e arquivos
+4.  **Diretório Home Dedicado:** O Twinverse permite que você tenha um diretório home dedicado para cada instância, possibilitando a personalização individual de configurações e arquivos
 
-5.  **Pasta de Jogos Compartilhada:** Twinverse permite que você compartilhe o diretório de jogos steam entre várias instâncias, economizando espaço em disco e facilitando a atualização de jogos
-    > O usuário precisa ter o jogo em sua biblioteca steam para que seja possível jogá-lo
+5.  **Pasta de Jogos Compartilhada:** Compartilha o diretório de jogos steam entre várias instâncias, para que não seja necessário baixar o jogo novamente para cada instância, economizando espaço em disco.
 
 6.  **Use Qualquer Proton:** Twinverse permite que você use qualquer versão do Proton para executar seus jogos, incluindo protons personalizados como o [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)
 
 7.  **Jogue o Que Quiser** A instancias não precisam se limitar a jogar o mesmo jogo; cada instancia pode jogar o jogo que quiser
 
-8. **Modos de tela flexíveis:** Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor)
+8.  **Modos de tela flexíveis:** Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor)
 
 ---
 
@@ -57,13 +61,22 @@ O Twinverse foi projetado para ser uma solução flexível para jogar em tela di
 
 ---
 
+## 📦 Requisitos
+
+Para usar o Twinverse sem problemas, certifique-se de que os seguintes requisitos sejam atendidos:
+
+É necessário ter instalados os pacotes `gamescope` e `steam` *nativos* de sua distro.
+
+Para que o Gamescope funcione corretamente, de acordo com sua GPU, será necessário:
+
+  - **AMD:** Mesa 20.3 ou mais recente
+  - **Intel:** Mesa 21.2 ou mais recente
+  - **NVIDIA:** Drivers proprietários 515.43.04 ou mais recente, ou drivers NVIDIA de Módulo de Kernel Aberto (NVIDIA Open Kernel Module)
+
+> [!NOTE]
+> *SteamOS* (AMD) e *Bazzite* geralmente têm todas as dependências incluídas por padrão.
+
 ## 📦 Instalação
-
-> [!IMPORTANT]
-> É necessário ter instalados os pacotes `gamescope`, `steam` e `mangoapp` nativos de sua distro.
-> SteamOS e Bazzite geralmente têm todas as dependências incluídas por padrão.
-
-Twinverse deve funcionar bem em qualquer sistema que suporte `Gamescope` e `Steam`.
 
 ### Flatpak
 
