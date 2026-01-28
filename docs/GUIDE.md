@@ -128,25 +128,32 @@ Super + S      Take a screenshot
 ```
 Super + G      Toggle keyboard grab
 ```
-# Optional
 
-## Multi GPU Support
+# Tips
 
-> [!NOTE]
-> This should be added directly to the game's arguments, do not add it to the environment variables.
+## 1. Multi-GPU Support
 
-Twinverse supports running multiple games on different GPUs.
+Twinverse works with games on different GPUs.
 
-Add the following line to your game's Steam arguments:
+Add the following line to your game's Steam launch arguments:
+
+```bash
+DRI_PRIME=1
+```
+
+Or force it with:
 
 ```bash
 DRI_PRIME=1!
-
 ```
 
-This makes GPU 1 be used in the game. You can adjust the numbers according to your system configuration.
+You can adjust the numbers according to your system configuration.
 
-## Home Directories
+> [!WARNING]
+>
+> This must be added directly to the game's launch arguments in the Steam instance where you want to use the GPU. Do not add this to the `Environment Variables`.
+
+## 2. Home Directories
 
 You can delete or manage the files in the home directory of each instance by accessing `Preferences` -> `Instances`.
 

@@ -131,25 +131,31 @@ Super + S       Tirar uma captura de tela
 Super + G       Alternar captura de tela com o teclado
 ```
 
-# Opcional
+# Dicas
 
-## Suporte a Multiplas GPUs
+## 1. Suporte a Multiplas GPUs
 
-> [!NOTE]
-> Isso deve ser adicionado diretamente no argumento dos jogos, não adicione isso ao enviroments variables.
-
-O Twinverse suporta a execução de múltiplas Games em GPUs diferentes.
+O Twinverse funciona com os jogos em diferentes GPUs.
 
 Adicione a seguinte linha aos argumentos do Steam do seu jogo:
 
 ```bash
-DRI_PRIME=1!
-
+DRI_PRIME=1
 ```
 
-Isso faz a GPU 1 ser usada no jogo. Você pode ajustar os numeros de acordo com a configuração do seu sistema.
+Ou force com:
 
-## Diretorios Home
+```bash
+DRI_PRIME=1!
+```
+
+Você pode ajustar os numeros de acordo com a configuração do seu sistema.
+
+> [!WARNING]
+>
+> Isso deve ser adicionado diretamente no argumento do jogo na instancia Steam que deseja usar a GPU, não adicione isso ao `Enviroments Variables`.
+
+## 2. Diretorios Home
 
 Você pode excluir ou gerenciar os arquivos o diretorio home de cada instância, acessando `Preferences` -> `Instances`.
 
