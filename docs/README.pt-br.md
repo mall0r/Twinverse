@@ -31,16 +31,26 @@ O **Twinverse** é uma ferramenta código aberto para Linux/SteamOS que permite 
 
 ## ✨ Principais Funcionalidades
 
-O Twinverse foi projetado para ser uma solução flexível para múltiplos jogos simultaneos no Linux. Aqui estão algumas de suas principais funcionalidades:
+O Twinverse foi projetado para ser uma solução flexível para jogar em tela dividida no Linux. Aqui estão algumas de suas principais funcionalidades:
 
-1.  **Gerenciamento Simples de Múltiplas Instâncias:** Execute várias instâncias da steam simultaneamente, permitindo que você e seus amigos aproveitem suas bibliotecas de jogos separadamente.
-2.  **Atribuição de Hardware por Instância:** Atribua mouse, teclado e controle específicos para cada instância do jogo. (Mouse/Teclado só podem ser atribuídos a uma instância por vez)
-3.  **Canais de Áudio Dedicados:** Direcione o áudio de cada instância do jogo para um dispositivo de saída de áudio separado.
-4.  **Home Separada:** Twinverse permite que você tenha uma home nova e separada para cada instância, permitindo que você personalize suas configurações e arquivos individualmente. (Não interfere na sua Home padrão)
-5.  **Pasta de Jogos Compartilhada:** Twinverse permite que você compartilhe o diretório de jogos steam entre várias instâncias, economizando espaço em disco e facilitando a atualização de jogos. (Os usuários precisam ter o jogo em suas bibliotecas steam para que seja possível executá-lo)
-6.  **Use Qualquer Proton:** Twinverse permite que você use qualquer versão do Proton para executar seus jogos, incluindo protons personalizados como o [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom).
-7.  **Jogue o Que Quiser** A instancias não precisam se limitar a jogar o mesmo jogo, cada instancia pode jogar o jogo que quiser (desde que o usuario tenha o jogo em sua biblioteca steam)
-8. **Modos de tela flexíveis:** Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor).
+1.  **Gerenciamento Simples de Múltiplas Instâncias:** Execute várias instâncias da steam simultaneamente, permitindo que você e seus amigos aproveitem suas bibliotecas de jogos separadamente
+
+2.  **Atribuição de Hardware por Instância:** Atribua mouse, teclado e controle específicos para cada instância do jogo
+    > Mouse/Teclado só podem ser atribuídos a uma instância por vez
+
+3.  **Canais de Áudio Dedicados:** Direcione o áudio de cada instância do jogo para um dispositivo de saída de áudio separado
+
+4.  **Home Separada:** O Twinverse permite que você tenha um diretório home dedicado para cada instância, possibilitando a personalização individual de configurações e arquivos
+
+5.  **Pasta de Jogos Compartilhada:** Twinverse permite que você compartilhe o diretório de jogos steam entre várias instâncias, economizando espaço em disco e facilitando a atualização de jogos
+    > O usuário precisa ter o jogo em sua biblioteca steam para que seja possível jogá-lo
+
+6.  **Use Qualquer Proton:** Twinverse permite que você use qualquer versão do Proton para executar seus jogos, incluindo protons personalizados como o [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)
+
+7.  **Jogue o Que Quiser** A instancias não precisam se limitar a jogar o mesmo jogo; cada instancia pode jogar o jogo que quiser
+
+8. **Modos de tela flexíveis:** Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor)
+
 ---
 
 [1920x1080-RX_6600_XT-demo](https://github.com/user-attachments/assets/e0ca4937-fd38-48cf-b56c-1c825b047572)
@@ -49,7 +59,7 @@ O Twinverse foi projetado para ser uma solução flexível para múltiplos jogos
 
 ## 📦 Instalação
 
-> [!NOTE]
+> [!IMPORTANT]
 > É necessário ter instalados os pacotes `gamescope`, `steam` e `mangoapp` nativos de sua distro.
 > SteamOS e Bazzite geralmente têm todas as dependências incluídas por padrão.
 
@@ -126,21 +136,22 @@ O Twinverse utiliza o **Bubblewrap (`bwrap`)**, uma ferramenta de sandboxing de 
 
 ## 🛠️ Para Desenvolvedores
 
-Se você deseja contribuir com o Twinverse, por favor consulte o arquivo [CONTRIBUTING.md](../CONTRIBUTING.md) para obter instruções detalhadas sobre como começar, fluxos de trabalho de desenvolvimento e padrões de código.
+Se você deseja contribuir com o Twinverse, por favor consulte o [CONTRIBUTING](../CONTRIBUTING.md) para obter instruções detalhadas sobre como começar, fluxos de trabalho de desenvolvimento e padrões de código.
 
 ---
 
 ## 📜 Licença
 
-Este projeto está licenciado sob a **Licença Pública Geral GNU v3.0 (GPL-3.0)**. Para mais detalhes, consulte o arquivo [LICENSE](../LICENSE).
+Este projeto está licenciado sob a **Licença Pública Geral GNU v3.0 (GPL-3.0)**. Para mais detalhes, consulte o [LICENSE](../LICENSE).
 
-## ⚖️ Aviso Legal
-
-O Twinverse é um projeto independente de código aberto e não é afiliado, endossado por, ou de qualquer forma oficialmente conectado à Valve Corporation ou ao Steam.
-
-Esta ferramenta atua como uma camada de orquestração que aproveita tecnologias de sandboxing (`bubblewrap`) para executar múltiplas instâncias isoladas do cliente oficial do Steam. O Twinverse **não modifica, aplica patches, faz engenharia reversa ou altera** quaisquer arquivos do Steam ou seu funcionamento normal. Todas as instâncias do Steam iniciadas por esta ferramenta são as versões oficiais e não modificadas fornecidas pela Valve.
-
-Os usuários são os únicos responsáveis por cumprir os termos do Acordo de Assinante do Steam.
+> [!NOTE]
+> ## Aviso Legal
+>
+> O Twinverse é um projeto independente de código aberto e não é afiliado, endossado por, ou de qualquer forma oficialmente conectado à Valve Corporation ou ao Steam.
+>
+> Esta ferramenta atua como uma camada de orquestração que aproveita tecnologias de sandboxing (`bubblewrap`) para executar múltiplas instâncias isoladas do cliente oficial do Steam. O Twinverse **não modifica, aplica patches, faz engenharia reversa ou altera** quaisquer arquivos do Steam ou seu funcionamento normal. Todas as instâncias do Steam iniciadas por esta ferramenta são as versões oficiais e não modificadas fornecidas pela Valve.
+>
+> Os usuários são os únicos responsáveis por cumprir os termos do Acordo de Assinante do Steam.
 
 ---
 

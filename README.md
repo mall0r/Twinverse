@@ -31,16 +31,25 @@
 
 ## ✨ Key Features
 
-Twinverse is designed as a flexible solution for simultaneous multi-gaming on Linux. Here are some of its main features:
+Twinverse is designed as a flexible solution for splitscreen gaming on Linux. Here are some of its main features:
 
-1. **Simple Multi-Instance Management:** Run multiple Steam instances simultaneously, allowing you and your friends to enjoy your game libraries separately.
-2. **Per-Instance Hardware Assignment:** Assign specific mice, keyboards, and controllers to each game instance. (Mouse/Keyboard can only be assigned to one instance at a time)
-3. **Dedicated Audio Channels:** Route audio from each game instance to a separate audio output device.
-4. **Separate Home Directory:** Twinverse allows you to have a new, separate home for each instance, enabling you to customize settings and files individually. (Does not interfere with your standard Home directory)
-5. **Shared Game Library:** Twinverse allows you to share the Steam game directory among multiple instances, saving disk space and making game updates easier. (Users need to own the game in their Steam libraries to run it)
-6. **Use Any Proton:** Twinverse lets you use any version of Proton to run your games, including custom protons like [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom).
-7. **Play Whatever You Want:** Instances are not limited to playing the same game; each instance can play whichever game it wants (provided the user owns the game in their Steam library).
-8. **Flexible Screen Modes:** Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor).
+1. **Simple Multi-Instance Management:** Run multiple Steam instances simultaneously, allowing you and your friends to enjoy your game libraries separately
+
+2. **Per-Instance Hardware Assignment:** Assign specific mice, keyboards, and controllers to each game instance
+    > Mouse/Keyboard can only be assigned to one instance at a time
+
+3. **Dedicated Audio Channels:** Route audio from each game instance to a separate audio output device
+
+4. **Separate Home Directory:** Twinverse allows you to have a dedicated home for each instance, enabling you to customize settings and files individually
+
+5. **Shared Game Library:** Twinverse allows you to share the Steam game directory among multiple instances, saving disk space and making game updates easier.
+    > Users need to own the game in their Steam libraries to run it
+
+6. **Use Any Proton:** Twinverse lets you use any version of Proton to run your games, including custom protons like [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)
+
+7. **Play Whatever You Want:** Instances are not limited to playing the same game; each instance can play whichever game it wants
+
+8. **Flexible Screen Modes:** Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor)
 
 ---
 
@@ -50,7 +59,7 @@ Twinverse is designed as a flexible solution for simultaneous multi-gaming on Li
 
 ## 📦 Installation
 
-> [!NOTE]
+> [!IMPORTANT]
 > You need to have installed the `gamescope`, `steam` and `mangoapp` packages native to your distro.
 > SteamOS and Bazzite usually have all dependencies included by default.
 
@@ -131,21 +140,22 @@ Twinverse uses **Bubblewrap (`bwrap`)**, a low-level Linux sandboxing tool, to i
 
 ## 🛠️ For Developers
 
-If you wish to contribute to Twinverse, please refer to the [CONTRIBUTING.md](./CONTRIBUTING.md) file for detailed instructions on how to get started, development workflows, and code standards.
+If you wish to contribute to Twinverse, please refer to the [CONTRIBUTING](./CONTRIBUTING.md) for detailed instructions on how to get started, development workflows, and code standards.
 
 ---
 
 ## 📜 License
 
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. For more details, see the [LICENSE](./LICENSE) file.
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. For more details, see the [LICENSE](./LICENSE).
 
-## ⚖️ Legal Disclaimer
-
-Twinverse is an independent open-source project and is not affiliated with, endorsed by, or in any way officially connected to Valve Corporation or Steam.
-
-This tool acts as an orchestration layer that leverages sandboxing technologies (`bubblewrap`) to run multiple isolated instances of the official Steam client. Twinverse **does not modify, patch, reverse engineer, or alter** any Steam files or its normal operation. All Steam instances launched by this tool are the official, unmodified versions provided by Valve.
-
-Users are solely responsible for complying with the terms of the Steam Subscriber Agreement.
+> [!NOTE]
+> ## Legal Disclaimer
+>
+> Twinverse is an independent open-source project and is not affiliated with, endorsed by, or in any way officially connected to Valve Corporation or Steam.
+>
+> This tool acts as an orchestration layer that leverages sandboxing technologies (`bubblewrap`) to run multiple isolated instances of the official Steam client. Twinverse **does not modify, patch, reverse engineer, or alter** any Steam files or  its normal operation. All Steam instances launched by this tool are the official, unmodified versions provided by Valve.
+>
+> Users are solely responsible for complying with the terms of the Steam Subscriber Agreement.
 
 ---
 
