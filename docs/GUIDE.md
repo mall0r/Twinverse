@@ -16,7 +16,7 @@ First, you need to decide how many Steam instances you want to run. Twinverse su
 
 Use the numeric selector "Number of Instances" to set the desired amount.
 
-<img width="708" height="127" alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/general-layout.png" />
+<img alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/general-layout.png" />
 
 ## 2. Screen Mode
 
@@ -29,22 +29,28 @@ You can choose between two screen modes:
 - **Fullscreen:** Each instance will run on a separate monitor.
 - **Splitscreen:** Instances will be arranged on a single monitor, either horizontally or vertically.
 
-<img width="708" height="204" alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/screen-settings.png" />
+<img alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/screen-settings.png" />
 
 ### Splitscreen Options
 
 When selecting "Splitscreen," you can choose between two orientations:
 
 - **Horizontal:** Instances are arranged stacked on top of each other.
+
+  - Examples with 2 and 3 Players:
+
+    <img width="128" height="128" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-square-symbolic.svg" />
+    <img width="128" height="128" alt="horizontal-three-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-three-square-symbolic.svg" />
+
 - **Vertical:** Instances are arranged side by side.
 
-Positions and layouts adjust automatically based on the number of instances.
-You can see a preview of the layout by clicking the icon <img width="32" height="32" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> on the left in Screen Settings.
+  - Examples with 2 and 3 Players:
 
-<img width="32" height="32" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-square-symbolic.svg" />
-<img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/horizontal-game.png" />
-<img width="32" height="32" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-square-symbolic.svg" />
-<img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/vertical-game.png" />
+    <img width="128" height="128" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-square-symbolic.svg" />
+    <img width="128" height="128" alt="vertical-three-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-three-square-symbolic.svg" />
+
+Positions and layouts adjust automatically based on the number of instances.
+You can see a preview of the layout by clicking the icon <img width="24" height="24" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> on the **Screen Settings**.
 
 ## 3. Instance Configuration
 
@@ -67,7 +73,7 @@ For each instance, you can configure the following options:
 - **Refresh Rate:** Set the refresh rate for the instance. Useful if you want to cap FPS or use a specific refresh rate.
 - **Environment Variables:** Define specific environment variables for the instance.
 
-<img width="595" height="409" alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />
+<img alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />
 
 ## 4. Starting an Instance
 
@@ -81,7 +87,7 @@ If you are using KDE Plasma, it will also automatically move them to ideally spl
 
 Only instances that already have Steam installed can be started with **"Play"**. You can verify this by the check icon <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/check-icon.svg" /> on the instance. If the icon is an <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/alert-icon.svg" />, install Steam by clicking the **"Install"** button on that instance.
 
-<img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/instance-config.png" />
+<img alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/instance-config.png" />
 
 ## 5. Disable Shader Pre-Caching (Optional)
 

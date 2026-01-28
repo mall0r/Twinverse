@@ -5,7 +5,7 @@
 
 # Guia do Twinverse
 
-Bem-vindo ao guia do Twinverse! Este documento irá guiá-lo pelo processo de configuração e uso do aplicativo Twinverse para executar múltiplas instâncias do Steam.
+Bem-vindo ao guia do Twinverse! Este documento irá guiá-lo pelo processo de configuração e uso do aplicativo Twinverse.
 
 ## 1. Número de Instâncias
 
@@ -16,7 +16,7 @@ Primeiro, você precisa decidir quantas instâncias do Steam deseja executar. O 
 
 Use o seletor numérico "Número de Instâncias" para definir a quantidade desejada.
 
-<img width="708" height="127" alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/general-layout.png" />
+<img alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/general-layout.png" />
 
 ## 2. Modo de Tela
 
@@ -29,22 +29,30 @@ Você pode escolher entre dois modos de tela:
 - **Tela Cheia (Fullscreen):** Cada instância será executada em um monitor separado.
 - **Tela Dividida (Splitscreen):** As instâncias serão dispostas em um único monitor, seja horizontal ou verticalmente.
 
-<img width="708" height="204" alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/screen-settings.png" />
+<img alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/screen-settings.png" />
 
 ### Opções de Tela Dividida
 
 Ao selecionar "Splitscreen", você pode escolher entre duas orientações:
 
 - **Horizontal:** As instâncias são dispostas uma acima da outra.
+
+  - Exemplos com `2` e `3` Players:
+
+  <img width="128" height="128" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-square-symbolic.svg" />
+  <img width="128" height="128" alt="horizontal-three-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-three-square-symbolic.svg" />
+
+<!-- <img width="1024" height="576" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/horizontal-game.png" /> -->
 - **Vertical:** As instâncias são dispostas lado a lado.
 
-Posições e formatos variam de acordo com o número de instâncias.
-É possível ver um preview do layout no ícone <img width="32" height="32" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> a esquerda em Screen Settings.
+  - Exemplos com `2` e `3` Players:
 
-<img width="32" height="32" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-square-symbolic.svg" />
-<img width="1280" height="720" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/horizontal-game.png" />
-<img width="32" height="32" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-square-symbolic.svg" />
-<img width="1280" height="720" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/vertical-game.png" />
+  <img width="128" height="128" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-square-symbolic.svg" />
+  <img width="128" height="128" alt="vertical-three-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-three-square-symbolic.svg" />
+<!-- <img width="1024" height="576" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/vertical-game.png" /> -->
+
+Posições e formatos variam de acordo com o número de instâncias.
+É possível ver um preview do layout no ícone <img width="24" height="24" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> em **Screen Settings**.
 
 ## 3. Configuração da Instância
 
@@ -68,7 +76,7 @@ Para cada instância, você pode configurar as seguintes opções:
 - **Taxa de Atualização (Refresh Rate):** Definir a taxa de atualização para a instância. Util se você quer travar o FPS ou usar uma taxa de atualização específica.
 - **Variável de Ambiente (Environment Variables):** Definir variáveis de ambiente específicas para a instância.
 
-<img width="595" height="409" alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />
+<img alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />
 
 ## 4. Iniciando uma Instância
 
@@ -81,7 +89,7 @@ Se você estiver usando KDE Plasma, tambem vai move-las automaticamente para div
 
 Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Play"**. Você pode verificar isso pelo ícone de check <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/check-icon.svg" /> na instância. Se o ícone for um <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/alert-icon.svg" />, instale o Steam clicando no botão **"Install"** daquela instância.
 
-<img width="651" height="178" alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/instance-config.png" />
+<img alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/instance-config.png" />
 
 ## 5. Desabilitar Download Prévio de Sombreadores (Opicional)
 
