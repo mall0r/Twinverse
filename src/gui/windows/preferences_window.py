@@ -5,7 +5,7 @@ This module provides the preferences window UI.
 """
 
 import gi
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, GObject, Gtk
 
 from src.core.config import Config
 from src.models.profile import PlayerInstanceConfig, Profile
@@ -16,6 +16,10 @@ gi.require_version("Adw", "1")
 
 class PreferencesWindow(Adw.PreferencesWindow):
     """Preferences window for application settings."""
+
+    __gsignals__ = {
+        "instance-terminal-requested": (GObject.SignalFlags.RUN_FIRST, None, (int,)),
+    }
 
     def __init__(self, parent, profile, on_settings_changed, **kwargs):
         """Initialize the preferences window."""
@@ -134,7 +138,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 self._instance_list_box.append(row)
 
     def _create_player_row(self, player_index):
-        """Create a row for a specific player with an associated delete button."""
+        """Create a row with home, terminal, and delete buttons for a player."""
         row = Adw.ActionRow()
         row.set_title(f"Player {player_index + 1}")
         row.set_subtitle(f"Instance {player_index + 1} configuration")
@@ -148,6 +152,12 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         # Add the home button as a prefix to the row
         row.add_prefix(home_button)
+
+        terminal_button = Gtk.Button.new_from_icon_name("utilities-terminal-symbolic")
+        terminal_button.set_valign(Gtk.Align.CENTER)
+        terminal_button.set_tooltip_text(f"Open terminal for player {player_index + 1}")
+        terminal_button.connect("clicked", lambda _: self.emit("instance-terminal-requested", player_index))
+        row.add_suffix(terminal_button)
 
         # Create delete button with trash icon
         delete_button = Gtk.Button()

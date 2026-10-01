@@ -59,14 +59,14 @@ compile-resources:
 build: dev
 	$(call print_header,"Building Twinverse with production flags...")
 	@echo "Installing Twinverse in the virtual environment..."
-	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip > /dev/null 2>&1 && $(PYTHON) -m pip install . > /dev/null 2>&1
+	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip && $(PYTHON) -m pip install .
 	$(call print_success,"Build completed successfully!")
 
 # ===== FLATPAK PACKAGE =====
 flatpak: dev validate-manifest
 	$(call print_header,"Building Flatpak package...")
 	@echo "Running Flatpak packaging script..."
-	@./scripts/package-flatpak.sh > /dev/null 2>&1
+	@./scripts/package-flatpak.sh
 	$(call print_success,"Flatpak package built successfully!")
 
 # Validate Flatpak manifest before building
@@ -100,11 +100,11 @@ dev:
 		echo "Virtual environment already exists"; \
 	fi'
 	@echo "Installing/updating pip..."
-	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip > /dev/null 2>&1
+	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip
 	@echo "Installing project dependencies..."
-	@. .venv/bin/activate && $(PYTHON) -m pip install -e ".[test]" > /dev/null 2>&1
+	@. .venv/bin/activate && $(PYTHON) -m pip install -e ".[test]"
 	@echo "Installing pre-commit hooks..."
-	@. .venv/bin/activate && pre-commit install > /dev/null 2>&1
+	@. .venv/bin/activate && pre-commit install
 	$(call print_success,"Development environment set up successfully!")
 	@echo "To activate the virtual environment in the future, run: source .venv/bin/activate"
 
