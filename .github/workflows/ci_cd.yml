@@ -94,7 +94,20 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            flatpak flatpak-builder ostree elfutils libglib2.0-dev-bin
+            flatpak flatpak-builder ostree elfutils libglib2.0-dev-bin \
+            appstream-compose librsvg2-common
+
+      - name: Check AppStream composition
+        run: |
+          app_id=io.github.mall0r.Twinverse
+          root="$RUNNER_TEMP/appstream-input"
+          install -Dm644 "share/metainfo/$app_id.metainfo.xml" "$root/share/metainfo/$app_id.metainfo.xml"
+          install -Dm644 "share/applications/$app_id.desktop" "$root/share/applications/$app_id.desktop"
+          install -Dm644 "share/icons/hicolor/scalable/apps/$app_id.svg" "$root/share/icons/hicolor/scalable/apps/$app_id.svg"
+          appstreamcli compose --no-net --prefix=/ --origin=twinverse \
+            --components="$app_id,$app_id.desktop" --print-report=full \
+            --result-root="$RUNNER_TEMP/appstream-output" \
+            --hints-dir="$RUNNER_TEMP/appstream-hints" "$root"
 
       - name: Add Flathub repository
         run: flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
