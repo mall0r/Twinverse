@@ -104,7 +104,7 @@ dev:
 	@echo "Installing project dependencies..."
 	@. .venv/bin/activate && $(PYTHON) -m pip install -e ".[test]"
 	@echo "Installing pre-commit hooks..."
-	@. .venv/bin/activate && pre-commit install
+	@. .venv/bin/activate && $(PYTHON) scripts/install_hooks.py
 	$(call print_success,"Development environment set up successfully!")
 	@echo "To activate the virtual environment in the future, run: source .venv/bin/activate"
 

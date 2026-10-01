@@ -44,11 +44,18 @@ class InstanceService:
         self, profile: Profile, instance_num: int, application_command: Optional[list[str]] = None
     ) -> tuple[list[str], dict]:
         """Prepare and build the command for launching a single Steam instance."""
+        if application_command is None:
+            process = self.processes.get(instance_num)
+            if process is not None and process.poll() is None:
+                raise TwinverseError(f"Instance {instance_num + 1} is already running.")
+
         home_path = Config.get_steam_home_path(instance_num)
         home_path.mkdir(parents=True, exist_ok=True)
         self.logger.info(f"Instance {instance_num}: Using isolated home path '{home_path}'")
 
         self._prepare_home(home_path)
+        if application_command is None:
+            self._sync_app_manifests(home_path)
 
         device_info = self._validate_input_devices(profile, instance_num, instance_num)
         instance_env = self._prepare_environment(profile, device_info, instance_num)
@@ -392,8 +399,7 @@ class InstanceService:
         """
         Prepare the isolated Steam directories for the instance.
 
-        This involves creating the directory structure and copying app manifests
-        to ensure games are recognized.
+        This creates the directory structure used by Steam and terminal launches.
         """
         self.logger.info(f"Preparing isolated Steam directories for instance at {home_path}...")
 
@@ -410,28 +416,32 @@ class InstanceService:
             self.logger.error(f"OS error when creating Steam directories: {e}")
             raise TwinverseError(f"OS error when creating Steam directories: {e}")
 
-        # Copy .acf (app manifest) files from the host to the instance.
-        # This makes Steam recognize games as "installed" so it can find them
-        # in the shared steamapps/common directory.
-        host_steamapps = Path.home() / ".local/share/Steam/steamapps"
-        dest_steamapps = sdbx_steam_local / "steamapps"
-
-        if host_steamapps.exists():
-            for acf_file in host_steamapps.glob("*.acf"):
-                dest_file = dest_steamapps / acf_file.name
-                if not dest_file.exists():
-                    try:
-                        shutil.copy(acf_file, dest_file)
-                    except PermissionError as e:
-                        self.logger.warning(f"Permission denied when copying {acf_file.name}: {e}")
-                    except OSError as e:
-                        self.logger.warning(f"OS error when copying {acf_file.name}: {e}")
-        else:
-            self.logger.warning(
-                f"Host Steam directory '{host_steamapps}' not found. Game manifests will not be copied to the instance."
-            )
-
         self.logger.info("Isolated Steam directories are ready.")
+
+    def _sync_app_manifests(self, home_path: Path) -> None:
+        """Copy host manifests before removing obsolete instance manifests."""
+        host_steamapps = Path.home() / ".local/share/Steam/steamapps"
+        dest_steamapps = home_path / ".local/share/Steam/steamapps"
+
+        # Use iterdir rather than glob so inaccessible sources raise an error.
+        try:
+            manifests = [path for path in host_steamapps.iterdir() if path.suffix == ".acf"]
+        except OSError as e:
+            self.logger.warning(
+                f"Cannot read host Steam directory '{host_steamapps}'; preserving instance manifests: {e}"
+            )
+            return
+
+        try:
+            for manifest in manifests:
+                shutil.copy(manifest, dest_steamapps / manifest.name)
+
+            host_names = {manifest.name for manifest in manifests}
+            for manifest in dest_steamapps.iterdir():
+                if manifest.suffix == ".acf" and manifest.name not in host_names:
+                    manifest.unlink()
+        except OSError as e:
+            raise TwinverseError(f"Failed to synchronize Steam app manifests: {e}") from e
 
     def _prepare_environment(self, profile: Profile, device_info: dict, instance_num: int) -> dict:
         """Prepare a dictionary of environment variables for the Steam instance."""
