@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 from src.core import Logger
 from src.models import Profile
 from src.services.device_manager import DeviceManager
+from src.services.webhelper_sync import build_webhelper_mounts
 
 
 class CommandBuilder:
@@ -204,6 +205,9 @@ class CommandBuilder:
                 if folder.is_dir() and folder.name not in ignore:
                     cmd.extend(["--bind", str(folder), str(sandbox_compat / folder.name)])
         # --- End Home Directory Isolation ---
+
+        # The UI must not open placeholder controller memory before Steam does.
+        cmd.extend(build_webhelper_mounts(self.home_path, self.instance_num))
 
         # Ensure custom ENV variables reach Steam inside the sandbox
         try:

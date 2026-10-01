@@ -63,6 +63,11 @@
   </provides>
 
   <releases>
+    <release version="1.1.0" date="2026-09-30" type="stable">
+      <description>
+        <p>Add per-player terminals, synchronize game manifests, and fix controller navigation during Steam UI startup.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-01-10" type="stable">
       <description>
         <p>Initial public release stable.</p>
