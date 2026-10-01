@@ -94,7 +94,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            flatpak flatpak-builder ostree libglib2.0-dev-bin
+            flatpak flatpak-builder ostree elfutils libglib2.0-dev-bin
 
       - name: Add Flathub repository
         run: flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
