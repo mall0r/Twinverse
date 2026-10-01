@@ -12,6 +12,7 @@ from src.gui.controllers import (
     SettingsController,
     VerificationController,
 )
+from src.gui.dialogs import ErrorDialog
 from src.gui.utils import ErrorHandler
 from src.gui.windows import MainWindow, PreferencesWindow
 from src.services import DeviceManager, InstanceService, KdeManager, SteamVerifier
@@ -177,10 +178,22 @@ class MainPresenter:
                 player_row.set_running_state(False)
                 player_row._update_button_state()
 
+    def on_instance_terminal_requested(self, prefs_window, instance_num: int):
+        """Open a terminal using the selected player's current settings."""
+        if not 0 <= instance_num < 8:
+            return
+        try:
+            self._save_current_settings()
+            self._instance_service.open_terminal(self._settings_controller.get_profile(), instance_num)
+        except Exception as e:
+            self._logger.exception(f"Failed to open terminal for instance {instance_num}: {e}")
+            ErrorDialog(prefs_window, "Error", ErrorHandler.format_error(e)).present()
+
     def on_preferences_clicked(self):
         """Handle preferences menu clicked."""
         profile = self._settings_controller.get_profile()
         prefs_window = PreferencesWindow(self.window, profile, self._on_preference_changed)
+        prefs_window.connect("instance-terminal-requested", self.on_instance_terminal_requested)
         prefs_window.present()
 
     def on_about_clicked(self):

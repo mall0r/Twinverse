@@ -40,7 +40,9 @@ class InstanceService:
         self.processes: dict[int, subprocess.Popen] = {}
         self.termination_in_progress = False
 
-    def _prepare_instance_launch(self, profile: Profile, instance_num: int) -> tuple[list[str], dict]:
+    def _prepare_instance_launch(
+        self, profile: Profile, instance_num: int, application_command: Optional[list[str]] = None
+    ) -> tuple[list[str], dict]:
         """Prepare and build the command for launching a single Steam instance."""
         home_path = Config.get_steam_home_path(instance_num)
         home_path.mkdir(parents=True, exist_ok=True)
@@ -62,7 +64,7 @@ class InstanceService:
             home_path,
             self._virtual_joystick_path,
         )
-        return cmd_builder.build_command(), instance_env
+        return cmd_builder.build_command(application_command), instance_env
 
     def _launch_single_instance(self, profile: Profile, instance_num: int) -> None:
         """Launch a single steam instance."""
@@ -231,6 +233,12 @@ class InstanceService:
         use_gamescope_override: Optional[bool] = None,
     ) -> None:
         """Launch a single Steam instance."""
+        active_profile = self._prepare_launch_profile(profile, use_gamescope_override)
+        Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        self._launch_single_instance(active_profile, instance_num)
+
+    def _prepare_launch_profile(self, profile: Profile, use_gamescope_override: Optional[bool]) -> Profile:
+        """Prepare devices and profile overrides shared by Steam and terminal launches."""
         if not self._virtual_joystick_checked:
             self._virtual_joystick_checked = True
             needs_virtual_joystick = False
@@ -265,8 +273,44 @@ class InstanceService:
             if use_gamescope_override is False:
                 active_profile.enable_gamescope_wsi = False
 
+        return active_profile
+
+    def open_terminal(self, profile: Profile, instance_num: int) -> None:
+        """Use the individual Start flow, replacing only Steam with a terminal."""
+        # Detect on the host as Flatpak's PATH does not contain desktop terminals.
+        terminals = {
+            "konsole": ["--separate", "-e"],
+            "gnome-terminal": ["--wait", "--"],
+            "kgx": ["--"],
+            "xfce4-terminal": ["--disable-server", "-x"],
+            "mate-terminal": ["--disable-factory", "-x"],
+            "kitty": [],
+            "alacritty": ["-e"],
+            "foot": ["--"],
+            "x-terminal-emulator": ["-e"],
+            "xterm": ["-e"],
+        }
+        result = Utils.flatpak_spawn_host(
+            ["sh", "-c", 'for terminal do command -v "$terminal" && exit 0; done; exit 1', "sh", *terminals],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            raise DependencyError("No supported terminal found. Install Konsole, GNOME Terminal, or xterm.")
+        terminal = result.stdout.strip().splitlines()[0]
+        terminal_args = terminals[Path(terminal).name]
+
+        active_profile = self._prepare_launch_profile(profile, use_gamescope_override=False)
         Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
-        self._launch_single_instance(active_profile, instance_num)
+        command, instance_env = self._prepare_instance_launch(
+            active_profile, instance_num, application_command=[terminal, *terminal_args, "bash", "-i"]
+        )
+        self.logger.info(f"Opening terminal for instance {instance_num}: {shlex.join(command)}")
+        if Utils.is_flatpak():
+            self._launch_in_flatpak(instance_num, command, instance_env)
+        else:
+            self._launch_natively(instance_num, command, instance_env)
 
     def terminate_instance(self, instance_num: int) -> None:
         """Terminates a single Steam instance gracefully."""

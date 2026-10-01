@@ -35,7 +35,7 @@ class CommandBuilder:
         self.home_path = home_path
         self.virtual_joystick_path = virtual_joystick_path
 
-    def build_command(self) -> List[str]:
+    def build_command(self, application_command: Optional[List[str]] = None) -> List[str]:
         """
         Build the final command array in the correct order.
 
@@ -43,7 +43,7 @@ class CommandBuilder:
         [bwrap] -> [steam]                  (when gamescope is disabled)
         """
         # 1. Build the innermost steam command
-        steam_cmd = self._build_base_steam_command()
+        steam_cmd = application_command if application_command is not None else self._build_base_steam_command()
 
         # 2. Build the bwrap command, which will wrap the steam command
         bwrap_cmd = self._build_bwrap_command(self.instance_num)
