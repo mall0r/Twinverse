@@ -26,6 +26,7 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     service.pids = {}
     service.pgids = {}
     service.processes = {}
+    service._sync_app_manifests = Mock()
     native_launch = Mock(return_value=(Mock(pid=123), 123))
     flatpak_launch = Mock(return_value=(Mock(pid=456), 456))
     service._launch_natively = native_launch
@@ -49,6 +50,7 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     )
 
     service.open_terminal(profile, 1)
+    service._sync_app_manifests.assert_not_called()
     launch = flatpak_launch if flatpak else native_launch
     unused_launch = native_launch if flatpak else flatpak_launch
     _, command, terminal_env = launch.call_args.args
@@ -56,6 +58,7 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     assert service.processes == {}
 
     service.launch_instance(profile, 1, use_gamescope_override=False)
+    service._sync_app_manifests.assert_called_once_with(tmp_path / "player 1")
     _, start_command, start_env = launch.call_args.args
     steam_command = ["steam", "-steamdeck"] if steamdeck else ["steam"]
     assert start_command[-len(steam_command) :] == steam_command
