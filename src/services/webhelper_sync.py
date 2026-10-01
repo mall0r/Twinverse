@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from src.core import Config
+from src.core import Config, Utils
 
 # These names were observed in the current Linux Steam client. If Valve changes
 # them, the bounded wait falls back to the original launcher and reports it.
@@ -58,19 +58,18 @@ fi
 """
 
 
-def build_webhelper_mounts(home_path: Path, instance_num: int) -> list[str]:
+def build_webhelper_mounts(home_path: Path, instance_num: int, fix_overlay_focus: bool = False) -> list[str]:
     """Install a Bash startup hook without overlaying Steam-managed files."""
     relative_script = Path(".local/share/Steam/ubuntu12_64/steamwebhelper.sh")
     original = home_path / relative_script
-    if not original.is_file():
+    if not original.is_file() and not fix_overlay_focus:
         # A fresh Steam installation may not have downloaded its UI yet.
         return []
 
     cache = Config.CACHE_DIR / "steam-webhelper" / f"instance_{instance_num + 1}"
     cache.mkdir(parents=True, exist_ok=True)
     wrapper = cache / "gate.sh"
-    wrapper.write_text(WEBHELPER_GATE)
-    wrapper.chmod(0o755)
+    gate = WEBHELPER_GATE
     mounts = [
         "--ro-bind",
         str(cache),
@@ -79,6 +78,24 @@ def build_webhelper_mounts(home_path: Path, instance_num: int) -> list[str]:
         "BASH_ENV",
         "/tmp/twinverse-webhelper/gate.sh",
     ]
+    if fix_overlay_focus:
+        helper = Utils.get_base_path() / "res/steam/overlay_focus.py"
+        (cache / "overlay_focus.py").write_text(helper.read_text())
+        # The repair runs on the host inside the sandbox, so it needs only the
+        # host Python. The instance home shadows the real home directory, so
+        # the shared log directory is mounted at a fixed path instead.
+        log_name = f"overlay_focus_instance_{instance_num}.log"
+        gate += f"""
+if [[ "$tv_pid" =~ ^[0-9]+$ && -d /proc/$tv_pid ]]; then
+    python3 /tmp/twinverse-webhelper/overlay_focus.py "$tv_pid" \\
+        </dev/null >>/tmp/twinverse-logs/{log_name} 2>&1 &
+fi
+"""
+        log_dir = Config.LOG_DIR
+        log_dir.mkdir(parents=True, exist_ok=True)
+        mounts.extend(["--bind", str(log_dir), "/tmp/twinverse-logs"])
+    wrapper.write_text(gate)
+    wrapper.chmod(0o755)
     if os.environ.get("BASH_ENV"):
         mounts.extend(["--setenv", "TWINVERSE_ORIGINAL_BASH_ENV", os.environ["BASH_ENV"]])
     return mounts

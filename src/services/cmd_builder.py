@@ -222,7 +222,13 @@ class CommandBuilder:
         # --- End Home Directory Isolation ---
 
         # The UI must not open placeholder controller memory before Steam does.
-        cmd.extend(build_webhelper_mounts(self.home_path, self.instance_num))
+        cmd.extend(
+            build_webhelper_mounts(
+                self.home_path,
+                self.instance_num,
+                fix_overlay_focus=self.profile.use_gamescope and self.profile.is_splitscreen_mode,
+            )
+        )
 
         # Ensure custom ENV variables reach Steam inside the sandbox
         try:
