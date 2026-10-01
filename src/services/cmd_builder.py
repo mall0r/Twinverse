@@ -17,6 +17,21 @@ from src.services.webhelper_sync import build_webhelper_mounts
 class CommandBuilder:
     """Builds command strings for launching Steam instances with various configurations."""
 
+    MANGOAPP_CONFIG = Path(".config/twinverse/mangoapp.conf")
+
+    def prepare_overlay_environment(self) -> Dict[str, Optional[str]]:
+        """Give MangoApp a config that Steam can update through the isolated home."""
+        if not (self.profile.use_gamescope and self.profile.use_steamdeck_tag):
+            return {}
+
+        config_path = self.home_path / self.MANGOAPP_CONFIG
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        # Start hidden until Steam applies the user's performance overlay level.
+        config_path.write_text("no_display\n", encoding="utf-8")
+        # An empty inline config skips file loading; read_cfg reapplies presets
+        # in MangoHud 0.8.4, duplicating HUD elements. None means unset it.
+        return {"MANGOHUD_CONFIGFILE": str(config_path), "MANGOHUD_CONFIG": None}
+
     def __init__(
         self,
         logger: Logger,
@@ -222,4 +237,10 @@ class CommandBuilder:
                 self.logger.info(f"Instance {self.instance_num}: Added {len(extra_env)} --setenv entries to bwrap.")
         except Exception as e:
             self.logger.error(f"Instance {self.instance_num}: Failed to add --setenv entries: {e}")
+
+        if self.profile.use_gamescope and self.profile.use_steamdeck_tag:
+            # Gamescope/MangoApp run outside bwrap. Steam must write to the same
+            # file using its sandbox home path, not the host's instance-home path.
+            cmd.extend(["--setenv", "MANGOHUD_CONFIGFILE", str(orig_home / self.MANGOAPP_CONFIG)])
+            cmd.extend(["--unsetenv", "MANGOHUD_CONFIG"])
         return cmd

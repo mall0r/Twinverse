@@ -26,7 +26,7 @@ echo "🧹 Cleaning previous AppDir..."
 rm -rf AppDir
 
 # 5. Set environment variables
-export LINUXDEPLOY_OUTPUT_VERSION="1.1.0"
+export LINUXDEPLOY_OUTPUT_VERSION="1.1.1"
 export NO_STRIP=1  # Disable stripping to avoid errors with modern binaries
 
 # Get GTK paths

@@ -71,6 +71,7 @@ class InstanceService:
             home_path,
             self._virtual_joystick_path,
         )
+        instance_env.update(cmd_builder.prepare_overlay_environment())
         return cmd_builder.build_command(application_command), instance_env
 
     def _launch_single_instance(self, profile: Profile, instance_num: int) -> None:
@@ -109,7 +110,10 @@ class InstanceService:
         self, instance_num: int, base_command: list[str], instance_env: dict
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance within a Flatpak environment."""
-        env_prefix_parts = [f"export {key}={shlex.quote(value)}" for key, value in instance_env.items()]
+        env_prefix_parts = [
+            f"unset {key}" if value is None else f"export {key}={shlex.quote(value)}"
+            for key, value in instance_env.items()
+        ]
         env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
         escaped_command = shlex.join(base_command)
         shell_command = f"{env_prefix}set -m; echo $$; exec {escaped_command}"
@@ -183,7 +187,11 @@ class InstanceService:
         native_env = os.environ.copy()
         native_env.pop("PYTHONHOME", None)
         native_env.pop("PYTHONPATH", None)
-        native_env.update(instance_env)
+        for key, value in instance_env.items():
+            if value is None:
+                native_env.pop(key, None)
+            else:
+                native_env[key] = value
 
         self.logger.info(f"Instance {instance_num}: Full command: {shlex.join(base_command)}")
 
