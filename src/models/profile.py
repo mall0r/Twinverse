@@ -58,7 +58,7 @@ class Profile(BaseModel):
         alias="PLAYERS",
     )
     selected_players: List[int] = Field(default_factory=list, alias="selected_players")
-    use_steamdeck_tag: bool = Field(default=False, alias="USE_STEAMDECK_TAG")
+    use_steamdeck_tag: bool = Field(default=True, alias="USE_STEAMDECK_TAG")
     use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_gamescope_wsi: bool = Field(default=Utils.is_wayland(), alias="ENABLE_GAMESCOPE_WSI")
 

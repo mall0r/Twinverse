@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file. This projec
 
 - Verify in CI that the AppImage opens a window on Ubuntu 22.04 and Ubuntu 24.04 before it is attached to a release.
 - Publish the Flatpak and the AppImage from separate CI jobs.
+- Enable the SteamDeck tag by default in new profiles.
 
 ## [1.1.1] - 2026-10-01
 
