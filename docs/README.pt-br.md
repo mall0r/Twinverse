@@ -94,6 +94,12 @@ flatpak install --user flathub io.github.mall0r.Twinverse
    Acesse a página de [**Releases**](https://github.com/mall0r/Twinverse/releases) e baixe o último arquivo `.flatpak`.
 
 2. **Instale o Flatpak:**
+   Em alguns sistemas, pode ser necessário configurar primeiro o remote do Flathub para que o Flatpak consiga baixar os runtimes e as dependências necessários:
+
+   ```bash
+   flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+   ```
+
    Você pode instalar o Flatpak com o seguinte comando:
    ```bash
    flatpak install --user Twinverse-*.flatpak
