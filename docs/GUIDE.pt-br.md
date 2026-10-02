@@ -136,7 +136,13 @@ Você pode excluir ou gerenciar os arquivos o diretorio home de cada instância,
 
 <img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />
 
-### 3. Atalhos de teclado do Gamescope:
+### 3. Steam Input
+
+O Steam Input não é compatível com as instâncias, então o Twinverse desativa dentro de cada instância: na primeira inicialização que já encontra uma conta logada, ele desliga o botão de controle e todos os jogos da biblioteca da instância. Em uma instância nova isso acontece na inicialização logo após você fazer login.
+
+Isso acontece apenas uma vez por instância. Qualquer coisa que você alterar depois é mantida, e o seu próprio Steam fora do Twinverse nunca é alterado.
+
+### 4. Atalhos de teclado do Gamescope:
 ```
 Super + F       Alternar tela cheia
 ```

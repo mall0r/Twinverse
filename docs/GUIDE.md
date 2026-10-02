@@ -133,7 +133,13 @@ You can delete or manage the files in the home directory of each instance by acc
 
 <img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />
 
-## 3. Gamescope Keyboard shortcuts:
+## 3. Steam Input
+
+Steam Input is not compatible with instances, so Twinverse turns it off inside each instance: on the first launch that already finds a logged-in account, it disables the controller toggle and every game of the instance library. On a brand-new instance this happens on the launch right after you log in.
+
+It runs only once per instance. Anything you change afterwards is kept, and your own Steam client outside Twinverse is never touched.
+
+## 4. Gamescope Keyboard shortcuts:
 ```
 Super + F      Toggle fullscreen
 ```

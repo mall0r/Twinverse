@@ -19,6 +19,7 @@ from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceEr
 from src.models import PlayerInstanceConfig, Profile
 
 from .kde_manager import KdeManager
+from .steam_input import SteamInputDisabler
 
 
 class InstanceService:
@@ -30,6 +31,7 @@ class InstanceService:
         from .virtual_device import VirtualDeviceService
 
         self.logger = logger
+        self.steam_input = SteamInputDisabler(logger)
         self.virtual_device = VirtualDeviceService(logger)
         self.kde_manager = kde_manager
         self.device_manager = DeviceManager()
@@ -56,6 +58,9 @@ class InstanceService:
         self._prepare_home(home_path)
         if application_command is None:
             self._sync_app_manifests(home_path)
+            # Steam rewrites localconfig.vdf when it exits, so the change has to
+            # land before the client starts reading it.
+            self.steam_input.disable_once(instance_num, home_path)
 
         device_info = self._validate_input_devices(profile, instance_num, instance_num)
         instance_env = self._prepare_environment(profile, device_info, instance_num)
