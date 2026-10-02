@@ -124,6 +124,7 @@ jobs:
           retention-days: 14
 
   build-appimage:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
@@ -145,6 +146,7 @@ jobs:
 
   test-appimage:
     needs: build-appimage
+    if: startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04]
