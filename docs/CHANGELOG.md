@@ -3,6 +3,20 @@
 
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
 
+## [1.1.3] - 2026-10-02
+
+### Added
+
+- Embed AppImage update information pointing to the latest stable GitHub release, enabling updates through AppImageUpdate and compatible tools.
+- Generate and publish the matching `.AppImage.zsync` file alongside the AppImage.
+
+### Changed
+
+- Verify the embedded update information and require a non-empty `.zsync` file during packaging.
+- Document the update and publishing process and include `.zsync` files in packaging cleanup and Git ignore rules.
+
+Users of 1.1.2 or earlier must manually download 1.1.3 once to enable future updates through compatible tools.
+
 ## [1.1.2] - 2026-10-01
 
 ### Added
