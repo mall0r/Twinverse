@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file. This projec
 
 ## [1.1.2] - 2026-10-01
 
+### Added
+
+- Turn off Steam Input in the account settings of each instance on its first launch, so it stops overriding the per-instance controller devices.
+
 ### Fixed
 
 - Restore controller navigation of the Steam side menus while a game is running in splitscreen instances.
