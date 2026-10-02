@@ -140,7 +140,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: appimage
-          path: Twinverse-*.AppImage
+          path: |
+            Twinverse-*.AppImage
+            Twinverse-*.AppImage.zsync
           if-no-files-found: error
           retention-days: 14
 
@@ -217,4 +219,4 @@ jobs:
             gh release create "$RELEASE_TAG" \
               --verify-tag --generate-notes --title "$RELEASE_TAG"
           fi
-          gh release upload "$RELEASE_TAG" dist/*.AppImage --clobber
+          gh release upload "$RELEASE_TAG" dist/*.AppImage dist/*.AppImage.zsync --clobber

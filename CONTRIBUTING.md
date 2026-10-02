@@ -108,7 +108,7 @@ make help
 
 ### Packaging an AppImage
 
-The `scripts/package-appimage.sh` script automates the process of creating an AppImage. It uses linuxdeploy with GTK and Python plugins to create a professional AppImage that properly bundles all GTK4 dependencies and Python runtime components, compatible with GIRepository 2.0 and including Adwaita theme support.
+The `scripts/package-appimage.sh` script builds in an Ubuntu 22.04 container using Podman or Docker. It uses PyInstaller and linuxdeploy to bundle the Python runtime and GTK dependencies, targeting glibc 2.35 or newer.
 
 ```bash
 make appimage
@@ -119,6 +119,25 @@ Or using the script directly:
 ```bash
 ./scripts/package-appimage.sh
 ```
+
+The build produces `Twinverse-<version>-x86_64.AppImage` and its `.AppImage.zsync`
+file. Update metadata embedded in the AppImage lets AppImageUpdate and compatible
+tools find the latest stable release in `mall0r/Twinverse`:
+
+```text
+gh-releases-zsync|mall0r|Twinverse|latest|Twinverse-*-x86_64.AppImage.zsync
+```
+
+Publish both files as assets of the same GitHub release, keeping their generated
+names. The tag workflow uploads both automatically. The build checks that the
+`.zsync` file exists and the embedded metadata matches. To inspect it manually:
+
+```bash
+./Twinverse-<version>-x86_64.AppImage --appimage-updateinformation
+```
+
+Previously distributed AppImages without this metadata require a one-time manual
+download of a new build before update tools can discover future releases.
 
 ### Packaging a Flatpak
 

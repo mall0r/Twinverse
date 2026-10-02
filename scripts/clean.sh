@@ -33,7 +33,7 @@ rm -rf build dist AppDir *.AppDir .venv squashfs-root build-dir
 rm -rf builddir repo flatpak-repo .flatpak-builder
 rm -rf *.spec
 rm -rf linuxdeploy-plugin-gtk.sh
-rm -rf *.AppImage
+rm -rf *.AppImage *.AppImage.zsync
 rm -rf *.log
 rm -rf *.flatpak
 sleep 1

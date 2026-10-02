@@ -39,6 +39,14 @@ export APPIMAGE_EXTRACT_AND_RUN=1 NO_STRIP=1
 python3 scripts/appimage/check-glibc.py "$appdir" 2.35
 export OUTPUT="/project/Twinverse-$version-x86_64.AppImage"
 export LINUXDEPLOY_OUTPUT_VERSION="$version" ARCH=x86_64
+# Resolve the latest stable release without hard-coding a versioned asset URL.
+export LDAI_UPDATE_INFORMATION='gh-releases-zsync|mall0r|Twinverse|latest|Twinverse-*-x86_64.AppImage.zsync'
 "$work/linuxdeploy.AppImage" --appdir "$appdir" --output appimage
 test -s "$OUTPUT"
+test -s "$OUTPUT.zsync"
+if [[ "$(env -u APPIMAGE_EXTRACT_AND_RUN "$OUTPUT" --appimage-updateinformation)" != "$LDAI_UPDATE_INFORMATION" ]]; then
+    echo "AppImage update information is missing or incorrect." >&2
+    exit 1
+fi
 echo "Created $OUTPUT (requires glibc 2.35 or newer)."
+echo "Publish $OUTPUT.zsync alongside the AppImage on the GitHub release."

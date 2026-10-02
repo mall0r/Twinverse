@@ -82,6 +82,7 @@ logs/
 relatorio_*
 *.lnk
 *.AppImage
+*.AppImage.zsync
 *.appimage
 *.flatpak
 *.txt
