@@ -123,7 +123,49 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  publish-release:
+  build-appimage:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Build AppImage against glibc 2.35
+        env:
+          CONTAINER_ENGINE: docker
+        run: bash scripts/package-appimage.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: Twinverse-*.AppImage
+          if-no-files-found: error
+          retention-days: 14
+
+  test-appimage:
+    needs: build-appimage
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: appimage
+      - name: Install headless display tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xauth xdotool dbus-x11 libgl1-mesa-dri libegl1 libgl1
+      - name: Verify AppImage opens a window
+        run: bash scripts/appimage/smoke-test.sh Twinverse-*.AppImage
+
+  publish-flatpak:
     needs: build-flatpak
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -136,7 +178,7 @@ jobs:
           name: flatpak-${{ github.ref_name }}
           path: dist
 
-      - name: Publish release for the existing tag
+      - name: Publish Flatpak on the release of the tag
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -147,3 +189,28 @@ jobs:
               --verify-tag --generate-notes --title "$RELEASE_TAG"
           fi
           gh release upload "$RELEASE_TAG" dist/*.flatpak --clobber
+
+  publish-appimage:
+    needs: test-appimage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          path: dist
+
+      - name: Publish AppImage on the release of the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --verify-tag --generate-notes --title "$RELEASE_TAG"
+          fi
+          gh release upload "$RELEASE_TAG" dist/*.AppImage --clobber

@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+HERE=$(dirname "$(readlink -f "$0")")
+export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export FONTCONFIG_PATH="$HERE/usr/bin/_internal/etc/fonts"
+export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"
+# PyInstaller's GI runtime hook sets typelib and schema paths inside _internal.
+exec "$HERE/usr/bin/twinverse" "$@"

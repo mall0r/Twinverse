@@ -1,0 +1,24 @@
+# PyInstaller defaults to GTK 3 unless its GI hooks are configured explicitly.
+import os
+
+work = os.environ['TWINVERSE_BUILD_DIR']
+a = Analysis(
+    ['/project/twinverse.py'],
+    pathex=['/project'],
+    # PyInstaller excludes Wayland libraries as system libraries by default,
+    # but an X11-only host still needs them to load this GTK build.
+    binaries=[('/opt/twinverse/lib/libwayland-' + name, '.')
+              for name in ('client.so.0', 'cursor.so.0', 'egl.so.1')],
+    datas=[(work + '/res', 'res'), ('/project/version', '.'), ('/etc/fonts', 'etc/fonts')],
+    hiddenimports=[
+        'gi.repository.Gtk', 'gi.repository.Adw', 'gi.repository.Gdk',
+        'gi.repository.Gsk', 'gi.repository.Graphene', 'gi.repository.PangoCairo',
+    ],
+    hooksconfig={'gi': {'module-versions': {'Gtk': '4.0', 'Gdk': '4.0', 'Adw': '1'}}},
+)
+pyz = PYZ(a.pure)
+exe = EXE(
+    pyz, a.scripts, [], exclude_binaries=True, name='twinverse',
+    console=True, strip=False, upx=False,
+)
+coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='twinverse')

@@ -1,0 +1,7 @@
+*
+!scripts/
+scripts/*
+!scripts/appimage/
+scripts/appimage/*
+!scripts/appimage/Dockerfile
+!scripts/appimage/build-stack.sh
