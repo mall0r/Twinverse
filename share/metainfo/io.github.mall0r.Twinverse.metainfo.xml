@@ -66,6 +66,7 @@
     <release version="1.1.2" date="2026-10-01" type="stable">
       <description>
         <p>Fix controller navigation of the Steam side menus while a game runs in splitscreen instances.</p>
+        <p>Build the AppImage against glibc 2.35 in a container and verify in CI that it opens a window before release.</p>
       </description>
     </release>
     <release version="1.1.1" date="2026-10-01" type="stable">
