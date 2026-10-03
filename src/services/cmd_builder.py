@@ -19,6 +19,17 @@ class CommandBuilder:
 
     MANGOAPP_CONFIG = Path(".config/twinverse/mangoapp.conf")
 
+    # Gamescope creates this path at startup, so expand it in its child, not
+    # while building the command. Proton's runtime otherwise hides the file
+    # under /run/user, and the Vulkan layer silently disables FIFO enforcement.
+    GAMESCOPE_RUNTIME_SETUP = r"""
+if [ -n "${GAMESCOPE_LIMITER_FILE:-}" ]; then
+    export PRESSURE_VESSEL_FILESYSTEMS_RO=\
+"${PRESSURE_VESSEL_FILESYSTEMS_RO:+${PRESSURE_VESSEL_FILESYSTEMS_RO}:}${GAMESCOPE_LIMITER_FILE}"
+fi
+exec "$@"
+"""
+
     def prepare_overlay_environment(self) -> Dict[str, Optional[str]]:
         """Give MangoApp a config that Steam can update through the isolated home."""
         if not (self.profile.use_gamescope and self.profile.use_steamdeck_tag):
@@ -55,22 +66,25 @@ class CommandBuilder:
         """
         Build the final command array in the correct order.
 
-        [gamescope] -> [bwrap] -> [steam]  (when gamescope is enabled)
+        [bwrap] -> [gamescope] -> [steam]  (when gamescope is enabled)
         [bwrap] -> [steam]                  (when gamescope is disabled)
         """
         # 1. Build the innermost steam command
         steam_cmd = application_command if application_command is not None else self._build_base_steam_command()
 
-        # 2. Build the bwrap command, which will wrap the steam command
+        # 2. Build the sandbox shared by Gamescope, MangoApp and Steam
         bwrap_cmd = self._build_bwrap_command(self.instance_num)
 
-        # 3. Prepend bwrap to the steam command
-        final_cmd = bwrap_cmd + steam_cmd
+        # 3. Start with the innermost command
+        final_cmd = steam_cmd
 
         # 4. Build the Gamescope command and prepend it (if enabled)
         if self.profile.use_gamescope:
             should_add_grab_flags = self.device_info.get("should_add_grab_flags", False)
             gamescope_cmd = self._build_gamescope_command(should_add_grab_flags)
+
+            # Pass the instance's live limiter file through Steam to Proton.
+            final_cmd = ["sh", "-c", self.GAMESCOPE_RUNTIME_SETUP, "twinverse-gamescope"] + final_cmd
 
             # Add the '--' separator before the command Gamescope will run
             final_cmd = gamescope_cmd + ["--"] + final_cmd
@@ -78,7 +92,7 @@ class CommandBuilder:
         else:
             self.logger.info(f"Instance {self.instance_num}: Launching without Gamescope (bwrap only)")
 
-        return final_cmd
+        return bwrap_cmd + final_cmd
 
     def _build_gamescope_command(self, should_add_grab_flags: bool) -> List[str]:
         """Build the Gamescope command."""
@@ -160,9 +174,16 @@ class CommandBuilder:
             "--proc", "/proc",
             "--die-with-parent",
             "--tmpfs", "/tmp",
-            "--bind", "/tmp/.X11-unix", "/tmp/.X11-unix",
         ]
         # fmt: on
+
+        if self.profile.use_gamescope:
+            # Gamescope and MangoApp must share a queue private to this instance.
+            cmd.append("--unshare-ipc")
+            # Let Xwayland create .X11-unix in our private /tmp. The host's
+            # root-owned directory maps to UID 65534 here and wlroots rejects it.
+        else:
+            cmd.extend(["--bind", "/tmp/.X11-unix", "/tmp/.X11-unix"])
 
         # --- Device Isolation ---
 
@@ -245,8 +266,8 @@ class CommandBuilder:
             self.logger.error(f"Instance {self.instance_num}: Failed to add --setenv entries: {e}")
 
         if self.profile.use_gamescope and self.profile.use_steamdeck_tag:
-            # Gamescope/MangoApp run outside bwrap. Steam must write to the same
-            # file using its sandbox home path, not the host's instance-home path.
+            # Gamescope, MangoApp and Steam share the sandbox home path.
+            # Override the host path used to prepare the config before launch.
             cmd.extend(["--setenv", "MANGOHUD_CONFIGFILE", str(orig_home / self.MANGOAPP_CONFIG)])
             cmd.extend(["--unsetenv", "MANGOHUD_CONFIG"])
         return cmd
