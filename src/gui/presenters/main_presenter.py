@@ -1,8 +1,4 @@
-"""
-Main presenter module.
-
-This module mediates between the view (window) and controllers.
-"""
+"""Mediates between the view (window) and the controllers."""
 
 from gi.repository import Adw, GLib, Gtk
 
@@ -26,24 +22,19 @@ class MainPresenter:
         self._app = application
         self._logger = logger
 
-        # Initialize services
         self._kde_manager = KdeManager(self._logger)
         self._instance_service = InstanceService(logger=self._logger, kde_manager=self._kde_manager)
         self._steam_verifier = SteamVerifier(self._logger)
         self._device_manager = DeviceManager()
 
-        # Initialize controllers
         self._launch_controller = LaunchController(self._instance_service, self._kde_manager, self._logger)
         self._verification_controller = VerificationController(self._steam_verifier, self._logger)
         self._settings_controller = SettingsController(self._device_manager, self._logger)
 
-        # Create window
         self.window = MainWindow(application, self)
 
-        # Initialize bulk operation state
         self._bulk_operation_in_progress = False
 
-        # Load initial data
         self._load_initial_data()
 
     def _load_initial_data(self):
@@ -51,18 +42,15 @@ class MainPresenter:
         profile = self._settings_controller.get_profile()
         devices_info = self._settings_controller.get_devices_info()
 
-        # Run initial verifications
         self._verification_controller.verify_all_instances(
             profile.num_players, on_each_complete=lambda i, verified: None  # Silent initial verification
         )
 
         verification_statuses = self._verification_controller.get_all_statuses()
 
-        # Load into UI
         layout_page = self.window.get_layout_page()
         layout_page.load_data(profile, devices_info, verification_statuses)
 
-        # Update button state
         self._update_launch_button_state()
 
     def on_launch_clicked(self):
@@ -72,50 +60,37 @@ class MainPresenter:
         else:
             self._on_launch_requested()
 
-        # Update the sensitivity of the number of instances spin button
         self._update_number_of_instances_sensitivity()
 
     def on_settings_changed(self):
         """Handle settings changed in UI."""
-        # Get the current number of players before saving
         layout_page = self.window.get_layout_page()
         old_num_players = len(layout_page.player_rows)
 
-        # Get UI data first to check if number of players changed
         ui_data = layout_page.get_data()
         new_num_players = ui_data["num_players"]
 
-        # If the number of players changed, reload the UI first to update player_rows
         if old_num_players != new_num_players:
-            # Update the profile temporarily to reflect new number of players
             profile = self._settings_controller.get_profile()
             profile.num_players = new_num_players
 
-            # Reload UI to update player_rows
             devices_info = self._settings_controller.get_devices_info()
             verification_statuses = self._verification_controller.get_all_statuses()
             layout_page.load_data(profile, devices_info, verification_statuses)
 
-            # Get fresh UI data after UI update
             ui_data = layout_page.get_data()
 
-        # Now save the current settings with updated UI data
         self._settings_controller.update_from_ui_data(ui_data)
         self._settings_controller.save_profile()
 
-        # Reload UI again to ensure everything is consistent (especially if other settings changed)
-        # BUT only reload if the number of players changed to avoid mode switching issues
         if old_num_players != new_num_players:
             profile = self._settings_controller.get_profile()
             devices_info = self._settings_controller.get_devices_info()
             verification_statuses = self._verification_controller.get_all_statuses()
             layout_page.load_data(profile, devices_info, verification_statuses)
 
-            # Run verifications since the number of players changed
             self._run_all_verifications()
         else:
-            # For mode changes without player count changes, just run verifications
-            # without reloading the UI to prevent mode switching issues
             self._run_all_verifications()
 
         self._update_launch_button_state()
@@ -136,45 +111,35 @@ class MainPresenter:
         player_row = player_rows[instance_num]
 
         if player_row._is_running:
-            # Stop only this specific instance
             self._launch_controller.terminate_single_instance(
                 instance_num, on_complete=lambda: self._on_single_instance_stopped(instance_num)
             )
         else:
-            # Launch without verification (different from main Play button)
             self._logger.info(f"Launch requested for instance {instance_num} (no verification required).")
 
-            # Save current settings
             self._save_current_settings()
 
-            # Update UI to show launching state for this specific instance
             player_row.set_running_state(True)
             player_row._update_button_state()
 
-            # Launch this specific instance using the same setup flow as the main Play button
-            # but disable gamescope for individual instances and skip verification
             self._logger.info(f"Initiating launch of instance {instance_num}...")
 
-            # Setup KDE if enabled for this instance (same as main Play button)
             if profile.enable_kwin_script:
                 self._logger.info("Starting KDE script setup...")
                 self._kde_manager.start_kwin_script(profile)
 
-            # Launch only this specific instance with gamescope and ENABLE_GAMESCOPE_WSI disabled
             try:
                 self._instance_service.launch_instance(profile, instance_num, use_gamescope_override=False)
                 self._logger.info(
                     f"Instance {instance_num} launch initiated successfully (gamescope and gamescope-WSI disabled)."
                 )
 
-                # Update UI to reflect that this instance is now running
                 GLib.idle_add(lambda: self._on_single_instance_launched(instance_num))
             except Exception as e:
                 self._logger.error(f"Failed to launch instance {instance_num}: {e}")
                 self._logger.exception("Exception details:")
                 error_msg = ErrorHandler.format_error(e)
                 GLib.idle_add(self.window.show_error, error_msg)
-                # Reset the button state to previous state
                 player_row.set_running_state(False)
                 player_row._update_button_state()
 
@@ -223,7 +188,6 @@ class MainPresenter:
         """Handle window close request."""
         self.window.set_sensitive(False)
 
-        # Stop all instances before closing
         self._launch_controller.stop_instances(on_complete=lambda: GLib.idle_add(self._app.quit))
 
     def on_devices_refresh_requested(self):
@@ -241,13 +205,10 @@ class MainPresenter:
 
         self._bulk_operation_in_progress = True
 
-        # Save current settings
         self._save_current_settings()
 
-        # Run verifications
         self._run_all_verifications()
 
-        # Check if any players are selected
         layout_page = self.window.get_layout_page()
         selected_players = layout_page.get_selected_players()
 
@@ -259,18 +220,14 @@ class MainPresenter:
 
         self._logger.info(f"Selected players for launch: {selected_players}")
 
-        # Update profile with selected players
         profile = self._settings_controller.get_profile()
         profile.selected_players = selected_players
         self._settings_controller.save_profile()
 
-        # Update UI to launching state
         self.window.show_launching_state()
 
-        # Schedule window minimization
         GLib.timeout_add(5000, self.window.minimize_window)
 
-        # Launch instances
         self._logger.info("Initiating launch of instances...")
         self._launch_controller.launch_instances(
             profile,
@@ -290,7 +247,6 @@ class MainPresenter:
     def _on_launch_progress(self, instance_num: int):
         """Handle launch progress update."""
         self._logger.info(f"Launched instance {instance_num}")
-        # Update UI to reflect that this instance is now running
         layout_page = self.window.get_layout_page()
         if 0 <= instance_num < len(layout_page.player_rows):
             player_row = layout_page.player_rows[instance_num]
@@ -322,7 +278,6 @@ class MainPresenter:
 
     def _on_single_instance_launched(self, instance_num: int):
         """Handle single instance launched."""
-        # Update the specific player row to reflect running state
         layout_page = self.window.get_layout_page()
         if 0 <= instance_num < len(layout_page.player_rows):
             player_row = layout_page.player_rows[instance_num]
@@ -333,7 +288,6 @@ class MainPresenter:
 
     def _on_single_instance_stopped(self, instance_num: int):
         """Handle single instance stopped."""
-        # Update the specific player row to reflect stopped state
         layout_page = self.window.get_layout_page()
         if 0 <= instance_num < len(layout_page.player_rows):
             player_row = layout_page.player_rows[instance_num]
@@ -350,7 +304,6 @@ class MainPresenter:
 
     def _on_preference_changed(self, key: str, value):
         """Handle preference changed."""
-        # Update the specific preference
         if hasattr(self._settings_controller.get_profile(), key):
             setattr(self._settings_controller.get_profile(), key, value)
             self._settings_controller.save_profile()
@@ -358,25 +311,18 @@ class MainPresenter:
         else:
             self._settings_controller.update_preference(key, value)
 
-        # If player configs were changed, reload the UI to reflect the changes
         if key == "player_configs":
-            # Reload UI to update player configurations
             profile = self._settings_controller.get_profile()
             devices_info = self._settings_controller.get_devices_info()
             layout_page = self.window.get_layout_page()
 
-            # Preserve verification statuses to avoid losing them during reload
             verification_statuses = self._verification_controller.get_all_statuses()
 
-            # Reload data into the layout page
             layout_page.load_data(profile, devices_info, verification_statuses)
 
-            # Run verifications again to update the verification status after player config changes
             self._run_all_verifications()
 
-        # If the number of players was changed, update verifications
         if key == "num_players":
-            # Run verifications again to update the verification status after player count changes
             self._run_all_verifications()
 
     def _save_current_settings(self):
@@ -411,7 +357,6 @@ class MainPresenter:
             self.window.update_launch_button_sensitivity(False)
             return
 
-        # Check if all selected players are verified
         all_verified = all(self._verification_controller.get_verification_status(p) for p in selected_players)
 
         self.window.update_launch_button_sensitivity(all_verified)
@@ -420,16 +365,11 @@ class MainPresenter:
         """Update the sensitivity of the number of instances spin button."""
         layout_page = self.window.get_layout_page()
 
-        # Check if any individual player instances are running
         is_any_running = any(getattr(player_row, "_is_running", False) for player_row in layout_page.player_rows)
 
-        # Access the spin button through the layout page
         layout_page.set_number_of_instances_sensitive(not is_any_running)
-        # Also update screen settings sensitivity
         layout_page.set_screen_settings_sensitive(not is_any_running)
-        # Also update the checkboxes sensitivity
         layout_page.set_checkboxes_sensitive(not is_any_running)
-        # Also update the main Play button sensitivity
         self._update_play_button_for_individual_instances(is_any_running)
 
     def _update_play_button_for_individual_instances(self, is_any_running):

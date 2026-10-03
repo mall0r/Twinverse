@@ -7,43 +7,35 @@ set -e  # Exit on any error
 
 echo "🚀 Starting Twinverse Build Process..."
 
-# Get the directory where the script is located and go to project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
-# Check if virtual environment exists
 if [ ! -d ".venv" ]; then
     echo "📦 Creating virtual environment..."
     python3 -m venv .venv
 fi
 
-# Activate virtual environment
 echo "🔧 Activating virtual environment..."
 source .venv/bin/activate
 
-# Install dependencies
 echo "📥 Installing dependencies..."
 pip install .
 
-# Compile GResource
 echo "📦 Compiling GResource..."
 glib-compile-resources \
   --target=res/twinverse.gresource \
   --sourcedir=res \
   res/twinverse.gresources.xml
 
-# Install PyInstaller if not present
 if ! pip show pyinstaller >/dev/null 2>&1; then
     echo "📦 Installing PyInstaller..."
     pip install pyinstaller
 fi
 
-# Clean previous builds
 echo "🧹 Cleaning previous builds..."
 rm -rf build/ dist/ *.spec
 
-# Detect system paths for GTK libraries
 echo "🔍 Detecting GTK libraries..."
 GTK_LIBDIR=$(pkg-config --variable=libdir gtk4 2>/dev/null || echo "/usr/lib/x86_64-linux-gnu")
 GI_TYPELIB_PATH=$(pkg-config --variable=typelibdir gobject-introspection-1.0 2>/dev/null || echo "/usr/lib/x86_64-linux-gnu/girepository-1.0")
@@ -51,7 +43,6 @@ GI_TYPELIB_PATH=$(pkg-config --variable=typelibdir gobject-introspection-1.0 2>/
 echo "   GTK Library Path: $GTK_LIBDIR"
 echo "   GI Typelib Path: $GI_TYPELIB_PATH"
 
-# Create PyInstaller spec file
 echo "📝 Creating PyInstaller spec file..."
 cat > twinverse.spec << 'EOF'
 # -*- mode: python ; coding: utf-8 -*-
@@ -61,15 +52,12 @@ import sys
 from pathlib import Path
 import subprocess
 
-# Get the project root directory
 project_root = Path.cwd()
 
-# Define paths
 src_path = project_root / 'src'
 gui_path = src_path / 'gui'
 scripts_path = project_root / 'scripts'
 
-# Include entire src and res directories
 src_files = []
 for src_file in (project_root / 'src').rglob('*'):
     if src_file.is_file():
@@ -78,14 +66,11 @@ for src_file in (project_root / 'src').rglob('*'):
 res_files = []
 for res_file in (project_root / 'res').rglob('*'):
     if res_file.is_file():
-        # Preserve the relative path within the res directory
         rel_path = res_file.relative_to(project_root / 'res')
         res_files.append((str(res_file), f'res/{rel_path.parent}'))
 
-# Collect other resource files
 data_files = src_files + res_files
 
-# Add hidden imports for PyInstaller
 hidden_imports = [
     'gi',
     'gi.repository',
@@ -151,17 +136,14 @@ exe = EXE(
 )
 EOF
 
-# Build with PyInstaller
 echo "🔨 Building executable with PyInstaller..."
 pyinstaller twinverse.spec --clean --noconfirm
 
-# Check if build was successful
 if [ -f "dist/twinverse" ]; then
     echo "✅ Build successful!"
     echo "📁 Executable created at: dist/twinverse"
     echo "📏 File size: $(du -h dist/twinverse | cut -f1)"
 
-    # Make executable
     chmod +x dist/twinverse
 
     echo ""

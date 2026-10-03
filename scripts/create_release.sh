@@ -3,7 +3,6 @@
 
 set -e  # Exit on error
 
-# Utility functions
 print_header() {
     echo -e "\n\033[1;34m=== $1 ===\033[0m"
 }
@@ -16,7 +15,6 @@ print_error() {
     echo -e "\033[1;31m✗ $1\033[0m" >&2
 }
 
-# Function to check dependencies
 check_dependencies() {
     print_header "Checking Dependencies"
 
@@ -28,7 +26,6 @@ check_dependencies() {
         fi
     done
 
-    # Check if we're in a git repository
     if [[ ! -d ".git" ]]; then
         print_error "Not in a git repository"
         missing_deps+=("git-repo")
@@ -42,7 +39,6 @@ check_dependencies() {
     print_success "All dependencies verified"
 }
 
-# Function to get current version
 get_current_version() {
     if [[ -f "version" ]]; then
         cat version
@@ -51,7 +47,6 @@ get_current_version() {
     fi
 }
 
-# Function to check for uncommitted changes
 check_git_status() {
     if [[ -n $(git status --porcelain) ]]; then
         print_error "There are uncommitted changes in the repository"
@@ -60,22 +55,18 @@ check_git_status() {
     fi
 }
 
-# Function to create release
 create_release() {
     local version="$1"
     local release_type="$2"
 
     print_header "Creating Release $version ($release_type)"
 
-    # Update version
     python scripts/version_manager.py "$version"
 
-    # Commit version changes
     print_header "Committing changes"
     git add version share/metainfo/io.github.mall0r.Twinverse.metainfo.xml README.md docs/README.pt-br.md docs/README.es.md docs/CHANGELOG.md scripts/package-appimage.sh
     git commit -m "Bump version to $version"
 
-    # Create tag
     print_header "Creating tag"
     git tag "v$version"
 
@@ -91,7 +82,6 @@ create_release() {
     echo "   ./scripts/package-flatpak.sh   # For Flatpak"
     }
 
-# Function to show help
 show_help() {
     cat << EOF
 Twinverse Release Script
@@ -114,7 +104,6 @@ Examples:
 EOF
 }
 
-# Function to increment version
 increment_version() {
     local version="$1"
     local part="$2"
@@ -142,7 +131,6 @@ increment_version() {
     echo "${major}.${minor}.${patch}"
 }
 
-# Parse arguments
 if [[ $# -eq 0 ]]; then
     show_help
     exit 1
@@ -194,20 +182,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Version format validation
 if ! [[ $new_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     print_error "Invalid version format: $new_version"
     print_error "Use format x.y.z (e.g., 0.11.2)"
     exit 1
 fi
 
-# Check dependencies
 check_dependencies
 
-# Check git status
 check_git_status
 
-# Confirmation
 print_header "Release Information"
 echo "Current version: $current_version"
 echo "New version: $new_version"
@@ -220,5 +204,4 @@ if [[ ! $REPLY =~ ^[Ss]$ ]]; then
     exit 0
 fi
 
-# Create the release
 create_release "$new_version" "$release_type"

@@ -1,9 +1,4 @@
-"""
-Module defining the Steam instance model for the Twinverse application.
-
-This module contains the data model for representing a single, running
-instance of Steam.
-"""
+"""Data model for a single running Steam instance."""
 
 from typing import Optional
 

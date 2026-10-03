@@ -1,8 +1,4 @@
-"""
-Application module for the Twinverse application.
-
-This module provides the main application class.
-"""
+"""Main application class."""
 
 # flake8: noqa: E402
 
@@ -38,16 +34,13 @@ class TwinverseApplication(Adw.Application):
         self.connect("activate", self.on_activate)
         print("Activate signal connected")
 
-        # Connect to startup signal as well to see what's happening
         self.connect("startup", self.on_startup)
         print("Startup signal connected")
 
-        # Initialize theme to system default
         self._initialize_theme()
 
     def _initialize_theme(self):
         """Initialize the theme to system default."""
-        # Set the theme to follow system preferences initially
         style_manager = Adw.StyleManager.get_default()
         style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
@@ -71,7 +64,6 @@ class TwinverseApplication(Adw.Application):
         """Handle the application activation event."""
         print("Application activation started...")
         try:
-            # Create presenter which will create the window
             print("Creating MainPresenter...")
             presenter = MainPresenter(app, self.logger)
             print("MainPresenter created successfully")
@@ -111,10 +103,8 @@ class TwinverseApplication(Adw.Application):
         app = TwinverseApplication()
         print("TwinverseApplication instance created")
 
-        # Print debug info
         print("Starting Twinverse Application...")
 
-        # Check if we're running from command line or IDE
         print(f"sys.argv: {sys.argv}")
 
         try:

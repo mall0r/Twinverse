@@ -79,7 +79,6 @@ echo "Searching for games with exact process name:"
 echo "  $PATTERN"
 echo
 
-# Exact search by process name
 while read -r pid cmd; do
   [ -z "$pid" ] && continue
 

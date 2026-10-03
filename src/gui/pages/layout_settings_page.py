@@ -1,8 +1,4 @@
-"""
-Layout settings page module.
-
-This module provides the UI for configuring layout settings - presentation only.
-"""
+"""UI for configuring layout settings - presentation only."""
 
 import gi
 from gi.repository import Adw, GObject, Gtk
@@ -15,7 +11,7 @@ gi.require_version("Adw", "1")
 
 
 class LayoutSettingsPage(Adw.PreferencesPage):
-    """Layout settings page - handles UI presentation only."""
+    """Builds and reads the layout settings widgets."""
 
     __gsignals__ = {
         "settings-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
@@ -47,7 +43,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         if screen_mode == "fullscreen":
             icon_name = "fullscreen-square-symbolic"
         elif screen_mode == "splitscreen":
-            # Consider groups of up to 4 instances per monitor
             first_group_size = min(num_instances, 4)
 
             if first_group_size == 1:
@@ -57,7 +52,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             else:
                 orientation = self.orientation_row.get_selected_item().get_string().lower()
 
-                # Use LayoutCalculator to determine layout for the first group
                 LayoutCalculator.get_layout_coordinates(first_group_size, orientation)
 
                 if first_group_size == 2:
@@ -74,7 +68,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         """Build the UI."""
         self.set_title("Layout Settings")
 
-        # General layout group
         layout_group = Adw.PreferencesGroup(title="General Layout")
         layout_group.add_css_class("general-layout-group")
         self.add(layout_group)
@@ -89,13 +82,11 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         adjustment.connect("value-changed", self._on_num_players_changed)
         layout_group.add(self.num_players_row)
 
-        # Screen settings group
         self.gamescope_settings_group = Adw.PreferencesGroup()
         self.add(self.gamescope_settings_group)
 
         gamescope_expander = Adw.ExpanderRow(title="Screen Settings", expanded=True)
 
-        # Criar um ícone para o lado direito
         self.screen_settings_icon = Gtk.Image.new_from_icon_name("horizontal-square-symbolic")
         self.screen_settings_icon.set_margin_start(6)
         gamescope_expander.add_suffix(self.screen_settings_icon)
@@ -116,7 +107,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.orientation_row.connect("notify::selected-item", self._on_setting_changed)
         gamescope_expander.add_row(self.orientation_row)
 
-        # Players group
         self.players_group = Adw.PreferencesGroup(title="Instance Configurations")
         self.players_group.add_css_class("players-group")
         self.add(self.players_group)
@@ -125,20 +115,16 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         """Load data into the UI."""
         self._is_loading = True
 
-        # Store number of monitors
         self._num_monitors = len(devices_info.get("displays", []))
         if self._num_monitors == 0:
             self._num_monitors = 1  # Fallback
 
-        # Update the screen settings icon since the number of monitors affects the limits
         if not self._is_loading:
             self._update_screen_settings_icon()
 
-        # Load general settings
         adj = self.num_players_row.get_adjustment()
         adj.set_value(profile.num_players)
 
-        # Use the last user-selected mode if available, otherwise use the profile mode
         is_splitscreen = (self._last_user_selected_mode or profile.mode) == "splitscreen"
         self.screen_mode_row.set_selected(1 if is_splitscreen else 0)
         self._update_num_players_limits(is_splitscreen)
@@ -149,23 +135,18 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             orientation = profile.splitscreen.orientation.capitalize()
             self.orientation_row.set_selected(self.orientations.index(orientation))
 
-        # Rebuild player rows
         self.rebuild_player_rows(profile.num_players, devices_info)
 
-        # Load player configurations
         for i, player_row in enumerate(self.player_rows):
             if i < len(profile.player_configs):
                 config = profile.player_configs[i]
                 player_row.load_config(config)
 
-            # Set verification status
             is_verified = verification_statuses.get(i, False)
             player_row.set_verification_status(is_verified)
 
-        # Apply grab input exclusivity after loading
         self._apply_grab_input_exclusivity()
 
-        # Update the screen settings icon after loading
         self._update_screen_settings_icon()
 
         self._is_loading = False
@@ -174,13 +155,11 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         """Apply grab input exclusivity rules after loading."""
         active_grab_index = -1
 
-        # Find which player has grab input active
         for i, player_row in enumerate(self.player_rows):
             if player_row.grab_input_switch.get_active():
                 active_grab_index = i
                 break
 
-        # Apply exclusivity
         if active_grab_index != -1:
             for i, player_row in enumerate(self.player_rows):
                 if i != active_grab_index:
@@ -188,12 +167,10 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
     def rebuild_player_rows(self, num_players: int, devices_info: dict):
         """Rebuild player rows."""
-        # Remove existing rows
         for player_row in self.player_rows:
             self.players_group.remove(player_row)
         self.player_rows = []
 
-        # Create new rows
         for i in range(num_players):
             player_row = PlayerRow(i, devices_info)
             player_row.set_parent_page(self)  # Set parent reference
@@ -218,11 +195,9 @@ class LayoutSettingsPage(Adw.PreferencesPage):
                 continue
 
             if is_active:
-                # Disable and deactivate others
                 row.grab_input_switch.set_active(False)
                 row.set_grab_input_sensitive(False)
             else:
-                # Re-enable others
                 row.set_grab_input_sensitive(True)
 
     def get_data(self) -> dict:
@@ -272,13 +247,10 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         is_splitscreen = selected_mode == "splitscreen"
         self.orientation_row.set_visible(is_splitscreen)
 
-        # Record the user's selection
         self._last_user_selected_mode = selected_mode
 
-        # Update the number of players limits based on screen mode
         self._update_num_players_limits(is_splitscreen)
 
-        # Adjust the value if it exceeds the new upper limit
         adjustment = self.num_players_row.get_adjustment()
         current_value = adjustment.get_value()
         new_upper_limit = adjustment.get_upper()
@@ -298,16 +270,12 @@ class LayoutSettingsPage(Adw.PreferencesPage):
     def _update_num_players_limits(self, is_splitscreen: bool):
         """Update the limits for number of players based on screen mode."""
         if is_splitscreen:
-            # In splitscreen mode: up to 8 instances total, max 4 per monitor
             max_players = min(8, self._num_monitors * 4)
         else:
-            # In fullscreen mode: up to 8 instances total, max 1 per monitor
             max_players = min(8, self._num_monitors)
 
-        # Update the adjustment limits
         adjustment = self.num_players_row.get_adjustment()
 
-        # Set the new upper limit
         adjustment.set_upper(max_players)
 
     def _on_setting_changed(self, *args):

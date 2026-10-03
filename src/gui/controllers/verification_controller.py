@@ -1,8 +1,4 @@
-"""
-Verification controller module.
-
-This module manages Steam instance verification.
-"""
+"""Steam instance verification."""
 
 from typing import Callable, Optional
 
@@ -11,7 +7,7 @@ from src.services import SteamVerifier
 
 
 class VerificationController:
-    """Manages Steam instance verification."""
+    """Caches verification results so the UI can query them cheaply."""
 
     def __init__(self, steam_verifier: SteamVerifier, logger: Logger):
         """Initialize the verification controller."""
@@ -21,13 +17,13 @@ class VerificationController:
 
     def verify_instance(self, instance_num: int) -> bool:
         """
-        Verify a specific instance.
+        Verify a specific instance and cache the result.
 
         Args:
-            instance_num: The instance number to verify
+            instance_num: Zero-based instance index.
 
         Returns:
-            True if verified, False otherwise
+            True if verified, False otherwise.
         """
         instance_path = Config.get_steam_home_path(instance_num)
         is_verified = self._steam_verifier.verify(instance_path)
@@ -44,8 +40,9 @@ class VerificationController:
         Verify all instances.
 
         Args:
-            num_instances: Number of instances to verify
-            on_each_complete: Callback for each instance (called with instance_num, is_verified)
+            num_instances: How many instances to verify, from index 0.
+            on_each_complete: Called with (instance_num, is_verified) as each
+                verification finishes.
         """
         for i in range(num_instances):
             is_verified = self.verify_instance(i)
@@ -54,13 +51,13 @@ class VerificationController:
 
     def get_verification_status(self, instance_num: int) -> bool:
         """
-        Get cached verification status.
+        Get cached verification status, False when never verified.
 
         Args:
-            instance_num: The instance number
+            instance_num: Zero-based instance index.
 
         Returns:
-            True if verified, False otherwise
+            True if verified, False otherwise.
         """
         return self._verification_statuses.get(instance_num, False)
 

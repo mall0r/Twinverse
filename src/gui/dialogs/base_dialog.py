@@ -1,8 +1,4 @@
-"""
-Base dialog module.
-
-This module provides a base class for dialogs.
-"""
+"""Base class for dialogs."""
 
 import gi
 from gi.repository import Adw

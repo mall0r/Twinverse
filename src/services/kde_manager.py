@@ -1,9 +1,4 @@
-"""
-KDE manager module for the Twinverse application.
-
-This module provides functionality to manage KDE-specific features such as
-KWin scripts for window management and panel visibility control.
-"""
+"""KDE-specific features such as KWin scripts and panel visibility control."""
 
 import json
 import os
@@ -18,7 +13,7 @@ from src.services.device_manager import DeviceManager
 
 
 class KdeManager:
-    """Manages KDE-specific features such as KWin scripts and panel visibility."""
+    """Loads the KWin layout script and hides panels while games run."""
 
     def __init__(self, logger: Logger):
         """Initialize the KDE manager with necessary components."""
@@ -41,7 +36,6 @@ class KdeManager:
             self.logger.warning("Not a KDE desktop or D-Bus unavailable, skipping KWin script.")
             return
 
-        # Determine script name based on profile
         if not profile.is_splitscreen_mode or not profile.splitscreen:
             self.logger.info("Fullscreen mode, loading KWin script.")
             script_name = "kwin_gamescope.js"
@@ -59,7 +53,6 @@ class KdeManager:
         temp_script_path = None
 
         try:
-            # Read script content
             script_content = script_path.read_text()
 
             # Use the same monitor order as DeviceManager, matching KWin outputs by connector.
@@ -71,16 +64,13 @@ class KdeManager:
                 " }).filter(Boolean);",
             )
 
-            # Create a temporary file accessible to KWin (in XDG cache dir)
             cache_dir = Config.CACHE_DIR
             shared_temp_path = cache_dir / f"kwin_script_{os.getpid()}_{script_name}"
             with open(shared_temp_path, "w") as f:
                 f.write(script_content)
 
-            # Store the temp path for cleanup
             self._kwin_script_temp_path = shared_temp_path
 
-            # Load and start script via D-Bus
             kwin_scripting = self.session_bus.get("org.kde.KWin", "/Scripting")
             self.logger.info(f"Loading KWin script from: {shared_temp_path}")
 
@@ -92,7 +82,6 @@ class KdeManager:
         except Exception as e:
             self.logger.error(f"Failed to load KWin script: {e}")
 
-            # Cleanup only if files were created
             if shared_temp_path and shared_temp_path.exists():
                 shared_temp_path.unlink()
             if temp_script_path and temp_script_path.exists():
@@ -109,7 +98,6 @@ class KdeManager:
             self.logger.info(f"Unloading KWin script with ID: {self.kwin_script_id}")
             kwin_scripting.unloadScript(str(self.kwin_script_id))
 
-            # Cleanup the temporary file
             if hasattr(self, "_kwin_script_temp_path") and self._kwin_script_temp_path:
                 if os.path.exists(self._kwin_script_temp_path):
                     os.unlink(self._kwin_script_temp_path)
@@ -180,7 +168,6 @@ class KdeManager:
             return
 
         for i, state in self.original_panel_states.items():
-            # The 'null' state needs to be handled as a special case
             script_state = f"'{state}'" if state != "null" else "null"
             script = f"panels()[{i}].hiding = {script_state}"
             self._run_plasmashell_script(script)

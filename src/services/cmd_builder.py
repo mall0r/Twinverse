@@ -1,9 +1,4 @@
-"""
-Command builder module for the Twinverse application.
-
-This module provides functionality to build complex command strings for launching
-Steam instances with various configurations, including gamescope and bwrap sandboxing.
-"""
+"""Builds the launch commands for Steam instances, with gamescope and bwrap sandboxing."""
 
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -15,7 +10,7 @@ from src.services.webhelper_sync import build_webhelper_mounts
 
 
 class CommandBuilder:
-    """Builds command strings for launching Steam instances with various configurations."""
+    """Builds the launch commands for Steam instances."""
 
     MANGOAPP_CONFIG = Path(".config/twinverse/mangoapp.conf")
 
@@ -53,7 +48,7 @@ exec "$@"
         home_path: Path,
         virtual_joystick_path: Optional[str],
     ):
-        """Initialize the CommandBuilder with necessary parameters."""
+        """Initialize the CommandBuilder."""
         self.logger = logger
         self.profile = profile
         self.device_info = device_info
@@ -69,16 +64,12 @@ exec "$@"
         [bwrap] -> [gamescope] -> [steam]  (when gamescope is enabled)
         [bwrap] -> [steam]                  (when gamescope is disabled)
         """
-        # 1. Build the innermost steam command
         steam_cmd = application_command if application_command is not None else self._build_base_steam_command()
 
-        # 2. Build the sandbox shared by Gamescope, MangoApp and Steam
         bwrap_cmd = self._build_bwrap_command(self.instance_num)
 
-        # 3. Start with the innermost command
         final_cmd = steam_cmd
 
-        # 4. Build the Gamescope command and prepend it (if enabled)
         if self.profile.use_gamescope:
             self._prepare_pipewire_config()
             should_add_grab_flags = self.device_info.get("should_add_grab_flags", False)
@@ -87,7 +78,6 @@ exec "$@"
             # Pass the instance's live limiter file through Steam to Proton.
             final_cmd = ["sh", "-c", self.GAMESCOPE_RUNTIME_SETUP, "twinverse-gamescope"] + final_cmd
 
-            # Add the '--' separator before the command Gamescope will run
             final_cmd = gamescope_cmd + ["--"] + final_cmd
             self.logger.info(f"Instance {self.instance_num}: Launching with Gamescope")
         else:
@@ -208,7 +198,6 @@ stream.rules = [
         cmd.extend(["--tmpfs", "/dev/input"])
 
         joystick_path = self.device_info.get("joystick_path_str_for_instance")
-        # If the instance has no physical joystick, assign the virtual one if it exists
         if not joystick_path and self.virtual_joystick_path:
             self.logger.info(
                 f"Instance {self.instance_num}: Assigning virtual joystick '{self.virtual_joystick_path}'."
@@ -229,20 +218,16 @@ stream.rules = [
             cmd.extend(["--dev-bind", "/dev/uinput", "/dev/uinput"])
         if Path("/dev/input/mice").exists():
             cmd.extend(["--dev-bind", "/dev/input/mice", "/dev/input/mice"])
-        # --- End Device Isolation ---
 
         # --- Home Directory Isolation ---
-        # Mount the instance-specific directories over the real Steam locations
         # fmt: off
 
         cmd.extend(["--bind", str(self.home_path), str(orig_home)])
 
         # fmt: on
-        # Mount host's common games and compatibility tools into the sandboxed Steam directory
         host_steam_path = orig_local / "share/Steam"
         sandbox_steam_path = orig_local / "share/Steam"  # Same path, but it's now a mount point
 
-        # Share games
         sandbox_common = Path(sandbox_steam_path) / "steamapps/common"
         host_common = Path(host_steam_path) / "steamapps/common"
         if host_common.exists():
@@ -250,7 +235,6 @@ stream.rules = [
                 if folder.is_dir():
                     cmd.extend(["--bind", str(folder), str(sandbox_common / folder.name)])
 
-        # Share compatibilitytools
         host_compat = Path(host_steam_path) / "compatibilitytools.d"
         sandbox_compat = Path(sandbox_steam_path) / "compatibilitytools.d"
         if host_compat.exists():
@@ -258,7 +242,6 @@ stream.rules = [
             for folder in host_compat.iterdir():
                 if folder.is_dir() and folder.name not in ignore:
                     cmd.extend(["--bind", str(folder), str(sandbox_compat / folder.name)])
-        # --- End Home Directory Isolation ---
 
         # The UI must not open placeholder controller memory before Steam does.
         cmd.extend(
@@ -269,7 +252,6 @@ stream.rules = [
             )
         )
 
-        # Ensure custom ENV variables reach Steam inside the sandbox
         try:
             extra_env = (
                 self.profile.get_env_for_instance(instance_idx) if hasattr(self.profile, "get_env_for_instance") else {}

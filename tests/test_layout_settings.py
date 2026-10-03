@@ -10,21 +10,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def test_update_num_players_limits():
     """Testa a função _update_num_players_limits com diferentes cenários."""
-    # Importar dentro da função para evitar inicialização de GUI
     from src.gui.pages.layout_settings_page import LayoutSettingsPage
 
-    # Criando uma instância simulada da página de configurações de layout
-    # Usando patch para substituir a inicialização real
     with patch.object(LayoutSettingsPage, "__init__", lambda x: None):
         layout_page = LayoutSettingsPage()
         layout_page._num_monitors = 1
 
-        # Simulando o ajuste (adjustment) do widget de número de jogadores
         mock_adjustment = MagicMock()
         mock_adjustment.get_value.return_value = 1  # Valor inicial
         mock_adjustment.get_upper.return_value = 8  # Valor padrão superior
 
-        # Simulando os atributos necessários
         layout_page.num_players_row = MagicMock()
         layout_page.num_players_row.get_adjustment.return_value = mock_adjustment
 

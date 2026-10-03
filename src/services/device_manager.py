@@ -1,9 +1,4 @@
-"""
-Device manager module for the Twinverse application.
-
-This module provides functionality to discover and manage system hardware devices
-such as input devices, audio devices, and display outputs.
-"""
+"""Discovery and management of input devices, audio sinks and display outputs."""
 
 import json
 import logging
@@ -23,14 +18,7 @@ gi.require_version("Gdk", "4.0")
 
 
 class DeviceManager:
-    """
-    Discovers and manages system hardware devices.
-
-    This class provides methods to detect and list available input devices
-    (keyboards, mice, joysticks), audio output devices (sinks), and display
-    outputs (monitors) by interfacing with system command-line tools like
-    `ls`, `pactl`, and `xrandr`.
-    """
+    """Discovers and manages system hardware devices."""
 
     def __init__(self):
         """Initialize the DeviceManager."""
@@ -41,11 +29,11 @@ class DeviceManager:
         Execute a shell command and return its standard output.
 
         Args:
-            command (List[str]): The command to execute as a list of arguments.
+            command: The command and its arguments, as a list.
 
         Returns:
-            str: The stripped stdout from the command, or an empty string
-                 if an error occurs.
+            The stripped stdout, or an empty string if the command is missing
+            or exits non-zero; the failure is logged either way.
         """
         try:
             result = subprocess.run(command, capture_output=True, text=True, check=True)
@@ -61,14 +49,11 @@ class DeviceManager:
         """
         Generate a human-readable name from a device's ID path.
 
-        It cleans up the raw device ID string by removing path prefixes and
-        technical suffixes, making it more suitable for display in a UI.
-
         Args:
-            device_id_full (str): The full device path from `/dev/input/by-id/`.
+            device_id_full: A path under `/dev/input/by-id/`.
 
         Returns:
-            str: A cleaned, human-readable device name.
+            The name with path prefixes and technical suffixes stripped.
         """
         name_part = device_id_full.replace("/dev/input/by-id/", "")
         name_part = re.sub(r"-event-(kbd|mouse|joystick)", "", name_part)
@@ -81,14 +66,9 @@ class DeviceManager:
         """
         Detect and categorize available input devices.
 
-        Parse the output of `ls -l /dev/input/by-id/` to find keyboards,
-        mice, and joysticks.
-
         Returns:
-            Dict[str, List[Dict[str, str]]]: A dictionary where keys are
-            "keyboard", "mouse", and "joystick". Each key holds a list of
-            device dictionaries, with each dictionary containing the
-            device's 'id' (path) and 'name' (human-readable).
+            Keys "keyboard", "mouse" and "joystick", each holding devices as
+            {"id": path, "name": human-readable name}.
         """
         detected_devices: Dict[str, List[Dict[str, str]]] = {
             "keyboard": [],
@@ -98,7 +78,6 @@ class DeviceManager:
 
         by_id_output = self._run_command(["ls", "-l", "/dev/input/by-id/"])
 
-        # A more specific regex to find symlinks to event devices.
         device_pattern = re.compile(r"\s([^\s]+)\s+->\s+\.\./event\d+")
 
         for line in by_id_output.splitlines():
@@ -129,9 +108,7 @@ class DeviceManager:
         Detect available audio output devices (sinks) using `pactl`.
 
         Returns:
-            List[Dict[str, str]]: A list of dictionaries, where each
-            dictionary represents an audio sink and contains its 'id'
-            (PulseAudio name) and 'name' (readable description).
+            Sinks as {"id": PulseAudio name, "name": readable description}.
         """
         audio_sinks = []
 
@@ -233,10 +210,8 @@ class DeviceManager:
         monitor_to_use = monitors_sorted[monitor_index]
 
         if not profile.is_splitscreen_mode or not profile.splitscreen:
-            # Fullscreen mode
             return monitor_to_use["width"], monitor_to_use["height"]
         else:
-            # Splitscreen mode
             orientation = profile.splitscreen.orientation
             num_players = profile.effective_num_players()
 
@@ -245,17 +220,14 @@ class DeviceManager:
             else:
                 group_index = instance_num // 4
 
-                # Applies splitscreen logic within the group.
                 instance_in_group = instance_num % 4
                 num_players_in_group = min(4, num_players - group_index * 4)
 
                 if monitor_to_use and num_players_in_group > 0:
-                    # Special case: if there's only 1 player in the group, return full monitor size
                     if num_players_in_group == 1:
                         return monitor_to_use["width"], monitor_to_use["height"]
 
                     if instance_in_group < num_players_in_group:
-                        # Use the new layout calculator
                         x, y, width, height = LayoutCalculator.calculate_position(
                             monitor_to_use["width"],
                             monitor_to_use["height"],
@@ -265,8 +237,6 @@ class DeviceManager:
                         )
                         return width, height
                     else:
-                        # If instance_in_group is greater than or equal to num_players_in_group,
-                        # return None, None as in the original logic
                         return None, None
 
         if monitor_to_use:

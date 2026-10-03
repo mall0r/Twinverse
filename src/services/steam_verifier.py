@@ -1,14 +1,10 @@
-"""
-Steam verifier module for the Twinverse application.
-
-This module provides functionality to verify Steam installations.
-"""
+"""Verification of Steam installations."""
 
 from pathlib import Path
 
 
 class SteamVerifier:
-    """Verifies Steam installations for Twinverse instances."""
+    """Confirms an instance home actually holds a usable Steam client."""
 
     def __init__(self, logger):
         """Initialize the Steam verifier with a logger."""

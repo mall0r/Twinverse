@@ -1,8 +1,4 @@
-"""
-Error dialog module.
-
-This module provides an error dialog.
-"""
+"""Error dialog."""
 
 import gi
 

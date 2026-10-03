@@ -1,9 +1,4 @@
-"""
-Instance management module for the Twinverse application.
-
-This module provides functionality to manage Steam instances, including launching,
-terminating, and configuring them with isolated environments.
-"""
+"""Launch, termination and configuration of Steam instances in isolated environments."""
 
 import copy
 import os
@@ -24,7 +19,7 @@ from .steam_input import SteamInputDisabler
 
 
 class InstanceService:
-    """Service responsible for managing Steam instances."""
+    """Tracks the process, PGID and Popen of every managed instance."""
 
     def __init__(self, logger: Logger, kde_manager: Optional[KdeManager] = None):
         """Initialize the instance service."""
@@ -179,7 +174,6 @@ class InstanceService:
         self.logger.error(f"Instance {instance_num}: Failed to capture host PGID. Read: '{pgid_str}'")
         process.terminate()
 
-        # Try to get error output if available
         stdout_data, stderr_data = process.communicate(timeout=1) if process.stdout else (None, None)
         stdout_str = stdout_data.decode() if stdout_data else ""
         stderr_str = stderr_data.decode() if stderr_data else ""
@@ -206,10 +200,8 @@ class InstanceService:
 
         self.logger.info(f"Instance {instance_num}: Full command: {shlex.join(base_command)}")
 
-        # Log environment variables for debugging
         self.logger.debug(f"Instance {instance_num}: Environment variables: {list(instance_env.keys())}")
 
-        # Check if required binaries exist before launching
         if not shutil.which(base_command[0]):
             error_msg = f"Command '{base_command[0]}' not found in PATH"
             self.logger.error(f"Instance {instance_num}: {error_msg}")
@@ -273,7 +265,6 @@ class InstanceService:
             needs_virtual_joystick = False
             num_players = profile.effective_num_players()
             if num_players > 0:
-                # Check player configs up to the number of players
                 for i in range(num_players):
                     player_config = (
                         profile.player_configs[i]
@@ -290,7 +281,6 @@ class InstanceService:
                     self._virtual_joystick_path = self.virtual_device.create_virtual_joystick()
                 except VirtualDeviceError as e:
                     self.logger.error(f"Halting launch due to virtual joystick creation failure: {str(e)}")
-                    # Re-raise the exception to be caught by the UI layer
                     raise
 
         active_profile = profile
@@ -298,7 +288,6 @@ class InstanceService:
             active_profile = copy.deepcopy(profile)
             active_profile.use_gamescope = use_gamescope_override
 
-            # Also override ENABLE_GAMESCOPE_WSI when gamescope is disabled
             if use_gamescope_override is False:
                 active_profile.enable_gamescope_wsi = False
 
@@ -421,13 +410,13 @@ class InstanceService:
         """
         Prepare the isolated Steam directories for the instance.
 
-        This creates the directory structure used by Steam and terminal launches.
+        Args:
+            home_path: The instance home to populate.
         """
         self.logger.info(f"Preparing isolated Steam directories for instance at {home_path}...")
 
         sdbx_steam_local = home_path / ".local/share/Steam"
 
-        # Create essential Steam directories within the instance's isolated path
         try:
             (sdbx_steam_local / "steamapps").mkdir(parents=True, exist_ok=True)
             (sdbx_steam_local / "compatibilitytools.d").mkdir(parents=True, exist_ok=True)
@@ -471,7 +460,6 @@ class InstanceService:
 
         env["ENABLE_GAMESCOPE_WSI"] = "1" if profile.enable_gamescope_wsi else "0"
 
-        # Handle audio device assignment
         if device_info.get("audio_device_id_for_instance"):
             env["PULSE_SINK"] = device_info["audio_device_id_for_instance"]
             self.logger.info(
@@ -485,7 +473,6 @@ class InstanceService:
 
     def _validate_input_devices(self, profile: Profile, instance_num: int, instance_num_display: int) -> dict:
         """Validate input devices and return information about them."""
-        # Get specific player config
         player_config = (
             profile.player_configs[instance_num]
             if profile.player_configs and 0 <= instance_num < len(profile.player_configs)
@@ -528,14 +515,12 @@ class InstanceService:
             self.termination_in_progress = True
             self.logger.info("Starting termination of all instances...")
 
-            # Cleanup virtual joystick
             if self._virtual_joystick_path:
                 self.virtual_device.destroy_virtual_joystick()
                 self._virtual_joystick_path = None
                 self.logger.info("Virtual joystick destroyed.")
             self._virtual_joystick_checked = False
 
-            # Cleanup KDE-specific settings
             if self.kde_manager:
                 self.kde_manager.stop_kwin_script()
                 self.kde_manager.restore_panel_states()

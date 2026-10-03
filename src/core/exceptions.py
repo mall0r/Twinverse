@@ -1,17 +1,8 @@
-"""
-Module defining custom exceptions for the Twinverse application.
-
-This module contains all custom exception classes used throughout the
-Twinverse application to handle specific error conditions.
-"""
+"""Custom exceptions raised by the application."""
 
 
 class TwinverseError(Exception):
-    """Base exception for all custom errors raised by the Twinverse application.
-
-    Catching this exception allows for handling of all application-specific
-    errors.
-    """
+    """Base exception for all custom errors raised by the application."""
 
     pass
 

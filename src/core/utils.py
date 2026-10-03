@@ -1,9 +1,4 @@
-"""
-Utility module for the Twinverse application.
-
-This module provides utility functions and classes that are commonly used
-throughout the Twinverse application.
-"""
+"""Utilities shared across the application."""
 
 import os
 import subprocess
@@ -13,7 +8,7 @@ from typing import List, Literal, Union, overload
 
 
 class Utils:
-    """Provides utility functions for the Twinverse application."""
+    """Path, version and host-spawn helpers."""
 
     @staticmethod
     def get_base_path() -> Path:
@@ -24,10 +19,8 @@ class Utils:
         - When running as a PyInstaller bundle, it returns the path to the extracted files.
         """
         if getattr(sys, "frozen", False):
-            # Running in a PyInstaller bundle
             return Path(sys._MEIPASS)  # type: ignore[attr-defined]
         else:
-            # Running as a script, assuming this file is in src/core
             return Path(__file__).resolve().parent.parent.parent
 
     @staticmethod
@@ -68,13 +61,12 @@ class Utils:
         Execute a command, using 'flatpak-spawn --host' if inside a Flatpak.
 
         Args:
-            command (List[str]): The command to execute.
-            async_ (bool): If True, execute asynchronously and return a Popen object.
-                           Otherwise, run synchronously and return a CompletedProcess object.
-            **kwargs: Additional arguments to pass to subprocess.run or subprocess.Popen.
+            command: The command and its arguments.
+            async_: Start the command without waiting for it.
+            **kwargs: Passed through to subprocess.run or subprocess.Popen.
 
         Returns:
-            Union[subprocess.CompletedProcess, subprocess.Popen]: The result of the command execution.
+            A Popen when async_ is True, a CompletedProcess otherwise.
         """
         if Utils.is_flatpak():
             command = ["flatpak-spawn", "--host"] + command
