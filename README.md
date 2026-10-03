@@ -67,6 +67,8 @@ To use Twinverse without issues, ensure the following requirements are met:
 
 You need to have the *native* `gamescope` and `steam` packages from your distribution installed.
 
+**Optional:** `pasta` (usually provided by the `passt` package) enables automatic per-instance network isolation with internet access, without running Twinverse as root. Install it on the host, including when using Twinverse via Flatpak. If it is absent, Twinverse keeps using the shared host network. See the [connection troubleshooting guide](docs/GUIDE.md#connection-problems).
+
 For Gamescope to function correctly, based on your GPU, you will need:
 
   - **AMD:** Mesa 20.3 or newer

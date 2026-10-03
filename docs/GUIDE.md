@@ -7,6 +7,12 @@
 
 Welcome to the Twinverse guide! This document will walk you through the process of setting up and using the Twinverse application to run multiple Steam instances.
 
+### Connection problems
+
+If Steam Link or games have connection problems caused by multiple instances using the same ports, install `pasta` on your system (usually the `passt` package) and relaunch the instances. Twinverse detects it automatically and isolates each instance's network while providing internet access, without running as root. This also applies to the Flatpak version: `pasta` must be available on the host's `PATH`.
+
+Without `pasta`, networking works as before, sharing the host network between instances.
+
 ## 1. Number of Instances
 
 First, you need to decide how many Steam instances you want to run. Twinverse supports up to 8 instances total.

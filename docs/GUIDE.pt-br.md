@@ -7,6 +7,12 @@
 
 Bem-vindo ao guia do Twinverse! Este documento irá guiá-lo pelo processo de configuração e uso do aplicativo Twinverse.
 
+### Problemas de conexão
+
+Se o Steam Link ou jogos apresentarem problemas de conexão causados por várias instâncias usando as mesmas portas, instale o `pasta` no sistema (geralmente pelo pacote `passt`) e reabra as instâncias. O Twinverse o detecta automaticamente e isola a rede de cada instância mantendo o acesso à internet, sem executar como root. Isso também vale para a versão Flatpak: o `pasta` precisa estar disponível no `PATH` do host.
+
+Sem o `pasta`, a rede funciona como antes, compartilhando a rede do host entre as instâncias.
+
 ## 1. Número de Instâncias
 
 Primeiro, você precisa decidir quantas instâncias do Steam deseja executar. O Twinverse suporta até 8 instâncias no total.

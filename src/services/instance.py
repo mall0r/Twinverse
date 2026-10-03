@@ -19,6 +19,7 @@ from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceEr
 from src.models import PlayerInstanceConfig, Profile
 
 from .kde_manager import KdeManager
+from .network import network_command
 from .steam_input import SteamInputDisabler
 
 
@@ -121,7 +122,12 @@ class InstanceService:
         ]
         env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
         escaped_command = shlex.join(base_command)
-        shell_command = f"{env_prefix}set -m; echo $$; exec {escaped_command}"
+        network_launch = shlex.join(network_command(base_command))
+        shell_command = (
+            f"{env_prefix}set -m; echo $$; "
+            f"if command -v pasta >/dev/null 2>&1; then exec {network_launch}; "
+            f"else exec {escaped_command}; fi"
+        )
 
         self.logger.info(f"Instance {instance_num}: Launching on host via shell: {shell_command}")
 
@@ -208,6 +214,9 @@ class InstanceService:
             error_msg = f"Command '{base_command[0]}' not found in PATH"
             self.logger.error(f"Instance {instance_num}: {error_msg}")
             raise DependencyError(error_msg)
+
+        if shutil.which("pasta"):
+            base_command = network_command(base_command)
 
         try:
             process = subprocess.Popen(
