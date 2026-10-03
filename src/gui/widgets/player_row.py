@@ -59,19 +59,11 @@ class PlayerRow(Adw.ExpanderRow):
 
         # Audio device
         audio_devices = self._devices_info.get("audio", [])
-        audio_model = Gtk.StringList.new(["None"] + [d["name"] for d in audio_devices])
+        audio_model = Gtk.StringList.new(["Default"] + [d["name"] for d in audio_devices])
         self.audio_row = Adw.ComboRow(title="Audio Device", model=audio_model)
         self.audio_row.get_style_context().add_class("audio-row")
         self.audio_row.connect("notify::selected-item", lambda *args: self.emit("settings-changed"))
         self.add_row(self.audio_row)
-
-        # Refresh rate
-        refresh_rates = ["60", "75", "90", "120", "144", "165", "180", "240"]
-        refresh_rate_model = Gtk.StringList.new(refresh_rates)
-        self.refresh_rate_row = Adw.ComboRow(title="Refresh Rate", model=refresh_rate_model)
-        self.refresh_rate_row.get_style_context().add_class("refresh-rate-row")
-        self.refresh_rate_row.connect("notify::selected-item", lambda *args: self.emit("settings-changed"))
-        self.add_row(self.refresh_rate_row)
 
         # Environment variables section
         self._create_env_section()
@@ -174,7 +166,7 @@ class PlayerRow(Adw.ExpanderRow):
 
         # Update audio model
         audio_devices = devices_info.get("audio", [])
-        audio_model = Gtk.StringList.new(["None"] + [d["name"] for d in audio_devices])
+        audio_model = Gtk.StringList.new(["Default"] + [d["name"] for d in audio_devices])
         self.audio_row.set_model(audio_model)
         self._set_combo_selection(self.audio_row, audio_devices, current_audio)
 
@@ -191,14 +183,6 @@ class PlayerRow(Adw.ExpanderRow):
         # Load audio
         self._set_combo_selection(self.audio_row, self._devices_info.get("audio", []), config.audio_device_id)
 
-        # Load refresh rate
-        refresh_rates = ["60", "75", "90", "120", "144", "165", "180", "240"]
-        refresh_rate_str = str(config.refresh_rate)
-        if refresh_rate_str in refresh_rates:
-            self.refresh_rate_row.set_selected(refresh_rates.index(refresh_rate_str))
-        else:
-            self.refresh_rate_row.set_selected(0)
-
         # Load environment variables
         for key, value in (config.env or {}).items():
             self._add_env_row(key, value)
@@ -212,7 +196,6 @@ class PlayerRow(Adw.ExpanderRow):
             GRAB_INPUT_DEVICES=self.grab_input_switch.get_active(),
             AUDIO_DEVICE_ID=self._get_combo_device_id(self.audio_row, self._devices_info.get("audio", [])),
             ENV=self._collect_env_vars(),
-            REFRESH_RATE=self._get_refresh_rate(),
         )
 
     def is_selected(self) -> bool:
@@ -283,11 +266,6 @@ class PlayerRow(Adw.ExpanderRow):
         if selected_idx > 0 and (selected_idx - 1) < len(device_list):
             return device_list[selected_idx - 1]["id"]
         return None
-
-    def _get_refresh_rate(self) -> int:
-        """Get selected refresh rate."""
-        selected_item = self.refresh_rate_row.get_selected_item()
-        return int(selected_item.get_string()) if selected_item else 60
 
     def set_grab_input_sensitive(self, sensitive: bool):
         """Set grab input switch sensitivity."""

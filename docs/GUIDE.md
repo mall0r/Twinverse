@@ -70,7 +70,6 @@ For each instance, you can configure the following options:
 - **Gamepad:** Assign a specific controller to the instance.
 - **Capture Mouse:** Dedicate the mouse to a single instance. For now, only one instance at a time can use the mouse and keyboard.
 - **Audio Device:** Select a specific audio output device for the instance.
-- **Refresh Rate:** Set the refresh rate for the instance. Useful if you want to cap FPS or use a specific refresh rate.
 - **Environment Variables:** Define specific environment variables for the instance.
 
 <img alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />

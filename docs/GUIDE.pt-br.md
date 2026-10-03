@@ -73,7 +73,6 @@ Para cada instância, você pode configurar as seguintes opções:
 - **Controle (Gamepad):** Atribuir um controle específico à instância.
 - **Capturar Mouse:** Dedicar o mouse a uma única instância. Por enquanto, apenas uma instância por vez pode usar o mouse e o teclado.
 - **Dispositivo de Áudio:** Selecionar um dispositivo de saída de áudio específico para a instância.
-- **Taxa de Atualização (Refresh Rate):** Definir a taxa de atualização para a instância. Util se você quer travar o FPS ou usar uma taxa de atualização específica.
 - **Variável de Ambiente (Environment Variables):** Definir variáveis de ambiente específicas para a instância.
 
 <img alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />

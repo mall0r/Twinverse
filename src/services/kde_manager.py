@@ -5,6 +5,7 @@ This module provides functionality to manage KDE-specific features such as
 KWin scripts for window management and panel visibility control.
 """
 
+import json
 import os
 from pathlib import Path
 
@@ -13,6 +14,7 @@ import pydbus
 from src.core import Logger
 from src.core.config import Config
 from src.models import Profile
+from src.services.device_manager import DeviceManager
 
 
 class KdeManager:
@@ -59,6 +61,15 @@ class KdeManager:
         try:
             # Read script content
             script_content = script_path.read_text()
+
+            # Use the same monitor order as DeviceManager, matching KWin outputs by connector.
+            monitor_names = json.dumps([monitor.name for monitor in DeviceManager.get_ordered_monitors()])
+            script_content = script_content.replace(
+                "var screens = workspace.screens;",
+                f"var screens = {monitor_names}.map(function (name) {{"
+                " return workspace.screens.find(function (screen) { return screen.name === name; });"
+                " }).filter(Boolean);",
+            )
 
             # Create a temporary file accessible to KWin (in XDG cache dir)
             cache_dir = Config.CACHE_DIR

@@ -5,15 +5,21 @@ This module provides functionality to discover and manage system hardware device
 such as input devices, audio devices, and display outputs.
 """
 
+import json
 import logging
 import re
 import subprocess
 from typing import Dict, List, Optional, Tuple, Union
 
+import gi
+import pydbus
+from gi.repository import Gdk
 from screeninfo import get_monitors
 
 from src.core import LayoutCalculator
 from src.models import Profile
+
+gi.require_version("Gdk", "4.0")
 
 
 class DeviceManager:
@@ -153,10 +159,35 @@ class DeviceManager:
 
         return sorted(audio_sinks, key=lambda x: x["name"])
 
+    @staticmethod
+    def get_ordered_monitors():
+        """Put the primary monitor first, preserving the order of other outputs."""
+        monitors = get_monitors()
+        primary_name = None
+        if monitors and not any(monitor.is_primary for monitor in monitors):
+            # Flatpak's screeninfo backend may omit primary status. Plasma's
+            # screen 0 is the primary; query it through the existing D-Bus access.
+            try:
+                plasma = pydbus.SessionBus().get("org.kde.plasmashell", "/PlasmaShell")
+                names = json.dumps([monitor.name for monitor in monitors])
+                primary_name = plasma.evaluateScript(
+                    f"print({names}.find(function (name) {{ return screenForConnector(name) === 0; }}) || '');"
+                ).strip()
+            except Exception as e:
+                logging.warning(f"Could not determine the primary monitor from Plasma: {e}")
+        return sorted(monitors, key=lambda monitor: not (monitor.is_primary or monitor.name == primary_name))
+
     def get_screen_info(self) -> List[Dict[str, Union[int, bool]]]:
         """Get information about connected screens/monitors."""
+        # Match connectors rather than enumeration order: GDK and screeninfo
+        # need not list monitors in the same order. GDK reports current mHz.
+        display = Gdk.Display.get_default()
+        refresh_rates = {}
+        if display:
+            for monitor in display.get_monitors():
+                refresh_rates[monitor.get_connector()] = monitor.get_refresh_rate()
         monitors = []
-        for i, monitor in enumerate(get_monitors()):
+        for i, monitor in enumerate(self.get_ordered_monitors()):
             monitors.append(
                 {
                     "id": i,
@@ -164,9 +195,27 @@ class DeviceManager:
                     "y": monitor.y,
                     "width": monitor.width,
                     "height": monitor.height,
+                    "refresh_rate_mhz": refresh_rates.get(monitor.name, 0),
                 }
             )
         return monitors
+
+    @staticmethod
+    def _get_instance_monitor_index(profile: Profile, instance_num: int) -> int:
+        """Use the same monitor assignment for dimensions and refresh rate."""
+        if profile.is_splitscreen_mode and profile.splitscreen:
+            return instance_num // 4 if profile.effective_num_players() > 0 else 0
+        return instance_num
+
+    def get_instance_refresh_rate(self, profile: Profile, instance_num: int) -> Optional[int]:
+        """Return the assigned monitor's current rate in Gamescope's integer Hz."""
+        monitors = sorted(self.get_screen_info(), key=lambda monitor: monitor["id"])
+        index = self._get_instance_monitor_index(profile, instance_num)
+        if 0 <= index < len(monitors):
+            rate = monitors[index].get("refresh_rate_mhz", 0)
+            if rate > 0:
+                return max(1, int(rate / 1000 + 0.5))
+        return None
 
     def get_instance_dimensions(self, profile: Profile, instance_num: int) -> Tuple[Optional[int], Optional[int]]:
         """
@@ -178,31 +227,23 @@ class DeviceManager:
 
         monitors_sorted = sorted(monitors, key=lambda x: x["id"])
 
-        monitor_to_use = None
+        monitor_index = self._get_instance_monitor_index(profile, instance_num)
+        if not 0 <= monitor_index < len(monitors_sorted):
+            return None, None
+        monitor_to_use = monitors_sorted[monitor_index]
 
         if not profile.is_splitscreen_mode or not profile.splitscreen:
             # Fullscreen mode
-            if instance_num < len(monitors_sorted):
-                monitor_to_use = monitors_sorted[instance_num]
-            else:
-                return None, None
+            return monitor_to_use["width"], monitor_to_use["height"]
         else:
             # Splitscreen mode
             orientation = profile.splitscreen.orientation
             num_players = profile.effective_num_players()
 
             if num_players < 1:
-                if monitors_sorted:
-                    monitor_to_use = monitors_sorted[0]
-                else:
-                    return None, None
+                return monitor_to_use["width"], monitor_to_use["height"]
             else:
                 group_index = instance_num // 4
-
-                if group_index < len(monitors_sorted):
-                    monitor_to_use = monitors_sorted[group_index]
-                else:
-                    return None, None
 
                 # Applies splitscreen logic within the group.
                 instance_in_group = instance_num % 4

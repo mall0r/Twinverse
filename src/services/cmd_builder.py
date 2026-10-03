@@ -101,17 +101,6 @@ exec "$@"
             self.logger.error(f"Instance {self.instance_num}: Invalid dimensions. Aborting launch.")
             return []
 
-        # Get refresh rate for the specific instance
-        refresh_rate = 60  # Default
-        if self.profile.player_configs and 0 <= self.instance_num < len(self.profile.player_configs):
-            refresh_rate = self.profile.player_configs[self.instance_num].refresh_rate
-        else:
-            self.logger.warning(
-                f"Instance {self.instance_num}: Could not find player config, defaulting refresh rate to 60Hz."
-            )
-
-        refresh_rate_str = str(refresh_rate)
-
         # fmt: off
         cmd = [
             "gamescope",
@@ -120,11 +109,15 @@ exec "$@"
             "-H", str(height),
             "-w", str(width),
             "-h", str(height),
-            "-o", refresh_rate_str,
-            "-r", refresh_rate_str,
             "--adaptive-sync",
         ]
         # fmt: on
+
+        refresh_rate = self.device_manager.get_instance_refresh_rate(self.profile, self.instance_num)
+        if refresh_rate:
+            cmd.extend(["-r", str(refresh_rate), "-o", str(refresh_rate)])
+        else:
+            self.logger.warning(f"Instance {self.instance_num}: Could not detect the monitor refresh rate.")
 
         if self.profile.use_steamdeck_tag:
             cmd.append("--mangoapp")
