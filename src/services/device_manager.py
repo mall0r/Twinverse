@@ -184,10 +184,18 @@ class DeviceManager:
             return instance_num // 4 if profile.effective_num_players() > 0 else 0
         return instance_num
 
+    @classmethod
+    def _resolve_monitor_index(cls, profile: Profile, instance_num: int, num_monitors: int) -> int:
+        """Fall back to the first monitor when there are more instances than monitors."""
+        index = cls._get_instance_monitor_index(profile, instance_num)
+        if num_monitors > 0 and index >= num_monitors:
+            return 0
+        return index
+
     def get_instance_refresh_rate(self, profile: Profile, instance_num: int) -> Optional[int]:
         """Return the assigned monitor's current rate in Gamescope's integer Hz."""
         monitors = sorted(self.get_screen_info(), key=lambda monitor: monitor["id"])
-        index = self._get_instance_monitor_index(profile, instance_num)
+        index = self._resolve_monitor_index(profile, instance_num, len(monitors))
         if 0 <= index < len(monitors):
             rate = monitors[index].get("refresh_rate_mhz", 0)
             if rate > 0:
@@ -204,7 +212,7 @@ class DeviceManager:
 
         monitors_sorted = sorted(monitors, key=lambda x: x["id"])
 
-        monitor_index = self._get_instance_monitor_index(profile, instance_num)
+        monitor_index = self._resolve_monitor_index(profile, instance_num, len(monitors_sorted))
         if not 0 <= monitor_index < len(monitors_sorted):
             return None, None
         monitor_to_use = monitors_sorted[monitor_index]

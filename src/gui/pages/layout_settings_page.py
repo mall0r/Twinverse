@@ -272,7 +272,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         if is_splitscreen:
             max_players = min(8, self._num_monitors * 4)
         else:
-            max_players = min(8, self._num_monitors)
+            max_players = 8
 
         adjustment = self.num_players_row.get_adjustment()
 

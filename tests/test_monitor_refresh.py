@@ -55,6 +55,32 @@ def test_refresh_follows_layout(manager, mode, players, index, dimensions, hz):
     assert command[command.index("-o") + 1] == str(hz)
 
 
+def test_instance_beyond_the_last_monitor_reuses_the_first(manager, tmp_path):
+    """An instance with no monitor of its own borrows the first monitor's settings."""
+    profile = Profile(mode="fullscreen", player_configs=[PlayerInstanceConfig() for _ in range(3)])
+
+    # Instance 3 has no third monitor, so it must match instance 1 exactly.
+    assert manager.get_instance_dimensions(profile, 2) == manager.get_instance_dimensions(profile, 0)
+    assert manager.get_instance_refresh_rate(profile, 2) == manager.get_instance_refresh_rate(profile, 0)
+
+    builder = CommandBuilder(Mock(), profile, {}, manager, 2, tmp_path, None)
+    command = builder._build_gamescope_command(False)
+    assert command[:5] == ["gamescope", "-e", "-W", "1920", "-H"]
+
+    # The command must stay a single valid program for bwrap to exec.
+    full = builder.build_command(["steam"])
+    assert full[full.index("--") + 1] == "gamescope"
+
+
+def test_splitscreen_group_without_a_monitor_reuses_the_first(manager):
+    """Splitscreen groups past the last monitor fall back to the first one too."""
+    profile = Profile(mode="splitscreen", player_configs=[PlayerInstanceConfig() for _ in range(12)])
+    # Two monitors, so the third group (instances 9-12) has none of its own.
+    assert manager._get_instance_monitor_index(profile, 8) == 2
+    assert manager._resolve_monitor_index(profile, 8, 2) == 0
+    assert manager.get_instance_dimensions(profile, 8) == manager.get_instance_dimensions(profile, 0)
+
+
 def test_unknown_refresh_does_not_force_sixty(manager, monkeypatch):
     """Do not invent a monitor frequency when display information is unavailable."""
     monkeypatch.setattr("src.services.device_manager.Gdk.Display.get_default", lambda: None)
