@@ -1,8 +1,4 @@
-"""
-Launch controller module.
-
-This module manages the lifecycle of launching instances.
-"""
+"""Instance launch lifecycle."""
 
 import threading
 import time
@@ -14,7 +10,7 @@ from src.services import InstanceService, KdeManager
 
 
 class LaunchController:
-    """Manages the lifecycle of launching instances."""
+    """Runs launches and stops on worker threads, one bulk operation at a time."""
 
     def __init__(self, instance_service: InstanceService, kde_manager: KdeManager, logger: Logger):
         """Initialize the launch controller."""
@@ -37,13 +33,12 @@ class LaunchController:
         on_error: Optional[Callable[[Exception], None]] = None,
     ):
         """
-        Launch instances asynchronously.
+        Launch instances asynchronously, ignoring a second concurrent launch.
 
         Args:
-            profile: The profile configuration
-            on_progress: Callback for progress updates (called with instance number)
-            on_complete: Callback when launch completes successfully
-            on_error: Callback when an error occurs (called with exception)
+            on_progress: Called with each instance number as it starts.
+            on_complete: Called once every instance has been launched.
+            on_error: Called with the exception that aborted the launch.
         """
         if self._launch_thread and self._launch_thread.is_alive():
             self._logger.warning("Launch already in progress")
@@ -60,7 +55,7 @@ class LaunchController:
         Stop all running instances.
 
         Args:
-            on_complete: Callback when stop completes
+            on_complete: Called once every instance has stopped.
         """
         if self._launch_thread and self._launch_thread.is_alive():
             self._logger.info("Cancelling in-progress launch...")
@@ -81,11 +76,8 @@ class LaunchController:
         Launch a single instance.
 
         Args:
-            profile: The profile configuration
-            instance_num: The instance number to launch
-            use_gamescope_override: Override gamescope setting
-            on_complete: Callback when launch completes
-            on_error: Callback when an error occurs
+            use_gamescope_override: Forces gamescope on or off, instead of
+                following the profile.
         """
         launch_thread = threading.Thread(
             target=self._single_instance_worker,
@@ -102,8 +94,7 @@ class LaunchController:
         Terminate a single instance.
 
         Args:
-            instance_num: The instance number to terminate
-            on_complete: Callback when termination completes
+            on_complete: Called once that instance has stopped.
         """
         terminate_thread = threading.Thread(target=self._terminate_single_worker, args=(instance_num, on_complete))
         terminate_thread.start()
@@ -120,7 +111,6 @@ class LaunchController:
         self._logger.info(f"Launch worker started for players: {selected_players}")
 
         try:
-            # Setup KDE if enabled
             if profile.enable_kwin_script:
                 self._logger.info("Starting KDE script setup...")
                 self._kde_manager.start_kwin_script(profile)
@@ -129,7 +119,6 @@ class LaunchController:
             self._kde_manager.set_panels_dodge_windows()
             self._logger.info("KDE panel states saved and updated.")
 
-            # Launch each instance
             for instance_num in selected_players:
                 if self._cancel_event.is_set():
                     self._logger.info("Launch sequence cancelled by user.")
@@ -142,7 +131,6 @@ class LaunchController:
                 if on_progress:
                     on_progress(instance_num)
 
-                # Sleep between launches to allow each instance to initialize properly
                 self._logger.info("Waiting 5 seconds before launching next instance...")
                 time.sleep(5)
 

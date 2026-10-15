@@ -1,8 +1,4 @@
-"""
-Text input dialog module.
-
-This module provides a text input dialog.
-"""
+"""Text input dialog."""
 
 import gi
 from gi.repository import Gtk

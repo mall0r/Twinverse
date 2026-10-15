@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.1.3-blue.svg" alt="Version"/></a>
+  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.1.4-blue.svg" alt="Version"/></a>
   <a href="https://github.com/mall0r/Twinverse/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="License"/></a>
   <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK Version"/></a>
   <a href="https://gnome.pages.gitlab.gnome.org/libadwaita/"><img src="https://img.shields.io/badge/libadwaita-1.0+-purple.svg" alt="libadwaita Version"/></a>
@@ -66,6 +66,8 @@ O Twinverse foi projetado para ser uma solução flexível para jogar em tela di
 Para usar o Twinverse sem problemas, certifique-se de que os seguintes requisitos sejam atendidos:
 
 É necessário ter instalados os pacotes `gamescope` e `steam` *nativos* de sua distro.
+
+**Opcional:** `pasta` (geralmente fornecido pelo pacote `passt`) ativa automaticamente o isolamento de rede por instância com acesso à internet, sem executar o Twinverse como root. Instale-o no sistema host, inclusive ao usar o Twinverse via Flatpak. Se ele estiver ausente, o Twinverse continua compartilhando a rede do host. Consulte o [guia de problemas de conexão](GUIDE.pt-br.md#problemas-de-conexão).
 
 Para que o Gamescope funcione corretamente, de acordo com sua GPU, será necessário:
 

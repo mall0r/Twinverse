@@ -1,8 +1,4 @@
-"""
-Settings controller module.
-
-This module manages application settings and profile management.
-"""
+"""Application settings and profile management."""
 
 from typing import Callable
 
@@ -12,7 +8,7 @@ from src.services import DeviceManager
 
 
 class SettingsController:
-    """Manages application settings and profile."""
+    """Keeps the profile in sync with the UI and the detected devices."""
 
     def __init__(self, device_manager: DeviceManager, logger: Logger):
         """Initialize the settings controller."""
@@ -36,9 +32,9 @@ class SettingsController:
         Update profile from UI data.
 
         Args:
-            ui_data: Dictionary containing UI data
+            ui_data: As returned by the layout page; "selected_players" and
+                "player_configs" are pruned to num_players.
         """
-        # Store old player configs to preserve settings when number of players changes
         old_player_configs = self._profile.player_configs[:]
 
         self._profile.num_players = ui_data["num_players"]
@@ -49,25 +45,19 @@ class SettingsController:
         else:
             self._profile.splitscreen = None
 
-        # Update player configs, preserving old configs when possible
         new_player_configs = ui_data["player_configs"]
 
-        # If we have more slots than new configs, extend with preserved old configs or defaults
         while len(new_player_configs) < self._profile.num_players:
             if len(new_player_configs) < len(old_player_configs):
-                # Use old config if available
                 new_player_configs.append(old_player_configs[len(new_player_configs)])
             else:
-                # Add default config
                 new_player_configs.append(PlayerInstanceConfig())
 
         self._profile.player_configs = new_player_configs
 
-        # Filter selected_players to only include valid indices based on the new number of players
         valid_selected_players = [idx for idx in ui_data["selected_players"] if 0 <= idx < self._profile.num_players]
         self._profile.selected_players = valid_selected_players
 
-        # Always enable KWin script
         self._profile.enable_kwin_script = True
 
     def update_preference(self, key: str, value):
@@ -75,8 +65,7 @@ class SettingsController:
         Update a specific preference.
 
         Args:
-            key: The preference key
-            value: The preference value
+            key: A Profile field name; anything else is logged and ignored.
         """
         if hasattr(self._profile, key):
             setattr(self._profile, key, value)
@@ -90,7 +79,7 @@ class SettingsController:
         Get information about available devices.
 
         Returns:
-            Dictionary with device information
+            Dict with "joystick", "mouse", "keyboard", "audio" and "displays".
         """
         return {
             "joystick": self._device_manager.get_input_devices().get("joystick", []),
@@ -103,7 +92,6 @@ class SettingsController:
     def refresh_devices(self):
         """Refresh device information."""
         self._logger.info("Refreshing device information...")
-        # Force refresh by recreating device manager
         self._device_manager = DeviceManager()
 
     def register_change_callback(self, callback: Callable[[], None]):
@@ -111,7 +99,7 @@ class SettingsController:
         Register a callback for when settings change.
 
         Args:
-            callback: Function to call when settings change
+            callback: Called with no arguments after each change.
         """
         self._on_change_callbacks.append(callback)
 

@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.1.3-blue.svg" alt="Version"/></a>
+  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.1.4-blue.svg" alt="Version"/></a>
   <a href="https://github.com/mall0r/Twinverse/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="License"/></a>
   <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK Version"/></a>
   <a href="https://gnome.pages.gitlab.gnome.org/libadwaita/"><img src="https://img.shields.io/badge/libadwaita-1.0+-purple.svg" alt="libadwaita Version"/></a>
@@ -66,6 +66,8 @@ Twinverse is designed as a flexible solution for splitscreen gaming on Linux. He
 To use Twinverse without issues, ensure the following requirements are met:
 
 You need to have the *native* `gamescope` and `steam` packages from your distribution installed.
+
+**Optional:** `pasta` (usually provided by the `passt` package) enables automatic per-instance network isolation with internet access, without running Twinverse as root. Install it on the host, including when using Twinverse via Flatpak. If it is absent, Twinverse keeps using the shared host network. See the [connection troubleshooting guide](docs/GUIDE.md#connection-problems).
 
 For Gamescope to function correctly, based on your GPU, you will need:
 

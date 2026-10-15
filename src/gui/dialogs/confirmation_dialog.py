@@ -1,8 +1,4 @@
-"""
-Confirmation dialog module.
-
-This module provides a confirmation dialog.
-"""
+"""Confirmation dialog."""
 
 import gi
 

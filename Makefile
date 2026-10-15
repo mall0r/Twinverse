@@ -12,7 +12,6 @@ VERSION = $(shell cat $(VERSION_FILE))
 # Compile GResource file
 COMPILE_RESOURCES_TARGET := $(shell [ -f res/twinverse.gresources.xml ] && echo "compile-resources")
 
-# Default target
 .DEFAULT_GOAL := help
 
 # ===== FUNCTIONS =====
@@ -20,7 +19,6 @@ print_header = @echo -e "\n\033[1;34m=== $1 ===\033[0m"
 print_success = @echo -e "\033[1;32m $1\033[0m"
 print_error = @echo -e "\033[1;31m $1\033[0m" >&2
 
-# Help target
 help:
 	$(call print_header,"Twinverse Professional Build System")
 	@echo ""
@@ -69,7 +67,6 @@ flatpak: dev validate-manifest
 	@./scripts/package-flatpak.sh
 	$(call print_success,"Flatpak package built successfully!")
 
-# Validate Flatpak manifest before building
 validate-manifest:
 	$(call print_header,"Validating Flatpak manifest...")
 	@if [ ! -f "io.github.mall0r.Twinverse.yaml" ]; then \
@@ -90,7 +87,6 @@ test: dev
 	@echo ""
 	$(call print_header,"Tests completed successfully!")
 
-# Install dependencies for development
 dev:
 	$(call print_header,"Setting up development environment...")
 	@bash -c 'if [ ! -d ".venv" ]; then \
@@ -122,7 +118,6 @@ check-deps:
 	@if [ ! -d ".git" ]; then $(call print_error,"Not in a git repository"); exit 1; fi
 	$(call print_success,"All dependencies are present")
 
-# Check git status
 git-status:
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		$(call print_error,"There are uncommitted changes in the repository"); \
@@ -133,11 +128,9 @@ git-status:
 	fi
 
 # ===== VERSION MANAGEMENT =====
-# Show current version
 version:
 	$(call print_header,"Current version: $(VERSION)")
 
-# Update version
 update-version:
 ifndef v
 	$(error Please specify the new version: make update-version v=1.2.3)
@@ -145,7 +138,6 @@ endif
 	$(call print_header,"Updating version from $(VERSION) to $(v)")
 	@python scripts/version_manager.py $(v)
 
-# Update version with force option
 update-version-force:
 ifndef v
 	$(error Please specify the new version: make update-version-force v=1.2.3)
@@ -153,7 +145,6 @@ endif
 	$(call print_header,"Updating version from $(VERSION) to $(v) with force")
 	@python scripts/version_manager.py $(v) force
 
-# Increment major version
 bump-major:
 	$(call print_header,"Incrementing major version...")
 	@current_version=$$(cat $(VERSION_FILE)); \
@@ -163,7 +154,6 @@ bump-major:
 	new_version=$$((major + 1)).$$minor.$$patch; \
 	python scripts/version_manager.py $$new_version
 
-# Increment minor version
 bump-minor:
 	$(call print_header,"Incrementing minor version...")
 	@current_version=$$(cat $(VERSION_FILE)); \
@@ -173,7 +163,6 @@ bump-minor:
 	new_version=$$major.$$((minor + 1)).$$patch; \
 	python scripts/version_manager.py $$new_version
 
-# Increment patch version (for critical fixes)
 bump-patch:
 	$(call print_header,"Incrementing patch version...")
 	@current_version=$$(cat $(VERSION_FILE)); \
@@ -184,7 +173,6 @@ bump-patch:
 	python scripts/version_manager.py $$new_version
 
 # ===== RELEASE MANAGEMENT =====
-# Create major release (requires 3 reviewers)
 release-major: check-deps git-status
 	$(call print_header,"Creating major release (requires 3 reviewers)...")
 	@current_version=$$(cat $(VERSION_FILE)); \
@@ -203,7 +191,6 @@ release-major: check-deps git-status
 	@echo "  git push origin main"; \
 	@echo "  git push origin v$$new_version"
 
-# Create minor release
 release-minor: check-deps git-status
 	$(call print_header,"Creating minor release...")
 	@current_version=$$(cat $(VERSION_FILE)); \
@@ -222,7 +209,6 @@ release-minor: check-deps git-status
 	@echo "  git push origin main"; \
 	@echo "  git push origin v$$new_version"
 
-# Create patch release
 release-patch: check-deps git-status
 	$(call print_header,"Creating patch release...")
 	@current_version=$$(cat $(VERSION_FILE)); \
@@ -241,7 +227,6 @@ release-patch: check-deps git-status
 	@echo "  git push origin main"; \
 	@echo "  git push origin v$$new_version"
 
-# Create custom release (blocked on dev branches)
 release-custom:
 	@if git branch --show-current | grep -E 'dev|beta'; then \
 		$(call print_error,"Custom releases are blocked on development branches"); \
@@ -275,7 +260,6 @@ endif
 		@echo "  git push origin v$(v)"; \
 	fi
 
-# Create AppImage package
 appimage:
 	$(call print_header,"Creating AppImage package...")
 	@echo "Running AppImage packaging script..."

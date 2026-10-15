@@ -7,12 +7,18 @@
 
 Welcome to the Twinverse guide! This document will walk you through the process of setting up and using the Twinverse application to run multiple Steam instances.
 
+### Connection problems
+
+If Steam Link or games have connection problems caused by multiple instances using the same ports, install `pasta` on your system (usually the `passt` package) and relaunch the instances. Twinverse detects it automatically and isolates each instance's network while providing internet access, without running as root. This also applies to the Flatpak version: `pasta` must be available on the host's `PATH`.
+
+Without `pasta`, networking works as before, sharing the host network between instances.
+
 ## 1. Number of Instances
 
 First, you need to decide how many Steam instances you want to run. Twinverse supports up to 8 instances total.
 
 - **Splitscreen:** You can run a maximum of 4 instances per monitor.
-- **Fullscreen:** You can run a maximum of 1 instance per monitor.
+- **Fullscreen:** Each instance runs on its own monitor.
 
 Use the numeric selector "Number of Instances" to set the desired amount.
 
@@ -70,7 +76,6 @@ For each instance, you can configure the following options:
 - **Gamepad:** Assign a specific controller to the instance.
 - **Capture Mouse:** Dedicate the mouse to a single instance. For now, only one instance at a time can use the mouse and keyboard.
 - **Audio Device:** Select a specific audio output device for the instance.
-- **Refresh Rate:** Set the refresh rate for the instance. Useful if you want to cap FPS or use a specific refresh rate.
 - **Environment Variables:** Define specific environment variables for the instance.
 
 <img alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />

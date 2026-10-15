@@ -1,9 +1,4 @@
-"""
-Twinverse application source package.
-
-This package provides core functionalities, GUI components, data models,
-and various services for managing Steam instances.
-"""
+"""Twinverse application source package."""
 
 from .core import (
     Config,

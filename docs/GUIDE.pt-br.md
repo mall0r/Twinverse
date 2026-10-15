@@ -7,12 +7,18 @@
 
 Bem-vindo ao guia do Twinverse! Este documento irá guiá-lo pelo processo de configuração e uso do aplicativo Twinverse.
 
+### Problemas de conexão
+
+Se o Steam Link ou jogos apresentarem problemas de conexão causados por várias instâncias usando as mesmas portas, instale o `pasta` no sistema (geralmente pelo pacote `passt`) e reabra as instâncias. O Twinverse o detecta automaticamente e isola a rede de cada instância mantendo o acesso à internet, sem executar como root. Isso também vale para a versão Flatpak: o `pasta` precisa estar disponível no `PATH` do host.
+
+Sem o `pasta`, a rede funciona como antes, compartilhando a rede do host entre as instâncias.
+
 ## 1. Número de Instâncias
 
 Primeiro, você precisa decidir quantas instâncias do Steam deseja executar. O Twinverse suporta até 8 instâncias no total.
 
 - **Tela Dividida (Splitscreen):** Você pode executar no máximo 4 instâncias por monitor.
-- **Tela Cheia (Fullscreen):** Você pode executar no máximo 1 instância por monitor.
+- **Tela Cheia (Fullscreen):** Cada instância é executada em um monitor separado.
 
 Use o seletor numérico "Número de Instâncias" para definir a quantidade desejada.
 
@@ -73,7 +79,6 @@ Para cada instância, você pode configurar as seguintes opções:
 - **Controle (Gamepad):** Atribuir um controle específico à instância.
 - **Capturar Mouse:** Dedicar o mouse a uma única instância. Por enquanto, apenas uma instância por vez pode usar o mouse e o teclado.
 - **Dispositivo de Áudio:** Selecionar um dispositivo de saída de áudio específico para a instância.
-- **Taxa de Atualização (Refresh Rate):** Definir a taxa de atualização para a instância. Util se você quer travar o FPS ou usar uma taxa de atualização específica.
 - **Variável de Ambiente (Environment Variables):** Definir variáveis de ambiente específicas para a instância.
 
 <img alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />

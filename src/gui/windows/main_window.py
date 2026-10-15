@@ -1,8 +1,4 @@
-"""
-Main window module for the Twinverse application.
-
-This module provides the main window UI - presentation only.
-"""
+"""Main window UI - presentation only."""
 
 import gi
 from gi.repository import Adw, Gio, Gtk
@@ -15,7 +11,7 @@ gi.require_version("Adw", "1")
 
 
 class MainWindow(Adw.ApplicationWindow):
-    """Main window class - handles UI presentation only."""
+    """Window chrome, launch button and the layout page."""
 
     def __init__(self, application, presenter, *args, **kwargs):
         """Initialize the main window."""
@@ -32,12 +28,10 @@ class MainWindow(Adw.ApplicationWindow):
         self.toolbar_view = Adw.ToolbarView()
         self.toolbar_view.get_style_context().add_class("main-content")
 
-        # Check the current theme and add appropriate class
         style_manager = Adw.StyleManager.get_default()
         if not style_manager.get_dark():
             self.toolbar_view.get_style_context().add_class("light")
 
-        # Listen for theme changes
         style_manager.connect("notify::dark", self._on_theme_changed)
 
         self.set_content(self.toolbar_view)
@@ -50,28 +44,23 @@ class MainWindow(Adw.ApplicationWindow):
         """Create the header bar with menu."""
         menu_items = Gio.Menu.new()
 
-        # About action
         about_action = Gio.SimpleAction.new("about", None)
         about_action.connect("activate", lambda a, p: self._presenter.on_about_clicked())
         self.add_action(about_action)
         menu_items.append("About", "win.about")
 
-        # Preferences action
         prefs_action = Gio.SimpleAction.new("preferences", None)
         prefs_action.connect("activate", lambda a, p: self._presenter.on_preferences_clicked())
         self.add_action(prefs_action)
         menu_items.append("Preferences", "win.preferences")
 
-        # Create menu button
         menu_button = Gtk.MenuButton()
         menu_button.set_icon_name("open-menu-symbolic")
         menu_button.set_menu_model(menu_items)
 
-        # Create theme toggle button
         self.theme_toggle_button = Gtk.Button()
         style_manager = Adw.StyleManager.get_default()
 
-        # Set initial icon based on current theme
         if style_manager.get_dark():
             self.theme_toggle_button.set_icon_name("moon-outline-symbolic")  # Moon icon for dark mode
         else:
@@ -119,14 +108,12 @@ class MainWindow(Adw.ApplicationWindow):
         spacer.set_hexpand(True)
         self.footer_bar.append(spacer)
 
-        # Launch button
         self.launch_button = Gtk.Button()
         self.launch_button.get_style_context().add_class("launch-button")
         self.launch_button.get_style_context().add_class("play-button-fixed-size")
         self.launch_button.connect("clicked", lambda b: self._presenter.on_launch_clicked())
         self.launch_button.set_sensitive(False)
 
-        # Spinner and label
         self.launch_spinner = Gtk.Spinner()
         self.launch_spinner.set_spinning(False)
         self.launch_label = Gtk.Label(label="Play")
@@ -155,7 +142,6 @@ class MainWindow(Adw.ApplicationWindow):
         self.launch_content_box.append(self.launch_spinner)
         self.launch_spinner.start()
         self.layout_settings_page.set_sensitive(False)
-        # Also disable the checkboxes
         self.layout_settings_page.set_checkboxes_sensitive(False)
 
     def show_running_state(self):
@@ -169,7 +155,6 @@ class MainWindow(Adw.ApplicationWindow):
         self.launch_button.set_sensitive(True)
         self.layout_settings_page.set_sensitive(False)
         self.layout_settings_page.set_running_state(True)
-        # Also disable the checkboxes
         self.layout_settings_page.set_checkboxes_sensitive(False)
 
     def show_stopping_state(self):
@@ -189,7 +174,6 @@ class MainWindow(Adw.ApplicationWindow):
         self.launch_button.get_style_context().add_class("launch-button")
         self.layout_settings_page.set_sensitive(True)
         self.layout_settings_page.set_running_state(False)
-        # Also enable the checkboxes
         self.layout_settings_page.set_checkboxes_sensitive(True)
 
     def update_launch_button_sensitivity(self, enabled: bool):
@@ -210,13 +194,11 @@ class MainWindow(Adw.ApplicationWindow):
         style_manager = Adw.StyleManager.get_default()
         current_is_dark = style_manager.get_dark()
 
-        # Toggle the theme
         if current_is_dark:
             style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
         else:
             style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
 
-        # Update the icon based on the new theme
         self._update_theme_icon(button)
 
     def _update_theme_icon(self, button):
@@ -235,7 +217,6 @@ class MainWindow(Adw.ApplicationWindow):
         else:
             self.toolbar_view.get_style_context().add_class("light")
 
-        # Update the theme toggle button icon when theme changes
         if self.theme_toggle_button:
             self._update_theme_icon(self.theme_toggle_button)
 

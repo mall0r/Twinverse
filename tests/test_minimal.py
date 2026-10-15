@@ -10,9 +10,7 @@ def test_minimal_functionality():
     """Testa a funcionalidade mínima da aplicação Twinverse sem GUI."""
     print("Testing minimal functionality without GUI...")
 
-    # Testa importações principais sem inicializar GUI
     try:
-        # Importa módulos principais
         import gi  # noqa: F401
 
         from src.core.logger import Logger  # noqa: F401
@@ -20,12 +18,10 @@ def test_minimal_functionality():
 
         print("All core modules imported successfully")
 
-        # Testa criação de objetos básicos
         Config()
 
         print("Config created successfully")
 
-        # Testa modelos
         Profile(name="test_profile", num_players=2)
         SteamInstance(instance_num=1, name="test_instance")
 

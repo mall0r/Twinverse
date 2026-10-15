@@ -29,7 +29,11 @@ class OverlayLaunchEnvironmentTests(unittest.TestCase):
                 Mock(), Profile(use_gamescope=True, use_steamdeck_tag=True), {}, Mock(), 0, Path(directory), None
             )
             env = builder.prepare_overlay_environment()
-            with patch.dict(os.environ, {"MANGOHUD_CONFIG": "read_cfg"}), patch("time.sleep"):
+            with (
+                patch.dict(os.environ, {"MANGOHUD_CONFIG": "read_cfg"}),
+                patch("time.sleep"),
+                patch("src.services.instance.network_command", side_effect=lambda command: command),
+            ):
                 with patch("subprocess.Popen", return_value=process) as spawn:
                     service._launch_natively(0, ["true"], env)
                 native_env = spawn.call_args.kwargs["env"]

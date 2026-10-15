@@ -1,9 +1,4 @@
-"""
-Module defining the profile model for the Twinverse application.
-
-This module contains the data models for representing profiles that define
-how to launch a set of Steam instances with specific configurations.
-"""
+"""Data models for the profiles that define how a set of Steam instances is launched."""
 
 import json
 from typing import Dict, List, Optional
@@ -24,7 +19,6 @@ class PlayerInstanceConfig(BaseModel):
     audio_device_id: Optional[str] = Field(default=None, alias="AUDIO_DEVICE_ID")
     monitor_id: Optional[str] = Field(default=None, alias="MONITOR_ID")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
-    refresh_rate: int = Field(default=60, alias="REFRESH_RATE")
 
 
 class SplitscreenConfig(BaseModel):
@@ -67,7 +61,6 @@ class Profile(BaseModel):
         """Load the profile from the default JSON file."""
         profile_path = Config.get_profile_path()
         if not profile_path.exists():
-            # If no profile exists, create a default one and save it
             default_profile = cls()
             default_profile.save()
             return default_profile
@@ -81,7 +74,6 @@ class Profile(BaseModel):
         try:
             profile = cls(**data)
         except ValidationError as e:
-            # Consider logging this instead of printing
             print(f"Pydantic Validation Error for {profile_path}: {e.errors()}")
             raise ValueError(f"Profile data validation failed: {e}")
         return profile

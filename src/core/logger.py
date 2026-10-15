@@ -1,9 +1,4 @@
-"""
-Logging module for the Twinverse application.
-
-This module provides a custom logger that writes to both stderr and a log file
-in the specified directory.
-"""
+"""Logger writing to both stderr and a log file."""
 
 import logging
 import sys
@@ -12,11 +7,7 @@ from pathlib import Path
 
 class Logger:
     """
-    A custom logger for Twinverse providing console and file output.
-
-    This class configures a logger that writes to both stderr and a log file
-    in the specified directory. It's designed to be efficient by avoiding
-    handler duplication and using an LRU cache for log level checks.
+    Console and file output, without duplicating handlers.
 
     Attributes:
         log_dir (Path): The directory where log files are stored.
@@ -25,18 +16,14 @@ class Logger:
 
     def __init__(self, name: str, log_dir: Path, reset: bool = False, level: int = logging.INFO):
         """
-        Initialize the logger and set up its handlers.
-
-        This creates the log directory if it doesn't exist and configures
-        a logger with a specified name.
+        Create the log directory if missing and configure the named logger.
 
         Args:
-            name (str): The name of the logger, typically `__name__` of the
-                calling module.
-            log_dir (Path): The path to the directory for storing log files.
-            reset (bool): If True, the log file will be cleared on startup.
-            level (int): The logging level (e.g., logging.DEBUG, logging.INFO).
-                         Defaults to logging.INFO.
+            name: The name of the logger, typically `__name__` of the calling
+                module.
+            log_dir: Directory for the log file, created if missing.
+            reset: Truncate the log file on startup instead of appending.
+            level: Threshold for the logger, e.g. `logging.INFO`.
         """
         self.log_dir = log_dir
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -47,29 +34,26 @@ class Logger:
 
     def _setup_handlers(self, reset: bool):
         """
-        Configure and add stream and file handlers to the logger.
+        Add the stderr and file handlers, at most once per logger.
 
-        This method ensures that handlers are only configured once. It sets up
-        a console handler (stderr) and a file handler, both with a consistent
-        format.
+        Args:
+            reset: Truncate the log file instead of appending to it.
         """
         if self.logger.hasHandlers() or self._handlers_setup:
             return
 
         formatter = logging.Formatter("%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
-        # Console handler to stderr
         console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setFormatter(formatter)
-        console_handler.setLevel(logging.DEBUG)  # Changed from INFO to DEBUG
+        console_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(console_handler)
 
-        # File handler
         log_file = self.log_dir / f"{self.logger.name}.log"
         file_mode = "w" if reset else "a"
         file_handler = logging.FileHandler(log_file, mode=file_mode, encoding="utf-8")
         file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.DEBUG)  # Changed from INFO to DEBUG
+        file_handler.setLevel(logging.DEBUG)
         self.logger.addHandler(file_handler)
 
         self._handlers_setup = True
@@ -79,10 +63,10 @@ class Logger:
         Check if a given log level is enabled for the logger.
 
         Args:
-            level (int): The logging level to check (e.g., `logging.INFO`).
+            level: The level to test, e.g. `logging.INFO`.
 
         Returns:
-            bool: True if the level is enabled, False otherwise.
+            True if the level would be emitted, False otherwise.
         """
         return self.logger.isEnabledFor(level)
 
@@ -91,7 +75,7 @@ class Logger:
         Log an informational message.
 
         Args:
-            message (str): The message to log.
+            message: Text to write to both handlers.
         """
         if self._should_log(logging.INFO):
             self.logger.info(message)
@@ -101,7 +85,7 @@ class Logger:
         Log an error message.
 
         Args:
-            message (str): The message to log.
+            message: Text to write to both handlers.
         """
         if self._should_log(logging.ERROR):
             self.logger.error(message)
@@ -111,7 +95,7 @@ class Logger:
         Log a warning message.
 
         Args:
-            message (str): The message to log.
+            message: Text to write to both handlers.
         """
         if self._should_log(logging.WARNING):
             self.logger.warning(message)
@@ -121,7 +105,7 @@ class Logger:
         Log a debug message.
 
         Args:
-            message (str): The message to log.
+            message: Text to write to both handlers.
         """
         if self._should_log(logging.DEBUG):
             self.logger.debug(message)
@@ -131,18 +115,13 @@ class Logger:
         Log an exception with traceback.
 
         Args:
-            message (str): The message to log along with the exception.
+            message: Context for the traceback that follows it.
         """
         if self._should_log(logging.ERROR):
             self.logger.exception(message)
 
     def flush(self):
-        """
-        Flush all handlers attached to the logger.
-
-        This is useful to ensure that all buffered log records have been
-        written to their destination.
-        """
+        """Flush all handlers, so buffered records reach their destination."""
         for handler in self.logger.handlers:
             if hasattr(handler, "flush"):
                 handler.flush()

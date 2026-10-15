@@ -1,8 +1,4 @@
-"""
-Player row widget module.
-
-This module provides a custom widget for player configuration.
-"""
+"""Widget for player configuration."""
 
 import os
 
@@ -41,49 +37,34 @@ class PlayerRow(Adw.ExpanderRow):
 
     def _build_ui(self):
         """Build the UI."""
-        # Checkbox for selection
         self.checkbox = Gtk.CheckButton()
         self.checkbox.set_active(True)
         self.checkbox.get_style_context().add_class("player-checkbox")
         self.checkbox.connect("toggled", lambda *args: self.emit("settings-changed"))
         self.add_prefix(self.checkbox)
 
-        # Device rows
         self._create_device_rows()
 
-        # Grab input switch
         self.grab_input_switch = Adw.SwitchRow(title="Grab Mouse")
         self.grab_input_switch.get_style_context().add_class("custom-switch")
         self.grab_input_switch.connect("notify::active", self._on_grab_input_toggled)
         self.add_row(self.grab_input_switch)
 
-        # Audio device
         audio_devices = self._devices_info.get("audio", [])
-        audio_model = Gtk.StringList.new(["None"] + [d["name"] for d in audio_devices])
+        audio_model = Gtk.StringList.new(["Default"] + [d["name"] for d in audio_devices])
         self.audio_row = Adw.ComboRow(title="Audio Device", model=audio_model)
         self.audio_row.get_style_context().add_class("audio-row")
         self.audio_row.connect("notify::selected-item", lambda *args: self.emit("settings-changed"))
         self.add_row(self.audio_row)
 
-        # Refresh rate
-        refresh_rates = ["60", "75", "90", "120", "144", "165", "180", "240"]
-        refresh_rate_model = Gtk.StringList.new(refresh_rates)
-        self.refresh_rate_row = Adw.ComboRow(title="Refresh Rate", model=refresh_rate_model)
-        self.refresh_rate_row.get_style_context().add_class("refresh-rate-row")
-        self.refresh_rate_row.connect("notify::selected-item", lambda *args: self.emit("settings-changed"))
-        self.add_row(self.refresh_rate_row)
-
-        # Environment variables section
         self._create_env_section()
 
-        # Launch button
         self.launch_button = Gtk.Button(label="Install")
         self.launch_button.get_style_context().add_class("configure-button")
         self.launch_button.set_valign(Gtk.Align.CENTER)
         self.launch_button.connect("clicked", self._on_launch_clicked)
         self.add_suffix(self.launch_button)
 
-        # Status icon (will be set later)
         self.status_icon = None
 
     def _create_device_rows(self):
@@ -94,7 +75,6 @@ class PlayerRow(Adw.ExpanderRow):
         self.joystick_row.get_style_context().add_class("joystick-row")
         self.joystick_row.connect("notify::selected-item", lambda *args: self.emit("settings-changed"))
 
-        # Add info icon
         info_icon = Gtk.Image.new_from_icon_name("dialog-information-symbolic")
         info_icon.set_tooltip_text(
             "If the gamepads don't appear, you'll need \n"
@@ -104,7 +84,6 @@ class PlayerRow(Adw.ExpanderRow):
         info_icon.set_margin_start(6)
         self.joystick_row.add_suffix(info_icon)
 
-        # Add refresh button
         refresh_button = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
         refresh_button.set_tooltip_text("Update device list")
         refresh_button.get_style_context().add_class("flat")
@@ -140,7 +119,6 @@ class PlayerRow(Adw.ExpanderRow):
 
     def _on_refresh_joysticks_clicked(self, button):
         """Handle joystick refresh."""
-        # Emit signal to parent to refresh devices
         self.emit("refresh-devices-requested")
 
     def _on_launch_clicked(self, button):
@@ -150,7 +128,6 @@ class PlayerRow(Adw.ExpanderRow):
     def _on_grab_input_toggled(self, switch_row, gparam):
         """Handle grab input toggled."""
         self.emit("settings-changed")
-        # Also emit a special signal for grab input exclusivity
         if hasattr(self, "_parent_page"):
             self._parent_page._handle_grab_input_exclusivity(self._player_num)
 
@@ -162,19 +139,16 @@ class PlayerRow(Adw.ExpanderRow):
         """Update devices info and rebuild device rows."""
         self._devices_info = devices_info
 
-        # Get current selections
         current_joystick = self._get_combo_device_id(self.joystick_row, devices_info.get("joystick", []))
         current_audio = self._get_combo_device_id(self.audio_row, devices_info.get("audio", []))
 
-        # Update joystick model
         joysticks = devices_info.get("joystick", [])
         joystick_model = Gtk.StringList.new(["None"] + [d["name"] for d in joysticks])
         self.joystick_row.set_model(joystick_model)
         self._set_combo_selection(self.joystick_row, joysticks, current_joystick)
 
-        # Update audio model
         audio_devices = devices_info.get("audio", [])
-        audio_model = Gtk.StringList.new(["None"] + [d["name"] for d in audio_devices])
+        audio_model = Gtk.StringList.new(["Default"] + [d["name"] for d in audio_devices])
         self.audio_row.set_model(audio_model)
         self._set_combo_selection(self.audio_row, audio_devices, current_audio)
 
@@ -182,24 +156,12 @@ class PlayerRow(Adw.ExpanderRow):
         """Load configuration into the UI."""
         self._is_loading = True
 
-        # Load grab input
         self.grab_input_switch.set_active(config.grab_input_devices)
 
-        # Load joystick
         self._set_combo_selection(self.joystick_row, self._devices_info.get("joystick", []), config.physical_device_id)
 
-        # Load audio
         self._set_combo_selection(self.audio_row, self._devices_info.get("audio", []), config.audio_device_id)
 
-        # Load refresh rate
-        refresh_rates = ["60", "75", "90", "120", "144", "165", "180", "240"]
-        refresh_rate_str = str(config.refresh_rate)
-        if refresh_rate_str in refresh_rates:
-            self.refresh_rate_row.set_selected(refresh_rates.index(refresh_rate_str))
-        else:
-            self.refresh_rate_row.set_selected(0)
-
-        # Load environment variables
         for key, value in (config.env or {}).items():
             self._add_env_row(key, value)
 
@@ -212,7 +174,6 @@ class PlayerRow(Adw.ExpanderRow):
             GRAB_INPUT_DEVICES=self.grab_input_switch.get_active(),
             AUDIO_DEVICE_ID=self._get_combo_device_id(self.audio_row, self._devices_info.get("audio", [])),
             ENV=self._collect_env_vars(),
-            REFRESH_RATE=self._get_refresh_rate(),
         )
 
     def is_selected(self) -> bool:
@@ -244,11 +205,9 @@ class PlayerRow(Adw.ExpanderRow):
 
     def _update_status_icon(self, is_verified: bool):
         """Update the status icon."""
-        # Remove existing icon
         if self.status_icon and self.status_icon.get_parent():
             self.remove(self.status_icon)
 
-        # Create new icon
         if is_verified:
             self.status_icon = Gtk.Image.new_from_resource("/io/github/mall0r/Twinverse/icons/check-icon.svg")
             self.status_icon.set_tooltip_text("Press 'Start' to open this instance in desktop mode.")
@@ -283,11 +242,6 @@ class PlayerRow(Adw.ExpanderRow):
         if selected_idx > 0 and (selected_idx - 1) < len(device_list):
             return device_list[selected_idx - 1]["id"]
         return None
-
-    def _get_refresh_rate(self) -> int:
-        """Get selected refresh rate."""
-        selected_item = self.refresh_rate_row.get_selected_item()
-        return int(selected_item.get_string()) if selected_item else 60
 
     def set_grab_input_sensitive(self, sensitive: bool):
         """Set grab input switch sensitivity."""

@@ -1,9 +1,4 @@
-"""
-Virtual device module for the Twinverse application.
-
-This module provides functionality to create and manage virtual input devices,
-particularly virtual joysticks for use with Steam instances.
-"""
+"""Creation and management of virtual input devices, particularly virtual joysticks."""
 
 import time
 
@@ -15,7 +10,7 @@ from src.core import VirtualDeviceError
 
 
 class VirtualDeviceService:
-    """Manages virtual input devices, particularly virtual joysticks for Steam instances."""
+    """Creates a virtual joystick for instances without a physical one."""
 
     def __init__(self, logger):
         """Initialize the virtual device service with a logger."""
@@ -26,7 +21,6 @@ class VirtualDeviceService:
         """Create a minimal virtual joystick and find its event node."""
         if self._ui:
             self._logger.warning("Virtual joystick already exists.")
-            # If it exists, we assume the devnode is also known and correct
             return self._ui.devnode
 
         device_name = "Virtual Joystick by Twinverse"
@@ -47,7 +41,6 @@ class VirtualDeviceService:
             self._ui = UInput(capabilities, name=device_name, vendor=0x1234, product=0x5678)
             self._logger.info("Virtual device object created. Searching for its event node...")
 
-            # Robustly find the device node
             start_time = time.time()
             timeout = 5  # seconds
             while time.time() - start_time < timeout:

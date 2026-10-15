@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Script to manage Twinverse versioning.
-
-This script automatically updates the version in all necessary files
-when a new version is defined.
-"""
+"""Updates the version in every file that carries it."""
 
 import re
 import sys
@@ -16,17 +11,14 @@ def update_version_in_file(file_path, old_version, new_version):
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Specific replacements for different version formats
     updated_content = content
 
-    # Update version in "x.y.z" format
     updated_content = re.sub(
         rf'(["\']){re.escape(old_version)}(["\'])',
         rf"\g<1>{new_version}\g<2>",
         updated_content,
     )
 
-    # Update version badge in README
     if "README" in str(file_path):
         updated_content = re.sub(r"Version-[0-9]+\.[0-9]+\.[0-9]+", f"Version-{new_version}", updated_content)
 
@@ -60,13 +52,11 @@ def set_new_version(new_version, force=False):
         print(f"Version is already {new_version}")
         return True
 
-    # Update the version file
     with open("version", "w", encoding="utf-8") as f:
         f.write(new_version)
 
     print(f"Updating version from {old_version} to {new_version}")
 
-    # List of files that contain the version
     files_to_update = [
         "scripts/package-appimage.sh",
         "README.md",
@@ -108,7 +98,6 @@ def main():
     new_version = sys.argv[1]
     force = len(sys.argv) == 3 and sys.argv[2] == "force"
 
-    # Validate version format (x.y.z)
     version_pattern = r"^[0-9]+\.[0-9]+\.[0-9]+$"
     if not re.match(version_pattern, new_version):
         print(f"Error: Invalid version format. Use x.y.z format (e.g., 0.11.2)")  # noqa: F541

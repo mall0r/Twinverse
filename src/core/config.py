@@ -1,9 +1,4 @@
-"""
-Configuration module for Twinverse application.
-
-This module defines global configuration settings and paths used throughout
-the Twinverse application.
-"""
+"""Global configuration settings and paths used throughout the application."""
 
 import os
 import sys
@@ -17,8 +12,6 @@ class Config:
 
     @staticmethod
     def _get_script_dir() -> Path:
-        # Access attributes on `sys` using getattr to avoid direct attribute
-        # access that static checkers may flag.
         frozen = getattr(sys, "frozen", False)
         meipass = getattr(sys, "_MEIPASS", None)
         if frozen and meipass:
