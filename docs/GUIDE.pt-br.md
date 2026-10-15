@@ -18,7 +18,7 @@ Sem o `pasta`, a rede funciona como antes, compartilhando a rede do host entre a
 Primeiro, você precisa decidir quantas instâncias do Steam deseja executar. O Twinverse suporta até 8 instâncias no total.
 
 - **Tela Dividida (Splitscreen):** Você pode executar no máximo 4 instâncias por monitor.
-- **Tela Cheia (Fullscreen):** Você pode executar no máximo 1 instância por monitor.
+- **Tela Cheia (Fullscreen):** Cada instância é executada em um monitor separado.
 
 Use o seletor numérico "Número de Instâncias" para definir a quantidade desejada.
 

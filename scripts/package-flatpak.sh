@@ -52,9 +52,16 @@ check_dependencies() {
 setup_runtime() {
     print_header "Setting up Flatpak Runtime"
 
-    local sdk_version="50"
     local runtime="org.gnome.Platform"
     local sdk="org.gnome.Sdk"
+
+    # Read the version from the manifest so the build never targets another one.
+    local sdk_version
+    sdk_version=$(sed -n "s/^runtime-version: *['\"]\{0,1\}\([0-9]\{1,\}\)['\"]\{0,1\}.*/\1/p" "$MANIFEST")
+    if [[ -z "$sdk_version" ]]; then
+        print_error "Could not read runtime-version from $MANIFEST"
+        exit 1
+    fi
 
     if ! flatpak list --user --runtime | grep -q "$runtime//$sdk_version"; then
         echo "Installing GNOME $sdk_version runtime for user..."
@@ -64,7 +71,7 @@ setup_runtime() {
         }
     fi
 
-    print_success "Runtime configured"
+    print_success "Runtime configured (GNOME $sdk_version)"
 }
 
 clean_build() {

@@ -18,7 +18,7 @@ Without `pasta`, networking works as before, sharing the host network between in
 First, you need to decide how many Steam instances you want to run. Twinverse supports up to 8 instances total.
 
 - **Splitscreen:** You can run a maximum of 4 instances per monitor.
-- **Fullscreen:** You can run a maximum of 1 instance per monitor.
+- **Fullscreen:** Each instance runs on its own monitor.
 
 Use the numeric selector "Number of Instances" to set the desired amount.
 
