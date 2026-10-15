@@ -22,8 +22,8 @@
         },
         {
           "type": "file",
-          "url": "https://files.pythonhosted.org/packages/cf/4e/35a80cae583a37cf15604b44240e45c05e04e86f9cfd766623149297e971/pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-          "sha256": "406bf18d345822d6c21366031003612b9c77b3e29ffdb0f612367352aab7d586"
+          "url": "https://files.pythonhosted.org/packages/4c/d2/ef2074dc020dd6e109611a8be4449b98cd25e1b9b8a303c2f0fca2f2bcf7/pydantic_core-2.41.5-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+          "sha256": "22f0fb8c1c583a3b6f24df2470833b40207e907b90c928cc8d3594b76f874375"
         },
         {
           "type": "file",
