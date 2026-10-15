@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import time
 from contextlib import ExitStack
 from unittest.mock import Mock, patch
 
@@ -105,7 +106,7 @@ def test_other_bash_scripts_skip_gate_and_keep_existing_hook(tmp_path):
     gate.write_text(WEBHELPER_GATE)
     inherited = tmp_path / "inherited.sh"
     inherited.write_text("export TWINVERSE_TEST_VALUE=preserved\n")
-    script = tmp_path / "steam.sh"
+    script = tmp_path / "unrelated.sh"
     script.write_text('printf "%s" "$TWINVERSE_TEST_VALUE"\n')
     result = subprocess.run(
         ["bash", str(script), f"-steampid={os.getpid()}"],
@@ -117,6 +118,93 @@ def test_other_bash_scripts_skip_gate_and_keep_existing_hook(tmp_path):
     )
     assert result.stdout == "preserved"
     assert "Twinverse:" not in result.stderr
+
+
+def _stderr_of(tmp_path, name, gate, *args):
+    """Return what the gate writes to stderr while the named script runs."""
+    script = tmp_path / name
+    script.write_text("#!/bin/bash\nexit 0\n")
+    result = subprocess.run(
+        ["bash", str(script), *args],
+        env={**os.environ, "BASH_ENV": str(gate)},
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    return result.stderr
+
+
+def _run_gate(tmp_path, name, gate, *args):
+    """Run a named script through the generated gate with a stubbed Python."""
+    stub_dir = tmp_path / "bin"
+    stub_dir.mkdir(exist_ok=True)
+    stub = stub_dir / "python3"
+    stub.write_text('#!/bin/bash\nprintf "%s\\n" "$2" >> "$TWINVERSE_TEST_CALLS"\n')
+    stub.chmod(0o755)
+
+    script = tmp_path / name
+    script.write_text("#!/bin/bash\nexit 0\n")
+
+    calls = tmp_path / "calls.log"
+    calls.unlink(missing_ok=True)
+    subprocess.run(
+        ["bash", str(script), *args],
+        env={
+            **os.environ,
+            "BASH_ENV": str(gate),
+            "PATH": f"{stub_dir}:{os.environ['PATH']}",
+            "TWINVERSE_TEST_CALLS": str(calls),
+        },
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    # The repair is started in the background, so wait for the stub to record it.
+    deadline = time.monotonic() + 5
+    while not calls.exists() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    return calls.read_text().splitlines() if calls.exists() else []
+
+
+def _sandbox_gate(tmp_path, monkeypatch):
+    """Generate the real gate with its helper paths inside the test sandbox."""
+    monkeypatch.setattr(Config, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(Config, "LOG_DIR", tmp_path / "cache/logs")
+    home = tmp_path / "instance"
+    (home / ".local/share/Steam/ubuntu12_64").mkdir(parents=True)
+    (home / ".local/share/Steam/ubuntu12_64/steamwebhelper.sh").write_text("#!/bin/bash\n")
+    build_webhelper_mounts(home, 0, fix_overlay_focus=True)
+    gate_path = tmp_path / "cache/steam-webhelper/instance_1/gate.sh"
+    gate_path.write_text(
+        gate_path.read_text()
+        .replace("/tmp/twinverse-webhelper", str(gate_path.parent))
+        .replace("/tmp/twinverse-logs", str(tmp_path / "cache/logs"))
+        .replace("SECONDS - tv_started < 20", "SECONDS - tv_started < 1")
+    )
+    return gate_path
+
+
+@pytest.mark.parametrize("script", ["steamwebhelper.sh", "steam.sh"])
+def test_overlay_repair_starts_in_every_client_layout(tmp_path, monkeypatch, script):
+    """Reach the repair from both launchers, since SteamRT3 skips its own wrapper."""
+    gate_path = _sandbox_gate(tmp_path, monkeypatch)
+    calls = _run_gate(tmp_path, script, gate_path, f"-steampid={os.getpid()}")
+    assert len(calls) == 1 and calls[0].isdigit()
+
+
+def test_only_steams_ui_launcher_waits_for_controller_memory(tmp_path, monkeypatch):
+    """Keep the shared-memory wait on the webhelper, never on the launcher."""
+    gate_path = _sandbox_gate(tmp_path, monkeypatch)
+    assert "starting UI normally" in _stderr_of(tmp_path, "steamwebhelper.sh", gate_path)
+    assert _stderr_of(tmp_path, "steam.sh", gate_path) == ""
+
+
+def test_unrelated_scripts_never_start_the_overlay_repair(tmp_path, monkeypatch):
+    """Keep the launcher hook narrow so game scripts stay untouched."""
+    gate_path = _sandbox_gate(tmp_path, monkeypatch)
+    assert _run_gate(tmp_path, "unrelated.sh", gate_path) == []
 
 
 def test_missing_webhelper_skips_overlay(monkeypatch, tmp_path):
@@ -175,6 +263,7 @@ def test_overlay_focus_log_lands_in_the_shared_log_directory(monkeypatch, tmp_pa
     build_webhelper_mounts(home, 1, fix_overlay_focus=True)
     gate = (tmp_path / "cache/steam-webhelper/instance_2/gate.sh").read_text()
 
-    assert "/tmp/twinverse-logs/overlay_focus_instance_1.log" in gate
+    # Same instance number as the cache directory, so the pair is unambiguous.
+    assert "/tmp/twinverse-logs/overlay_focus_instance_2.log" in gate
     assert "$HOME" not in gate
     assert ".local/share/twinverse" not in gate

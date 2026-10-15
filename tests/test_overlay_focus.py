@@ -1,6 +1,7 @@
 """Exercise the narrow-overlay focus repair decisions without touching X11."""
 
 import importlib.util
+import os
 from pathlib import Path
 
 import pytest
@@ -48,6 +49,20 @@ def test_focus_returns_to_the_game_when_the_menu_closes():
 def test_poll_interval_keeps_cpu_use_negligible():
     """Poll fast enough to be invisible, while staying nearly free in CPU."""
     assert load_helper().POLL_INTERVAL == 0.1
+
+
+def test_launcher_anchor_waits_for_gamescope_and_deduplicates():
+    """Cover a start from Steam's launcher, before Gamescope publishes its X server."""
+    helper = load_helper()
+    # One lock per sandbox, so either launcher converges on the same helper.
+    assert helper.LOCK_FILE == "/tmp/twinverse-overlay-focus.lock"
+    # The launcher starts the repair long before the nested X server exists.
+    assert helper.CONNECT_TIMEOUT >= 30
+    assert 0 < helper.CONNECT_RETRY <= 1
+    # A pid anchor follows the Steam session; without one, X11 decides.
+    assert helper.instance_running(None) is True
+    assert helper.instance_running(os.getpid()) is True
+    assert helper.instance_running(0) is False
 
 
 def test_helper_only_uses_the_python_standard_library():

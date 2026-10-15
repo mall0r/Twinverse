@@ -5,7 +5,9 @@ as notifications. X11 input focus reaches Steam, but GAMESCOPE_FOCUSED_APP
 still reports the game, so Steam keeps its game controller configuration.
 Only repair that feedback; never change window geometry or graphics focus.
 This helper runs on the host inside the instance sandbox using stdlib Python.
-Its output is redirected by the webhelper gate into the shared log directory.
+Its output is redirected by the startup gate into the shared log directory.
+The gate may start it from Steam's launcher, before Gamescope publishes its
+nested X server, so connecting waits for that server instead of failing.
 """
 
 import ctypes as C
@@ -20,6 +22,18 @@ OVERLAY_WIDTH_THRESHOLD = 1200
 # 100 ms keeps the repair invisible when a menu opens, and a full cycle of
 # reads costs about 50 microseconds, so it never competes with the game.
 POLL_INTERVAL = 0.1
+# Gamescope only creates its nested X server once a client connects, so a start
+# from Steam's launcher has to wait for it. Steam connects within seconds.
+CONNECT_TIMEOUT = 60
+CONNECT_RETRY = 0.25
+# /tmp is private to each sandbox, so one fixed file keeps a single helper per
+# instance no matter which Steam script started it.
+LOCK_FILE = "/tmp/twinverse-overlay-focus.lock"
+
+
+def instance_running(session_pid):
+    """Follow a Steam session while it is alive, or X11 when no pid anchors it."""
+    return session_pid is None or os.path.exists(f"/proc/{session_pid}")
 
 
 def desired_focus(active_app, graphics_app, overlay, input_focus, width, reported_app, repaired):
@@ -170,20 +184,33 @@ class X11:
         self.lib.XCloseDisplay(self.display)
 
 
-def watch(steam_pid):
-    """Follow menu focus for this Steam process, exiting with the instance."""
-    with open(f"/tmp/twinverse-overlay-focus-{steam_pid}.lock", "w") as lock:
+def connect():
+    """Wait for the instance's nested X server, which Gamescope creates lazily."""
+    deadline = time.monotonic() + CONNECT_TIMEOUT
+    while True:
+        try:
+            return X11()
+        except RuntimeError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(CONNECT_RETRY)
+
+
+def watch(session_pid=None):
+    """Follow menu focus for this Steam session, exiting with the instance."""
+    with open(LOCK_FILE, "w") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return
-        x11 = X11()
+        x11 = connect()
         repaired = False
         try:
             if not x11.get(x11.root, "GAMESCOPE_PID"):
                 return
-            print(f"Twinverse: watching narrow overlay focus for Steam {steam_pid}", flush=True)
-            while os.path.exists(f"/proc/{steam_pid}"):
+            anchor = f"Steam {session_pid}" if session_pid else "Steam"
+            print(f"Twinverse: watching narrow overlay focus for {anchor}", flush=True)
+            while instance_running(session_pid):
                 active = x11.get(x11.root, "_NET_ACTIVE_WINDOW")
                 reported = x11.get(x11.root, "GAMESCOPE_FOCUSED_APP")
                 graphics = x11.get(x11.root, "GAMESCOPE_FOCUSED_APP_GFX")
@@ -205,6 +232,6 @@ def watch(steam_pid):
 
 if __name__ == "__main__":
     try:
-        watch(int(sys.argv[1]))
+        watch(int(sys.argv[1]) if len(sys.argv) > 1 else None)
     except (OSError, RuntimeError, ValueError) as error:
         print(f"Twinverse: overlay focus helper unavailable: {error}", file=sys.stderr)
