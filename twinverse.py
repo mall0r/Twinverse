@@ -8,6 +8,8 @@ from typing import Optional, Sequence
 
 from src.core.logging import LogSettings, configure_logging
 from src.core.logging.diagnostics import collect_diagnostics, print_diagnostics
+from src.core.logging.paths import LogPaths
+from src.core.logging.retention import remove_log_directory
 from src.core.utils import Utils
 
 
@@ -15,6 +17,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     """Configure logging, handle CLI-only modes, then start the GUI."""
     arguments = list(sys.argv[1:] if argv is None else argv)
     settings, gui_arguments = LogSettings.from_argv(arguments, Utils.get_version())
+
+    if settings.clear_logs:
+        paths = LogPaths.resolve(settings.log_dir)
+        if remove_log_directory(paths):
+            print(f"Removed the log directory {paths.root}")
+        else:
+            print(f"There was no log directory at {paths.root}")
+        return 0
+
     handle = configure_logging(settings)
     logger = logging.getLogger("src.entrypoint")
 

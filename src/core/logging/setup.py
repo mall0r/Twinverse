@@ -107,6 +107,17 @@ def _fallback_paths() -> Optional[LogPaths]:
         return None
 
 
+def _rotate_crash_log(paths: LogPaths) -> None:
+    """Keep the crash of the previous session and start a fresh one."""
+    if not paths.crash_log.exists():
+        return
+    backup = paths.crash_log.with_name(paths.crash_log.name + ".1")
+    try:
+        os.replace(paths.crash_log, backup)
+    except OSError:
+        pass
+
+
 def _install_exception_hooks(handle: LoggingHandle) -> None:
     logger = logging.getLogger("src.core.logging")
 
@@ -203,6 +214,7 @@ def configure_logging(settings: Optional[LogSettings] = None) -> LoggingHandle:
     set_run_id(run_id)
 
     resolved = LogPaths.resolve(settings.log_dir)
+    _rotate_crash_log(resolved)
     try:
         resolved.ensure()
     except OSError as error:
@@ -237,7 +249,13 @@ def configure_logging(settings: Optional[LogSettings] = None) -> LoggingHandle:
     _build_handlers(settings, paths, handle)
     if paths is not None:
         try:
-            removed = prune_logs(paths)
+            removed = prune_logs(
+                paths,
+                keep_instances=settings.keep_instances,
+                keep_helpers=settings.keep_helpers,
+                max_age_days=settings.max_age_days,
+                max_total_bytes=settings.max_total_bytes,
+            )
             if removed:
                 logging.getLogger("src.core.logging").debug("Removed %s old run log(s)", removed)
         except OSError:

@@ -68,10 +68,15 @@ class LogSettings:
     max_bytes: int = 2 * 1024 * 1024
     backup_count: int = 5
     instance_max_bytes: int = 100 * 1024 * 1024
+    keep_instances: int = 5
+    keep_helpers: int = 2
+    max_age_days: int = 14
+    max_total_bytes: int = 256 * 1024 * 1024
     debug: bool = False
     quiet: bool = False
     diagnostics: bool = False
     diagnostics_json: bool = False
+    clear_logs: bool = False
     validation_warnings: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
@@ -139,6 +144,10 @@ class LogSettings:
             instance_max_bytes=_env_int(
                 env.get("TWINVERSE_INSTANCE_LOG_MAX_BYTES"), 100 * 1024 * 1024, 1024 * 1024, 4 * 1024**3
             ),
+            keep_instances=_env_int(env.get("TWINVERSE_LOG_KEEP_INSTANCES"), 5, 1, 100),
+            keep_helpers=_env_int(env.get("TWINVERSE_LOG_KEEP_HELPERS"), 2, 1, 100),
+            max_age_days=_env_int(env.get("TWINVERSE_LOG_MAX_AGE_DAYS"), 14, 1, 365),
+            max_total_bytes=_env_int(env.get("TWINVERSE_LOG_MAX_TOTAL_MB"), 256, 1, 1024 * 1024) * 1024 * 1024,
             debug=debug,
             validation_warnings=tuple(warnings),
         )
@@ -166,6 +175,9 @@ class LogSettings:
         parser.add_argument(
             "--diagnostics", action="store_true", help="print diagnostics and exit without opening the GUI"
         )
+        parser.add_argument(
+            "--clear-logs", action="store_true", help="delete every log file and exit without opening the GUI"
+        )
         parser.add_argument("--version", action="version", version=f"Twinverse {version}")
 
         args, remaining = parser.parse_known_args(argv)
@@ -187,5 +199,7 @@ class LogSettings:
             settings = replace(settings, format=LogFormat.JSON, diagnostics_json=True)
         if args.diagnostics:
             settings = replace(settings, diagnostics=True)
+        if args.clear_logs:
+            settings = replace(settings, clear_logs=True)
 
         return settings, remaining

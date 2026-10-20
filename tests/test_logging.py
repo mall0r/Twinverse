@@ -18,7 +18,7 @@ from src.core.logging import (
     log_context,
 )
 from src.core.logging.diagnostics import collect_diagnostics, format_diagnostics
-from src.core.logging.retention import prune_logs
+from src.core.logging.retention import enforce_total_cap, prune_logs
 from src.services.instance import InstanceService
 
 
@@ -90,6 +90,26 @@ def test_settings_environment_and_cli_override():
     assert parsed.diagnostics is True
     assert parsed.diagnostics_json is True
     assert remaining == ["--gtk-flag"]
+
+    parsed, remaining = LogSettings.from_argv(["--clear-logs"], "1.0")
+    assert parsed.clear_logs is True
+
+
+def test_the_retention_limits_come_from_the_environment():
+    """Every limit of the log directory can be adjusted."""
+    settings = LogSettings.from_environment(
+        {
+            "TWINVERSE_LOG_KEEP_INSTANCES": "3",
+            "TWINVERSE_LOG_KEEP_HELPERS": "1",
+            "TWINVERSE_LOG_MAX_AGE_DAYS": "7",
+            "TWINVERSE_LOG_MAX_TOTAL_MB": "64",
+        }
+    )
+
+    assert settings.keep_instances == 3
+    assert settings.keep_helpers == 1
+    assert settings.max_age_days == 7
+    assert settings.max_total_bytes == 64 * 1024 * 1024
 
 
 def test_configure_writes_a_contextual_and_redacted_log(tmp_path):
@@ -186,3 +206,43 @@ def test_stopping_an_instance_closes_its_log(tmp_path, monkeypatch):
     assert "# finished" in text
     assert "exit_code=0" in text
     assert 0 not in service.instance_logs
+
+
+def test_the_crash_log_of_the_previous_session_is_kept(tmp_path):
+    """The crash log is rotated, so the last crash survives and stays bounded."""
+    (tmp_path / "crash.log").write_text("Fatal Python error: boom\n")
+
+    handle = configure_logging(LogSettings(log_dir=tmp_path, console=False))
+    handle.shutdown()
+
+    assert (tmp_path / "crash.log.1").read_text() == "Fatal Python error: boom\n"
+    assert (tmp_path / "crash.log").read_text() == ""
+
+
+def test_the_total_size_of_the_logs_is_capped(tmp_path):
+    """The oldest logs are removed when the directory grows past the cap."""
+    paths = LogPaths.resolve(tmp_path)
+    paths.ensure()
+    now = time.time()
+    for index in range(5):
+        old = paths.instances / f"instance-01-2020010{index}-deadbeef.log"
+        old.write_text("x" * 1000)
+        os.utime(old, (now - index, now - index))
+
+    removed = enforce_total_cap(paths, 2500)
+
+    total = sum(path.stat().st_size for path in paths.instances.glob("*.log"))
+    assert removed == 3
+    assert total <= 2500
+
+
+def test_clear_logs_removes_every_log(tmp_path):
+    """The option gives a clean directory for a new report."""
+    import twinverse
+
+    (tmp_path / "twinverse.log").write_text("old")
+    (tmp_path / "instances").mkdir()
+    (tmp_path / "instances" / "instance-01-20200101-deadbeef.log").write_text("old")
+
+    assert twinverse.main(["--clear-logs", "--log-dir", str(tmp_path)]) == 0
+    assert not tmp_path.exists()
