@@ -6,6 +6,7 @@ import shlex
 import shutil
 import signal
 import subprocess
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -107,12 +108,51 @@ class InstanceService:
             self.logger.exception(f"Instance {instance_num}: Exception details:")
             raise TwinverseError(f"Failed to launch instance {instance_num}: {str(e)}")
 
+    @staticmethod
+    def _drain_stream(stream, log_file: Path) -> None:
+        """
+        Consume a pipe in the background, so the child never blocks on it.
+
+        A pipe holds about 64 KiB, and the child blocks on write once it is
+        full. Reading it here keeps the output in the instance log and leaves
+        the instance running.
+        """
+        if stream is None:
+            return
+
+        def _pump() -> None:
+            try:
+                with open(log_file, "ab") as sink:
+                    for chunk in iter(lambda: stream.read(4096), b""):
+                        sink.write(chunk)
+            except (OSError, TypeError, ValueError):
+                pass
+            finally:
+                try:
+                    stream.close()
+                except (OSError, TypeError, ValueError):
+                    pass
+
+        threading.Thread(target=_pump, daemon=True).start()
+
+    @staticmethod
+    def _read_log_tail(log_file: Path, limit: int = 2000) -> str:
+        """Return the end of an instance log, for the error message."""
+        try:
+            with open(log_file, "rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                handle.seek(max(0, handle.tell() - limit))
+                return handle.read().decode("utf-8", "replace").strip()
+        except OSError:
+            return ""
+
     def _launch_in_flatpak(
-        self, instance_num: int, base_command: list[str], instance_env: dict
+        self, instance_num: int, base_command: list[str], instance_env: dict, log_file: Optional[Path] = None
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance within a Flatpak environment."""
+        log_file = log_file or Config.LOG_DIR / f"steam_instance_{instance_num}.log"
         env_prefix_parts = [
-            f"unset {key}" if value is None else f"export {key}={shlex.quote(value)}"
+            f"unset {shlex.quote(key)}" if value is None else f"export {shlex.quote(key)}={shlex.quote(value)}"
             for key, value in instance_env.items()
         ]
         env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
@@ -166,6 +206,10 @@ class InstanceService:
         pgid_str = process.stdout.readline().decode().strip() if process.stdout else ""
         if pgid_str.isdigit():
             pgid = int(pgid_str)
+            # From here on the pipes are only drained, so the instance keeps
+            # running while its output lands in the log.
+            self._drain_stream(process.stdout, log_file)
+            self._drain_stream(process.stderr, log_file)
             self.logger.info(
                 f"Instance {instance_num} started on host with PID {process.pid} " f"and captured host PGID: {pgid}"
             )
@@ -186,9 +230,10 @@ class InstanceService:
         raise TwinverseError(f"Failed to get host process group ID for instance {instance_num}: {error_message}")
 
     def _launch_natively(
-        self, instance_num: int, base_command: list[str], instance_env: dict
+        self, instance_num: int, base_command: list[str], instance_env: dict, log_file: Optional[Path] = None
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance natively."""
+        log_file = log_file or Config.LOG_DIR / f"steam_instance_{instance_num}.log"
         native_env = os.environ.copy()
         native_env.pop("PYTHONHOME", None)
         native_env.pop("PYTHONPATH", None)
@@ -211,10 +256,18 @@ class InstanceService:
             base_command = network_command(base_command)
 
         try:
+            # The output goes straight to the instance log, so a chatty Steam
+            # or Proton session can never fill a pipe and block the instance.
+            output = open(log_file, "ab")
+        except OSError as e:
+            self.logger.error(f"Instance {instance_num}: Could not open the instance log: {e}")
+            raise TwinverseError(f"Could not open the instance log for instance {instance_num}: {e}")
+
+        try:
             process = subprocess.Popen(
                 base_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=output,
+                stderr=subprocess.STDOUT,
                 env=native_env,
                 cwd=Path.home(),
                 preexec_fn=os.setpgrp,
@@ -228,18 +281,16 @@ class InstanceService:
         except OSError as e:
             self.logger.error(f"Instance {instance_num}: OS error when launching: {e}")
             raise TwinverseError(f"OS error when launching instance {instance_num}: {e}")
+        finally:
+            # The child keeps its own copy of the descriptor.
+            output.close()
 
         import time
 
         time.sleep(0.1)
 
         if process.poll() is not None:
-            stdout_data, stderr_data = process.communicate()
-            stdout_str = stdout_data.decode() if stdout_data else ""
-            stderr_str = stderr_data.decode() if stderr_data else ""
-            error_message = (
-                f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}" if (stdout_str or stderr_str) else "Unknown error"
-            )
+            error_message = self._read_log_tail(log_file) or "Unknown error"
             self.logger.error(f"Instance {instance_num}: Process failed to start:\n{error_message}")
             raise DependencyError(f"Command failed to start: {base_command[0]} - {error_message}")
 
@@ -317,7 +368,9 @@ class InstanceService:
         if result.returncode != 0:
             raise DependencyError("No supported terminal found. Install Konsole, GNOME Terminal, or xterm.")
         terminal = result.stdout.strip().splitlines()[0]
-        terminal_args = terminals[Path(terminal).name]
+        terminal_args = terminals.get(Path(terminal).name)
+        if terminal_args is None:
+            raise DependencyError(f"Terminal '{terminal}' is not supported by Twinverse.")
 
         active_profile = self._prepare_launch_profile(profile, use_gamescope_override=False)
         Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -329,6 +382,66 @@ class InstanceService:
             self._launch_in_flatpak(instance_num, command, instance_env)
         else:
             self._launch_natively(instance_num, command, instance_env)
+
+    @staticmethod
+    def _collect_wine_devices(pgid: int) -> list[int]:
+        """
+        Return the Wine helpers that descend from one instance.
+
+        The list is collected before the instance is killed, because the
+        helpers are reparented once their parent is gone and could not be
+        recognized afterwards.
+        """
+        pids = []
+        for entry in Path("/proc").iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                cmdline = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode("utf-8", "replace")
+            except OSError:
+                continue
+            if "winedevice" not in cmdline:
+                continue
+            if not InstanceService._descends_from_group(int(entry.name), pgid):
+                continue
+            pids.append(int(entry.name))
+        return pids
+
+    @staticmethod
+    def _descends_from_group(pid: int, pgid: int) -> bool:
+        """Report whether a process descends from the given process group."""
+        seen = set()
+        current = pid
+        while current > 1 and current not in seen:
+            seen.add(current)
+            try:
+                if os.getpgid(current) == pgid:
+                    return True
+                status = Path(f"/proc/{current}/status").read_text()
+            except OSError:
+                return False
+            parent = 0
+            for line in status.splitlines():
+                if line.startswith("PPid:"):
+                    parent = int(line.split()[1])
+                    break
+            current = parent
+        return False
+
+    def _kill_wine_devices(self, instance_num: int, pids: list[int]) -> None:
+        """
+        Kill the Wine helpers of one instance.
+
+        A host wide "pkill -f winedevice" would also take down the helpers of
+        the other instances and of the Steam client of the user.
+        """
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError) as e:
+                self.logger.warning(f"Instance {instance_num}: Could not stop the Wine helper {pid}: {e}")
+        if pids:
+            self.logger.info(f"Instance {instance_num}: stopped {len(pids)} Wine helper(s) of this instance.")
 
     def terminate_instance(self, instance_num: int) -> None:
         """Terminates a single Steam instance gracefully."""
@@ -345,6 +458,9 @@ class InstanceService:
             # For native, it's the PGID we created.
             pgid = self.pgids.get(instance_num)
             if pgid:
+                # The Wine helpers are collected while the process tree is
+                # still intact, so only the ones of this instance are found.
+                wine_devices = self._collect_wine_devices(pgid)
                 if Utils.is_flatpak():
                     self.logger.info(f"Sending SIGTERM to host process group {pgid} for instance {instance_num}")
                     Utils.flatpak_spawn_host(["sh", "-c", f"kill -15 -{pgid}"])
@@ -367,11 +483,6 @@ class InstanceService:
                             self.logger.warning(f"Failed to send SIGKILL to host PGID {pgid}: {e}")
 
                         self.logger.info(f"Instance {instance_num} terminated with SIGKILL.")
-
-                        # This is necessary as a temporary measure for the problem described in:
-                        # https://github.com/ValveSoftware/gamescope/issues/1482
-                        Utils.flatpak_spawn_host(["sh", "-c", "pkill -9 -f winedevice"])
-
                     else:
                         try:
                             os.killpg(pgid, signal.SIGKILL)
@@ -385,19 +496,19 @@ class InstanceService:
 
                         self.logger.info(f"Instance {instance_num} terminated with SIGKILL.")
 
-                        # This is necessary as a temporary measure for the problem described in:
-                        # https://github.com/ValveSoftware/gamescope/issues/1482
-                        subprocess.run(
-                            ["pkill", "-9", "-f", "winedevice"],
-                            capture_output=True,
-                            text=True,
-                            check=False,
-                        )
+                    # This is necessary as a temporary measure for the problem described in:
+                    # https://github.com/ValveSoftware/gamescope/issues/1482
+                    self._kill_wine_devices(instance_num, wine_devices)
             else:
                 self.logger.warning(f"No PGID found for instance {instance_num}, cannot send termination signal.")
 
         if process.poll() is None:
-            process.wait()
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                self.logger.warning(f"Instance {instance_num} is still running after the termination request.")
+                process.kill()
+                process.wait()
 
         if instance_num in self.processes:
             del self.processes[instance_num]
@@ -440,6 +551,14 @@ class InstanceService:
         except OSError as e:
             self.logger.warning(
                 f"Cannot read host Steam directory '{host_steamapps}'; preserving instance manifests: {e}"
+            )
+            return
+
+        if not manifests:
+            # An empty host library means the games live somewhere else, so
+            # the manifests of the instance are kept instead of being wiped.
+            self.logger.warning(
+                f"Host Steam directory '{host_steamapps}' has no game manifests; preserving instance manifests."
             )
             return
 
@@ -491,8 +610,6 @@ class InstanceService:
             )
             return None
 
-        mouse_path = None
-        keyboard_path = None
         joystick_path = _validate_device(player_config.physical_device_id, "Joystick")
 
         audio_id = player_config.audio_device_id
@@ -500,8 +617,6 @@ class InstanceService:
             self.logger.info(f"Instance {instance_num_display}: Audio device ID '{audio_id}' assigned.")
 
         return {
-            "mouse_path_str_for_instance": mouse_path,
-            "keyboard_path_str_for_instance": keyboard_path,
             "joystick_path_str_for_instance": joystick_path,
             "audio_device_id_for_instance": (audio_id if audio_id and audio_id.strip() else None),
             "should_add_grab_flags": player_config.grab_input_devices,
@@ -526,12 +641,21 @@ class InstanceService:
                 self.kde_manager.restore_panel_states()
                 self.logger.info("KDE-specific cleanup complete.")
 
+            # A failure with one instance must not leave the others running.
             for instance_num in list(self.processes.keys()):
-                self.terminate_instance(instance_num)
+                try:
+                    self.terminate_instance(instance_num)
+                except Exception as e:
+                    self.logger.error(f"Could not terminate instance {instance_num}: {e}")
+                    self.logger.exception("Exception details:")
 
             self.logger.info("Instance termination complete.")
-            self.pids.clear()
-            self.processes.clear()
+            # The instances remove themselves from the tracking, so an entry
+            # that is still listed belongs to a launch that is in progress.
+            for instance_num in list(self.processes.keys()):
+                self.processes.pop(instance_num, None)
+                self.pids.pop(instance_num, None)
+                self.pgids.pop(instance_num, None)
 
         finally:
             self.termination_in_progress = False

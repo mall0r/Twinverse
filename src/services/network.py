@@ -16,17 +16,32 @@ state=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/twinverse-net.XXXXXX")
 sandbox=
 helper=
 namespace=
+setup_done=0
 cleanup() {
     trap - EXIT
     # bwrap blocks SIGTERM during setup, including while waiting on --block-fd.
-    [ -z "$namespace" ] || kill -KILL "$namespace" 2>/dev/null || true
-    [ -z "$sandbox" ] || kill -KILL "$sandbox" 2>/dev/null || true
+    # After the setup the application is left alone, so the group can close
+    # in order, with the compositor and the sandbox before the network.
+    if [ "$setup_done" -eq 0 ]; then
+        [ -z "$namespace" ] || kill -KILL "$namespace" 2>/dev/null || true
+        [ -z "$sandbox" ] || kill -KILL "$sandbox" 2>/dev/null || true
+    fi
     [ -z "$helper" ] || kill "$helper" 2>/dev/null || true
     wait 2>/dev/null || true
     rm -rf -- "$state"
 }
+forward_term() {
+    # Ask the group to stop, and give it time to close on its own instead
+    # of being killed right away.
+    [ -z "$sandbox" ] || kill -TERM "$sandbox" 2>/dev/null || true
+    for ((i = 0; i < 100; i++)); do
+        kill -0 "$sandbox" 2>/dev/null || break
+        sleep 0.1
+    done
+    exit 143
+}
 trap cleanup EXIT
-trap 'exit 143' TERM
+trap forward_term TERM
 trap 'exit 130' INT
 mkfifo "$state/start"
 exec 4<>"$state/start"
@@ -59,6 +74,7 @@ done
 echo 'Twinverse: isolated network enabled (pasta)' >&2
 printf '1' >&4
 exec 4>&-
+setup_done=1
 wait -n "$sandbox" "$helper"
 """
 

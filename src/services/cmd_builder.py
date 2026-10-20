@@ -34,7 +34,10 @@ exec "$@"
         config_path = self.home_path / self.MANGOAPP_CONFIG
         config_path.parent.mkdir(parents=True, exist_ok=True)
         # Start hidden until Steam applies the user's performance overlay level.
-        config_path.write_text("no_display\n", encoding="utf-8")
+        # The file is kept once it exists, so the level the user picked in the
+        # Steam performance menu survives the next launch.
+        if not config_path.exists():
+            config_path.write_text("no_display\n", encoding="utf-8")
         # An empty inline config skips file loading; read_cfg reapplies presets
         # in MangoHud 0.8.4, duplicating HUD elements. None means unset it.
         return {"MANGOHUD_CONFIGFILE": str(config_path), "MANGOHUD_CONFIG": None}
@@ -210,18 +213,15 @@ stream.rules = [
             )
             joystick_path = self.virtual_joystick_path
 
-        device_paths_to_bind = [
-            self.device_info.get("mouse_path_str_for_instance"),
-            self.device_info.get("keyboard_path_str_for_instance"),
-            joystick_path,
-        ]
-        for device_path in device_paths_to_bind:
-            if device_path:
-                self.logger.info(f"Instance {self.instance_num}: Exposing device '{device_path}' to sandbox.")
-                cmd.extend(["--dev-bind", device_path, device_path])
+        if joystick_path:
+            self.logger.info(f"Instance {self.instance_num}: Exposing device '{joystick_path}' to sandbox.")
+            cmd.extend(["--dev-bind", joystick_path, joystick_path])
 
         if Path("/dev/uinput").exists():
-            cmd.extend(["--dev-bind", "/dev/uinput", "/dev/uinput"])
+            # The virtual joystick is created outside the sandbox, so the
+            # instance only needs to read it. Writing to it would let an
+            # instance create devices on the host and in the other instances.
+            cmd.extend(["--ro-bind", "/dev/uinput", "/dev/uinput"])
         if Path("/dev/input/mice").exists():
             cmd.extend(["--dev-bind", "/dev/input/mice", "/dev/input/mice"])
 
