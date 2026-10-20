@@ -1,12 +1,14 @@
 """Data models for the profiles that define how a set of Steam instances is launched."""
 
 import json
+import os
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic.functional_validators import field_validator
 
 from src.core import Config, Utils
+from src.core.config import ensure_private_dir
 
 
 class PlayerInstanceConfig(BaseModel):
@@ -78,12 +80,25 @@ class Profile(BaseModel):
         return profile
 
     def save(self):
-        """Save the profile to the default JSON file."""
+        """Save the profile atomically with private permissions."""
         profile_path = Config.get_profile_path()
-        profile_path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_private_dir(profile_path.parent)
         data_to_save = self.model_dump(by_alias=True, exclude_none=True)
-        json_data = json.dumps(data_to_save, indent=4)
-        profile_path.write_text(json_data, encoding="utf-8")
+        json_data = json.dumps(data_to_save, indent=4) + "\n"
+        temporary = profile_path.with_name(f".{profile_path.name}.tmp")
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                stream.write(json_data)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, profile_path)
+        except Exception:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
 
     @property
     def is_splitscreen_mode(self) -> bool:
