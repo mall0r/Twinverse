@@ -55,7 +55,18 @@ class MainPresenter:
         layout_page = self.window.get_layout_page()
         layout_page.load_data(profile, devices_info, verification_statuses)
 
-        self._update_launch_button_state()
+        self._show_recovered_instances()
+        self._update_launch_button_sensitivity()
+        self._sync_launch_button_action()
+
+    def _show_recovered_instances(self):
+        """Show the instances that outlived the session that launched them."""
+        for record in self._instance_service.recovered_instances:
+            logger.info(
+                "Instance %s is still running from the previous session",
+                record.instance + 1,
+            )
+            self._set_instance_running_state(record.instance, True)
 
     def on_launch_clicked(self):
         """Handle launch button clicked."""
@@ -118,11 +129,11 @@ class MainPresenter:
         if old_num_players != new_num_players:
             self._run_all_verifications()
 
-        self._update_launch_button_state()
+        self._update_launch_button_sensitivity()
 
     def on_verification_completed(self):
         """Handle verification completed."""
-        self._update_launch_button_state()
+        self._update_launch_button_sensitivity()
 
     def on_instance_launch_requested(self, instance_num: int):
         """Handle single instance launch request."""
@@ -262,7 +273,7 @@ class MainPresenter:
             logger.warning("Another launch is already in progress.")
             self._bulk_operation_in_progress = False
             self.window.show_idle_state()
-            self._update_launch_button_state()
+            self._update_launch_button_sensitivity()
             self._update_number_of_instances_sensitivity()
 
     def _on_stop_requested(self):
@@ -300,7 +311,7 @@ class MainPresenter:
         """Handle stop complete."""
         GLib.idle_add(self.window.show_idle_state)
         GLib.idle_add(self._run_all_verifications)
-        GLib.idle_add(self._update_launch_button_state)
+        GLib.idle_add(self._update_launch_button_sensitivity)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
         GLib.idle_add(self._clear_bulk_operation_flag)
 
@@ -310,7 +321,7 @@ class MainPresenter:
 
         GLib.idle_add(self._verify_instance, instance_num)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
-        GLib.idle_add(self._sync_launch_button_state)
+        GLib.idle_add(self._sync_launch_button_action)
 
     def _on_single_instance_stopped(self, instance_num: int):
         """Handle single instance stopped."""
@@ -318,7 +329,7 @@ class MainPresenter:
 
         GLib.idle_add(self._verify_instance, instance_num)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
-        GLib.idle_add(self._sync_launch_button_state)
+        GLib.idle_add(self._sync_launch_button_action)
 
     def _on_single_instance_error(self, instance_num: int, error: Exception):
         """Handle single instance error."""
@@ -335,7 +346,7 @@ class MainPresenter:
             layout_page.player_rows[instance_num].set_running_state(is_running)
         return False
 
-    def _sync_launch_button_state(self):
+    def _sync_launch_button_action(self):
         """Keep the footer button in step with the instances that are running."""
         is_running = self._launch_controller.is_running() or self._any_instance_running()
         self.window.update_launch_button_action(is_running)
@@ -386,7 +397,7 @@ class MainPresenter:
         layout_page = self.window.get_layout_page()
         layout_page.update_verification_status(instance_num, is_verified)
 
-    def _update_launch_button_state(self):
+    def _update_launch_button_sensitivity(self):
         """Update launch button enabled state."""
         layout_page = self.window.get_layout_page()
         selected_players = layout_page.get_selected_players()
@@ -415,12 +426,12 @@ class MainPresenter:
         if hasattr(self, "_bulk_operation_in_progress") and self._bulk_operation_in_progress:
             self.window.launch_button.set_sensitive(False)
         else:
-            self._update_launch_button_state()
+            self._update_launch_button_sensitivity()
 
     def _clear_bulk_operation_flag(self):
         """Clear the bulk operation flag."""
         self._bulk_operation_in_progress = False
-        self._update_launch_button_state()
+        self._update_launch_button_sensitivity()
 
     def _restore_after_failed_launch(self):
         """Restore the UI after a failed launch, keeping the instances that started."""
@@ -435,6 +446,6 @@ class MainPresenter:
             player_row.set_running_state(index in running)
 
         self._run_all_verifications()
-        self._update_launch_button_state()
+        self._update_launch_button_sensitivity()
         self._update_number_of_instances_sensitivity()
         self._bulk_operation_in_progress = False

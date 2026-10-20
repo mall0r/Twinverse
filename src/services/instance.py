@@ -7,14 +7,24 @@ import shlex
 import shutil
 import signal
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from src.core import Config, Utils
 from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
-from src.core.logging import InstanceLog, get_logging_handle, log_context
+from src.core.logging import InstanceLog, get_logging_handle, get_run_id, log_context
 from src.models import PlayerInstanceConfig, Profile
 
+from .instance_registry import (
+    FLATPAK,
+    NATIVE,
+    InstanceProbe,
+    InstanceRecord,
+    InstanceRegistry,
+    ProcessHandle,
+    RecoveredInstance,
+)
 from .kde_manager import KdeManager
 from .network import network_command
 from .steam_input import SteamInputDisabler
@@ -46,8 +56,78 @@ class InstanceService:
         self._virtual_joystick_checked: bool = False
         self.pids: dict[int, int] = {}
         self.pgids: dict[int, int] = {}
-        self.processes: dict[int, subprocess.Popen] = {}
+        self.processes: dict[int, ProcessHandle] = {}
         self.termination_in_progress = False
+
+        self._registry = InstanceRegistry()
+        self._probe = InstanceProbe()
+        self.recovered_instances: list[InstanceRecord] = []
+        self._recover_instances()
+
+    def _recover_instances(self) -> list[InstanceRecord]:
+        """Find the instances that outlived the session that launched them."""
+        registry = getattr(self, "_registry", None)
+        if registry is None:
+            return []
+
+        records = registry.load()
+        if not records:
+            return []
+
+        surviving = []
+        for record in records:
+            if self._probe.alive(record):
+                surviving.append(record)
+            else:
+                logger.info(
+                    "Instance %s of the previous session is not running anymore",
+                    record.instance + 1,
+                )
+        registry.save(surviving)
+
+        for record in surviving:
+            self.processes[record.instance] = RecoveredInstance(record, self._probe)
+            self.pids[record.instance] = record.pgid
+            self.pgids[record.instance] = record.pgid
+
+        if surviving:
+            logger.warning(
+                "%s instance(s) of the previous session are still running: %s. "
+                "They can be stopped with the stop button.",
+                len(surviving),
+                ", ".join(str(record.instance + 1) for record in surviving),
+            )
+        self.recovered_instances = surviving
+        return surviving
+
+    def _record_instance(self, instance_num: int, instance_log: Optional[InstanceLog]) -> None:
+        """Remember an instance, so a later session is able to find it."""
+        registry = getattr(self, "_registry", None)
+        if registry is None:
+            return
+        pgid = self.pgids.get(instance_num)
+        if pgid is None:
+            return
+        registry.add(
+            InstanceRecord(
+                instance=instance_num,
+                pgid=pgid,
+                pid=self.pids.get(instance_num),
+                mode=FLATPAK if Utils.is_flatpak() else NATIVE,
+                home=str(Config.get_steam_home_path(instance_num)),
+                log=str(instance_log.path) if instance_log is not None and instance_log.path else None,
+                started_at=datetime.now().astimezone().isoformat(timespec="seconds"),
+                run_id=get_run_id(),
+            )
+        )
+
+    def _forget_instance(self, instance_num: int) -> None:
+        """Forget an instance that is not running anymore."""
+        registry = getattr(self, "_registry", None)
+        if registry is None:
+            return
+        self._probe.forget(instance_num)
+        registry.remove(instance_num)
 
     @property
     def instance_logs(self) -> dict[int, InstanceLog]:
@@ -124,6 +204,7 @@ class InstanceService:
                 self.processes[instance_num] = process
 
                 logger.info("Instance %s launched with PID %s", instance_num + 1, process.pid)
+                self._record_instance(instance_num, instance_log)
 
             except TwinverseError:
                 instance_log.finish(exit_code=1)
@@ -578,6 +659,7 @@ class InstanceService:
                 instance_num + 1,
                 instance_log.path or "unavailable",
             )
+        self._forget_instance(instance_num)
 
     def _prepare_home(self, home_path: Path) -> None:
         """

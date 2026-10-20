@@ -13,6 +13,7 @@ import pytest
 from src.core.exceptions import DependencyError
 from src.core.logging import LogSettings, configure_logging, current_run_id
 from src.services.instance import InstanceService
+from src.services.instance_registry import InstanceProbe, InstanceRegistry
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -179,3 +180,58 @@ def test_an_instance_that_dies_immediately_reports_its_output(tmp_path, monkeypa
     instance_logs = list((tmp_path / "instances").glob("instance-01-*.log"))
     assert len(instance_logs) == 1
     assert "fatal error in the client" in instance_logs[0].read_text()
+
+
+def test_the_next_session_finds_an_instance_that_outlived_the_crash(tmp_path):
+    """A crash leaves the registry behind, and the next session finds the instance."""
+    marker = tmp_path / "home_1"
+    registry_path = tmp_path / "instances.json"
+
+    result = _run_crash(
+        f"""
+        import os, subprocess, sys
+
+        sys.path.insert(0, {str(PROJECT_ROOT)!r})
+
+        from src.services.instance_registry import InstanceRecord, InstanceRegistry
+
+        child = subprocess.Popen(
+            ["bash", "-c", "exec -a {str(marker)!r} sleep 60"],
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        registry = InstanceRegistry({str(registry_path)!r})
+        registry.add(
+            InstanceRecord(
+                instance=0,
+                pgid=child.pid,
+                mode="native",
+                home={str(marker)!r},
+            )
+        )
+        os.kill(os.getpid(), 9)
+        """,
+        tmp_path,
+    )
+
+    assert result.returncode == -9
+    assert registry_path.exists()
+
+    service = InstanceService.__new__(InstanceService)
+    service._registry = InstanceRegistry(registry_path)
+    service._probe = InstanceProbe(ttl=0.0)
+    service.processes = {}
+    service.pids = {}
+    service.pgids = {}
+    service.recovered_instances = []
+
+    recovered = service._recover_instances()
+
+    assert len(recovered) == 1
+    assert recovered[0].instance == 0
+    assert 0 in service.processes
+
+    service.terminate_instance(0)
+
+    assert registry_path.exists() is False
