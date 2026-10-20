@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.core import Logger
+from src.core.exceptions import TwinverseError
 from src.models import Profile
 from src.services.device_manager import DeviceManager
 from src.services.webhelper_sync import build_webhelper_mounts
@@ -113,8 +114,13 @@ stream.rules = [
         """Build the Gamescope command."""
         width, height = self.device_manager.get_instance_dimensions(self.profile, self.instance_num)
         if not width or not height:
-            self.logger.error(f"Instance {self.instance_num}: Invalid dimensions. Aborting launch.")
-            return []
+            # Returning an empty command would turn the final line into
+            # "bwrap ... -- -- ...", and bwrap would fail on a program named
+            # "--" instead of reporting the real problem.
+            raise TwinverseError(
+                f"Instance {self.instance_num}: could not resolve the display size for this instance. "
+                "Check that a monitor is connected and that the instance is part of the current layout."
+            )
 
         # fmt: off
         cmd = [

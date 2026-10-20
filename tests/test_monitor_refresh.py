@@ -47,7 +47,7 @@ def manager(monkeypatch):
 )
 def test_refresh_follows_layout(manager, mode, players, index, dimensions, hz):
     """Both launch flags use the current rate of the monitor assigned by layout."""
-    profile = Profile(mode=mode, player_configs=[PlayerInstanceConfig() for _ in range(players)])
+    profile = Profile(mode=mode, num_players=players, player_configs=[PlayerInstanceConfig() for _ in range(players)])
     assert manager.get_instance_dimensions(profile, index) == dimensions
     builder = CommandBuilder(Mock(), profile, {}, manager, index, Path("/unused"), None)
     command = builder._build_gamescope_command(False)
@@ -57,7 +57,7 @@ def test_refresh_follows_layout(manager, mode, players, index, dimensions, hz):
 
 def test_instance_beyond_the_last_monitor_reuses_the_first(manager, tmp_path):
     """An instance with no monitor of its own borrows the first monitor's settings."""
-    profile = Profile(mode="fullscreen", player_configs=[PlayerInstanceConfig() for _ in range(3)])
+    profile = Profile(mode="fullscreen", num_players=3, player_configs=[PlayerInstanceConfig() for _ in range(3)])
 
     # Instance 3 has no third monitor, so it must match instance 1 exactly.
     assert manager.get_instance_dimensions(profile, 2) == manager.get_instance_dimensions(profile, 0)
@@ -74,7 +74,7 @@ def test_instance_beyond_the_last_monitor_reuses_the_first(manager, tmp_path):
 
 def test_splitscreen_group_without_a_monitor_reuses_the_first(manager):
     """Splitscreen groups past the last monitor fall back to the first one too."""
-    profile = Profile(mode="splitscreen", player_configs=[PlayerInstanceConfig() for _ in range(12)])
+    profile = Profile(mode="splitscreen", num_players=12, player_configs=[PlayerInstanceConfig() for _ in range(12)])
     # Two monitors, so the third group (instances 9-12) has none of its own.
     assert manager._get_instance_monitor_index(profile, 8) == 2
     assert manager._resolve_monitor_index(profile, 8, 2) == 0
@@ -114,7 +114,7 @@ def test_kwin_placement_matches_refresh_assignment(manager, script, function, mo
     node = shutil.which("node")
     if not node:
         pytest.skip("Node.js is needed to execute the KWin placement scripts")
-    profile = Profile(mode=mode, player_configs=[PlayerInstanceConfig() for _ in range(players)])
+    profile = Profile(mode=mode, num_players=players, player_configs=[PlayerInstanceConfig() for _ in range(players)])
     if "horizontal" in script:
         profile.splitscreen.orientation = "horizontal"
     kde = KdeManager.__new__(KdeManager)
@@ -137,9 +137,7 @@ const workspace = {
   windowRemoved: {connect: () => {}},
   windowActivated: {connect: () => {}}
 };
-""".replace(
-        "PLAYERS", str(players)
-    )
+""".replace("PLAYERS", str(players))
     result = subprocess.check_output(
         [node], input=harness + source + f"\n{function}(); console.log(JSON.stringify(clients));", text=True
     )

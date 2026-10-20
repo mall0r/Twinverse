@@ -180,9 +180,26 @@ class DeviceManager:
     @staticmethod
     def _get_instance_monitor_index(profile: Profile, instance_num: int) -> int:
         """Use the same monitor assignment for dimensions and refresh rate."""
+        slot = DeviceManager._get_instance_slot(profile, instance_num)
         if profile.is_splitscreen_mode and profile.splitscreen:
-            return instance_num // 4 if profile.effective_num_players() > 0 else 0
-        return instance_num
+            return slot // 4
+        return slot
+
+    @staticmethod
+    def _get_instance_slot(profile: Profile, instance_num: int) -> int:
+        """
+        Return the position of an instance inside the group being laid out.
+
+        The position follows the launch order, so a selection that skips an
+        instance still fills the split from the first position.
+        """
+        slots = DeviceManager._get_launch_slots(profile)
+        return slots.get(instance_num, instance_num)
+
+    @staticmethod
+    def _get_launch_slots(profile: Profile) -> Dict[int, int]:
+        """Map every instance index to its position in the launch order."""
+        return {index: slot for slot, index in enumerate(profile.launch_indices())}
 
     @classmethod
     def _resolve_monitor_index(cls, profile: Profile, instance_num: int, num_monitors: int) -> int:
@@ -206,7 +223,8 @@ class DeviceManager:
         """
         Calculate instance dimensions, accounting for splitscreen.
 
-        For groups of up to 4 instances, the logic is repeated for each group.
+        The selected instances are laid out in groups of four, following the
+        launch order, so a partial selection still fills the split.
         """
         monitors = self.get_screen_info()
 
@@ -219,35 +237,29 @@ class DeviceManager:
 
         if not profile.is_splitscreen_mode or not profile.splitscreen:
             return monitor_to_use["width"], monitor_to_use["height"]
-        else:
-            orientation = profile.splitscreen.orientation
-            num_players = profile.effective_num_players()
 
-            if num_players < 1:
-                return monitor_to_use["width"], monitor_to_use["height"]
-            else:
-                group_index = instance_num // 4
-
-                instance_in_group = instance_num % 4
-                num_players_in_group = min(4, num_players - group_index * 4)
-
-                if monitor_to_use and num_players_in_group > 0:
-                    if num_players_in_group == 1:
-                        return monitor_to_use["width"], monitor_to_use["height"]
-
-                    if instance_in_group < num_players_in_group:
-                        x, y, width, height = LayoutCalculator.calculate_position(
-                            monitor_to_use["width"],
-                            monitor_to_use["height"],
-                            num_players_in_group,
-                            instance_in_group,
-                            orientation,
-                        )
-                        return width, height
-                    else:
-                        return None, None
-
-        if monitor_to_use:
+        orientation = profile.splitscreen.orientation
+        num_players = profile.effective_num_players()
+        if num_players < 1:
             return monitor_to_use["width"], monitor_to_use["height"]
+
+        slot = self._get_instance_slot(profile, instance_num)
+        group_index = slot // 4
+        instance_in_group = slot % 4
+        num_players_in_group = min(4, num_players - group_index * 4)
+
+        if num_players_in_group <= 0:
+            return None, None
+        if num_players_in_group == 1:
+            return monitor_to_use["width"], monitor_to_use["height"]
+        if instance_in_group < num_players_in_group:
+            x, y, width, height = LayoutCalculator.calculate_position(
+                monitor_to_use["width"],
+                monitor_to_use["height"],
+                num_players_in_group,
+                instance_in_group,
+                orientation,
+            )
+            return width, height
 
         return None, None

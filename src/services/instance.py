@@ -263,17 +263,17 @@ class InstanceService:
         if not self._virtual_joystick_checked:
             self._virtual_joystick_checked = True
             needs_virtual_joystick = False
-            num_players = profile.effective_num_players()
-            if num_players > 0:
-                for i in range(num_players):
-                    player_config = (
-                        profile.player_configs[i]
-                        if profile.player_configs and i < len(profile.player_configs)
-                        else PlayerInstanceConfig()
-                    )
-                    if not player_config.physical_device_id:
-                        needs_virtual_joystick = True
-                        break
+            # Only the instances that take part in the launch need a device, so
+            # the check follows the launch order instead of the instance index.
+            for index in profile.launch_indices():
+                player_config = (
+                    profile.player_configs[index]
+                    if profile.player_configs and index < len(profile.player_configs)
+                    else PlayerInstanceConfig()
+                )
+                if not player_config.physical_device_id:
+                    needs_virtual_joystick = True
+                    break
 
             if needs_virtual_joystick:
                 self.logger.info("One or more instances lack a physical joystick. Creating a virtual one.")

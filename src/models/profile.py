@@ -17,7 +17,6 @@ class PlayerInstanceConfig(BaseModel):
     physical_device_id: Optional[str] = Field(default=None, alias="PHYSICAL_DEVICE_ID")
     grab_input_devices: bool = Field(default=False, alias="GRAB_INPUT_DEVICES")
     audio_device_id: Optional[str] = Field(default=None, alias="AUDIO_DEVICE_ID")
-    monitor_id: Optional[str] = Field(default=None, alias="MONITOR_ID")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
 
 
@@ -91,11 +90,21 @@ class Profile(BaseModel):
         """Check if the profile is configured for splitscreen mode."""
         return self.mode == "splitscreen"
 
-    def effective_num_players(self) -> int:
-        """Calculate the effective number of players based on selected players or player configs."""
+    def launch_indices(self) -> List[int]:
+        """
+        Return the indices of the instances that take part in a launch.
+
+        The selected instances are laid out as if they were the only ones, so
+        they always fill the first positions of the split, in order.
+        """
+        count = max(0, self.num_players)
         if self.selected_players:
-            return len(self.selected_players)
-        return len(self.player_configs) if self.player_configs else 0
+            return sorted({index for index in self.selected_players if 0 <= index < count})
+        return list(range(count))
+
+    def effective_num_players(self) -> int:
+        """Return how many instances take part in a launch."""
+        return len(self.launch_indices())
 
     def get_env_for_instance(self, instance_idx: int) -> Dict[str, str]:
         """Return the merged environment variables for a given instance index (0-based).
