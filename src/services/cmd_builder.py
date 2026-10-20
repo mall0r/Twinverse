@@ -1,14 +1,16 @@
 """Builds the launch commands for Steam instances, with gamescope and bwrap sandboxing."""
 
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from src.core import Logger
 from src.core.exceptions import TwinverseError
 from src.core.utils import Utils
 from src.models import Profile
 from src.services.device_manager import DeviceManager
 from src.services.webhelper_sync import build_webhelper_mounts
+
+logger = logging.getLogger(__name__)
 
 
 class CommandBuilder:
@@ -45,7 +47,6 @@ exec "$@"
 
     def __init__(
         self,
-        logger: Logger,
         profile: Profile,
         device_info: Dict,
         device_manager: DeviceManager,
@@ -54,7 +55,6 @@ exec "$@"
         virtual_joystick_path: Optional[str],
     ):
         """Initialize the CommandBuilder."""
-        self.logger = logger
         self.profile = profile
         self.device_info = device_info
         self.device_manager = device_manager
@@ -84,9 +84,9 @@ exec "$@"
             final_cmd = ["sh", "-c", self.GAMESCOPE_RUNTIME_SETUP, "twinverse-gamescope"] + final_cmd
 
             final_cmd = gamescope_cmd + ["--"] + final_cmd
-            self.logger.info(f"Instance {self.instance_num}: Launching with Gamescope")
+            logger.info("Instance %s: launching with Gamescope", self.instance_num + 1)
         else:
-            self.logger.info(f"Instance {self.instance_num}: Launching without Gamescope (bwrap only)")
+            logger.info("Instance %s: launching without Gamescope (bwrap only)", self.instance_num + 1)
 
         return bwrap_cmd + ["--"] + final_cmd
 
@@ -142,7 +142,7 @@ stream.rules = [
         if refresh_rate:
             cmd.extend(["-r", str(refresh_rate), "-o", str(refresh_rate)])
         else:
-            self.logger.warning(f"Instance {self.instance_num}: Could not detect the monitor refresh rate.")
+            logger.warning("Instance %s: could not detect the monitor refresh rate", self.instance_num + 1)
 
         if self.profile.use_steamdeck_tag:
             cmd.append("--mangoapp")
@@ -153,7 +153,7 @@ stream.rules = [
             cmd.append("-b")
 
         if should_add_grab_flags:
-            self.logger.info(f"Instance {self.instance_num}: Using dedicated mouse. Grabbing input.")
+            logger.info("Instance %s: using dedicated mouse and grabbing input", self.instance_num + 1)
             cmd.append("--force-grab-cursor")
 
         return cmd
@@ -166,10 +166,10 @@ stream.rules = [
             cmd.append("-steamdeck")
 
         if self.profile.use_gamescope:
-            self.logger.info(f"Instance {self.instance_num}: Using Steam command with Gamescope flags.")
+            logger.info("Instance %s: using Steam command with Gamescope flags", self.instance_num + 1)
             cmd.extend(["-gamepadui", "-steamos3"])
         else:
-            self.logger.info(f"Instance {self.instance_num}: Using plain Steam command.")
+            logger.info("Instance %s: using plain Steam command", self.instance_num + 1)
 
         return cmd
 
@@ -225,13 +225,15 @@ stream.rules = [
 
         joystick_path = self.device_info.get("joystick_path_str_for_instance")
         if not joystick_path and self.virtual_joystick_path:
-            self.logger.info(
-                f"Instance {self.instance_num}: Assigning virtual joystick '{self.virtual_joystick_path}'."
+            logger.info(
+                "Instance %s: assigning virtual joystick '%s'",
+                self.instance_num + 1,
+                self.virtual_joystick_path,
             )
             joystick_path = self.virtual_joystick_path
 
         if joystick_path:
-            self.logger.info(f"Instance {self.instance_num}: Exposing device '{joystick_path}' to sandbox.")
+            logger.info("Instance %s: exposing device '%s' to sandbox", self.instance_num + 1, joystick_path)
             cmd.extend(["--dev-bind", joystick_path, joystick_path])
 
         if Path("/dev/uinput").exists():
@@ -288,9 +290,9 @@ stream.rules = [
                     v = ""
                 cmd.extend(["--setenv", str(k), str(v)])
             if extra_env:
-                self.logger.info(f"Instance {self.instance_num}: Added {len(extra_env)} --setenv entries to bwrap.")
-        except Exception as e:
-            self.logger.error(f"Instance {self.instance_num}: Failed to add --setenv entries: {e}")
+                logger.info("Instance %s: added %s --setenv entries to bwrap", self.instance_num + 1, len(extra_env))
+        except Exception:
+            logger.exception("Instance %s: failed to add --setenv entries", self.instance_num + 1)
 
         if self.profile.use_gamescope and self.profile.use_steamdeck_tag:
             # Gamescope, MangoApp and Steam share the sandbox home path.

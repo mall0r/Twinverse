@@ -13,8 +13,7 @@ def test_minimal_functionality():
     try:
         import gi  # noqa: F401
 
-        from src.core.logger import Logger  # noqa: F401
-        from src.services import DeviceManager, InstanceService  # noqa: F401
+        from src.services import InstanceService  # noqa: F401
 
         print("All core modules imported successfully")
 
@@ -23,7 +22,7 @@ def test_minimal_functionality():
         print("Config created successfully")
 
         Profile(name="test_profile", num_players=2)
-        SteamInstance(instance_num=1, name="test_instance")
+        SteamInstance(instance_num=1)
 
         print("Profile and SteamInstance created successfully")
 

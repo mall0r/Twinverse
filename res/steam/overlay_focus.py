@@ -209,7 +209,8 @@ def watch(session_pid=None):
             if not x11.get(x11.root, "GAMESCOPE_PID"):
                 return
             anchor = f"Steam {session_pid}" if session_pid else "Steam"
-            print(f"Twinverse: watching narrow overlay focus for {anchor}", flush=True)
+            sys.stdout.write(f"Twinverse: watching narrow overlay focus for {anchor}\n")
+            sys.stdout.flush()
             while instance_running(session_pid):
                 active = x11.get(x11.root, "_NET_ACTIVE_WINDOW")
                 reported = x11.get(x11.root, "GAMESCOPE_FOCUSED_APP")
@@ -222,7 +223,8 @@ def watch(session_pid=None):
                 if correction is not None:
                     x11.set_focus(correction)
                     repaired = correction == STEAM_APP_ID
-                    print(f"Twinverse: controller focus feedback -> {correction}", flush=True)
+                    sys.stdout.write(f"Twinverse: controller focus feedback -> {correction}\n")
+                    sys.stdout.flush()
                 elif reported != STEAM_APP_ID:
                     repaired = False
                 time.sleep(POLL_INTERVAL)
@@ -234,4 +236,4 @@ if __name__ == "__main__":
     try:
         watch(int(sys.argv[1]) if len(sys.argv) > 1 else None)
     except (OSError, RuntimeError, ValueError) as error:
-        print(f"Twinverse: overlay focus helper unavailable: {error}", file=sys.stderr)
+        sys.stderr.write(f"Twinverse: overlay focus helper unavailable: {error}\n")

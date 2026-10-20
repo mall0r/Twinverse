@@ -1,35 +1,45 @@
 """Launch, termination and configuration of Steam instances in isolated environments."""
 
 import copy
+import logging
 import os
 import shlex
 import shutil
 import signal
 import subprocess
-import threading
 from pathlib import Path
 from typing import Optional
 
-from src.core import Config, Logger, Utils
+from src.core import Config, Utils
 from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
+from src.core.logging import InstanceLog, get_logging_handle, log_context
 from src.models import PlayerInstanceConfig, Profile
 
 from .kde_manager import KdeManager
 from .network import network_command
 from .steam_input import SteamInputDisabler
 
+logger = logging.getLogger(__name__)
+
+
+def _instance_log_limit() -> int:
+    """Return the configured size cap for one instance log."""
+    handle = get_logging_handle()
+    if handle is None:
+        return 100 * 1024 * 1024
+    return handle.settings.instance_max_bytes
+
 
 class InstanceService:
     """Tracks the process, PGID and Popen of every managed instance."""
 
-    def __init__(self, logger: Logger, kde_manager: Optional[KdeManager] = None):
+    def __init__(self, kde_manager: Optional[KdeManager] = None):
         """Initialize the instance service."""
         from .device_manager import DeviceManager
         from .virtual_device import VirtualDeviceService
 
-        self.logger = logger
-        self.steam_input = SteamInputDisabler(logger)
-        self.virtual_device = VirtualDeviceService(logger)
+        self.steam_input = SteamInputDisabler()
+        self.virtual_device = VirtualDeviceService()
         self.kde_manager = kde_manager
         self.device_manager = DeviceManager()
         self._virtual_joystick_path: Optional[str] = None
@@ -38,6 +48,15 @@ class InstanceService:
         self.pgids: dict[int, int] = {}
         self.processes: dict[int, subprocess.Popen] = {}
         self.termination_in_progress = False
+
+    @property
+    def instance_logs(self) -> dict[int, InstanceLog]:
+        """Return the log handles of the instances launched by this service."""
+        logs = getattr(self, "_instance_logs", None)
+        if logs is None:
+            logs = {}
+            self._instance_logs = logs
+        return logs
 
     def _prepare_instance_launch(
         self, profile: Profile, instance_num: int, application_command: Optional[list[str]] = None
@@ -50,7 +69,7 @@ class InstanceService:
 
         home_path = Config.get_steam_home_path(instance_num)
         home_path.mkdir(parents=True, exist_ok=True)
-        self.logger.info(f"Instance {instance_num}: Using isolated home path '{home_path}'")
+        logger.info(f"Instance {instance_num}: Using isolated home path '{home_path}'")
 
         self._prepare_home(home_path)
         if application_command is None:
@@ -65,7 +84,6 @@ class InstanceService:
         from .cmd_builder import CommandBuilder
 
         cmd_builder = CommandBuilder(
-            self.logger,
             profile,
             device_info,
             self.device_manager,
@@ -78,79 +96,62 @@ class InstanceService:
 
     def _launch_single_instance(self, profile: Profile, instance_num: int) -> None:
         """Launch a single steam instance."""
-        self.logger.info(f"Preparing instance {instance_num}...")
+        with log_context(instance=instance_num + 1):
+            logger.info("Preparing instance %s", instance_num + 1)
 
-        base_command, instance_env = self._prepare_instance_launch(profile, instance_num)
+            base_command, instance_env = self._prepare_instance_launch(profile, instance_num)
+            instance_log = InstanceLog.create(
+                instance_num,
+                command=base_command,
+                env_keys=instance_env.keys(),
+                cwd=Path.home(),
+                max_bytes=_instance_log_limit(),
+            )
+            logger.info("Launching instance %s (log: %s)", instance_num + 1, instance_log.path or "disabled")
+            logger.debug("Environment keys: %s", ", ".join(sorted(instance_env)))
+            self.instance_logs[instance_num] = instance_log
 
-        log_file = Config.LOG_DIR / f"steam_instance_{instance_num}.log"
-        self.logger.info(f"Launching instance {instance_num} (Log: {log_file})")
-        self.logger.debug(f"Instance {instance_num}: Environment: {dict(instance_env)}")
-
-        try:
-            if Utils.is_flatpak():
-                self.logger.info(f"Instance {instance_num}: Launching in Flatpak environment")
-                process, pgid = self._launch_in_flatpak(instance_num, base_command, instance_env)
-            else:
-                self.logger.info(f"Instance {instance_num}: Launching natively")
-                process, pgid = self._launch_natively(instance_num, base_command, instance_env)
-
-            self.pids[instance_num] = process.pid
-            self.pgids[instance_num] = pgid
-            self.processes[instance_num] = process
-
-            self.logger.info(f"Instance {instance_num}: Successfully launched with PID {process.pid}")
-
-        except TwinverseError:
-            self.logger.error(f"Instance {instance_num}: TwinverseError during launch")
-            raise
-        except Exception as e:
-            self.logger.error(f"Instance {instance_num}: Unexpected error during launch: {str(e)}")
-            self.logger.exception(f"Instance {instance_num}: Exception details:")
-            raise TwinverseError(f"Failed to launch instance {instance_num}: {str(e)}")
-
-    @staticmethod
-    def _drain_stream(stream, log_file: Path) -> None:
-        """
-        Consume a pipe in the background, so the child never blocks on it.
-
-        A pipe holds about 64 KiB, and the child blocks on write once it is
-        full. Reading it here keeps the output in the instance log and leaves
-        the instance running.
-        """
-        if stream is None:
-            return
-
-        def _pump() -> None:
             try:
-                with open(log_file, "ab") as sink:
-                    for chunk in iter(lambda: stream.read(4096), b""):
-                        sink.write(chunk)
-            except (OSError, TypeError, ValueError):
-                pass
-            finally:
-                try:
-                    stream.close()
-                except (OSError, TypeError, ValueError):
-                    pass
+                if Utils.is_flatpak():
+                    logger.info("Launching instance %s in the Flatpak environment", instance_num + 1)
+                    process, pgid = self._launch_in_flatpak(instance_num, base_command, instance_env, log=instance_log)
+                else:
+                    logger.info("Launching instance %s natively", instance_num + 1)
+                    process, pgid = self._launch_natively(instance_num, base_command, instance_env, log=instance_log)
 
-        threading.Thread(target=_pump, daemon=True).start()
+                self.pids[instance_num] = process.pid
+                self.pgids[instance_num] = pgid
+                self.processes[instance_num] = process
 
-    @staticmethod
-    def _read_log_tail(log_file: Path, limit: int = 2000) -> str:
-        """Return the end of an instance log, for the error message."""
-        try:
-            with open(log_file, "rb") as handle:
-                handle.seek(0, os.SEEK_END)
-                handle.seek(max(0, handle.tell() - limit))
-                return handle.read().decode("utf-8", "replace").strip()
-        except OSError:
-            return ""
+                logger.info("Instance %s launched with PID %s", instance_num + 1, process.pid)
+
+            except TwinverseError:
+                instance_log.finish(exit_code=1)
+                self.instance_logs.pop(instance_num, None)
+                logger.exception("Instance %s failed to launch", instance_num + 1)
+                raise
+            except Exception as error:
+                instance_log.finish(exit_code=1)
+                self.instance_logs.pop(instance_num, None)
+                logger.exception("Instance %s failed with an unexpected error", instance_num + 1)
+                raise TwinverseError(f"Failed to launch instance {instance_num}: {error}") from error
 
     def _launch_in_flatpak(
-        self, instance_num: int, base_command: list[str], instance_env: dict, log_file: Optional[Path] = None
+        self,
+        instance_num: int,
+        base_command: list[str],
+        instance_env: dict,
+        log: Optional[InstanceLog] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance within a Flatpak environment."""
-        log_file = log_file or Config.LOG_DIR / f"steam_instance_{instance_num}.log"
+        if log is None:
+            log = InstanceLog.create(
+                instance_num,
+                command=base_command,
+                env_keys=instance_env,
+                cwd=Path.home(),
+                max_bytes=_instance_log_limit(),
+            )
         env_prefix_parts = [
             f"unset {shlex.quote(key)}" if value is None else f"export {shlex.quote(key)}={shlex.quote(value)}"
             for key, value in instance_env.items()
@@ -175,7 +176,7 @@ class InstanceService:
             leader = f"exec {bash_path} -c {shlex.quote(inner_script)}"
         shell_command = f"{env_prefix}{leader}"
 
-        self.logger.info(f"Instance {instance_num}: Launching on host via shell: {shell_command}")
+        logger.info("Launching instance %s on the host via shell: %s", instance_num + 1, shell_command)
 
         flatpak_env = os.environ.copy()
         flatpak_env.pop("PYTHONHOME", None)
@@ -190,15 +191,15 @@ class InstanceService:
                 env=flatpak_env,
                 cwd=Path.home(),
             )
-        except FileNotFoundError as e:
-            self.logger.error(f"Instance {instance_num}: flatpak-spawn-host command not found: {e}")
-            raise DependencyError(f"flatpak-spawn-host command not found: {e}")
-        except PermissionError as e:
-            self.logger.error(f"Instance {instance_num}: Permission denied when spawning host process: {e}")
-            raise TwinverseError(f"Permission denied when launching instance {instance_num}: {e}")
-        except Exception as e:
-            self.logger.error(f"Instance {instance_num}: Unexpected error when spawning host process: {e}")
-            raise TwinverseError(f"Unexpected error when launching instance {instance_num}: {e}")
+        except FileNotFoundError as error:
+            logger.exception("flatpak-spawn-host command not found")
+            raise DependencyError(f"flatpak-spawn-host command not found: {error}") from error
+        except PermissionError as error:
+            logger.exception("Permission denied when spawning the host process")
+            raise TwinverseError(f"Permission denied when launching instance {instance_num}: {error}") from error
+        except Exception as error:
+            logger.exception("Unexpected error when spawning the host process")
+            raise TwinverseError(f"Unexpected error when launching instance {instance_num}: {error}") from error
 
         import time
 
@@ -206,32 +207,43 @@ class InstanceService:
 
         if process.poll() is not None:
             stdout_data, stderr_data = process.communicate()
-            stdout_str = stdout_data.decode() if stdout_data else ""
-            stderr_str = stderr_data.decode() if stderr_data else ""
+            log.write(stdout_data or b"")
+            log.write(stderr_data or b"")
+            log.finish(exit_code=process.returncode)
+            stdout_str = stdout_data.decode(errors="replace") if stdout_data else ""
+            stderr_str = stderr_data.decode(errors="replace") if stderr_data else ""
             error_message = (
                 f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}" if (stdout_str or stderr_str) else "Unknown error"
             )
-            self.logger.error(f"Instance {instance_num}: Process failed to start:\n{error_message}")
+            logger.error("Instance %s process failed to start:\n%s", instance_num + 1, error_message)
             raise DependencyError(f"Command failed to start: {base_command[0]} - {error_message}")
 
-        pgid_str = process.stdout.readline().decode().strip() if process.stdout else ""
+        pgid_str = process.stdout.readline().decode(errors="replace").strip() if process.stdout else ""
         if pgid_str.isdigit():
             pgid = int(pgid_str)
             # From here on the pipes are only drained, so the instance keeps
             # running while its output lands in the log.
-            self._drain_stream(process.stdout, log_file)
-            self._drain_stream(process.stderr, log_file)
-            self.logger.info(
-                f"Instance {instance_num} started on host with PID {process.pid} " f"and captured host PGID: {pgid}"
+            if process.stdout:
+                log.start_drain(process.stdout)
+            if process.stderr:
+                log.start_drain(process.stderr)
+            logger.info(
+                "Instance %s started on the host with PID %s and host PGID %s",
+                instance_num + 1,
+                process.pid,
+                pgid,
             )
             return process, pgid
 
-        self.logger.error(f"Instance {instance_num}: Failed to capture host PGID. Read: '{pgid_str}'")
+        logger.error("Instance %s: failed to capture the host PGID; read %r", instance_num + 1, pgid_str)
         process.terminate()
 
         stdout_data, stderr_data = process.communicate(timeout=1) if process.stdout else (None, None)
-        stdout_str = stdout_data.decode() if stdout_data else ""
-        stderr_str = stderr_data.decode() if stderr_data else ""
+        log.write(stdout_data or b"")
+        log.write(stderr_data or b"")
+        log.finish(exit_code=process.returncode)
+        stdout_str = stdout_data.decode(errors="replace") if stdout_data else ""
+        stderr_str = stderr_data.decode(errors="replace") if stderr_data else ""
         error_message = (
             f"STDOUT: {stdout_str}\nSTDERR: {stderr_str}"
             if (stdout_str or stderr_str)
@@ -241,10 +253,21 @@ class InstanceService:
         raise TwinverseError(f"Failed to get host process group ID for instance {instance_num}: {error_message}")
 
     def _launch_natively(
-        self, instance_num: int, base_command: list[str], instance_env: dict, log_file: Optional[Path] = None
+        self,
+        instance_num: int,
+        base_command: list[str],
+        instance_env: dict,
+        log: Optional[InstanceLog] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance natively."""
-        log_file = log_file or Config.LOG_DIR / f"steam_instance_{instance_num}.log"
+        if log is None:
+            log = InstanceLog.create(
+                instance_num,
+                command=base_command,
+                env_keys=instance_env,
+                cwd=Path.home(),
+                max_bytes=_instance_log_limit(),
+            )
         native_env = os.environ.copy()
         native_env.pop("PYTHONHOME", None)
         native_env.pop("PYTHONPATH", None)
@@ -254,13 +277,12 @@ class InstanceService:
             else:
                 native_env[key] = value
 
-        self.logger.info(f"Instance {instance_num}: Full command: {shlex.join(base_command)}")
-
-        self.logger.debug(f"Instance {instance_num}: Environment variables: {list(instance_env.keys())}")
+        logger.info("Instance %s full command: %s", instance_num + 1, shlex.join(base_command))
+        logger.debug("Instance %s environment keys: %s", instance_num + 1, list(instance_env))
 
         if not shutil.which(base_command[0]):
             error_msg = f"Command '{base_command[0]}' not found in PATH"
-            self.logger.error(f"Instance {instance_num}: {error_msg}")
+            logger.error("Instance %s: %s", instance_num + 1, error_msg)
             raise DependencyError(error_msg)
 
         if shutil.which("pasta"):
@@ -269,10 +291,10 @@ class InstanceService:
         try:
             # The output goes straight to the instance log, so a chatty Steam
             # or Proton session can never fill a pipe and block the instance.
-            output = open(log_file, "ab")
-        except OSError as e:
-            self.logger.error(f"Instance {instance_num}: Could not open the instance log: {e}")
-            raise TwinverseError(f"Could not open the instance log for instance {instance_num}: {e}")
+            output = log.open_stream()
+        except OSError as error:
+            logger.exception("Instance %s: could not open the instance log", instance_num + 1)
+            raise TwinverseError(f"Could not open the instance log for instance {instance_num}: {error}") from error
 
         try:
             process = subprocess.Popen(
@@ -283,30 +305,37 @@ class InstanceService:
                 cwd=Path.home(),
                 preexec_fn=os.setpgrp,
             )
-        except FileNotFoundError as e:
-            self.logger.error(f"Instance {instance_num}: Command not found: {e}")
-            raise DependencyError(f"Command not found: {e}")
-        except PermissionError as e:
-            self.logger.error(f"Instance {instance_num}: Permission denied: {e}")
-            raise TwinverseError(f"Permission denied when launching instance {instance_num}: {e}")
-        except OSError as e:
-            self.logger.error(f"Instance {instance_num}: OS error when launching: {e}")
-            raise TwinverseError(f"OS error when launching instance {instance_num}: {e}")
+        except FileNotFoundError as error:
+            log.finish(exit_code=127)
+            logger.exception("Instance %s: command not found", instance_num + 1)
+            raise DependencyError(f"Command not found: {error}") from error
+        except PermissionError as error:
+            log.finish(exit_code=126)
+            logger.exception("Instance %s: permission denied", instance_num + 1)
+            raise TwinverseError(f"Permission denied when launching instance {instance_num}: {error}") from error
+        except OSError as error:
+            log.finish(exit_code=1)
+            logger.exception("Instance %s: OS error when launching", instance_num + 1)
+            raise TwinverseError(f"OS error when launching instance {instance_num}: {error}") from error
         finally:
             # The child keeps its own copy of the descriptor.
-            output.close()
+            try:
+                output.close()
+            except OSError:
+                pass
 
         import time
 
         time.sleep(0.1)
 
         if process.poll() is not None:
-            error_message = self._read_log_tail(log_file) or "Unknown error"
-            self.logger.error(f"Instance {instance_num}: Process failed to start:\n{error_message}")
+            error_message = log.tail() or "Unknown error"
+            log.finish(exit_code=process.returncode)
+            logger.error("Instance %s process failed to start:\n%s", instance_num + 1, error_message)
             raise DependencyError(f"Command failed to start: {base_command[0]} - {error_message}")
 
         pgid = process.pid
-        self.logger.info(f"Instance {instance_num} started with PID: {process.pid} and PGID: {pgid}")
+        logger.info("Instance %s started with PID %s and PGID %s", instance_num + 1, process.pid, pgid)
         return process, pgid
 
     def launch_instance(
@@ -317,7 +346,6 @@ class InstanceService:
     ) -> None:
         """Launch a single Steam instance."""
         active_profile = self._prepare_launch_profile(profile, use_gamescope_override)
-        Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
         self._launch_single_instance(active_profile, instance_num)
 
     def _prepare_launch_profile(self, profile: Profile, use_gamescope_override: Optional[bool]) -> Profile:
@@ -338,11 +366,11 @@ class InstanceService:
                     break
 
             if needs_virtual_joystick:
-                self.logger.info("One or more instances lack a physical joystick. Creating a virtual one.")
+                logger.info("One or more instances lack a physical joystick. Creating a virtual one.")
                 try:
                     self._virtual_joystick_path = self.virtual_device.create_virtual_joystick()
                 except VirtualDeviceError as e:
-                    self.logger.error(f"Halting launch due to virtual joystick creation failure: {str(e)}")
+                    logger.error(f"Halting launch due to virtual joystick creation failure: {str(e)}")
                     raise
 
         active_profile = profile
@@ -384,15 +412,23 @@ class InstanceService:
             raise DependencyError(f"Terminal '{terminal}' is not supported by Twinverse.")
 
         active_profile = self._prepare_launch_profile(profile, use_gamescope_override=False)
-        Config.LOG_DIR.mkdir(parents=True, exist_ok=True)
         command, instance_env = self._prepare_instance_launch(
             active_profile, instance_num, application_command=[terminal, *terminal_args, "bash", "-i"]
         )
-        self.logger.info(f"Opening terminal for instance {instance_num}: {shlex.join(command)}")
-        if Utils.is_flatpak():
-            self._launch_in_flatpak(instance_num, command, instance_env)
-        else:
-            self._launch_natively(instance_num, command, instance_env)
+        with log_context(instance=instance_num + 1, phase="terminal"):
+            instance_log = InstanceLog.create(
+                instance_num,
+                command=command,
+                env_keys=instance_env.keys(),
+                cwd=Path.home(),
+                max_bytes=_instance_log_limit(),
+            )
+            logger.info("Opening a terminal for instance %s: %s", instance_num + 1, shlex.join(command))
+            self.instance_logs[instance_num] = instance_log
+            if Utils.is_flatpak():
+                self._launch_in_flatpak(instance_num, command, instance_env, log=instance_log)
+            else:
+                self._launch_natively(instance_num, command, instance_env, log=instance_log)
 
     @staticmethod
     def _collect_wine_devices(pgid: int) -> list[int]:
@@ -450,18 +486,18 @@ class InstanceService:
             try:
                 os.kill(pid, signal.SIGKILL)
             except (ProcessLookupError, PermissionError) as e:
-                self.logger.warning(f"Instance {instance_num}: Could not stop the Wine helper {pid}: {e}")
+                logger.warning(f"Instance {instance_num}: Could not stop the Wine helper {pid}: {e}")
         if pids:
-            self.logger.info(f"Instance {instance_num}: stopped {len(pids)} Wine helper(s) of this instance.")
+            logger.info(f"Instance {instance_num}: stopped {len(pids)} Wine helper(s) of this instance.")
 
     def terminate_instance(self, instance_num: int) -> None:
         """Terminates a single Steam instance gracefully."""
         if instance_num not in self.processes:
-            self.logger.warning(f"Attempted to terminate non-existent instance {instance_num}")
+            logger.warning(f"Attempted to terminate non-existent instance {instance_num}")
             return
 
         process = self.processes[instance_num]
-        self.logger.info(f"Terminating instance {process.pid}...")
+        logger.info(f"Terminating instance {process.pid}...")
 
         if process.poll() is None:
             # Get the appropriate process/group ID for termination.
@@ -473,51 +509,51 @@ class InstanceService:
                 # still intact, so only the ones of this instance are found.
                 wine_devices = self._collect_wine_devices(pgid)
                 if Utils.is_flatpak():
-                    self.logger.info(f"Sending SIGTERM to host process group {pgid} for instance {instance_num}")
+                    logger.info(f"Sending SIGTERM to host process group {pgid} for instance {instance_num}")
                     Utils.flatpak_spawn_host(["sh", "-c", f"kill -15 -{pgid}"])
                 else:
                     try:
-                        self.logger.info(f"Sending SIGTERM to process group {pgid} for instance {instance_num}")
+                        logger.info(f"Sending SIGTERM to process group {pgid} for instance {instance_num}")
                         os.killpg(pgid, signal.SIGTERM)
                     except ProcessLookupError:
-                        self.logger.warning(f"Process group {pgid} not found for instance {instance_num}.")
+                        logger.warning(f"Process group {pgid} not found for instance {instance_num}.")
 
                 try:
                     process.wait(timeout=10)
-                    self.logger.info(f"Instance {instance_num} terminated gracefully.")
+                    logger.info(f"Instance {instance_num} terminated gracefully.")
                 except subprocess.TimeoutExpired:
-                    self.logger.warning(f"Instance {instance_num} did not terminate after 10s. Sending SIGKILL.")
+                    logger.warning(f"Instance {instance_num} did not terminate after 10s. Sending SIGKILL.")
                     if Utils.is_flatpak():
                         try:
                             Utils.flatpak_spawn_host(["sh", "-c", f"kill -9 -{pgid}"])
                         except Exception as e:
-                            self.logger.warning(f"Failed to send SIGKILL to host PGID {pgid}: {e}")
+                            logger.warning(f"Failed to send SIGKILL to host PGID {pgid}: {e}")
 
-                        self.logger.info(f"Instance {instance_num} terminated with SIGKILL.")
+                        logger.info(f"Instance {instance_num} terminated with SIGKILL.")
                     else:
                         try:
                             os.killpg(pgid, signal.SIGKILL)
                         except ProcessLookupError:
-                            self.logger.warning(
+                            logger.warning(
                                 f"Process group {pgid} not found when sending SIGKILL for instance {instance_num}."
                             )
                         except PermissionError as e:
-                            self.logger.error(f"Permission denied when sending SIGKILL to process group {pgid}: {e}")
+                            logger.error(f"Permission denied when sending SIGKILL to process group {pgid}: {e}")
                             raise TwinverseError(f"Permission denied when terminating instance {instance_num}: {e}")
 
-                        self.logger.info(f"Instance {instance_num} terminated with SIGKILL.")
+                        logger.info(f"Instance {instance_num} terminated with SIGKILL.")
 
                     # This is necessary as a temporary measure for the problem described in:
                     # https://github.com/ValveSoftware/gamescope/issues/1482
                     self._kill_wine_devices(instance_num, wine_devices)
             else:
-                self.logger.warning(f"No PGID found for instance {instance_num}, cannot send termination signal.")
+                logger.warning(f"No PGID found for instance {instance_num}, cannot send termination signal.")
 
         if process.poll() is None:
             try:
                 process.wait(timeout=15)
             except subprocess.TimeoutExpired:
-                self.logger.warning(f"Instance {instance_num} is still running after the termination request.")
+                logger.warning(f"Instance {instance_num} is still running after the termination request.")
                 process.kill()
                 process.wait()
 
@@ -528,6 +564,16 @@ class InstanceService:
         if instance_num in self.pgids:
             del self.pgids[instance_num]
 
+        instance_log = self.instance_logs.pop(instance_num, None)
+        if instance_log is not None:
+            exit_code = process.poll()
+            instance_log.finish(exit_code=exit_code)
+            logger.info(
+                "Instance %s log finished: %s",
+                instance_num + 1,
+                instance_log.path or "unavailable",
+            )
+
     def _prepare_home(self, home_path: Path) -> None:
         """
         Prepare the isolated Steam directories for the instance.
@@ -535,7 +581,7 @@ class InstanceService:
         Args:
             home_path: The instance home to populate.
         """
-        self.logger.info(f"Preparing isolated Steam directories for instance at {home_path}...")
+        logger.info(f"Preparing isolated Steam directories for instance at {home_path}...")
 
         sdbx_steam_local = home_path / ".local/share/Steam"
 
@@ -543,13 +589,13 @@ class InstanceService:
             (sdbx_steam_local / "steamapps").mkdir(parents=True, exist_ok=True)
             (sdbx_steam_local / "compatibilitytools.d").mkdir(parents=True, exist_ok=True)
         except PermissionError as e:
-            self.logger.error(f"Permission denied when creating Steam directories: {e}")
+            logger.error(f"Permission denied when creating Steam directories: {e}")
             raise TwinverseError(f"Permission denied when creating Steam directories: {e}")
         except OSError as e:
-            self.logger.error(f"OS error when creating Steam directories: {e}")
+            logger.error(f"OS error when creating Steam directories: {e}")
             raise TwinverseError(f"OS error when creating Steam directories: {e}")
 
-        self.logger.info("Isolated Steam directories are ready.")
+        logger.info("Isolated Steam directories are ready.")
 
     def _sync_app_manifests(self, home_path: Path) -> None:
         """Copy host manifests before removing obsolete instance manifests."""
@@ -560,15 +606,13 @@ class InstanceService:
         try:
             manifests = [path for path in host_steamapps.iterdir() if path.suffix == ".acf"]
         except OSError as e:
-            self.logger.warning(
-                f"Cannot read host Steam directory '{host_steamapps}'; preserving instance manifests: {e}"
-            )
+            logger.warning(f"Cannot read host Steam directory '{host_steamapps}'; preserving instance manifests: {e}")
             return
 
         if not manifests:
             # An empty host library means the games live somewhere else, so
             # the manifests of the instance are kept instead of being wiped.
-            self.logger.warning(
+            logger.warning(
                 f"Host Steam directory '{host_steamapps}' has no game manifests; preserving instance manifests."
             )
             return
@@ -592,13 +636,13 @@ class InstanceService:
 
         if device_info.get("audio_device_id_for_instance"):
             env["PULSE_SINK"] = device_info["audio_device_id_for_instance"]
-            self.logger.info(
+            logger.info(
                 f"Instance {instance_num}: Setting PULSE_SINK to '{device_info['audio_device_id_for_instance']}'."
             )
 
         # Custom ENV variables from the profile are set via bwrap --setenv, so we don't handle them here.
 
-        self.logger.info(f"Instance {instance_num}: Environment variables prepared.")
+        logger.info(f"Instance {instance_num}: Environment variables prepared.")
         return env
 
     def _validate_input_devices(self, profile: Profile, instance_num: int, instance_num_display: int) -> dict:
@@ -614,9 +658,9 @@ class InstanceService:
                 return None
             path_obj = Path(path_str)
             if path_obj.exists() and path_obj.is_char_device():
-                self.logger.info(f"Instance {instance_num_display}: {device_type} device '{path_str}' assigned.")
+                logger.info(f"Instance {instance_num_display}: {device_type} device '{path_str}' assigned.")
                 return str(path_obj.resolve())
-            self.logger.warning(
+            logger.warning(
                 f"Instance {instance_num_display}: {device_type} device '{path_str}' not found or not a char device."
             )
             return None
@@ -625,7 +669,7 @@ class InstanceService:
 
         audio_id = player_config.audio_device_id
         if audio_id and audio_id.strip():
-            self.logger.info(f"Instance {instance_num_display}: Audio device ID '{audio_id}' assigned.")
+            logger.info(f"Instance {instance_num_display}: Audio device ID '{audio_id}' assigned.")
 
         return {
             "joystick_path_str_for_instance": joystick_path,
@@ -639,28 +683,28 @@ class InstanceService:
             return
         try:
             self.termination_in_progress = True
-            self.logger.info("Starting termination of all instances...")
+            logger.info("Starting termination of all instances...")
 
             if self._virtual_joystick_path:
                 self.virtual_device.destroy_virtual_joystick()
                 self._virtual_joystick_path = None
-                self.logger.info("Virtual joystick destroyed.")
+                logger.info("Virtual joystick destroyed.")
             self._virtual_joystick_checked = False
 
             if self.kde_manager:
                 self.kde_manager.stop_kwin_script()
                 self.kde_manager.restore_panel_states()
-                self.logger.info("KDE-specific cleanup complete.")
+                logger.info("KDE-specific cleanup complete.")
 
             # A failure with one instance must not leave the others running.
             for instance_num in list(self.processes.keys()):
                 try:
                     self.terminate_instance(instance_num)
                 except Exception as e:
-                    self.logger.error(f"Could not terminate instance {instance_num}: {e}")
-                    self.logger.exception("Exception details:")
+                    logger.error(f"Could not terminate instance {instance_num}: {e}")
+                    logger.exception("Exception details:")
 
-            self.logger.info("Instance termination complete.")
+            logger.info("Instance termination complete.")
             # The instances remove themselves from the tracking, so an entry
             # that is still listed belongs to a launch that is in progress.
             for instance_num in list(self.processes.keys()):

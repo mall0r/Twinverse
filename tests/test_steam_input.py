@@ -75,7 +75,7 @@ def _read(path: Path) -> str:
 
 def test_turns_off_global_and_known_games(instance, tmp_path):
     """Disable the controller toggle and every game of the instance library."""
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
     config = instance / ".local/share/Steam/userdata" / ACCOUNT / "config/localconfig.vdf"
 
     assert disabler.disable_once(0, instance) is True
@@ -95,7 +95,7 @@ def test_turns_off_global_and_known_games(instance, tmp_path):
 
 def test_marker_records_the_handled_instance(instance):
     """Store the state that stops Twinverse from touching the settings again."""
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
 
     assert disabler.disable_once(0, instance) is True
 
@@ -109,7 +109,7 @@ def test_marker_records_the_handled_instance(instance):
 
 def test_later_user_choice_is_preserved(instance):
     """Never overwrite a Steam Input setting the user changed after the first run."""
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
     config = instance / ".local/share/Steam/userdata" / ACCOUNT / "config/localconfig.vdf"
     disabler.disable_once(0, instance)
 
@@ -130,7 +130,7 @@ def test_marker_from_an_older_version_runs_the_change_again(instance):
         encoding="utf-8",
     )
     config = instance / ".local/share/Steam/userdata" / ACCOUNT / "config/localconfig.vdf"
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
 
     assert disabler.disable_once(0, instance) is True
 
@@ -141,7 +141,7 @@ def test_marker_from_an_older_version_runs_the_change_again(instance):
 
 def test_a_second_account_is_covered_without_touching_the_first(instance):
     """Configure a newly logged-in account while leaving the handled one alone."""
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
     config = instance / ".local/share/Steam/userdata" / ACCOUNT / "config/localconfig.vdf"
     assert disabler.disable_once(0, instance) is True
 
@@ -161,7 +161,7 @@ def test_a_second_account_is_covered_without_touching_the_first(instance):
 
 def test_an_account_removed_from_the_instance_is_dropped_from_the_marker(instance):
     """Forget an account that left the instance, so logging into it again configures it."""
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
     second = _account_config(instance, SECOND_ACCOUNT)
     assert disabler.disable_once(0, instance) is True
     marker = instance / ".config/twinverse/steam_input_disabled.json"
@@ -184,7 +184,7 @@ def test_waits_for_the_account_to_log_in(tmp_path):
     steamapps = home / ".local/share/Steam/steamapps"
     steamapps.mkdir(parents=True)
     _manifest(steamapps, "582010")
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
 
     assert disabler.disable_once(0, home) is False
     assert not (home / ".config/twinverse").exists()
@@ -205,7 +205,7 @@ def test_ignores_the_pre_login_account(tmp_path):
     config = home / ".local/share/Steam/userdata/0/config/localconfig.vdf"
     config.parent.mkdir(parents=True)
     config.write_text(f'"{ROOT}"\n{{\n}}\n')
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
 
     assert disabler.disable_once(0, home) is False
     assert _read(config) == f'"{ROOT}"\n{{\n}}\n'
@@ -215,7 +215,7 @@ def test_unreadable_config_is_retried_on_the_next_launch(instance):
     """Keep the instance pending when the account config cannot be parsed."""
     config = instance / ".local/share/Steam/userdata" / ACCOUNT / "config/localconfig.vdf"
     config.write_text('"UserLocalConfigStore"\n{\n\t"Broken" "value"\n}\n', encoding="utf-8")
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
 
     assert disabler.disable_once(0, instance) is False
     assert not (instance / ".config/twinverse/steam_input_disabled.json").exists()
@@ -233,7 +233,7 @@ def test_account_without_known_games_still_gets_the_toggle(instance):
         '\t\t"-1563516638"\n\t\t{\n\t\t\t"UseSteamControllerConfig"\t\t"2"\n\t\t}\n\t\t"582010"\n\t\t{\n',
     )
     config.write_text(text, encoding="utf-8")
-    disabler = SteamInputDisabler(Mock())
+    disabler = SteamInputDisabler()
 
     assert disabler.disable_once(0, instance) is True
 
@@ -275,7 +275,7 @@ def test_terminal_launch_leaves_the_account_config_alone(instance, monkeypatch):
     home = instance
     service = InstanceService.__new__(InstanceService)
     service.logger = Mock()
-    service.steam_input = SteamInputDisabler(Mock())
+    service.steam_input = SteamInputDisabler()
     service.processes = {}
     service.device_manager = Mock()
     service._virtual_joystick_path = None

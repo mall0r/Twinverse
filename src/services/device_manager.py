@@ -1,5 +1,7 @@
 """Discovery and management of input devices, audio sinks and display outputs."""
 
+# flake8: noqa: E402
+
 import json
 import logging
 import re
@@ -7,6 +9,9 @@ import subprocess
 from typing import Dict, List, Optional, Tuple, Union
 
 import gi
+
+gi.require_version("Gdk", "4.0")  # noqa: E402
+
 import pydbus
 from gi.repository import Gdk
 from screeninfo import get_monitors
@@ -14,7 +19,7 @@ from screeninfo import get_monitors
 from src.core import LayoutCalculator
 from src.models import Profile
 
-gi.require_version("Gdk", "4.0")
+logger = logging.getLogger(__name__)
 
 
 class DeviceManager:
@@ -39,10 +44,10 @@ class DeviceManager:
             result = subprocess.run(command, capture_output=True, text=True, check=True)
             return result.stdout.strip()
         except FileNotFoundError:
-            logging.error(f"Command not found: {command[0]}")
+            logger.error("Command not found: %s", command[0])
             return ""
         except subprocess.CalledProcessError as e:
-            logging.error(f"Command failed: '{command}' with error: {e.stderr.strip()}")
+            logger.error("Command failed: '%s' with error: %s", command, e.stderr.strip())
             return ""
 
     def _get_device_name_from_id(self, device_id_full: str) -> str:
@@ -96,7 +101,7 @@ class DeviceManager:
                     elif "event-kbd" in device_name_id_raw:
                         detected_devices["keyboard"].append(device)
             except (IndexError, AttributeError) as e:
-                logging.warning(f"Could not parse input device line: '{line}'. Error: {e}")
+                logger.warning("Could not parse input device line '%s': %s", line, e)
                 continue
 
         for dev_type in detected_devices:
@@ -128,7 +133,7 @@ class DeviceManager:
                 elif "Name:" in line:
                     name = line.split(":", 1)[1].strip()
             except (IndexError, AttributeError) as e:
-                logging.warning(f"Could not parse audio device line: '{line}'. Error: {e}")
+                logger.warning("Could not parse audio device line '%s': %s", line, e)
                 continue
 
         if name:
@@ -151,7 +156,7 @@ class DeviceManager:
                     f"print({names}.find(function (name) {{ return screenForConnector(name) === 0; }}) || '');"
                 ).strip()
             except Exception as e:
-                logging.warning(f"Could not determine the primary monitor from Plasma: {e}")
+                logger.warning("Could not determine the primary monitor from Plasma: %s", e)
         return sorted(monitors, key=lambda monitor: not (monitor.is_primary or monitor.name == primary_name))
 
     def get_screen_info(self) -> List[Dict[str, Union[int, bool]]]:

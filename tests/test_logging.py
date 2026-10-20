@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -18,6 +19,15 @@ from src.core.logging import (
 )
 from src.core.logging.diagnostics import collect_diagnostics, format_diagnostics
 from src.core.logging.retention import prune_logs
+from src.services.instance import InstanceService
+
+
+def _finished_process():
+    """Build a process that already exited."""
+    process = Mock()
+    process.poll.return_value = 0
+    process.returncode = 0
+    return process
 
 
 def test_xdg_paths_follow_the_environment(monkeypatch, tmp_path):
@@ -157,3 +167,22 @@ def test_diagnostics_are_available_before_gtk(tmp_path):
     assert "recent log" in format_diagnostics(data)
     assert "diagnostic marker" in data["recent_log"]
     handle.shutdown()
+
+
+def test_stopping_an_instance_closes_its_log(tmp_path, monkeypatch):
+    """The instance log records the exit code when the instance is stopped."""
+    monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path)
+    service = InstanceService.__new__(InstanceService)
+    service.processes = {0: _finished_process()}
+    service.pids = {0: 4242}
+    service.pgids = {0: 4242}
+    instance_log = InstanceLog.create(0, command=["steam"], base_dir=tmp_path)
+    service.instance_logs[0] = instance_log
+
+    service.terminate_instance(0)
+
+    assert instance_log.path is not None
+    text = instance_log.path.read_text()
+    assert "# finished" in text
+    assert "exit_code=0" in text
+    assert 0 not in service.instance_logs

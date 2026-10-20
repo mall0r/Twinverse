@@ -1,6 +1,7 @@
 """Preferences window UI."""
 
 import copy
+import logging
 
 import gi
 from gi.repository import Adw, GObject, Gtk
@@ -11,6 +12,8 @@ from src.models.profile import PlayerInstanceConfig, Profile
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
+
+logger = logging.getLogger(__name__)
 
 
 class PreferencesWindow(Adw.PreferencesWindow):
@@ -166,14 +169,14 @@ class PreferencesWindow(Adw.PreferencesWindow):
             else:  # Linux and other Unix-like systems
                 subprocess.run(["xdg-open", path_str], check=True)
         except subprocess.CalledProcessError:
-            print(f"Failed to open directory: {path_str}")
+            logger.warning("Failed to open directory: %s", path_str)
         except FileNotFoundError:
-            print(f"Directory does not exist: {path_str}")
+            logger.warning("Directory does not exist: %s", path_str)
             home_path.mkdir(parents=True, exist_ok=True)
             try:
                 subprocess.run(["xdg-open", path_str], check=True)
             except (subprocess.CalledProcessError, FileNotFoundError):
-                print(f"Still failed to open directory: {path_str}")
+                logger.warning("Still failed to open directory: %s", path_str)
 
     def _on_delete_player_clicked(self, button, player_index):
         """Handle deletion of a player's configuration and home directory."""
@@ -214,8 +217,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
             try:
                 self._profile.save()
-            except Exception as e:
-                print(f"Error saving profile: {e}")
+            except Exception:
+                logger.exception("Error saving the profile")
 
     @staticmethod
     def _remove_home_directory(home_path):
@@ -235,7 +238,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         try:
             shutil.rmtree(path)
         except Exception as e:
-            print(f"Error removing directory {path}: {e}")
+            logger.exception("Error removing directory %s", path)
             return False, str(e)
 
         return True, None

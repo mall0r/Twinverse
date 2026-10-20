@@ -1,6 +1,7 @@
 """Data models for the profiles that define how a set of Steam instances is launched."""
 
 import json
+import logging
 import os
 from typing import Dict, List, Optional
 
@@ -9,6 +10,8 @@ from pydantic.functional_validators import field_validator
 
 from src.core import Config, Utils
 from src.core.config import ensure_private_dir
+
+logger = logging.getLogger(__name__)
 
 
 class PlayerInstanceConfig(BaseModel):
@@ -70,13 +73,18 @@ class Profile(BaseModel):
             with open(profile_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except (IOError, json.JSONDecodeError) as e:
-            raise ValueError(f"Error reading profile file {profile_path}: {e}")
+            logger.error("Could not read the profile at %s: %s", profile_path, e)
+            raise ValueError(f"Error reading profile file {profile_path}: {e}") from e
 
         try:
             profile = cls(**data)
         except ValidationError as e:
-            print(f"Pydantic Validation Error for {profile_path}: {e.errors()}")
-            raise ValueError(f"Profile data validation failed: {e}")
+            logger.error(
+                "Profile data validation failed for %s (%s error(s))",
+                profile_path,
+                len(e.errors()),
+            )
+            raise ValueError(f"Profile data validation failed: {e}") from e
         return profile
 
     def save(self):

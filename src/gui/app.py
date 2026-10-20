@@ -2,8 +2,10 @@
 
 # flake8: noqa: E402
 
+import logging
 import os
 import sys
+from typing import Optional, Sequence
 
 import gi
 
@@ -12,9 +14,11 @@ gi.require_version("Adw", "1")  # noqa: E402
 
 from gi.repository import Adw, Gio, Gtk  # noqa: E402
 
-from src.core import Logger, Utils
 from src.core.config import Config
+from src.core.utils import Utils
 from src.gui.presenters import MainPresenter
+
+logger = logging.getLogger(__name__)
 
 
 class TwinverseApplication(Adw.Application):
@@ -22,22 +26,14 @@ class TwinverseApplication(Adw.Application):
 
     def __init__(self, **kwargs):
         """Initialize the application and set up resources."""
-        super().__init__(application_id="io.github.mall0r.Twinverse", **kwargs)
+        super().__init__(application_id=Config.APP_ID, **kwargs)
         self.base_path = Utils.get_base_path()
         self.win = None
-        import logging
 
-        self.logger = Logger("Twinverse-App", Config.LOG_DIR, reset=True, level=logging.DEBUG)
-
-        print("Loading resources...")
+        logger.debug("Loading application resources from %s", self.base_path)
         self._load_resources()
-        print("Connecting activate signal...")
         self.connect("activate", self.on_activate)
-        print("Activate signal connected")
-
         self.connect("startup", self.on_startup)
-        print("Startup signal connected")
-
         self._initialize_theme()
 
     def _initialize_theme(self):
@@ -47,49 +43,36 @@ class TwinverseApplication(Adw.Application):
 
     def on_startup(self, app):
         """Handle the application startup event."""
-        print("Application startup called")
+        logger.info("Application startup completed (pid=%d)", os.getpid())
 
     def _load_resources(self):
         """Load application resources."""
         resource_path = self.base_path / "res" / "twinverse.gresource"
-        print(f"Looking for resource file at: {resource_path}")
-        print(f"Resource file exists: {resource_path.exists()}")
         if resource_path.exists():
             resources = Gio.Resource.load(str(resource_path))
             Gio.resources_register(resources)
-            print("Resources registered")
+            logger.debug("Application resources registered")
         else:
-            print("Resource file not found!")
+            logger.warning("Resource file not found: %s", resource_path)
 
     def on_activate(self, app):
         """Handle the application activation event."""
-        print("Application activation started...")
+        logger.debug("Application activation requested")
         try:
             if self.win is not None:
                 # A second activation would build a second window and a second
                 # set of instances, and the first one would be lost.
-                print("Window already created, presenting it again")
+                logger.debug("Presenting the existing window")
                 self.win.present()
                 return
 
-            print("Creating MainPresenter...")
-            presenter = MainPresenter(app, self.logger)
-            print("MainPresenter created successfully")
-
+            presenter = MainPresenter(app)
             self.win = presenter.window
-            print(f"Window created: {self.win}")
-
             self._load_css()
-            print("CSS loaded")
-
-            print("About to present window...")
             self.win.present()
-            print("Window presented")
-        except Exception as e:
-            print(f"Error in on_activate: {e}")
-            import traceback
-
-            traceback.print_exc()
+            logger.info("Main window presented")
+        except Exception:
+            logger.exception("Could not create the main window")
             raise
 
     def _load_css(self):
@@ -103,26 +86,16 @@ class TwinverseApplication(Adw.Application):
         )
 
     @staticmethod
-    def run_gui() -> None:
-        """Launch the GUI application."""
-        os.environ["GSK_RENDERER"] = "gl"
-
-        print("Creating TwinverseApplication instance...")
+    def run_gui(argv: Optional[Sequence[str]] = None) -> int:
+        """Launch the GUI application and return its exit status."""
+        os.environ.setdefault("GSK_RENDERER", "gl")
+        arguments = list(sys.argv if argv is None else [sys.argv[0], *argv])
+        logger.info("Starting the GUI")
         app = TwinverseApplication()
-        print("TwinverseApplication instance created")
-
-        print("Starting Twinverse Application...")
-
-        print(f"sys.argv: {sys.argv}")
-
         try:
-            print("About to call app.run()")
-            result = app.run(sys.argv)
-            print(f"app.run() returned with result: {result}")
-            return result
-        except Exception as e:
-            print(f"Error running application: {e}")
-            import traceback
-
-            traceback.print_exc()
+            result = app.run(arguments)
+            logger.info("GUI stopped with status %s", result)
+            return int(result)
+        except Exception:
+            logger.exception("The GUI terminated unexpectedly")
             raise

@@ -21,7 +21,7 @@ def _controller(terminate=None):
     service = Mock()
     if terminate is not None:
         service.terminate_all.side_effect = terminate
-    controller = LaunchController(service, Mock(), Mock())
+    controller = LaunchController(service, Mock())
     return controller, service
 
 

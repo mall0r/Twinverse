@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
-from src.core import Utils
+from src.core import Config, Utils
 from src.models import Profile
 from src.services.cmd_builder import CommandBuilder
 from src.services.instance import InstanceService
@@ -25,8 +25,9 @@ class OverlayLaunchEnvironmentTests(unittest.TestCase):
         process.stdout.readline.return_value = b"123\n"
         # Exercise quoting for non-default data paths in the Flatpak host shell.
         with TemporaryDirectory(prefix="twinverse espaço ' $ ") as directory:
+            logs = Path(directory) / "logs"
             builder = CommandBuilder(
-                Mock(), Profile(use_gamescope=True, use_steamdeck_tag=True), {}, Mock(), 0, Path(directory), None
+                Profile(use_gamescope=True, use_steamdeck_tag=True), {}, Mock(), 0, Path(directory), None
             )
             env = builder.prepare_overlay_environment()
             with (
@@ -35,7 +36,8 @@ class OverlayLaunchEnvironmentTests(unittest.TestCase):
                 patch("src.services.instance.network_command", side_effect=lambda command: command),
             ):
                 with patch("subprocess.Popen", return_value=process) as spawn:
-                    service._launch_natively(0, ["true"], env)
+                    with patch.object(Config, "logs_dir", lambda: logs):
+                        service._launch_natively(0, ["true"], env)
                 native_env = spawn.call_args.kwargs["env"]
                 self.assertNotIn("MANGOHUD_CONFIG", native_env)
                 self.assertEqual(native_env["MANGOHUD_CONFIGFILE"], env["MANGOHUD_CONFIGFILE"])
@@ -43,7 +45,8 @@ class OverlayLaunchEnvironmentTests(unittest.TestCase):
                 # Run the generated host shell with its actual unset/export
                 # statements, using env as the child instead of starting Steam.
                 with patch.object(Utils, "flatpak_spawn_host", return_value=process) as spawn:
-                    service._launch_in_flatpak(0, ["env"], env)
+                    with patch.object(Config, "logs_dir", lambda: logs):
+                        service._launch_in_flatpak(0, ["env"], env)
                 output = subprocess.check_output(spawn.call_args.args[0], text=True)
                 lines = output.splitlines()
                 self.assertFalse(any(line.startswith("MANGOHUD_CONFIG=") for line in lines))
@@ -65,7 +68,6 @@ class OverlayLaunchEnvironmentTests(unittest.TestCase):
                         for i in range(2):
                             home = data_path / f"home_{i + 1}"
                             builder = CommandBuilder(
-                                Mock(),
                                 Profile(use_gamescope=True, use_steamdeck_tag=True),
                                 {},
                                 Mock(),
@@ -87,7 +89,7 @@ class OverlayLaunchEnvironmentTests(unittest.TestCase):
         """Ensure sandbox cleanup overrides inline settings from the profile."""
         with TemporaryDirectory() as directory:
             builder = CommandBuilder(
-                Mock(), Profile(use_gamescope=True, use_steamdeck_tag=True), {}, Mock(), 0, Path(directory), None
+                Profile(use_gamescope=True, use_steamdeck_tag=True), {}, Mock(), 0, Path(directory), None
             )
             with patch.object(Profile, "get_env_for_instance", return_value={"MANGOHUD_CONFIG": "full"}):
                 command = builder._build_bwrap_command(0)

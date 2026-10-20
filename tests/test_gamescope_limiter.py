@@ -26,7 +26,7 @@ print(json.dumps({
 @pytest.mark.parametrize("existing", [None, "", "/existing one:/existing-two"])
 def test_limiter_is_resolved_after_gamescope_starts(tmp_path, monkeypatch, existing):
     """Execute the generated child wrapper with a newly created instance path."""
-    builder = CommandBuilder(Mock(), Profile(), {}, Mock(), 0, tmp_path, None)
+    builder = CommandBuilder(Profile(), {}, Mock(), 0, tmp_path, None)
     limiter = str(tmp_path / "limiter with spaces ' $value ;")
     monkeypatch.setattr(builder, "_build_bwrap_command", lambda _: ["env"])
     # Simulate Gamescope generating a new path only when it starts its child.
@@ -76,7 +76,7 @@ def test_missing_limiter_preserves_runtime_settings():
 
 def test_no_gamescope_does_not_modify_runtime_settings(tmp_path, monkeypatch):
     """Plain Steam and terminal launches keep their original environment."""
-    builder = CommandBuilder(Mock(), Profile(use_gamescope=False), {}, Mock(), 0, Path(tmp_path), None)
+    builder = CommandBuilder(Profile(use_gamescope=False), {}, Mock(), 0, Path(tmp_path), None)
     monkeypatch.setattr(builder, "_build_bwrap_command", lambda _: ["env"])
     env = os.environ.copy()
     env["GAMESCOPE_LIMITER_FILE"] = "/parent-path"

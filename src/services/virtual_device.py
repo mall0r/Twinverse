@@ -1,5 +1,6 @@
 """Creation and management of virtual input devices, particularly virtual joysticks."""
 
+import logging
 import time
 
 from evdev import AbsInfo, InputDevice, UInput
@@ -8,19 +9,20 @@ from evdev import list_devices
 
 from src.core import VirtualDeviceError
 
+logger = logging.getLogger(__name__)
+
 
 class VirtualDeviceService:
     """Creates a virtual joystick for instances without a physical one."""
 
-    def __init__(self, logger):
-        """Initialize the virtual device service with a logger."""
-        self._logger = logger
+    def __init__(self):
+        """Initialize the virtual device service."""
         self._ui = None
 
     def create_virtual_joystick(self):
         """Create a minimal virtual joystick and find its event node."""
         if self._ui:
-            self._logger.warning("Virtual joystick already exists.")
+            logger.warning("Virtual joystick already exists.")
             return self._ui.devnode
 
         device_name = "Virtual Joystick by Twinverse"
@@ -39,17 +41,15 @@ class VirtualDeviceService:
                 ],
             }
             self._ui = UInput(capabilities, name=device_name, vendor=0x1234, product=0x5678)
-            self._logger.info("Virtual device object created. Searching for its event node...")
+            logger.info("Virtual device object created; searching for its event node")
 
             start_time = time.time()
-            timeout = 5  # seconds
+            timeout = 5
             while time.time() - start_time < timeout:
                 devices = [InputDevice(path) for path in list_devices()]
                 for device in devices:
                     if device.name == device_name:
-                        self._logger.info(f"Found virtual joystick at {device.path}")
-                        # UInput object doesn't always have a correct devnode attribute immediately.
-                        # We store the found path for reliability.
+                        logger.info("Found virtual joystick at %s", device.path)
                         self._ui.devnode = device.path
                         return device.path
                 time.sleep(0.1)
@@ -57,7 +57,7 @@ class VirtualDeviceService:
             raise VirtualDeviceError("Virtual joystick created but its event node could not be found.")
 
         except Exception as ex:
-            self._logger.error(f"Failed to create virtual joystick: {ex}")
+            logger.exception("Failed to create virtual joystick")
             if self._ui:
                 self._ui.close()
                 self._ui = None
@@ -68,8 +68,8 @@ class VirtualDeviceService:
         if self._ui:
             try:
                 self._ui.close()
-                self._logger.info("Virtual joystick destroyed.")
-            except Exception as ex:
-                self._logger.error(f"Error destroying virtual joystick: {ex}")
+                logger.info("Virtual joystick destroyed")
+            except Exception:
+                logger.exception("Error destroying virtual joystick")
             finally:
                 self._ui = None

@@ -28,7 +28,7 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     service.pgids = {}
     service.processes = {}
     service._sync_app_manifests = Mock()
-    service.steam_input = SteamInputDisabler(service.logger)
+    service.steam_input = SteamInputDisabler()
     native_launch = Mock(return_value=(Mock(pid=123), 123))
     flatpak_launch = Mock(return_value=(Mock(pid=456), 456))
     service._launch_natively = native_launch
@@ -36,7 +36,8 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     host_home = tmp_path / "host"
     monkeypatch.setattr(Path, "home", lambda: host_home)
     monkeypatch.setattr(Config, "get_steam_home_path", lambda i: tmp_path / f"player {i}")
-    monkeypatch.setattr(Config, "LOG_DIR", tmp_path / "logs")
+    monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path / "logs")
+    monkeypatch.setattr(Config, "cache_dir", lambda: tmp_path / "cache")
     monkeypatch.setattr(Utils, "is_flatpak", lambda: flatpak)
     run = Mock(return_value=CompletedProcess([], 0, "/usr/bin/konsole\n", ""))
     monkeypatch.setattr("subprocess.run", run)

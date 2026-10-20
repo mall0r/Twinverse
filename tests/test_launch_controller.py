@@ -9,7 +9,7 @@ def _controller(processes=None):
     """Build a launch controller with a mocked instance service."""
     service = Mock()
     service.processes = processes if processes is not None else {}
-    return LaunchController(service, Mock(), Mock()), service
+    return LaunchController(service, Mock()), service
 
 
 def _process(alive: bool):

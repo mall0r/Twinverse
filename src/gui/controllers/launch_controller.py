@@ -1,22 +1,24 @@
 """Instance launch lifecycle."""
 
+import logging
 import threading
 import time
 from typing import Callable, Optional
 
-from src.core import Logger
+from src.core.logging import log_context
 from src.models import Profile
 from src.services import InstanceService, KdeManager
+
+logger = logging.getLogger(__name__)
 
 
 class LaunchController:
     """Runs launches and stops on worker threads, one bulk operation at a time."""
 
-    def __init__(self, instance_service: InstanceService, kde_manager: KdeManager, logger: Logger):
+    def __init__(self, instance_service: InstanceService, kde_manager: KdeManager):
         """Initialize the launch controller."""
         self._instance_service = instance_service
         self._kde_manager = kde_manager
-        self._logger = logger
         self._launch_thread: Optional[threading.Thread] = None
         self._stop_thread: Optional[threading.Thread] = None
         self._cancel_event = threading.Event()
@@ -45,12 +47,14 @@ class LaunchController:
             True when the launch started, False when one was already running.
         """
         if self._launch_thread and self._launch_thread.is_alive():
-            self._logger.warning("Launch already in progress")
+            logger.warning("Launch already in progress")
             return False
 
         self._cancel_event.clear()
         self._launch_thread = threading.Thread(
-            target=self._launch_worker, args=(profile, on_progress, on_complete, on_error)
+            target=self._launch_worker,
+            args=(profile, on_progress, on_complete, on_error),
+            name="twinverse-launch",
         )
         self._launch_thread.start()
         return True
@@ -63,10 +67,14 @@ class LaunchController:
             on_complete: Called once every instance has stopped.
         """
         if self._launch_thread and self._launch_thread.is_alive():
-            self._logger.info("Cancelling in-progress launch...")
+            logger.info("Cancelling the in-progress launch")
             self._cancel_event.set()
 
-        self._stop_thread = threading.Thread(target=self._stop_worker, args=(on_complete,))
+        self._stop_thread = threading.Thread(
+            target=self._stop_worker,
+            args=(on_complete,),
+            name="twinverse-stop",
+        )
         self._stop_thread.start()
 
     def launch_single_instance(
@@ -87,6 +95,7 @@ class LaunchController:
         launch_thread = threading.Thread(
             target=self._single_instance_worker,
             args=(profile, instance_num, use_gamescope_override, on_complete, on_error),
+            name=f"twinverse-launch-{instance_num + 1}",
         )
         launch_thread.start()
 
@@ -101,7 +110,11 @@ class LaunchController:
         Args:
             on_complete: Called once that instance has stopped.
         """
-        terminate_thread = threading.Thread(target=self._terminate_single_worker, args=(instance_num, on_complete))
+        terminate_thread = threading.Thread(
+            target=self._terminate_single_worker,
+            args=(instance_num, on_complete),
+            name=f"twinverse-stop-{instance_num + 1}",
+        )
         terminate_thread.start()
 
     def _launch_worker(
@@ -113,65 +126,65 @@ class LaunchController:
     ):
         """Worker thread for launching instances."""
         selected_players = profile.selected_players
-        self._logger.info(f"Launch worker started for players: {selected_players}")
+        with log_context(phase="launch"):
+            logger.info("Launch worker started for players %s", selected_players)
+            try:
+                if profile.enable_kwin_script:
+                    logger.info("Starting KDE script setup")
+                    self._kde_manager.start_kwin_script(profile)
 
-        try:
-            if profile.enable_kwin_script:
-                self._logger.info("Starting KDE script setup...")
-                self._kde_manager.start_kwin_script(profile)
+                self._kde_manager.save_panel_states()
+                self._kde_manager.set_panels_dodge_windows()
+                logger.info("KDE panel states saved and updated")
 
-            self._kde_manager.save_panel_states()
-            self._kde_manager.set_panels_dodge_windows()
-            self._logger.info("KDE panel states saved and updated.")
+                for instance_num in selected_players:
+                    if self._cancel_event.is_set():
+                        logger.info("Launch sequence cancelled by the user")
+                        break
 
-            for instance_num in selected_players:
-                if self._cancel_event.is_set():
-                    self._logger.info("Launch sequence cancelled by user.")
-                    break
+                    with log_context(instance=instance_num + 1):
+                        logger.info("Launching instance %s", instance_num + 1)
+                        self._instance_service.launch_instance(profile, instance_num)
+                        logger.info("Instance %s launch initiated", instance_num + 1)
 
-                self._logger.info(f"Worker launching instance {instance_num}...")
-                self._instance_service.launch_instance(profile, instance_num)
-                self._logger.info(f"Instance {instance_num} launch initiated successfully.")
+                    if on_progress:
+                        on_progress(instance_num)
 
-                if on_progress:
-                    on_progress(instance_num)
+                    logger.info("Waiting 5 seconds before launching the next instance")
+                    time.sleep(5)
 
-                self._logger.info("Waiting 5 seconds before launching next instance...")
-                time.sleep(5)
+                if not self._cancel_event.is_set():
+                    logger.info("All instances launched successfully; updating the running state")
+                    self._is_running = True
+                    if on_complete:
+                        on_complete()
+                else:
+                    logger.info("Launch sequence was cancelled")
 
-            if not self._cancel_event.is_set():
-                self._logger.info("All instances launched successfully. Updating running state.")
-                self._is_running = True
-                if on_complete:
-                    on_complete()
-            else:
-                self._logger.info("Launch sequence was cancelled.")
-
-        except Exception as e:
-            self._logger.error(f"Launch error: {e}")
-            self._logger.logger.exception("Exception details:")  # Use underlying logger for exception details
-            self._kde_manager.restore_panel_states()
-            if on_error:
-                on_error(e)
+            except Exception as error:
+                logger.exception("Launch error")
+                self._kde_manager.restore_panel_states()
+                if on_error:
+                    on_error(error)
 
     def _stop_worker(self, on_complete: Optional[Callable[[], None]]):
         """Worker thread for stopping instances."""
-        self._logger.info("Stop worker started.")
-        try:
-            self._instance_service.terminate_all()
-            self._kde_manager.restore_panel_states()
-            self._is_running = False
-        except Exception as e:
-            # The stop has to finish even when one of the instances fails,
-            # otherwise the window stays locked and the app never quits.
-            self._logger.error(f"Stop error: {e}")
-            self._logger.logger.exception("Exception details:")
-        finally:
-            # The cancel flag stays set while the launch thread is alive, so
-            # it does not start another instance after the stop. The next
-            # launch clears it.
-            if on_complete:
-                on_complete()
+        with log_context(phase="stop"):
+            logger.info("Stop worker started")
+            try:
+                self._instance_service.terminate_all()
+                self._kde_manager.restore_panel_states()
+                self._is_running = False
+            except Exception:
+                # The stop has to finish even when one of the instances fails,
+                # otherwise the window stays locked and the app never quits.
+                logger.exception("Stop error")
+            finally:
+                # The cancel flag stays set while the launch thread is alive, so
+                # it does not start another instance after the stop. The next
+                # launch clears it.
+                if on_complete:
+                    on_complete()
 
     def _single_instance_worker(
         self,
@@ -182,18 +195,20 @@ class LaunchController:
         on_error: Optional[Callable[[Exception], None]],
     ):
         """Worker thread for launching a single instance."""
-        try:
-            self._logger.info(f"Starting single instance worker for instance {instance_num}")
-            self._instance_service.launch_instance(profile, instance_num, use_gamescope_override=use_gamescope_override)
-            self._logger.info(f"Successfully launched instance {instance_num}")
-            self._is_running = True
-            if on_complete:
-                on_complete()
-        except Exception as e:
-            self._logger.error(f"Single instance launch error for instance {instance_num}: {e}")
-            self._logger.logger.exception("Exception details:")  # Use underlying logger for exception details
-            if on_error:
-                on_error(e)
+        with log_context(phase="launch", instance=instance_num + 1):
+            try:
+                logger.info("Starting single instance worker")
+                self._instance_service.launch_instance(
+                    profile, instance_num, use_gamescope_override=use_gamescope_override
+                )
+                logger.info("Instance launched successfully")
+                self._is_running = True
+                if on_complete:
+                    on_complete()
+            except Exception as error:
+                logger.exception("Single instance launch error")
+                if on_error:
+                    on_error(error)
 
     def _terminate_single_worker(
         self,
@@ -201,17 +216,17 @@ class LaunchController:
         on_complete: Optional[Callable[[], None]],
     ):
         """Worker thread for terminating a single instance."""
-        try:
-            self._instance_service.terminate_instance(instance_num)
-        except Exception as e:
-            self._logger.error(f"Error terminating instance {instance_num}: {e}")
-            self._logger.logger.exception("Exception details:")
-        finally:
-            # Stopping one instance at a time has to clear the running state
-            # as well, so the button of the footer follows what is open.
-            self._is_running = self._has_running_instances()
-            if on_complete:
-                on_complete()
+        with log_context(phase="stop", instance=instance_num + 1):
+            try:
+                self._instance_service.terminate_instance(instance_num)
+            except Exception:
+                logger.exception("Error terminating instance")
+            finally:
+                # Stopping one instance at a time has to clear the running state
+                # as well, so the button of the footer follows what is open.
+                self._is_running = self._has_running_instances()
+                if on_complete:
+                    on_complete()
 
     def _has_running_instances(self) -> bool:
         """Report whether any tracked instance is still running."""

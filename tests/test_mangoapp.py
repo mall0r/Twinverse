@@ -13,9 +13,7 @@ def builder(home, gamescope=True, steamdeck=True):
     """Create a command builder with mocked display dimensions."""
     devices = Mock()
     devices.get_instance_dimensions.return_value = (1280, 720)
-    return CommandBuilder(
-        Mock(), Profile(use_gamescope=gamescope, use_steamdeck_tag=steamdeck), {}, devices, 0, home, None
-    )
+    return CommandBuilder(Profile(use_gamescope=gamescope, use_steamdeck_tag=steamdeck), {}, devices, 0, home, None)
 
 
 def test_menu_updates_the_config_read_by_mangoapp(monkeypatch, tmp_path):

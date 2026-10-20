@@ -56,7 +56,7 @@ def test_gate_checks_current_client_handles_and_preserves_launcher(tmp_path, sta
 
 def test_webhelper_hook_preserves_steam_script(monkeypatch, tmp_path):
     """Keep managed Steam files outside the mounts so verification and updates work."""
-    monkeypatch.setattr(Config, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(Config, "cache_dir", lambda: tmp_path / "cache")
     monkeypatch.delenv("BASH_ENV", raising=False)
     home = tmp_path / "instance"
     original = home / ".local/share/Steam/ubuntu12_64/steamwebhelper.sh"
@@ -93,7 +93,7 @@ def test_overlay_focus_repair_only_in_splitscreen(tmp_path):
             mode="splitscreen" if splitscreen else "multi_monitor",
             player_configs=[PlayerInstanceConfig()],
         )
-        builder = CommandBuilder(Mock(), profile, {}, devices, 0, tmp_path / "home", None)
+        builder = CommandBuilder(profile, {}, devices, 0, tmp_path / "home", None)
         with patch("src.services.cmd_builder.build_webhelper_mounts", return_value=[]) as mounts:
             builder.build_command()
 
@@ -170,8 +170,8 @@ def _run_gate(tmp_path, name, gate, *args):
 
 def _sandbox_gate(tmp_path, monkeypatch):
     """Generate the real gate with its helper paths inside the test sandbox."""
-    monkeypatch.setattr(Config, "CACHE_DIR", tmp_path / "cache")
-    monkeypatch.setattr(Config, "LOG_DIR", tmp_path / "cache/logs")
+    monkeypatch.setattr(Config, "cache_dir", lambda: tmp_path / "cache")
+    monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path / "cache/logs")
     home = tmp_path / "instance"
     (home / ".local/share/Steam/ubuntu12_64").mkdir(parents=True)
     (home / ".local/share/Steam/ubuntu12_64/steamwebhelper.sh").write_text("#!/bin/bash\n")
@@ -210,7 +210,7 @@ def test_unrelated_scripts_never_start_the_overlay_repair(tmp_path, monkeypatch)
 def test_missing_webhelper_skips_overlay(monkeypatch, tmp_path):
     """Allow first-time Steam setup before its UI launcher has been downloaded."""
     cache = tmp_path / "cache"
-    monkeypatch.setattr(Config, "CACHE_DIR", cache)
+    monkeypatch.setattr(Config, "cache_dir", lambda: cache)
 
     assert build_webhelper_mounts(tmp_path / "new-instance", 0) == []
     assert not cache.exists()
@@ -219,8 +219,8 @@ def test_missing_webhelper_skips_overlay(monkeypatch, tmp_path):
 def test_overlay_focus_hook_only_installed_on_request(monkeypatch, tmp_path):
     """Start the focus repair only for requested instances and keep it standalone."""
     logs = tmp_path / "cache/twinverse/logs"
-    monkeypatch.setattr(Config, "CACHE_DIR", tmp_path / "cache")
-    monkeypatch.setattr(Config, "LOG_DIR", logs)
+    monkeypatch.setattr(Config, "cache_dir", lambda: tmp_path / "cache")
+    monkeypatch.setattr(Config, "logs_dir", lambda: logs)
     home = tmp_path / "instance"
     launcher = home / ".local/share/Steam/ubuntu12_64/steamwebhelper.sh"
     launcher.parent.mkdir(parents=True)
@@ -254,8 +254,8 @@ def test_overlay_focus_hook_only_installed_on_request(monkeypatch, tmp_path):
 def test_overlay_focus_log_lands_in_the_shared_log_directory(monkeypatch, tmp_path):
     """Keep every Twinverse log together instead of inside the instance home."""
     logs = tmp_path / "cache/twinverse/logs"
-    monkeypatch.setattr(Config, "CACHE_DIR", tmp_path / "cache")
-    monkeypatch.setattr(Config, "LOG_DIR", logs)
+    monkeypatch.setattr(Config, "cache_dir", lambda: tmp_path / "cache")
+    monkeypatch.setattr(Config, "logs_dir", lambda: logs)
     home = tmp_path / "instance"
     (home / ".local/share/Steam/ubuntu12_64").mkdir(parents=True)
     (home / ".local/share/Steam/ubuntu12_64/steamwebhelper.sh").write_text("#!/bin/bash\n")
@@ -264,6 +264,7 @@ def test_overlay_focus_log_lands_in_the_shared_log_directory(monkeypatch, tmp_pa
     gate = (tmp_path / "cache/steam-webhelper/instance_2/gate.sh").read_text()
 
     # Same instance number as the cache directory, so the pair is unambiguous.
-    assert "/tmp/twinverse-logs/overlay_focus_instance_2.log" in gate
+    assert "/tmp/twinverse-logs/helpers/overlay-focus-" in gate
+    assert "instance-02.log" in gate
     assert "$HOME" not in gate
     assert ".local/share/twinverse" not in gate

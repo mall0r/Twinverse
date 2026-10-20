@@ -8,7 +8,6 @@ from .exceptions import (
     VirtualDeviceError,
 )
 from .layout import LayoutCalculator
-from .logger import Logger
 from .utils import Utils
 
 __all__ = [
@@ -18,6 +17,5 @@ __all__ = [
     "ProfileNotFoundError",
     "VirtualDeviceError",
     "LayoutCalculator",
-    "Logger",
     "Utils",
 ]

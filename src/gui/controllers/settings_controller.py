@@ -1,19 +1,20 @@
 """Application settings and profile management."""
 
+import logging
 from typing import Callable
 
-from src.core import Logger
 from src.models import PlayerInstanceConfig, Profile, SplitscreenConfig
 from src.services import DeviceManager
+
+logger = logging.getLogger(__name__)
 
 
 class SettingsController:
     """Keeps the profile in sync with the UI and the detected devices."""
 
-    def __init__(self, device_manager: DeviceManager, logger: Logger):
+    def __init__(self, device_manager: DeviceManager):
         """Initialize the settings controller."""
         self._device_manager = device_manager
-        self._logger = logger
         self._profile = Profile.load()
         self._on_change_callbacks: list[Callable[[], None]] = []
 
@@ -24,7 +25,7 @@ class SettingsController:
     def save_profile(self):
         """Save the current profile."""
         self._profile.save()
-        self._logger.info("Profile saved.")
+        logger.info("Profile saved.")
         self._notify_change()
 
     def update_from_ui_data(self, ui_data: dict):
@@ -70,9 +71,9 @@ class SettingsController:
         if hasattr(self._profile, key):
             setattr(self._profile, key, value)
             self.save_profile()
-            self._logger.info(f"Preference '{key}' updated to: {value}")
+            logger.info(f"Preference '{key}' updated to: {value}")
         else:
-            self._logger.warning(f"Unknown preference key: {key}")
+            logger.warning(f"Unknown preference key: {key}")
 
     def get_devices_info(self) -> dict:
         """
@@ -91,7 +92,7 @@ class SettingsController:
 
     def refresh_devices(self):
         """Refresh device information."""
-        self._logger.info("Refreshing device information...")
+        logger.info("Refreshing device information...")
         self._device_manager = DeviceManager()
 
     def register_change_callback(self, callback: Callable[[], None]):
@@ -109,4 +110,4 @@ class SettingsController:
             try:
                 callback()
             except Exception as e:
-                self._logger.error(f"Error in change callback: {e}", exc_info=True)
+                logger.error(f"Error in change callback: {e}", exc_info=True)

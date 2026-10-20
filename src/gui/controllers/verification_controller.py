@@ -1,18 +1,20 @@
 """Steam instance verification."""
 
+import logging
 from typing import Callable, Optional
 
-from src.core import Config, Logger
+from src.core import Config
 from src.services import SteamVerifier
+
+logger = logging.getLogger(__name__)
 
 
 class VerificationController:
     """Caches verification results so the UI can query them cheaply."""
 
-    def __init__(self, steam_verifier: SteamVerifier, logger: Logger):
+    def __init__(self, steam_verifier: SteamVerifier):
         """Initialize the verification controller."""
         self._steam_verifier = steam_verifier
-        self._logger = logger
         self._verification_statuses: dict[int, bool] = {}
 
     def verify_instance(self, instance_num: int) -> bool:
@@ -28,7 +30,7 @@ class VerificationController:
         instance_path = Config.get_steam_home_path(instance_num)
         is_verified = self._steam_verifier.verify(instance_path)
         self._verification_statuses[instance_num] = is_verified
-        self._logger.info(f"Instance {instance_num} verification: {is_verified}")
+        logger.info("Instance %s verification: %s", instance_num + 1, is_verified)
         return is_verified
 
     def verify_all_instances(

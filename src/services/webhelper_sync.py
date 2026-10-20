@@ -1,9 +1,12 @@
 """Gate Steam's UI startup and start the helpers that Steam's own scripts miss."""
 
 import os
+import re
 from pathlib import Path
 
 from src.core import Config, Utils
+from src.core.config import ensure_private_dir
+from src.core.logging import get_run_id
 
 # These names were observed in the current Linux Steam client. If Valve changes
 # them, the bounded wait falls back to the original launcher and reports it.
@@ -79,8 +82,8 @@ def build_webhelper_mounts(home_path: Path, instance_num: int, fix_overlay_focus
         # A fresh Steam installation may not have downloaded its UI yet.
         return []
 
-    cache = Config.CACHE_DIR / "steam-webhelper" / f"instance_{instance_num + 1}"
-    cache.mkdir(parents=True, exist_ok=True)
+    display_num = instance_num + 1
+    cache = ensure_private_dir(Config.cache_dir() / "steam-webhelper" / f"instance_{display_num}")
     wrapper = cache / "gate.sh"
     gate = WEBHELPER_GATE
     mounts = [
@@ -93,24 +96,25 @@ def build_webhelper_mounts(home_path: Path, instance_num: int, fix_overlay_focus
     ]
     if fix_overlay_focus:
         helper = Utils.get_base_path() / "res/steam/overlay_focus.py"
-        (cache / "overlay_focus.py").write_text(helper.read_text())
+        (cache / "overlay_focus.py").write_text(helper.read_text(encoding="utf-8"), encoding="utf-8")
         # The repair runs on the host inside the sandbox, so it needs only the
         # host Python. The instance home shadows the real home directory, so
-        # the shared log directory is mounted at a fixed path instead. Its name
-        # carries the same instance number as the cache directory above.
-        log_name = f"overlay_focus_instance_{instance_num + 1}.log"
+        # the shared log directory is mounted at a fixed path instead. Each
+        # launch gets its own helper log, grouped by instance.
+        log_dir = ensure_private_dir(Config.logs_dir())
+        ensure_private_dir(log_dir / "helpers")
+        run_id = re.sub(r"[^A-Za-z0-9_-]", "", get_run_id())[:12] or "unconfigured"
+        log_name = f"overlay-focus-{run_id}-instance-{display_num:02d}.log"
         # Either script can start it and the helper deduplicates itself, so a
         # client layout that skips one launcher still gets the repair.
         gate += f"""
 if [[ "$tv_session" =~ ^[0-9]+$ ]] && [[ -d /proc/$tv_session ]]; then
     python3 /tmp/twinverse-webhelper/overlay_focus.py "$tv_session" \\
-        </dev/null >>/tmp/twinverse-logs/{log_name} 2>&1 &
+        </dev/null >>/tmp/twinverse-logs/helpers/{log_name} 2>&1 &
 fi
 """
-        log_dir = Config.LOG_DIR
-        log_dir.mkdir(parents=True, exist_ok=True)
         mounts.extend(["--bind", str(log_dir), "/tmp/twinverse-logs"])
-    wrapper.write_text(gate)
+    wrapper.write_text(gate, encoding="utf-8")
     wrapper.chmod(0o755)
     if os.environ.get("BASH_ENV"):
         mounts.extend(["--setenv", "TWINVERSE_ORIGINAL_BASH_ENV", os.environ["BASH_ENV"]])

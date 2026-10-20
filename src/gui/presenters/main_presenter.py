@@ -1,8 +1,10 @@
 """Mediates between the view (window) and the controllers."""
 
+import logging
+
 from gi.repository import Adw, GLib, Gtk
 
-from src.core import Logger, Utils
+from src.core import Utils
 from src.gui.controllers import (
     LaunchController,
     SettingsController,
@@ -13,23 +15,24 @@ from src.gui.utils import ErrorHandler
 from src.gui.windows import MainWindow, PreferencesWindow
 from src.services import DeviceManager, InstanceService, KdeManager, SteamVerifier
 
+logger = logging.getLogger(__name__)
+
 
 class MainPresenter:
     """Mediator between the view and controllers."""
 
-    def __init__(self, application, logger: Logger):
+    def __init__(self, application):
         """Initialize the main presenter."""
         self._app = application
-        self._logger = logger
 
-        self._kde_manager = KdeManager(self._logger)
-        self._instance_service = InstanceService(logger=self._logger, kde_manager=self._kde_manager)
-        self._steam_verifier = SteamVerifier(self._logger)
+        self._kde_manager = KdeManager()
+        self._instance_service = InstanceService(kde_manager=self._kde_manager)
+        self._steam_verifier = SteamVerifier()
         self._device_manager = DeviceManager()
 
-        self._launch_controller = LaunchController(self._instance_service, self._kde_manager, self._logger)
-        self._verification_controller = VerificationController(self._steam_verifier, self._logger)
-        self._settings_controller = SettingsController(self._device_manager, self._logger)
+        self._launch_controller = LaunchController(self._instance_service, self._kde_manager)
+        self._verification_controller = VerificationController(self._steam_verifier)
+        self._settings_controller = SettingsController(self._device_manager)
 
         self.window = MainWindow(application, self)
 
@@ -137,17 +140,17 @@ class MainPresenter:
                 instance_num, on_complete=lambda: GLib.idle_add(self._on_single_instance_stopped, instance_num)
             )
         else:
-            self._logger.info(f"Launch requested for instance {instance_num} (no verification required).")
+            logger.info(f"Launch requested for instance {instance_num} (no verification required).")
 
             self._save_current_settings()
 
             player_row.set_running_state(True)
             player_row._update_button_state()
 
-            self._logger.info(f"Initiating launch of instance {instance_num}...")
+            logger.info(f"Initiating launch of instance {instance_num}...")
 
             if profile.enable_kwin_script:
-                self._logger.info("Starting KDE script setup...")
+                logger.info("Starting KDE script setup...")
                 self._kde_manager.start_kwin_script(profile)
 
             # The launch runs on a worker thread, so the window stays alive
@@ -168,7 +171,7 @@ class MainPresenter:
             self._save_current_settings()
             self._instance_service.open_terminal(self._settings_controller.get_profile(), instance_num)
         except Exception as e:
-            self._logger.exception(f"Failed to open terminal for instance {instance_num}: {e}")
+            logger.exception(f"Failed to open terminal for instance {instance_num}: {e}")
             ErrorDialog(prefs_window, "Error", ErrorHandler.format_error(e)).present()
 
     def on_preferences_clicked(self):
@@ -212,7 +215,7 @@ class MainPresenter:
 
     def on_devices_refresh_requested(self):
         """Handle devices refresh request."""
-        self._logger.info("Refreshing devices...")
+        logger.info("Refreshing devices...")
         self._settings_controller.refresh_devices()
         devices_info = self._settings_controller.get_devices_info()
 
@@ -221,7 +224,7 @@ class MainPresenter:
 
     def _on_launch_requested(self):
         """Handle launch request."""
-        self._logger.info("Launch requested by user.")
+        logger.info("Launch requested by user.")
 
         self._bulk_operation_in_progress = True
 
@@ -233,12 +236,12 @@ class MainPresenter:
         selected_players = layout_page.get_selected_players()
 
         if not selected_players:
-            self._logger.warning("No instances selected to launch.")
+            logger.warning("No instances selected to launch.")
             self.window.show_error("No instances selected to launch.")
             self._bulk_operation_in_progress = False
             return
 
-        self._logger.info(f"Selected players for launch: {selected_players}")
+        logger.info(f"Selected players for launch: {selected_players}")
 
         profile = self._settings_controller.get_profile()
         profile.selected_players = selected_players
@@ -248,7 +251,7 @@ class MainPresenter:
 
         GLib.timeout_add(5000, self.window.minimize_window)
 
-        self._logger.info("Initiating launch of instances...")
+        logger.info("Initiating launch of instances...")
         started = self._launch_controller.launch_instances(
             profile,
             on_progress=self._on_launch_progress,
@@ -256,7 +259,7 @@ class MainPresenter:
             on_error=self._on_launch_error,
         )
         if not started:
-            self._logger.warning("Another launch is already in progress.")
+            logger.warning("Another launch is already in progress.")
             self._bulk_operation_in_progress = False
             self.window.show_idle_state()
             self._update_launch_button_state()
@@ -272,7 +275,7 @@ class MainPresenter:
 
     def _on_launch_progress(self, instance_num: int):
         """Handle launch progress update."""
-        self._logger.info(f"Launched instance {instance_num}")
+        logger.info(f"Launched instance {instance_num}")
         # The progress arrives on the launch worker thread, and the widgets
         # can only be touched from the main thread.
         GLib.idle_add(self._set_instance_running_state, instance_num, True)
@@ -285,8 +288,8 @@ class MainPresenter:
 
     def _on_launch_error(self, error: Exception):
         """Handle launch error."""
-        self._logger.error(f"Launch error: {error}")
-        self._logger.exception("Exception details:")
+        logger.error(f"Launch error: {error}")
+        logger.exception("Exception details:")
         error_msg = ErrorHandler.format_error(error)
         GLib.idle_add(self.window.show_error, error_msg)
         GLib.idle_add(self._restore_after_failed_launch)
@@ -319,7 +322,7 @@ class MainPresenter:
 
     def _on_single_instance_error(self, instance_num: int, error: Exception):
         """Handle single instance error."""
-        self._logger.error(f"Error in instance {instance_num}: {error}")
+        logger.error(f"Error in instance {instance_num}: {error}")
         error_msg = ErrorHandler.format_error(error)
         self._set_instance_running_state(instance_num, False)
         self.window.show_error(error_msg)
@@ -342,7 +345,7 @@ class MainPresenter:
         if hasattr(self._settings_controller.get_profile(), key):
             setattr(self._settings_controller.get_profile(), key, value)
             self._settings_controller.save_profile()
-            self._logger.info(f"Preference '{key}' updated to: {value}")
+            logger.info(f"Preference '{key}' updated to: {value}")
         else:
             self._settings_controller.update_preference(key, value)
 

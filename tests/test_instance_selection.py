@@ -52,7 +52,7 @@ def test_the_command_never_executes_a_program_named_dashes(manager, tmp_path):
     """An unknown size must fail loudly instead of building a broken command."""
     profile = _profile([0, 1])
     manager.get_instance_dimensions = Mock(return_value=(None, None))
-    builder = CommandBuilder(Mock(), profile, {}, manager, 0, tmp_path, None)
+    builder = CommandBuilder(profile, {}, manager, 0, tmp_path, None)
 
     with pytest.raises(TwinverseError, match="display size"):
         builder.build_command(["steam"])
