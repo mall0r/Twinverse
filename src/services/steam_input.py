@@ -265,7 +265,7 @@ class SteamInputDisabler:
                         f"({len(appids)} games in the library)."
                     )
                 disabled.append(account)
-            except (OSError, VdfFormatError) as e:
+            except (OSError, VdfFormatError, UnicodeDecodeError) as e:
                 self.logger.warning(f"Instance {instance_num}: could not disable Steam Input for {account}: {e}")
 
         if len(disabled) < len(pending):
@@ -277,7 +277,10 @@ class SteamInputDisabler:
         # The marker ends up listing the accounts present now, so an account removed
         # from the instance and added back later is handled again.
         kept = {account for account in (handled or []) if account in names}
-        self._write_marker(instance_num, marker, sorted(kept | set(disabled)), appids)
+        if not self._write_marker(instance_num, marker, sorted(kept | set(disabled)), appids):
+            # Without the marker the settings would be applied again on the next
+            # launch, and a change made in the meantime would be lost.
+            return False
         return bool(pending)
 
     def _handled_accounts(self, instance_num: int, marker: Path) -> Optional[list[str]]:
@@ -361,7 +364,7 @@ class SteamInputDisabler:
         document.save(config_path)
         return True
 
-    def _write_marker(self, instance_num: int, marker: Path, accounts: list[str], appids: list[str]) -> None:
+    def _write_marker(self, instance_num: int, marker: Path, accounts: list[str], appids: list[str]) -> bool:
         """Record that the instance was handled, so user changes are never overwritten."""
         payload = {
             "version": self.MARKER_VERSION,
@@ -376,6 +379,8 @@ class SteamInputDisabler:
         except OSError as e:
             self.logger.warning(f"Instance {instance_num}: could not record the Steam Input state: {e}")
             self.logger.info("Twinverse will check the settings again on the next launch.")
+            return False
+        return True
 
 
 def _is_appid(name: str) -> bool:

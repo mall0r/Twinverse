@@ -297,7 +297,7 @@ def test_terminal_launch_leaves_the_account_config_alone(instance, monkeypatch):
     assert not (home / ".config/twinverse/steam_input_disabled.json").exists()
 
 
-class VdfDocumentTests:
+class TestVdfDocument:
     """Check the layout rules of the Valve KeyValues editor."""
 
     def test_rejects_wrapped_values(self):
