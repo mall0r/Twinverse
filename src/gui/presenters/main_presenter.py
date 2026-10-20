@@ -55,12 +55,17 @@ class MainPresenter:
 
     def on_launch_clicked(self):
         """Handle launch button clicked."""
-        if self._launch_controller.is_running():
+        if self._launch_controller.is_running() or self._any_instance_running():
             self._on_stop_requested()
         else:
             self._on_launch_requested()
 
         self._update_number_of_instances_sensitivity()
+
+    def _any_instance_running(self) -> bool:
+        """Report whether any instance is currently running."""
+        layout_page = self.window.get_layout_page()
+        return any(getattr(row, "_is_running", False) for row in layout_page.player_rows)
 
     def on_settings_changed(self):
         """Handle settings changed in UI."""
@@ -112,7 +117,7 @@ class MainPresenter:
 
         if player_row._is_running:
             self._launch_controller.terminate_single_instance(
-                instance_num, on_complete=lambda: self._on_single_instance_stopped(instance_num)
+                instance_num, on_complete=lambda: GLib.idle_add(self._on_single_instance_stopped, instance_num)
             )
         else:
             self._logger.info(f"Launch requested for instance {instance_num} (no verification required).")
@@ -128,20 +133,15 @@ class MainPresenter:
                 self._logger.info("Starting KDE script setup...")
                 self._kde_manager.start_kwin_script(profile)
 
-            try:
-                self._instance_service.launch_instance(profile, instance_num, use_gamescope_override=False)
-                self._logger.info(
-                    f"Instance {instance_num} launch initiated successfully (gamescope and gamescope-WSI disabled)."
-                )
-
-                GLib.idle_add(lambda: self._on_single_instance_launched(instance_num))
-            except Exception as e:
-                self._logger.error(f"Failed to launch instance {instance_num}: {e}")
-                self._logger.exception("Exception details:")
-                error_msg = ErrorHandler.format_error(e)
-                GLib.idle_add(self.window.show_error, error_msg)
-                player_row.set_running_state(False)
-                player_row._update_button_state()
+            # The launch runs on a worker thread, so the window stays alive
+            # while the instance is prepared and started.
+            self._launch_controller.launch_single_instance(
+                profile,
+                instance_num,
+                use_gamescope_override=False,
+                on_complete=lambda: GLib.idle_add(self._on_single_instance_launched, instance_num),
+                on_error=lambda error: GLib.idle_add(self._on_single_instance_error, instance_num, error),
+            )
 
     def on_instance_terminal_requested(self, prefs_window, instance_num: int):
         """Open a terminal using the selected player's current settings."""
@@ -229,12 +229,18 @@ class MainPresenter:
         GLib.timeout_add(5000, self.window.minimize_window)
 
         self._logger.info("Initiating launch of instances...")
-        self._launch_controller.launch_instances(
+        started = self._launch_controller.launch_instances(
             profile,
             on_progress=self._on_launch_progress,
             on_complete=self._on_launch_complete,
             on_error=self._on_launch_error,
         )
+        if not started:
+            self._logger.warning("Another launch is already in progress.")
+            self._bulk_operation_in_progress = False
+            self.window.show_idle_state()
+            self._update_launch_button_state()
+            self._update_number_of_instances_sensitivity()
 
     def _on_stop_requested(self):
         """Handle stop request."""
@@ -247,10 +253,9 @@ class MainPresenter:
     def _on_launch_progress(self, instance_num: int):
         """Handle launch progress update."""
         self._logger.info(f"Launched instance {instance_num}")
-        layout_page = self.window.get_layout_page()
-        if 0 <= instance_num < len(layout_page.player_rows):
-            player_row = layout_page.player_rows[instance_num]
-            player_row.set_running_state(True)
+        # The progress arrives on the launch worker thread, and the widgets
+        # can only be touched from the main thread.
+        GLib.idle_add(self._set_instance_running_state, instance_num, True)
 
     def _on_launch_complete(self):
         """Handle launch complete."""
@@ -278,29 +283,39 @@ class MainPresenter:
 
     def _on_single_instance_launched(self, instance_num: int):
         """Handle single instance launched."""
-        layout_page = self.window.get_layout_page()
-        if 0 <= instance_num < len(layout_page.player_rows):
-            player_row = layout_page.player_rows[instance_num]
-            player_row.set_running_state(True)
+        self._set_instance_running_state(instance_num, True)
 
         GLib.idle_add(self._verify_instance, instance_num)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
+        GLib.idle_add(self._sync_launch_button_state)
 
     def _on_single_instance_stopped(self, instance_num: int):
         """Handle single instance stopped."""
-        layout_page = self.window.get_layout_page()
-        if 0 <= instance_num < len(layout_page.player_rows):
-            player_row = layout_page.player_rows[instance_num]
-            player_row.set_running_state(False)
+        self._set_instance_running_state(instance_num, False)
 
         GLib.idle_add(self._verify_instance, instance_num)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
+        GLib.idle_add(self._sync_launch_button_state)
 
     def _on_single_instance_error(self, instance_num: int, error: Exception):
         """Handle single instance error."""
         self._logger.error(f"Error in instance {instance_num}: {error}")
         error_msg = ErrorHandler.format_error(error)
-        GLib.idle_add(self.window.show_error, error_msg)
+        self._set_instance_running_state(instance_num, False)
+        self.window.show_error(error_msg)
+        GLib.idle_add(self._update_number_of_instances_sensitivity)
+
+    def _set_instance_running_state(self, instance_num: int, is_running: bool) -> bool:
+        """Update the state of one instance row, from the main thread."""
+        layout_page = self.window.get_layout_page()
+        if 0 <= instance_num < len(layout_page.player_rows):
+            layout_page.player_rows[instance_num].set_running_state(is_running)
+        return False
+
+    def _sync_launch_button_state(self):
+        """Keep the footer button in step with the instances that are running."""
+        is_running = self._launch_controller.is_running() or self._any_instance_running()
+        self.window.update_launch_button_action(is_running)
 
     def _on_preference_changed(self, key: str, value):
         """Handle preference changed."""

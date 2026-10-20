@@ -31,7 +31,7 @@ class LaunchController:
         on_progress: Optional[Callable[[int], None]] = None,
         on_complete: Optional[Callable[[], None]] = None,
         on_error: Optional[Callable[[Exception], None]] = None,
-    ):
+    ) -> bool:
         """
         Launch instances asynchronously, ignoring a second concurrent launch.
 
@@ -39,16 +39,20 @@ class LaunchController:
             on_progress: Called with each instance number as it starts.
             on_complete: Called once every instance has been launched.
             on_error: Called with the exception that aborted the launch.
+
+        Returns:
+            True when the launch started, False when one was already running.
         """
         if self._launch_thread and self._launch_thread.is_alive():
             self._logger.warning("Launch already in progress")
-            return
+            return False
 
         self._cancel_event.clear()
         self._launch_thread = threading.Thread(
             target=self._launch_worker, args=(profile, on_progress, on_complete, on_error)
         )
         self._launch_thread.start()
+        return True
 
     def stop_instances(self, on_complete: Optional[Callable[[], None]] = None):
         """
@@ -173,6 +177,7 @@ class LaunchController:
             self._logger.info(f"Starting single instance worker for instance {instance_num}")
             self._instance_service.launch_instance(profile, instance_num, use_gamescope_override=use_gamescope_override)
             self._logger.info(f"Successfully launched instance {instance_num}")
+            self._is_running = True
             if on_complete:
                 on_complete()
         except Exception as e:

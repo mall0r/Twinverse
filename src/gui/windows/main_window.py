@@ -139,42 +139,54 @@ class MainWindow(Adw.ApplicationWindow):
         """Update UI to show launching state."""
         self.launch_label.set_label("Starting")
         self.launch_button.set_sensitive(False)
-        self.launch_content_box.append(self.launch_spinner)
-        self.launch_spinner.start()
-        self.layout_settings_page.set_sensitive(False)
+        self._show_spinner()
         self.layout_settings_page.set_checkboxes_sensitive(False)
 
     def show_running_state(self):
         """Update UI to show running state."""
-        self.launch_label.set_label("Stop")
-        self.launch_button.get_style_context().remove_class("launch-button")
-        self.launch_button.get_style_context().add_class("stop-button")
+        self.update_launch_button_action(True)
         self.launch_spinner.stop()
         if self.launch_spinner.get_parent() == self.launch_content_box:
             self.launch_content_box.remove(self.launch_spinner)
         self.launch_button.set_sensitive(True)
-        self.layout_settings_page.set_sensitive(False)
-        self.layout_settings_page.set_running_state(True)
+        # The page stays active, so a single instance can still be stopped.
+        self.layout_settings_page.set_number_of_instances_sensitive(False)
+        self.layout_settings_page.set_screen_settings_sensitive(False)
         self.layout_settings_page.set_checkboxes_sensitive(False)
 
     def show_stopping_state(self):
         """Update UI to show stopping state."""
         self.launch_label.set_label("Stopping")
         self.launch_button.set_sensitive(False)
-        self.launch_content_box.append(self.launch_spinner)
-        self.launch_spinner.start()
+        self._show_spinner()
 
     def show_idle_state(self):
         """Update UI to show idle state (ready to launch)."""
-        self.launch_label.set_label("Play")
+        self.update_launch_button_action(False)
         self.launch_spinner.stop()
         if self.launch_spinner.get_parent() == self.launch_content_box:
             self.launch_content_box.remove(self.launch_spinner)
-        self.launch_button.get_style_context().remove_class("stop-button")
-        self.launch_button.get_style_context().add_class("launch-button")
         self.layout_settings_page.set_sensitive(True)
         self.layout_settings_page.set_running_state(False)
         self.layout_settings_page.set_checkboxes_sensitive(True)
+
+    def update_launch_button_action(self, is_running: bool):
+        """Show the footer button as a start or a stop action."""
+        if is_running:
+            self.launch_label.set_label("Stop")
+            self.launch_button.get_style_context().remove_class("launch-button")
+            self.launch_button.get_style_context().add_class("stop-button")
+        else:
+            self.launch_label.set_label("Play")
+            self.launch_button.get_style_context().remove_class("stop-button")
+            self.launch_button.get_style_context().add_class("launch-button")
+
+    def _show_spinner(self):
+        """Show the spinner in the footer button."""
+        if self.launch_spinner.get_parent() == self.launch_content_box:
+            return
+        self.launch_content_box.append(self.launch_spinner)
+        self.launch_spinner.start()
 
     def update_launch_button_sensitivity(self, enabled: bool):
         """Update launch button enabled state."""
