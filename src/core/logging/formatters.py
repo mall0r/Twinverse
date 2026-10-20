@@ -45,12 +45,15 @@ class TextFormatter(logging.Formatter):
     """Human-readable single-line log records."""
 
     def __init__(self) -> None:
+        """Build the format of a text record."""
         super().__init__("%(asctime)s %(levelname)-8s %(name)s [%(context)s] %(message)s")
 
     def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
+        """Return the time of the record with the timezone of the machine."""
         return _timestamp(record)
 
     def format(self, record: logging.LogRecord) -> str:
+        """Return the record as a masked line of text."""
         if not hasattr(record, "context"):
             record.context = getattr(record, "run_id", "unconfigured")
         return redact_text(super().format(record))
@@ -60,6 +63,7 @@ class JsonFormatter(logging.Formatter):
     """One JSON object per line, suitable for automated diagnosis."""
 
     def format(self, record: logging.LogRecord) -> str:
+        """Return the record as one masked JSON object."""
         payload: dict[str, Any] = {
             "timestamp": _timestamp(record),
             "level": record.levelname,

@@ -11,7 +11,9 @@ _run_id: Optional[str] = None
 
 # The contextual fields describe what a thread is doing right now, so they
 # follow the context of the thread that emits the record.
-_FIELDS: contextvars.ContextVar[Mapping[str, object]] = contextvars.ContextVar("twinverse_log_fields", default={})
+_FIELDS: contextvars.ContextVar[Optional[Mapping[str, object]]] = contextvars.ContextVar(
+    "twinverse_log_fields", default=None
+)
 
 
 def set_run_id(run_id: Optional[str]) -> Optional[str]:
@@ -29,7 +31,7 @@ def current_run_id(default: str = "unconfigured") -> str:
 
 def current_fields() -> dict[str, object]:
     """Return a copy of the contextual fields of the current context."""
-    return dict(_FIELDS.get())
+    return dict(_FIELDS.get() or {})
 
 
 @contextmanager
@@ -39,7 +41,7 @@ def log_context(**fields: object) -> Iterator[None]:
     A value of ``None`` removes an inherited field instead of rendering the
     text ``None``. Nested contexts inherit and override fields.
     """
-    current = dict(_FIELDS.get())
+    current = dict(_FIELDS.get() or {})
     for key, value in fields.items():
         if value is None:
             current.pop(key, None)

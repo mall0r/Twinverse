@@ -26,6 +26,7 @@ class InstanceLog:
         max_bytes: int = 100 * 1024 * 1024,
         error: Optional[OSError] = None,
     ):
+        """Initialize the log of one instance."""
         self.instance_num = instance_num
         self.display_num = instance_num + 1
         self.path = path

@@ -32,6 +32,7 @@ class SafeStderrHandler(logging.StreamHandler):
     """Stream handler that never lets a broken stderr stop the application."""
 
     def handleError(self, record: logging.LogRecord) -> None:
+        """Report a broken console without raising again."""
         try:
             sys.stderr.write("Twinverse: could not write logs to stderr\n")
         except Exception:
