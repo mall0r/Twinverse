@@ -2,7 +2,6 @@
 
 import json
 import os
-from pathlib import Path
 
 import pydbus
 
@@ -43,7 +42,7 @@ class KdeManager:
             orientation = profile.splitscreen.orientation
             script_name = "kwin_gamescope_vertical.js" if orientation == "vertical" else "kwin_gamescope_horizontal.js"
 
-        script_path = Path(__file__).parent.parent.parent / "res" / "kwin" / script_name
+        script_path = Config.SCRIPT_DIR / "res" / "kwin" / script_name
 
         if not script_path.exists():
             self.logger.error(f"KWin script not found at {script_path}")
@@ -138,6 +137,11 @@ class KdeManager:
         if not self.is_kde_desktop() or not self.session_bus:
             return
 
+        if self.original_panel_states:
+            # The panels are already hidden, so their current state is not
+            # the original one and must not overwrite the saved states.
+            return
+
         panel_count = self.get_panel_count()
         if panel_count == 0:
             self.logger.info("No KDE panels found.")
@@ -148,6 +152,9 @@ class KdeManager:
             script = f"print(panels()[{i}].hiding)"
             state = self._run_plasmashell_script(script)
             if state is not None:
+                # The value comes from a print statement, so it carries a
+                # newline that would break the script that restores it.
+                state = state.strip()
                 self.original_panel_states[i] = state
                 self.logger.info(f"Saved panel {i} state: {state}")
 
@@ -168,7 +175,9 @@ class KdeManager:
             return
 
         for i, state in self.original_panel_states.items():
-            script_state = f"'{state}'" if state != "null" else "null"
+            # The state is a plain identifier, and it is escaped so a stray
+            # quote cannot break the script.
+            script_state = "null" if state == "null" else json.dumps(state)
             script = f"panels()[{i}].hiding = {script_state}"
             self._run_plasmashell_script(script)
             self.logger.info(f"Restored panel {i} to state: {state}")

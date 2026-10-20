@@ -57,10 +57,13 @@ function numGamescopeClientsInOutput(output) {
 
 function gamescopeAboveBelow() {
   var gamescopeClients = getGamescopeClients();
+  // There is no active window while the desktop has the focus, and reading
+  // it would throw and stop the placement of the instances.
+  var activeWindow = workspace.activeWindow;
+  var activeIsGamescope = activeWindow !== null && activeWindow !== undefined &&
+    activeWindow.resourceClass == "gamescope";
   for (var i = 0; i < gamescopeClients.length; i++) {
-    if (
-      workspace.activeWindow.resourceClass == "gamescope"
-    ) {
+    if (activeIsGamescope) {
       gamescopeClients[i].keepAbove = true;
     } else {
       gamescopeClients[i].keepAbove = false;
