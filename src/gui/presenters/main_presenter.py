@@ -34,6 +34,7 @@ class MainPresenter:
         self.window = MainWindow(application, self)
 
         self._bulk_operation_in_progress = False
+        self._save_timeout_id = 0
 
         self._load_initial_data()
 
@@ -67,6 +68,18 @@ class MainPresenter:
         layout_page = self.window.get_layout_page()
         return any(getattr(row, "_is_running", False) for row in layout_page.player_rows)
 
+    def _schedule_profile_save(self):
+        """Write the profile once the user stops changing the settings."""
+        if self._save_timeout_id:
+            GLib.source_remove(self._save_timeout_id)
+        self._save_timeout_id = GLib.timeout_add(300, self._save_profile_now)
+
+    def _save_profile_now(self) -> bool:
+        """Write the profile and stop the debounce timer."""
+        self._save_timeout_id = 0
+        self._settings_controller.save_profile()
+        return False
+
     def on_settings_changed(self):
         """Handle settings changed in UI."""
         layout_page = self.window.get_layout_page()
@@ -86,16 +99,11 @@ class MainPresenter:
             ui_data = layout_page.get_data()
 
         self._settings_controller.update_from_ui_data(ui_data)
-        self._settings_controller.save_profile()
+        # The page reports a change for every keystroke, so the profile is
+        # written once the user stops typing.
+        self._schedule_profile_save()
 
         if old_num_players != new_num_players:
-            profile = self._settings_controller.get_profile()
-            devices_info = self._settings_controller.get_devices_info()
-            verification_statuses = self._verification_controller.get_all_statuses()
-            layout_page.load_data(profile, devices_info, verification_statuses)
-
-            self._run_all_verifications()
-        else:
             self._run_all_verifications()
 
         self._update_launch_button_state()
@@ -187,6 +195,9 @@ class MainPresenter:
     def on_close_requested(self):
         """Handle window close request."""
         self.window.set_sensitive(False)
+
+        # The settings of this session are kept before the app goes away.
+        self._save_current_settings()
 
         self._launch_controller.stop_instances(on_complete=lambda: GLib.idle_add(self._app.quit))
 

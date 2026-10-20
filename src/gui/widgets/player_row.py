@@ -40,7 +40,7 @@ class PlayerRow(Adw.ExpanderRow):
         self.checkbox = Gtk.CheckButton()
         self.checkbox.set_active(True)
         self.checkbox.get_style_context().add_class("player-checkbox")
-        self.checkbox.connect("toggled", lambda *args: self.emit("settings-changed"))
+        self.checkbox.connect("toggled", self._on_checkbox_toggled)
         self.add_prefix(self.checkbox)
 
         self._create_device_rows()
@@ -125,9 +125,21 @@ class PlayerRow(Adw.ExpanderRow):
         """Handle launch button clicked."""
         self.emit("launch-clicked", self._player_num)
 
+    def _on_checkbox_toggled(self, *args):
+        """Handle the selection checkbox toggled."""
+        if not self._is_loading:
+            self.emit("settings-changed")
+
+    def set_selected(self, selected: bool):
+        """Set the selection state without reporting a settings change."""
+        self._is_loading = True
+        self.checkbox.set_active(selected)
+        self._is_loading = False
+
     def _on_grab_input_toggled(self, switch_row, gparam):
         """Handle grab input toggled."""
-        self.emit("settings-changed")
+        if not self._is_loading:
+            self.emit("settings-changed")
         if hasattr(self, "_parent_page"):
             self._parent_page._handle_grab_input_exclusivity(self._player_num)
 
@@ -246,6 +258,12 @@ class PlayerRow(Adw.ExpanderRow):
     def set_grab_input_sensitive(self, sensitive: bool):
         """Set grab input switch sensitivity."""
         self.grab_input_switch.set_sensitive(sensitive)
+
+    def set_grab_input_active(self, active: bool):
+        """Set the grab input state without reporting a settings change."""
+        self._is_loading = True
+        self.grab_input_switch.set_active(active)
+        self._is_loading = False
 
     def set_checkbox_sensitive(self, sensitive: bool):
         """Set checkbox sensitivity."""

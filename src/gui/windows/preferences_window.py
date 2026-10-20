@@ -1,9 +1,12 @@
 """Preferences window UI."""
 
+import copy
+
 import gi
 from gi.repository import Adw, GObject, Gtk
 
 from src.core.config import Config
+from src.gui.dialogs import ErrorDialog
 from src.models.profile import PlayerInstanceConfig, Profile
 
 gi.require_version("Gtk", "4.0")
@@ -191,7 +194,10 @@ class PreferencesWindow(Adw.PreferencesWindow):
         """Handle the confirmation dialog response."""
         if response == "reset":
             home_path = Config.get_steam_home_path(player_index)
-            self._remove_home_directory(home_path)
+            removed, error = self._remove_home_directory(home_path)
+            if not removed:
+                ErrorDialog(self, "Error", f"The home directory could not be removed completely:\n{error}").present()
+                return
 
             default_player_config = PlayerInstanceConfig()
 
@@ -211,17 +217,28 @@ class PreferencesWindow(Adw.PreferencesWindow):
             except Exception as e:
                 print(f"Error saving profile: {e}")
 
-    def _remove_home_directory(self, home_path):
-        """Remove the home directory for a specific player."""
+    @staticmethod
+    def _remove_home_directory(home_path):
+        """
+        Remove the home directory for a specific player.
+
+        Returns:
+            True when the directory is gone, and the error when it is not.
+        """
         import shutil
         from pathlib import Path
 
         path = Path(home_path)
-        if path.exists():
-            try:
-                shutil.rmtree(path)
-            except Exception as e:
-                print(f"Error removing directory {path}: {e}")
+        if not path.exists():
+            return True, None
+
+        try:
+            shutil.rmtree(path)
+        except Exception as e:
+            print(f"Error removing directory {path}: {e}")
+            return False, str(e)
+
+        return True, None
 
     def _add_reset_button(self):
         """Add a reset button to the preferences window."""
@@ -245,6 +262,14 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._profile.use_steamdeck_tag = default_profile.use_steamdeck_tag
         self._profile.use_gamescope = default_profile.use_gamescope
         self._profile.enable_gamescope_wsi = default_profile.enable_gamescope_wsi
+        self._profile.num_players = default_profile.num_players
+        self._profile.mode = default_profile.mode
+        # The values are copied, so the two profiles do not share the same
+        # settings.
+        self._profile.splitscreen = copy.deepcopy(default_profile.splitscreen)
+        self._profile.player_configs = copy.deepcopy(list(default_profile.player_configs))
+        self._profile.selected_players = list(default_profile.selected_players)
+        self._profile.env = copy.deepcopy(default_profile.env)
 
         self.steamdeck_row.set_active(self._profile.use_steamdeck_tag)
         self.gamescope_row.set_active(self._profile.use_gamescope)
@@ -253,6 +278,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._on_settings_changed("use_steamdeck_tag", self._profile.use_steamdeck_tag)
         self._on_settings_changed("use_gamescope", self._profile.use_gamescope)
         self._on_settings_changed("enable_gamescope_wsi", self._profile.enable_gamescope_wsi)
+        self._on_settings_changed("player_configs", self._profile.player_configs)
 
     def _on_steamdeck_tag_toggled(self, switch_row, pspec):
         """Handle SteamDeck tag toggle."""

@@ -42,23 +42,23 @@ class SettingsController:
 
         if self._profile.mode == "splitscreen" and ui_data["orientation"]:
             self._profile.splitscreen = SplitscreenConfig(ORIENTATION=ui_data["orientation"])
-        else:
-            self._profile.splitscreen = None
 
-        new_player_configs = ui_data["player_configs"]
+        new_player_configs = list(ui_data["player_configs"])
 
-        while len(new_player_configs) < self._profile.num_players:
-            if len(new_player_configs) < len(old_player_configs):
-                new_player_configs.append(old_player_configs[len(new_player_configs)])
+        # The page only shows the configured instances, so the settings of the
+        # hidden ones are kept and restored when the count goes up again.
+        merged = []
+        for index in range(max(len(new_player_configs), len(old_player_configs), self._profile.num_players)):
+            if index < len(new_player_configs):
+                merged.append(new_player_configs[index])
+            elif index < len(old_player_configs):
+                merged.append(old_player_configs[index])
             else:
-                new_player_configs.append(PlayerInstanceConfig())
-
-        self._profile.player_configs = new_player_configs
+                merged.append(PlayerInstanceConfig())
+        self._profile.player_configs = merged
 
         valid_selected_players = [idx for idx in ui_data["selected_players"] if 0 <= idx < self._profile.num_players]
         self._profile.selected_players = valid_selected_players
-
-        self._profile.enable_kwin_script = True
 
     def update_preference(self, key: str, value):
         """

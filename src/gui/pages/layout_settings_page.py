@@ -24,6 +24,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         """Initialize the layout settings page."""
         super().__init__(**kwargs)
         self._is_loading = False
+        self._applying_exclusivity = False
         self.player_rows = []
         self._num_monitors = 1  # Will be set from devices_info
         self.screen_settings_icon = None  # Will be initialized in _build_ui
@@ -119,9 +120,6 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         if self._num_monitors == 0:
             self._num_monitors = 1  # Fallback
 
-        if not self._is_loading:
-            self._update_screen_settings_icon()
-
         adj = self.num_players_row.get_adjustment()
         adj.set_value(profile.num_players)
 
@@ -137,10 +135,15 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
         self.rebuild_player_rows(profile.num_players, devices_info)
 
+        # A profile without a saved selection launches every instance.
+        selected = set(profile.selected_players) if profile.selected_players else set(range(len(self.player_rows)))
+
         for i, player_row in enumerate(self.player_rows):
             if i < len(profile.player_configs):
                 config = profile.player_configs[i]
                 player_row.load_config(config)
+
+            player_row.set_selected(i in selected)
 
             is_verified = verification_statuses.get(i, False)
             player_row.set_verification_status(is_verified)
@@ -160,10 +163,16 @@ class LayoutSettingsPage(Adw.PreferencesPage):
                 active_grab_index = i
                 break
 
-        if active_grab_index != -1:
-            for i, player_row in enumerate(self.player_rows):
-                if i != active_grab_index:
-                    player_row.set_grab_input_sensitive(False)
+        if active_grab_index == -1:
+            return
+
+        for i, player_row in enumerate(self.player_rows):
+            if i == active_grab_index:
+                continue
+            if player_row.grab_input_switch.get_active():
+                # Only one instance may hold the mouse, so the others give it up.
+                player_row.set_grab_input_active(False)
+            player_row.set_grab_input_sensitive(False)
 
     def rebuild_player_rows(self, num_players: int, devices_info: dict):
         """Rebuild player rows."""
@@ -184,21 +193,27 @@ class LayoutSettingsPage(Adw.PreferencesPage):
 
     def _handle_grab_input_exclusivity(self, active_index: int):
         """Handle grab input exclusivity - only one can be active."""
-        if self._is_loading:
+        if self._is_loading or self._applying_exclusivity:
             return
 
         active_row = self.player_rows[active_index]
         is_active = active_row.grab_input_switch.get_active()
 
-        for i, row in enumerate(self.player_rows):
-            if i == active_index:
-                continue
+        # Turning a switch off reports another change, and the rule is
+        # applied only once.
+        self._applying_exclusivity = True
+        try:
+            for i, row in enumerate(self.player_rows):
+                if i == active_index:
+                    continue
 
-            if is_active:
-                row.grab_input_switch.set_active(False)
-                row.set_grab_input_sensitive(False)
-            else:
-                row.set_grab_input_sensitive(True)
+                if is_active:
+                    row.set_grab_input_active(False)
+                    row.set_grab_input_sensitive(False)
+                else:
+                    row.set_grab_input_sensitive(True)
+        finally:
+            self._applying_exclusivity = False
 
     def get_data(self) -> dict:
         """Get data from UI."""
