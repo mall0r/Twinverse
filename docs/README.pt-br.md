@@ -145,7 +145,7 @@ cd Twinverse
 
 ## 📖 Como Usar?
 
-Acesse nosso [Guide](https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt-br.md) para mais informações sobre como usar o Twinverse.
+Acesse nosso [Guide](https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt-br.md) para mais informações sobre como usar o Twinverse. Se algo falhar, consulte [Depuração e logs](https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.pt-br.md) para saber onde ficam os logs e como usar o relatório `--diagnostics`.
 
 ---
 

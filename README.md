@@ -149,7 +149,7 @@ cd Twinverse
 
 ## 📖 How to Use?
 
-Access our [Guide](https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md) for more information on how to use Twinverse.
+Access our [Guide](https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md) for more information on how to use Twinverse. If something fails, see [Debugging and logs](https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.md) for log locations and the `--diagnostics` report.
 
 ---
 

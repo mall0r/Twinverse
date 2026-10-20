@@ -5,8 +5,17 @@ All notable changes to this project will be documented in this file. This projec
 
 ## [Unreleased]
 
+### Added
+
+- Rewrite the logging system with the Python standard library. Logs now live in the XDG state directory, use per-run and per-instance context, rotate and expire old files, mask common secrets, and capture unhandled exceptions and native crashes.
+- Add `--debug`, `--quiet`, `--log-level`, `--log-dir`, `--log-format`, `--json` and `--diagnostics` command-line options, plus `TWINVERSE_*` environment variables for the same settings.
+- Add English and Portuguese debugging guides.
+- Record one log per instance launch with the command line, the environment variable names, the output of the instance process and the exit code when it stops.
+
 ### Fixed
 
+- Keep the run identifier in the records written by the launch worker thread, so every line of a launch can be tied to its session.
+- Write the logs of the instances in the directory chosen with `--log-dir`, instead of always in the XDG state directory.
 - Lay out the selected instances in the order they were selected, instead of using the instance number, so a selection that skips an instance no longer builds an invalid command and fails to start.
 - Report a display size that cannot be resolved as an error, instead of building a command that made bwrap try to run a program named `--`.
 - Create the virtual joystick for the instances that take part in the launch, instead of for the first ones of the list.
@@ -28,6 +37,9 @@ All notable changes to this project will be documented in this file. This projec
 
 ### Changed
 
+- Move the logs from the XDG cache directory to `$XDG_STATE_HOME/twinverse/logs`, matching the XDG specification and the Flatpak application state directory.
+- Give each instance launch its own log under `logs/instances`, instead of reusing `steam_instance_N.log`, and move helper logs under `logs/helpers`.
+- Replace the custom `Logger` wrapper and logger injection with module-level standard-library loggers configured once at the entry point.
 - Mark the instance home directory of the player as read-only for the instances, and keep the input device of the virtual joystick private.
 - Reset all the settings of the profile in the preferences window, and report a home directory that could not be removed.
 - Present the same window when the application is started again, instead of opening a second one.
