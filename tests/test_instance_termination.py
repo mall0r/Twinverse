@@ -11,8 +11,51 @@ from unittest.mock import Mock
 
 import pytest
 
+from src.gui.controllers.launch_controller import LaunchController
 from src.services.instance import InstanceService
 from src.services.network import NETWORK_SETUP
+
+
+def _controller(terminate=None):
+    """Build a launch controller with a mocked instance service."""
+    service = Mock()
+    if terminate is not None:
+        service.terminate_all.side_effect = terminate
+    controller = LaunchController(service, Mock(), Mock())
+    return controller, service
+
+
+def test_the_stop_always_finishes():
+    """A failure while stopping must not leave the window locked."""
+    controller, service = _controller(terminate=RuntimeError("boom"))
+    finished = []
+
+    controller.stop_instances(on_complete=lambda: finished.append(True))
+    controller._stop_thread.join(timeout=5)
+
+    assert finished == [True]
+
+
+def test_the_cancel_flag_survives_the_stop():
+    """The launch must not continue after the user asked it to stop."""
+    controller, service = _controller()
+    controller._launch_thread = Mock()
+    controller._launch_thread.is_alive.return_value = True
+
+    controller.stop_instances()
+    controller._stop_thread.join(timeout=5)
+
+    assert controller._cancel_event.is_set()
+
+
+def test_a_new_launch_clears_the_cancel_flag():
+    """The next launch starts from scratch."""
+    controller, service = _controller()
+    controller._cancel_event.set()
+    controller.launch_instances(Mock())
+    controller._launch_thread.join(timeout=5)
+
+    assert not controller._cancel_event.is_set()
 
 
 def test_the_wine_helpers_of_one_instance_are_found(tmp_path):

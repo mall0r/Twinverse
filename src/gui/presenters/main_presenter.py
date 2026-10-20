@@ -68,6 +68,15 @@ class MainPresenter:
         layout_page = self.window.get_layout_page()
         return any(getattr(row, "_is_running", False) for row in layout_page.player_rows)
 
+    def _running_instances(self) -> set:
+        """Return the indices of the instances that are actually running."""
+        layout_page = self.window.get_layout_page()
+        running = set()
+        for index, row in enumerate(layout_page.player_rows):
+            if getattr(row, "_is_running", False):
+                running.add(index)
+        return running
+
     def _schedule_profile_save(self):
         """Write the profile once the user stops changing the settings."""
         if self._save_timeout_id:
@@ -411,8 +420,17 @@ class MainPresenter:
         self._update_launch_button_state()
 
     def _restore_after_failed_launch(self):
-        """Restore UI after a failed launch."""
-        self.window.show_idle_state()
+        """Restore the UI after a failed launch, keeping the instances that started."""
+        running = self._running_instances()
+        if running:
+            self.window.show_running_state()
+        else:
+            self.window.show_idle_state()
+
+        layout_page = self.window.get_layout_page()
+        for index, player_row in enumerate(layout_page.player_rows):
+            player_row.set_running_state(index in running)
+
         self._run_all_verifications()
         self._update_launch_button_state()
         self._update_number_of_instances_sensitivity()

@@ -18,6 +18,7 @@ class LaunchController:
         self._kde_manager = kde_manager
         self._logger = logger
         self._launch_thread: Optional[threading.Thread] = None
+        self._stop_thread: Optional[threading.Thread] = None
         self._cancel_event = threading.Event()
         self._is_running = False
 
@@ -65,8 +66,8 @@ class LaunchController:
             self._logger.info("Cancelling in-progress launch...")
             self._cancel_event.set()
 
-        stop_thread = threading.Thread(target=self._stop_worker, args=(on_complete,))
-        stop_thread.start()
+        self._stop_thread = threading.Thread(target=self._stop_worker, args=(on_complete,))
+        self._stop_thread.start()
 
     def launch_single_instance(
         self,
@@ -156,13 +157,21 @@ class LaunchController:
     def _stop_worker(self, on_complete: Optional[Callable[[], None]]):
         """Worker thread for stopping instances."""
         self._logger.info("Stop worker started.")
-        self._instance_service.terminate_all()
-        self._kde_manager.restore_panel_states()
-        self._is_running = False
-        self._cancel_event.clear()
-
-        if on_complete:
-            on_complete()
+        try:
+            self._instance_service.terminate_all()
+            self._kde_manager.restore_panel_states()
+            self._is_running = False
+        except Exception as e:
+            # The stop has to finish even when one of the instances fails,
+            # otherwise the window stays locked and the app never quits.
+            self._logger.error(f"Stop error: {e}")
+            self._logger.logger.exception("Exception details:")
+        finally:
+            # The cancel flag stays set while the launch thread is alive, so
+            # it does not start another instance after the stop. The next
+            # launch clears it.
+            if on_complete:
+                on_complete()
 
     def _single_instance_worker(
         self,
@@ -192,6 +201,21 @@ class LaunchController:
         on_complete: Optional[Callable[[], None]],
     ):
         """Worker thread for terminating a single instance."""
-        self._instance_service.terminate_instance(instance_num)
-        if on_complete:
-            on_complete()
+        try:
+            self._instance_service.terminate_instance(instance_num)
+        except Exception as e:
+            self._logger.error(f"Error terminating instance {instance_num}: {e}")
+            self._logger.logger.exception("Exception details:")
+        finally:
+            # Stopping one instance at a time has to clear the running state
+            # as well, so the button of the footer follows what is open.
+            self._is_running = self._has_running_instances()
+            if on_complete:
+                on_complete()
+
+    def _has_running_instances(self) -> bool:
+        """Report whether any tracked instance is still running."""
+        for process in self._instance_service.processes.values():
+            if process.poll() is None:
+                return True
+        return False
