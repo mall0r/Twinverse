@@ -24,6 +24,7 @@ class TwinverseApplication(Adw.Application):
         """Initialize the application and set up resources."""
         super().__init__(application_id="io.github.mall0r.Twinverse", **kwargs)
         self.base_path = Utils.get_base_path()
+        self.win = None
         import logging
 
         self.logger = Logger("Twinverse-App", Config.LOG_DIR, reset=True, level=logging.DEBUG)
@@ -64,6 +65,13 @@ class TwinverseApplication(Adw.Application):
         """Handle the application activation event."""
         print("Application activation started...")
         try:
+            if self.win is not None:
+                # A second activation would build a second window and a second
+                # set of instances, and the first one would be lost.
+                print("Window already created, presenting it again")
+                self.win.present()
+                return
+
             print("Creating MainPresenter...")
             presenter = MainPresenter(app, self.logger)
             print("MainPresenter created successfully")
