@@ -11,11 +11,16 @@ All notable changes to this project will be documented in this file. This projec
 - Add `--debug`, `--quiet`, `--log-level`, `--log-dir`, `--log-format`, `--json` and `--diagnostics` command-line options, plus `TWINVERSE_*` environment variables for the same settings.
 - Add English and Portuguese debugging guides.
 - Record one log per instance launch with the command line, the environment variable names, the output of the instance process and the exit code when it stops.
+- Add `--clear-logs`, which empties the log directory and exits, and `TWINVERSE_LOG_KEEP_INSTANCES`, `TWINVERSE_LOG_KEEP_HELPERS`, `TWINVERSE_LOG_MAX_AGE_DAYS` and `TWINVERSE_LOG_MAX_TOTAL_MB` to adjust the retention.
+- Find the instances that outlived a previous session: Twinverse remembers what it launched, shows the survivors as running, and stops them with the same button.
+- Put the footer button in stop mode when an instance survived a crash, instead of waiting for a single instance to be stopped.
 
 ### Fixed
 
 - Keep the run identifier in the records written by the launch worker thread, so every line of a launch can be tied to its session.
 - Write the logs of the instances in the directory chosen with `--log-dir`, instead of always in the XDG state directory.
+- Write the output of an instance straight to its log file in the Flatpak path as well, so an instance that outlives the application keeps its output and never blocks on a broken pipe.
+- Rotate the crash log when the application starts, so the crash of the previous session is kept in `crash.log.1` and the size stays bounded.
 - Lay out the selected instances in the order they were selected, instead of using the instance number, so a selection that skips an instance no longer builds an invalid command and fails to start.
 - Report a display size that cannot be resolved as an error, instead of building a command that made bwrap try to run a program named `--`.
 - Create the virtual joystick for the instances that take part in the launch, instead of for the first ones of the list.

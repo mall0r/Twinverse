@@ -30,6 +30,7 @@ for directories, `0600` for files).
 logs/
 ├── twinverse.log       # main log, rotated
 ├── crash.log           # low-level crash output (faulthandler)
+├── crash.log.1         # the crash of the previous session
 ├── instances/          # one file per instance launch
 │   ├── instance-01-20261020-140102-a8d1f372.log
 │   └── latest.log -> instance-01-...log
@@ -39,8 +40,13 @@ logs/
 
 The main log keeps five rotated files of 2 MiB by default. Instance logs are
 retained per instance (five newest files, at most 14 days) and helper logs keep
-the two newest files per run. The limits can be changed with the environment
-variables below.
+the two newest files per run. A total limit of 256 MiB for the whole directory
+removes the oldest files when it is reached. The limits can be changed with the
+environment variables below.
+
+The crash log is rotated when the application starts: the crash of the previous
+session stays in `crash.log.1`, and a fresh `crash.log` is created. The two
+files together are always bounded.
 
 Every record includes the run identifier and, when available, the instance and
 the phase (`launch`, `stop`, or `terminal`). Example:
@@ -51,7 +57,22 @@ the phase (`launch`, `stop`, or `terminal`). Example:
 
 The per-instance logs also contain the command line (with common secret
 arguments masked), the environment variable names, the output of the
-instance process, and the exit code written when the instance stops.
+instance process, and the exit code written when the instance stops. The
+instance writes to its own log file, so the output keeps being recorded even
+when Twinverse itself dies.
+
+## Cleaning the logs
+
+The logs are disposable. To start from an empty directory, without opening the
+interface:
+
+```bash
+twinverse --clear-logs
+```
+
+The cleanup also happens on its own: the rotated files are replaced when they
+reach the size limit, the instance and helper logs expire, and the total size
+of the directory is kept under the limit below.
 
 ## Running with debug logs
 
@@ -88,6 +109,10 @@ working.
 | `TWINVERSE_LOG_MAX_BYTES` | `2097152` | Main log size before rotation |
 | `TWINVERSE_LOG_BACKUPS` | `5` | Number of rotated main logs |
 | `TWINVERSE_INSTANCE_LOG_MAX_BYTES` | `104857600` | Size cap for each instance log |
+| `TWINVERSE_LOG_KEEP_INSTANCES` | `5` | Instance logs kept for each instance |
+| `TWINVERSE_LOG_KEEP_HELPERS` | `2` | Helper logs kept for each run |
+| `TWINVERSE_LOG_MAX_AGE_DAYS` | `14` | Age of the oldest log that is kept |
+| `TWINVERSE_LOG_MAX_TOTAL_MB` | `256` | Size limit of the whole log directory |
 
 Command-line options win over the environment.
 
@@ -119,15 +144,20 @@ stack to `crash.log`, including the state of every thread. A crash in a child
 process does not stop the other instances, and its output remains in that
 instance's log.
 
-When Twinverse itself dies, the Steam instances are not stopped: the sandbox
-runs outside the process group of the application, so the clients keep running
-without anybody draining their output. Their logs stop growing at that moment,
-and the instances have to be closed by hand.
+When Twinverse itself dies, the Steam instances are not stopped: they run
+outside the process group of the application, so the clients keep running.
+Their logs keep being written, because each instance writes to its own file.
+
+The next session finds those instances. Twinverse remembers what it launched
+in `instances.json`, inside the XDG state directory, and checks on startup
+whether the processes are still alive and still the ones it launched. The
+instances that survived are shown as running, and the stop button closes them.
+A process group that the system recycled in the meantime is never touched.
 
 The log system never uses a pipe for the instance output: the child writes
 directly to its file, so a chatty Steam or Proton session cannot fill a pipe
-and freeze the instance. In the Flatpak path, the host pipes are drained in
-background threads to the same file.
+and freeze the instance. The Flatpak path uses the same redirect, so the
+output of an instance that outlives the application is never lost.
 
 ## Privacy
 

@@ -30,6 +30,7 @@ diretórios e `0600` para arquivos).
 logs/
 ├── twinverse.log       # log principal, com rotação
 ├── crash.log           # saída de travamento de baixo nível (faulthandler)
+├── crash.log.1         # o travamento da sessão anterior
 ├── instances/          # um arquivo por inicialização de instância
 │   ├── instance-01-20261020-140102-a8d1f372.log
 │   └── latest.log -> instance-01-...log
@@ -39,8 +40,14 @@ logs/
 
 O log principal mantém cinco arquivos rotacionados de 2 MiB por padrão. Os logs
 de instância são mantidos por instância (os cinco mais recentes, por no máximo
-14 dias) e os de auxiliares mantêm os dois mais recentes por execução. Os
-limites podem ser alterados pelas variáveis de ambiente abaixo.
+14 dias) e os de auxiliares mantêm os dois mais recentes por execução. Um
+limite total de 256 MiB para o diretório inteiro apaga os arquivos mais
+antigos quando ele é atingido. Os limites podem ser alterados pelas variáveis
+de ambiente abaixo.
+
+O log de travamentos é rotacionado quando o aplicativo inicia: o travamento da
+sessão anterior fica em `crash.log.1` e um `crash.log` novo é criado. Os dois
+arquivos juntos sempre têm tamanho limitado.
 
 Cada registro inclui o identificador da execução e, quando disponível, a
 instância e a fase (`launch`, `stop` ou `terminal`). Exemplo:
@@ -51,7 +58,22 @@ instância e a fase (`launch`, `stop` ou `terminal`). Exemplo:
 
 Os logs por instância também contêm a linha de comando (com argumentos secretos
 comuns mascarados), os nomes das variáveis de ambiente, a saída do processo da
-instância e o código de saída gravado quando a instância é encerrada.
+instância e o código de saída gravado quando a instância é encerrada. Cada
+instância grava no seu próprio arquivo, então a saída continua sendo registrada
+mesmo quando o próprio Twinverse morre.
+
+## Limpeza dos logs
+
+Os logs são descartáveis. Para começar de um diretório vazio, sem abrir a
+interface:
+
+```bash
+twinverse --clear-logs
+```
+
+A limpeza também acontece sozinha: os arquivos rotacionados são substituídos
+quando chegam ao limite de tamanho, os logs de instância e de auxiliar expiram
+e o tamanho total do diretório é mantido abaixo do limite informado abaixo.
 
 ## Executando com logs de depuração
 
@@ -88,6 +110,10 @@ desktop ou do gerenciador de sessão continuam funcionando.
 | `TWINVERSE_LOG_MAX_BYTES` | `2097152` | Tamanho do log principal antes da rotação |
 | `TWINVERSE_LOG_BACKUPS` | `5` | Quantidade de logs principais rotacionados |
 | `TWINVERSE_INSTANCE_LOG_MAX_BYTES` | `104857600` | Limite de tamanho de cada log de instância |
+| `TWINVERSE_LOG_KEEP_INSTANCES` | `5` | Logs de instância mantidos por instância |
+| `TWINVERSE_LOG_KEEP_HELPERS` | `2` | Logs de auxiliar mantidos por execução |
+| `TWINVERSE_LOG_MAX_AGE_DAYS` | `14` | Idade do log mais antigo que é mantido |
+| `TWINVERSE_LOG_MAX_TOTAL_MB` | `256` | Limite de tamanho do diretório de logs inteiro |
 
 As opções de linha de comando têm prioridade sobre o ambiente.
 
@@ -119,15 +145,23 @@ stack do Python em `crash.log`, incluindo o estado de todas as threads. Uma
 falha em um processo filho não derruba as outras instâncias, e a saída permanece
 no log daquela instância.
 
-Quando o próprio Twinverse morre, as instâncias do Steam não são encerradas: o
-sandbox roda fora do grupo de processos da aplicação, então os clientes
-continuam rodando sem ninguém consumindo a saída deles. Os logs param de
-crescer nesse momento e as instâncias precisam ser fechadas manualmente.
+Quando o próprio Twinverse morre, as instâncias do Steam não são encerradas: elas
+rodam fora do grupo de processos da aplicação, então os clientes continuam
+rodando. Os logs continuam sendo escritos, porque cada instância grava no seu
+próprio arquivo.
+
+A sessão seguinte encontra essas instâncias. O Twinverse guarda o que lançou em
+`instances.json`, dentro do diretório de estado do XDG, e na inicialização
+verifica se os processos continuam vivos e continuam sendo os que ele lançou. As
+instâncias que sobreviveram aparecem como em execução, e o botão de parar
+encerra cada uma delas. Um grupo de processos que o sistema reaproveitou nesse
+meio tempo nunca é tocado.
 
 O sistema de logs nunca usa um pipe para a saída da instância: o processo filho
 grava diretamente no arquivo, então uma sessão barulhenta do Steam ou do Proton
-não pode encher um pipe e congelar a instância. No caminho Flatpak, os pipes do
-host são drenados em threads de fundo para o mesmo arquivo.
+não pode encher um pipe e congelar a instância. O caminho do Flatpak usa o
+mesmo redirecionamento, então a saída de uma instância que sobrevive ao
+aplicativo nunca é perdida.
 
 ## Privacidade
 
