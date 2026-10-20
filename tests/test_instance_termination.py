@@ -1,6 +1,8 @@
 """Stop the instances without touching the other ones or the host."""
 
 import os
+import shlex
+import shutil
 import signal
 import subprocess
 import time
@@ -53,6 +55,42 @@ def test_the_wine_helpers_are_not_killed_outside_the_instance(tmp_path):
         for process in (mine, other):
             process.kill()
             process.wait(timeout=5)
+
+
+@pytest.mark.skipif(not Path("/bin/bash").exists(), reason="bash is needed for the network setup")
+def test_the_host_shell_reports_the_process_group_of_the_instance():
+    """The instance leads its own group, so it can be stopped as a whole."""
+    service = InstanceService.__new__(InstanceService)
+    service.logger = Mock()
+
+    command = ["bwrap", "--dev-bind", "/", "/", "--", "sleep", "30"]
+    escaped_command = " ".join(command)
+    inner_script = f"echo $$; exec {escaped_command}"
+    bash_path = shutil.which("bash")
+    setsid_path = shutil.which("setsid")
+    if not setsid_path:
+        pytest.skip("setsid is needed to give the instance its own process group")
+
+    leader = f"exec {setsid_path} -w {bash_path} -c {shlex.quote(inner_script)}"
+    process = subprocess.Popen(
+        ["bash", "-c", leader], stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
+    )
+    try:
+        deadline = time.monotonic() + 10
+        reported = ""
+        while time.monotonic() < deadline and not reported:
+            reported = process.stdout.readline().decode().strip()
+            if not reported:
+                time.sleep(0.1)
+
+        assert reported.isdigit(), f"the host shell reported '{reported}'"
+
+        listing = subprocess.run(["ps", "-eo", "pid,pgid,cmd"], capture_output=True, text=True).stdout
+        groups = {line.split()[1] for line in listing.splitlines() if "sleep 30" in line and "bwrap" not in line}
+        assert reported in groups, "the reported group does not match the group of the instance"
+    finally:
+        process.kill()
+        process.wait(timeout=5)
 
 
 @pytest.mark.skipif(not Path("/bin/bash").exists(), reason="bash is needed for the network setup")

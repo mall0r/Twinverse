@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Literal, Union, overload
+from typing import List, Literal, Optional, Union, overload
 
 
 class Utils:
@@ -22,6 +22,22 @@ class Utils:
             return Path(sys._MEIPASS)  # type: ignore[attr-defined]
         else:
             return Path(__file__).resolve().parent.parent.parent
+
+    @staticmethod
+    def get_host_home() -> Optional[Path]:
+        """
+        Return the home directory of the user as the host sees it.
+
+        Inside a Flatpak, HOME points at the sandboxed application directory,
+        while the host keeps the real home in the password database. The paths
+        of the shared Steam folders have to be translated with it.
+        """
+        try:
+            import pwd
+
+            return Path(pwd.getpwuid(os.getuid()).pw_dir)
+        except (ImportError, KeyError, OSError):
+            return None
 
     @staticmethod
     def get_version() -> str:

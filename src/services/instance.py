@@ -158,11 +158,22 @@ class InstanceService:
         env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
         escaped_command = shlex.join(base_command)
         network_launch = shlex.join(network_command(base_command))
-        shell_command = (
-            f"{env_prefix}set -m; echo $$; "
+        # The shell reports the process group it leads, so the instance can be
+        # stopped as a group on the host.
+        inner_script = (
+            f"echo $$; "
             f"if command -v pasta >/dev/null 2>&1; then exec {network_launch}; "
             f"else exec {escaped_command}; fi"
         )
+        # The instance leads its own process group, so it can be signalled as
+        # a whole and its children go down with it.
+        bash_path = shutil.which("bash") or "/bin/bash"
+        setsid_path = shutil.which("setsid")
+        if setsid_path:
+            leader = f"exec {setsid_path} -w {bash_path} -c {shlex.quote(inner_script)}"
+        else:
+            leader = f"exec {bash_path} -c {shlex.quote(inner_script)}"
+        shell_command = f"{env_prefix}{leader}"
 
         self.logger.info(f"Instance {instance_num}: Launching on host via shell: {shell_command}")
 

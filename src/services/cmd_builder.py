@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 
 from src.core import Logger
 from src.core.exceptions import TwinverseError
+from src.core.utils import Utils
 from src.models import Profile
 from src.services.device_manager import DeviceManager
 from src.services.webhelper_sync import build_webhelper_mounts
@@ -172,6 +173,22 @@ stream.rules = [
 
         return cmd
 
+    @staticmethod
+    def _host_steam_path(visible_steam_path: Path) -> Path:
+        """
+        Return the path the host uses for the shared Steam folders.
+
+        Inside a Flatpak the shared folders are visible under the sandboxed
+        home, but the command runs on the host, which resolves them from the
+        real home directory.
+        """
+        if not Utils.is_flatpak():
+            return visible_steam_path
+        host_home = Utils.get_host_home()
+        if host_home is None:
+            return visible_steam_path
+        return host_home / ".local/share/Steam"
+
     def _build_bwrap_command(self, instance_idx: int) -> List[str]:
         """
         Build the bwrap command for sandboxing.
@@ -231,23 +248,27 @@ stream.rules = [
         cmd.extend(["--bind", str(self.home_path), str(orig_home)])
 
         # fmt: on
-        host_steam_path = orig_local / "share/Steam"
-        sandbox_steam_path = orig_local / "share/Steam"  # Same path, but it's now a mount point
+        # The instance home shadows the real one, so the shared Steam folders
+        # are mounted back into it. The listing uses the path this process can
+        # read, the source of the bind the path the host resolves, which
+        # differs inside a Flatpak, and the destination lives in the instance.
+        sandbox_steam_path = orig_local / "share/Steam"
+        host_steam_path = self._host_steam_path(sandbox_steam_path)
 
-        sandbox_common = Path(sandbox_steam_path) / "steamapps/common"
-        host_common = Path(host_steam_path) / "steamapps/common"
-        if host_common.exists():
-            for folder in host_common.iterdir():
+        visible_common = sandbox_steam_path / "steamapps/common"
+        host_common = host_steam_path / "steamapps/common"
+        if visible_common.exists():
+            for folder in visible_common.iterdir():
                 if folder.is_dir():
-                    cmd.extend(["--bind", str(folder), str(sandbox_common / folder.name)])
+                    cmd.extend(["--bind", str(host_common / folder.name), str(visible_common / folder.name)])
 
-        host_compat = Path(host_steam_path) / "compatibilitytools.d"
-        sandbox_compat = Path(sandbox_steam_path) / "compatibilitytools.d"
-        if host_compat.exists():
+        visible_compat = sandbox_steam_path / "compatibilitytools.d"
+        host_compat = host_steam_path / "compatibilitytools.d"
+        if visible_compat.exists():
             ignore = {"LegacyRuntime"}
-            for folder in host_compat.iterdir():
+            for folder in visible_compat.iterdir():
                 if folder.is_dir() and folder.name not in ignore:
-                    cmd.extend(["--bind", str(folder), str(sandbox_compat / folder.name)])
+                    cmd.extend(["--bind", str(host_compat / folder.name), str(visible_compat / folder.name)])
 
         # The UI must not open placeholder controller memory before Steam does.
         cmd.extend(
