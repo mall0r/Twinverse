@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.core import Utils
+from src.core import Config, Utils
 from src.services.instance import InstanceService
 from src.services.network import network_command
 
@@ -44,6 +44,7 @@ def test_flatpak_detects_pasta_in_host_path(monkeypatch, tmp_path, installed):
     spawn = Mock(return_value=process)
     monkeypatch.setattr(Utils, "flatpak_spawn_host", spawn)
     monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path / "logs")
     value = "spaces ' $(not-a-command);"
     printf = shutil.which("printf")
     # Replace only network setup; the dependency check and quoting run for real.
@@ -53,10 +54,13 @@ def test_flatpak_detects_pasta_in_host_path(monkeypatch, tmp_path, installed):
         pasta = tmp_path / "pasta"
         pasta.write_text("#!/bin/sh\nexit 0\n")
         pasta.chmod(0o755)
-    output = subprocess.check_output(
+    subprocess.check_output(
         spawn.call_args.args[0], executable="/bin/bash", env={**os.environ, "PATH": str(tmp_path)}, text=True
     )
-    assert output.split("\n", 1)[1] == f"{'isolated' if installed else 'shared'}:{value}"
+    # The instance writes to its own log file instead of the pipe of the launcher.
+    log = next((tmp_path / "logs" / "instances").glob("instance-02-*.log")).read_text()
+    body = log.split("\n\n", 1)[1] if "\n\n" in log else ""
+    assert body.strip() == f"{'isolated' if installed else 'shared'}:{value}"
     spawn.assert_called_once()
 
 

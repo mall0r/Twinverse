@@ -159,12 +159,16 @@ class InstanceService:
         env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
         escaped_command = shlex.join(base_command)
         network_launch = shlex.join(network_command(base_command))
+        # The instance writes straight to its log file, the same way the native
+        # launch does. A pipe would break as soon as the application dies and
+        # would stop the output of an instance that outlives it.
+        redirect = f">> {shlex.quote(str(log.path))} 2>&1" if log.path is not None else ""
         # The shell reports the process group it leads, so the instance can be
         # stopped as a group on the host.
         inner_script = (
             f"echo $$; "
             f"if command -v pasta >/dev/null 2>&1; then exec {network_launch}; "
-            f"else exec {escaped_command}; fi"
+            f"else exec {escaped_command}; fi{redirect}"
         )
         # The instance leads its own process group, so it can be signalled as
         # a whole and its children go down with it.
@@ -221,8 +225,9 @@ class InstanceService:
         pgid_str = process.stdout.readline().decode(errors="replace").strip() if process.stdout else ""
         if pgid_str.isdigit():
             pgid = int(pgid_str)
-            # From here on the pipes are only drained, so the instance keeps
-            # running while its output lands in the log.
+            # The instance writes to its log file on its own. The pipes only
+            # carry what the launcher itself writes, and are drained so that
+            # they can never fill up and block the instance.
             if process.stdout:
                 log.start_drain(process.stdout)
             if process.stderr:

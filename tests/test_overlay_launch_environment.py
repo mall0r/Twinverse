@@ -47,8 +47,11 @@ class OverlayLaunchEnvironmentTests(unittest.TestCase):
                 with patch.object(Utils, "flatpak_spawn_host", return_value=process) as spawn:
                     with patch.object(Config, "logs_dir", lambda: logs):
                         service._launch_in_flatpak(0, ["env"], env)
-                output = subprocess.check_output(spawn.call_args.args[0], text=True)
-                lines = output.splitlines()
+                subprocess.check_output(spawn.call_args.args[0], text=True)
+                # The instance writes to its own log file instead of the pipe.
+                log_file = next((logs / "instances").glob("instance-01-*.log"))
+                content = log_file.read_text()
+                lines = content.split("\n\n", 1)[1].splitlines() if "\n\n" in content else []
                 self.assertFalse(any(line.startswith("MANGOHUD_CONFIG=") for line in lines))
                 self.assertIn(f"MANGOHUD_CONFIGFILE={env['MANGOHUD_CONFIGFILE']}", lines)
 
