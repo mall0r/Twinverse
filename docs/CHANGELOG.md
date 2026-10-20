@@ -3,6 +3,35 @@
 
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
 
+## [Unreleased]
+
+### Fixed
+
+- Lay out the selected instances in the order they were selected, instead of using the instance number, so a selection that skips an instance no longer builds an invalid command and fails to start.
+- Report a display size that cannot be resolved as an error, instead of building a command that made bwrap try to run a program named `--`.
+- Create the virtual joystick for the instances that take part in the launch, instead of for the first ones of the list.
+- Keep the settings of the instances that are hidden by a lower instance count, and restore them when the count goes up again.
+- Restore the selection of the instances from the profile, which was replaced by "all selected" on every reload.
+- Keep the performance overlay level chosen in the Steam menu, which was reset on every launch.
+- Stop an instance without killing the Wine helpers of the other instances and of the Steam client of the user.
+- Write the output of the instance to its log file, so a chatty session cannot fill a pipe and freeze the instance.
+- Ask the instance group to stop before killing it, so the Gamescope window, the sandbox and the network helper close in order, instead of the namespace being killed with SIGKILL right after the stop request.
+- Report the process group of the instance on the host, so it can be stopped as a whole in the Flatpak.
+- Mount the shared game folders and the compatibility tools from the path the host uses, so they are found in the Flatpak.
+- Keep the widgets of the instances untouched from the worker threads, and keep the window state in step with the instances that are really running.
+- Keep the footer button in step with the instances that are really open, so it does not stay on stop after every instance was closed one by one.
+- Stop the launch sequence when the user asks for it, instead of starting the next instance after the stop.
+- Finish the stop even when one of the instances fails, instead of leaving the window locked.
+- Write the profile once the user stops typing, instead of on every keystroke.
+- Restore the panel visibility of the desktop, which was broken by the line break of the value.
+- Stop throwing in the KWin script when no window is focused, and restore the selection of the mouse only on one instance.
+
+### Changed
+
+- Mark the instance home directory of the player as read-only for the instances, and keep the input device of the virtual joystick private.
+- Reset all the settings of the profile in the preferences window, and report a home directory that could not be removed.
+- Present the same window when the application is started again, instead of opening a second one.
+
 ## [1.1.4] - 2026-10-15
 
 ### Added

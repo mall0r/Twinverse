@@ -74,7 +74,7 @@ You can see a preview of the layout by clicking the icon <img width="24" height=
 For each instance, you can configure the following options:
 
 - **Gamepad:** Assign a specific controller to the instance.
-- **Capture Mouse:** Dedicate the mouse to a single instance. For now, only one instance at a time can use the mouse and keyboard.
+- **Grab Mouse:** Dedicate the mouse to a single instance. For now, only one instance at a time can use the mouse and keyboard.
 - **Audio Device:** Select a specific audio output device for the instance.
 - **Environment Variables:** Define specific environment variables for the instance.
 

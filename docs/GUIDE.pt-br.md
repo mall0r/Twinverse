@@ -77,7 +77,7 @@ Posições e formatos variam de acordo com o número de instâncias.
 Para cada instância, você pode configurar as seguintes opções:
 
 - **Controle (Gamepad):** Atribuir um controle específico à instância.
-- **Capturar Mouse:** Dedicar o mouse a uma única instância. Por enquanto, apenas uma instância por vez pode usar o mouse e o teclado.
+- **Grab Mouse:** Dedicar o mouse a uma única instância. Por enquanto, apenas uma instância por vez pode usar o mouse e o teclado.
 - **Dispositivo de Áudio:** Selecionar um dispositivo de saída de áudio específico para a instância.
 - **Variável de Ambiente (Environment Variables):** Definir variáveis de ambiente específicas para a instância.
 
