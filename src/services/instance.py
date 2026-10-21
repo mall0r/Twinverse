@@ -28,6 +28,7 @@ from .instance_registry import (
 from .kde_manager import KdeManager
 from .network import network_command
 from .steam_input import SteamInputDisabler
+from .steam_probe import SteamClientProbe
 
 logger = logging.getLogger(__name__)
 
@@ -123,11 +124,51 @@ class InstanceService:
 
     def _forget_instance(self, instance_num: int) -> None:
         """Forget an instance that is not running anymore."""
+        SteamClientProbe(instance_num).clear_status()
         registry = getattr(self, "_registry", None)
         if registry is None:
             return
         self._probe.forget(instance_num)
         registry.remove(instance_num)
+
+    def finish_instance_log(self, instance_num: int, exit_code: Optional[int] = None) -> None:
+        """Close the log of an instance that is not running anymore."""
+        instance_log = self.instance_logs.pop(instance_num, None)
+        if instance_log is not None:
+            instance_log.finish(exit_code=exit_code)
+
+    def is_client_up(self, instance_num: int) -> bool:
+        """
+        Report whether the Steam client of an instance is running.
+
+        The check is scoped by the process group of the instance, so the
+        client of another instance, and the Steam of the user, are never
+        taken for ours.
+        """
+        pgid = self.pgids.get(instance_num)
+        if pgid is None:
+            return False
+        return SteamClientProbe(instance_num).is_client_up(pgid)
+
+    def client_status(self, instance_num: int) -> tuple[Optional[str], Optional[str]]:
+        """
+        Return what the Steam client is doing and the reason it gave up.
+
+        The log of the client is read from the last place it was read, so a
+        long update does not make every check read the whole log again.
+        """
+        offsets = getattr(self, "_client_log_offsets", None)
+        if offsets is None:
+            offsets = {}
+            self._client_log_offsets = offsets
+
+        probe = SteamClientProbe(instance_num)
+        since = offsets.get(instance_num)
+        if since is None:
+            since = probe.client_log_size()
+        progress, failure = probe.read_updates(since)
+        offsets[instance_num] = probe.client_log_size()
+        return progress, failure
 
     @property
     def instance_logs(self) -> dict[int, InstanceLog]:
@@ -246,8 +287,14 @@ class InstanceService:
         redirect = f">> {shlex.quote(str(log.path))} 2>&1" if log.path is not None else ""
         # The shell reports the process group it leads, so the instance can be
         # stopped as a group on the host.
+        #
+        # The watcher runs here as well, on the host, and reports the state of
+        # the Steam client in a file that the application reads. It keeps the
+        # application inside the sandbox: it never has to ask the host about
+        # the processes of the instance.
+        watcher = SteamClientProbe(instance_num).watcher_script()
         inner_script = (
-            f"echo $$; "
+            f"echo $$; {watcher} "
             f"if command -v pasta >/dev/null 2>&1; then exec {network_launch}; "
             f"else exec {escaped_command}; fi{redirect}"
         )

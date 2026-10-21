@@ -17,6 +17,7 @@ from src.services.instance_registry import (
     belongs_to_instance,
     read_host_cmdline,
 )
+from src.services.steam_probe import SteamClientProbe
 
 
 def _spawn_with_marker(marker: str) -> subprocess.Popen:
@@ -135,6 +136,33 @@ def test_the_registry_file_is_private(tmp_path):
 
     assert os.stat(registry.path).st_mode & 0o077 == 0
     assert Path(registry.path).read_text().strip().startswith("{")
+
+
+def test_the_log_of_the_client_is_only_read_once(tmp_path, monkeypatch):
+    """A long update does not make every check read the whole log again."""
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    service = InstanceService.__new__(InstanceService)
+    service._client_log_offsets = {}
+
+    probe = SteamClientProbe(0)
+    log = probe.client_log_path
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("old\n")
+
+    progress, failure = service.client_status(0)
+    assert (progress, failure) == (None, None)
+
+    with log.open("a", encoding="utf-8") as stream:
+        stream.write("[2026-10-20] Manifest download: waiting for download to finish\n")
+
+    progress, failure = service.client_status(0)
+    assert progress == "Manifest download: waiting for download to finish"
+    assert failure is None
+
+    # The same lines are not read again.
+    progress, failure = service.client_status(0)
+    assert (progress, failure) == (None, None)
 
 
 def test_the_registry_lives_in_the_state_directory(monkeypatch, tmp_path):
