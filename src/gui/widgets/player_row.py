@@ -8,6 +8,14 @@ from gi.repository import Adw, GObject, Gtk
 from src.gui.widgets.env_variable_row import EnvVariableRow
 from src.models import PlayerInstanceConfig
 
+# The states of an instance. The interface only says "Stop" when the Steam
+# client of the instance was confirmed to be up, and only goes back to "Start"
+# when the instance was confirmed to be gone.
+INSTANCE_IDLE = "idle"
+INSTANCE_STARTING = "starting"
+INSTANCE_RUNNING = "running"
+INSTANCE_STOPPING = "stopping"
+
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
@@ -28,6 +36,8 @@ class PlayerRow(Adw.ExpanderRow):
         self._devices_info = devices_info
         self._is_loading = False
         self._is_running = False
+        self._state = INSTANCE_IDLE
+        self._status_detail = ""
         self._env_rows: list[EnvVariableRow] = []
 
         self.set_title(f"Player {player_num + 1}")
@@ -194,39 +204,80 @@ class PlayerRow(Adw.ExpanderRow):
 
     def set_running_state(self, is_running: bool):
         """Set the running state."""
+        self._state = INSTANCE_RUNNING if is_running else INSTANCE_IDLE
         self._is_running = is_running
         self._update_button_state()
+
+    def set_instance_state(self, state: str):
+        """Set the state of the instance and refresh its button."""
+        self._state = state
+        self._is_running = state == INSTANCE_RUNNING
+        self._update_button_state()
+        self._update_status_icon()
+
+    def get_instance_state(self) -> str:
+        """Return the state of the instance."""
+        return getattr(self, "_state", INSTANCE_IDLE)
+
+    def set_status_detail(self, detail: str):
+        """Set what the status icon tells about the instance."""
+        self._status_detail = detail
+        self._update_status_icon()
 
     def set_verification_status(self, is_verified: bool):
         """Set the verification status and update UI."""
         self._is_verified = is_verified
         self._update_button_state()
-        self._update_status_icon(is_verified)
+        self._update_status_icon()
 
     def _update_button_state(self):
         """Update button label and style based on state."""
-        if self._is_running:
+        state = getattr(self, "_state", INSTANCE_IDLE)
+        if state == INSTANCE_RUNNING:
             self.launch_button.set_label("Stop")
+            self.launch_button.set_sensitive(True)
             self.launch_button.get_style_context().add_class("destructive-action")
+        elif state == INSTANCE_STARTING:
+            # The Steam client did not come up yet, so the button cancels the
+            # start instead of offering a stop that would not be true.
+            self.launch_button.set_label("Cancel")
+            self.launch_button.set_sensitive(True)
+            self.launch_button.get_style_context().remove_class("destructive-action")
+        elif state == INSTANCE_STOPPING:
+            self.launch_button.set_label("Stopping…")
+            self.launch_button.set_sensitive(False)
+            self.launch_button.get_style_context().remove_class("destructive-action")
         elif getattr(self, "_is_verified", False):
             self.launch_button.set_label("Start")
+            self.launch_button.set_sensitive(True)
             self.launch_button.get_style_context().remove_class("destructive-action")
         else:
             self.launch_button.set_label("Install")
+            self.launch_button.set_sensitive(True)
             self.launch_button.get_style_context().remove_class("destructive-action")
 
-    def _update_status_icon(self, is_verified: bool):
-        """Update the status icon."""
+    def _update_status_icon(self):
+        """Show the icon that matches the state of the instance."""
         if self.status_icon and self.status_icon.get_parent():
             self.remove(self.status_icon)
 
-        if is_verified:
+        detail = getattr(self, "_status_detail", "")
+        if self._state == INSTANCE_STARTING:
+            # The Steam client may take a long time when it updates itself.
+            # A spinner tells the user that it is still working, and the
+            # tooltip tells what it is doing.
+            self.status_icon = Gtk.Spinner()
+            self.status_icon.set_spinning(True)
+            self.status_icon.set_valign(Gtk.Align.CENTER)
+            self.status_icon.set_tooltip_text(detail or "The Steam client is starting…")
+            self.status_icon.get_style_context().add_class("verification-passed-icon")
+        elif getattr(self, "_is_verified", False):
             self.status_icon = Gtk.Image.new_from_resource("/io/github/mall0r/Twinverse/icons/check-icon.svg")
-            self.status_icon.set_tooltip_text("Press 'Start' to open this instance in desktop mode.")
+            self.status_icon.set_tooltip_text(detail or "Press 'Start' to open this instance in desktop mode.")
             self.status_icon.get_style_context().add_class("verification-passed-icon")
         else:
             self.status_icon = Gtk.Image.new_from_resource("/io/github/mall0r/Twinverse/icons/alert-icon.svg")
-            self.status_icon.set_tooltip_text("Press 'Install' to configure this instance")
+            self.status_icon.set_tooltip_text(detail or "Press 'Install' to configure this instance")
             self.status_icon.get_style_context().add_class("verification-failed-icon")
 
         self.add_suffix(self.status_icon)

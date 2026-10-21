@@ -4,6 +4,7 @@ import gi
 from gi.repository import Adw, Gio, Gtk
 
 from src.gui.dialogs import ErrorDialog
+from src.gui.notifications import send_desktop_notification
 from src.gui.pages import LayoutSettingsPage
 
 gi.require_version("Gtk", "4.0")
@@ -25,6 +26,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _build_ui(self):
         """Build the user interface."""
+        self._toast = None
+        self.toast_overlay = Adw.ToastOverlay()
         self.toolbar_view = Adw.ToolbarView()
         self.toolbar_view.get_style_context().add_class("main-content")
 
@@ -34,11 +37,32 @@ class MainWindow(Adw.ApplicationWindow):
 
         style_manager.connect("notify::dark", self._on_theme_changed)
 
-        self.set_content(self.toolbar_view)
+        self.toast_overlay.set_child(self.toolbar_view)
+        self.set_content(self.toast_overlay)
 
         self._create_header_bar()
         self._create_content_area()
         self._create_footer_bar()
+
+    def show_toast(self, message: str, timeout: int = 3):
+        """
+        Show a message over the window, without blocking it.
+
+        The message goes away on its own, and the next one replaces it
+        instead of waiting in a queue. When the window is hidden, or in the
+        background behind a game, the same message is shown as a desktop
+        notification, so the user knows about it either way.
+        """
+        if not self.is_active():
+            send_desktop_notification("Twinverse", message)
+
+        if self._toast is not None:
+            self._toast.dismiss()
+        toast = Adw.Toast.new(message)
+        toast.set_timeout(timeout)
+        self.toast_overlay.add_toast(toast)
+        self._toast = toast
+        return toast
 
     def _create_header_bar(self):
         """Create the header bar with menu."""

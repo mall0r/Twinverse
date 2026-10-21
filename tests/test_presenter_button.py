@@ -1,29 +1,56 @@
-"""Check that the footer button follows the instances that survived a crash."""
+"""Check that the buttons follow the state that was confirmed."""
 
 from unittest.mock import Mock
 
 from src.gui.presenters.main_presenter import MainPresenter
+from src.gui.widgets.player_row import (
+    INSTANCE_IDLE,
+    INSTANCE_RUNNING,
+    INSTANCE_STARTING,
+    INSTANCE_STOPPING,
+)
 from src.models import Profile
 from src.services.instance_registry import InstanceRecord
 
 
 class _Row:
-    """A player row that remembers whether its instance is running."""
+    """A player row that remembers the state of its instance."""
 
     def __init__(self):
-        """Start with the instance stopped."""
+        """Start with the instance idle."""
         self._is_running = False
+        self._state = INSTANCE_IDLE
+        self._detail = ""
 
     def set_running_state(self, is_running: bool):
-        """Store the state of the instance."""
+        """Store the running state."""
         self._is_running = is_running
 
+    def set_instance_state(self, state: str):
+        """Store the state of the instance."""
+        self._state = state
+        self._is_running = state == INSTANCE_RUNNING
 
-def _presenter(recovered):
+    def set_status_detail(self, detail: str):
+        """Store what the instance is doing."""
+        self._detail = detail
+
+    def get_instance_state(self) -> str:
+        """Return the state of the instance."""
+        return self._state
+
+    def get_status_detail(self) -> str:
+        """Return what the instance is doing."""
+        return self._detail
+
+
+def _presenter(recovered=None):
     """Build a presenter that only knows about the recovered instances."""
     presenter = MainPresenter.__new__(MainPresenter)
     presenter._instance_service = Mock()
-    presenter._instance_service.recovered_instances = recovered
+    presenter._instance_service.recovered_instances = recovered or []
+    presenter._instance_service.processes = {}
+    presenter._instance_service.client_status.return_value = (None, None)
     presenter._verification_controller = Mock()
     presenter._verification_controller.get_verification_status.return_value = True
     presenter._verification_controller.get_all_statuses.return_value = {}
@@ -32,6 +59,11 @@ def _presenter(recovered):
     presenter._settings_controller.get_devices_info.return_value = []
     presenter._launch_controller = Mock()
     presenter._launch_controller.is_running.return_value = False
+    presenter._instance_watch_id = 1
+    presenter._starting_instances = set()
+    presenter._owned_instances = set()
+    presenter._instance_states = {}
+    presenter._minimized_after_launch = False
     presenter.window = Mock()
     layout_page = Mock()
     layout_page.get_selected_players.return_value = [0, 1]
@@ -40,20 +72,176 @@ def _presenter(recovered):
     return presenter
 
 
+def _running_process():
+    """Build a process that is still alive."""
+    process = Mock()
+    process.poll.return_value = None
+    return process
+
+
+def _footer_label(presenter) -> str:
+    """Return the label the footer button shows."""
+    calls = presenter.window.mock_calls
+    for call in reversed(calls):
+        name = call[0]
+        if name == "show_running_state":
+            return "Stop"
+        if name == "show_idle_state":
+            return "Play"
+        if name == "show_launching_state":
+            return "Starting"
+        if name == "show_stopping_state":
+            return "Stopping"
+    return "Play"
+
+
 def test_an_instance_that_survived_the_crash_puts_the_footer_in_stop():
-    """The recovered instances have to turn the footer button into a stop."""
+    """The recovered instances were confirmed to be alive, so they can be stopped."""
     presenter = _presenter([InstanceRecord(instance=0, pgid=42, mode="native", home="/home/1")])
 
     presenter._load_initial_data()
 
-    presenter.window.update_launch_button_action.assert_called_with(True)
-    assert presenter.window.get_layout_page().player_rows[0]._is_running is True
+    assert _footer_label(presenter) == "Stop"
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_RUNNING
 
 
 def test_without_recovered_instances_the_footer_stays_in_play():
     """A session without leftovers has to show the launch action."""
-    presenter = _presenter([])
+    presenter = _presenter()
 
     presenter._load_initial_data()
 
-    presenter.window.update_launch_button_action.assert_called_with(False)
+    assert _footer_label(presenter) == "Play"
+
+
+def test_the_button_only_becomes_stop_when_the_client_is_confirmed():
+    """A launch that is still going on does not offer to stop."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+
+    presenter._watch_instance_start(0)
+
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_STARTING
+    assert _footer_label(presenter) == "Starting"
+
+    presenter._instance_service.is_client_up.return_value = True
+    presenter._watch_instances()
+
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_RUNNING
+    assert _footer_label(presenter) == "Stop"
+
+
+def test_the_footer_waits_for_every_instance_to_be_confirmed():
+    """One instance that is still starting keeps the footer locked."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.processes[1] = _running_process()
+    # The client of the first instance is up, the second one is not.
+    presenter._instance_service.is_client_up.side_effect = lambda number: number == 0
+
+    presenter._watch_instance_start(0)
+    presenter._watch_instance_start(1)
+    presenter._watch_instances()
+
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_RUNNING
+    assert presenter.window.get_layout_page().player_rows[1].get_instance_state() == INSTANCE_STARTING
+    assert _footer_label(presenter) == "Starting"
+
+
+def test_the_button_leaves_stop_only_when_the_instance_is_gone():
+    """The stop only ends when the death of the instance is confirmed."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = True
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_RUNNING
+
+    presenter._on_stop_requested()
+
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_STOPPING
+    assert _footer_label(presenter) == "Stopping"
+
+    presenter._on_single_instance_stopped(0)
+
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_IDLE
+    assert _footer_label(presenter) == "Play"
+
+
+def test_the_footer_stays_locked_while_the_launch_goes_on():
+    """The instances the launch has not reached yet keep the footer locked."""
+    presenter = _presenter()
+    presenter._instance_service.processes = {0: _running_process(), 1: _running_process()}
+
+    presenter._on_launch_requested()
+
+    rows = presenter.window.get_layout_page().player_rows
+    assert rows[0].get_instance_state() == INSTANCE_STARTING
+    assert rows[1].get_instance_state() == INSTANCE_STARTING
+    assert _footer_label(presenter) == "Starting"
+
+
+def test_the_row_tells_what_the_steam_is_doing():
+    """While the client starts, the row shows what the Steam is doing."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = (
+        "Manifest download: waiting for download to finish",
+        None,
+    )
+
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    row = presenter.window.get_layout_page().player_rows[0]
+    assert row.get_instance_state() == INSTANCE_STARTING
+    assert row.get_status_detail() == "Manifest download: waiting for download to finish"
+
+
+def test_the_window_is_minimized_only_when_every_instance_is_open():
+    """The window goes away when the last Steam client was confirmed."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.processes[1] = _running_process()
+    presenter._instance_service.is_client_up.side_effect = lambda number: number == 0
+
+    presenter._watch_instance_start(0)
+    presenter._watch_instance_start(1)
+    presenter._watch_instances()
+
+    assert not presenter.window.minimize_window.called
+
+    presenter._instance_service.is_client_up.side_effect = lambda number: True
+    presenter._watch_instances()
+
+    presenter.window.minimize_window.assert_called_once()
+
+
+def test_a_starting_instance_can_be_cancelled():
+    """An instance whose client never came up can still be cancelled."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._watch_instance_start(0)
+
+    presenter.on_instance_launch_requested(0)
+
+    row = presenter.window.get_layout_page().player_rows[0]
+    assert row.get_instance_state() == INSTANCE_STOPPING
+    presenter._launch_controller.terminate_single_instance.assert_called_once()
+    assert "Cancelled" in presenter.window.show_toast.call_args[0][0]
+
+
+def test_a_client_that_never_came_up_leaves_the_leftover_stopped():
+    """A failed client stops the instance, because there is no game to keep."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = (None, "fatal IO error 110")
+    presenter._watch_instance_start(0)
+
+    presenter._watch_instances()
+
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_STOPPING
+    presenter._launch_controller.terminate_single_instance.assert_called_once_with(0)
