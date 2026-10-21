@@ -163,6 +163,53 @@ não pode encher um pipe e congelar a instância. O caminho do Flatpak usa o
 mesmo redirecionamento, então a saída de uma instância que sobrevive ao
 aplicativo nunca é perdida.
 
+## Quando o cliente da Steam não abre
+
+O sandbox pode subir enquanto o cliente da Steam nunca aparece, deixando uma
+janela do compositor que nunca é desenhada. O Twinverse acompanha a
+inicialização de cada instância que lança e diz ao usuário o que está
+acontecendo:
+
+- enquanto o cliente sobe, aparece uma mensagem sobre a janela;
+- quando o cliente informa que abriu, a mensagem é trocada por uma confirmação
+  curta;
+- quando o cliente da Steam escreve uma linha fatal no log dele, ou quando a
+  instância para sozinha, a mensagem diz o que o Steam reportou e o motivo vai
+  para o `twinverse.log` como aviso.
+
+Não há prazo em nenhum desses casos. Uma máquina lenta leva o tempo que
+precisar, e a mensagem fica até o cliente da Steam dizer que está de pé.
+
+A checagem nunca confunde as instâncias. Só aceita um cliente da Steam que
+pertence ao grupo de processos daquela instância, então o cliente de outra
+instância, e o Steam do usuário, nunca são tomados como o nosso.
+
+Enquanto o cliente arranca, a linha da instância mostra um indicador a girar e
+o tooltip diz o que a Steam está a fazer, tirado do log do cliente. Uma Steam
+que se atualiza pode demorar minutos, e o indicador faz claro que ainda está
+a acontecer alguma coisa. A janela só é minimizada depois de todas as
+instâncias serem confirmadas como abertas.
+
+As mensagens da aplicação são mostradas sobre a janela. Quando a janela está
+minimizada, ou em segundo plano atrás de um jogo, a mesma mensagem também é
+mostrada como notificação de desktop, para que uma falha não passe
+despercebida enquanto se joga. A notificação usa o portal de notificações, que
+não precisa de permissões extra.
+
+Os botões da interface seguem a mesma regra. Uma instância só mostra "Stop"
+depois do seu cliente da Steam ser confirmado como de pé, e só volta para
+"Start" depois da instância ser confirmada como encerrada. Enquanto a
+instância está a arrancar, o botão mostra "Cancel", que encerra a instância
+que nunca subiu; enquanto está a parar, o botão não pode ser premido. O botão
+do rodapé só vira "Stop" quando todas as instâncias que ele segue estão
+confirmadas em execução, assim um arranque que ainda está a acontecer não é
+interrompido a meio. Um cliente que nunca subiu não deixa nada a preservar,
+então o que sobrou é encerrado e a instância volta para "Start".
+
+O log do próprio cliente da Steam fica na home da instância, em
+`.local/share/Steam/logs/console-linux.txt`. Esse arquivo tem o motivo da
+falha nas palavras do Steam, e a mensagem da interface o cita.
+
 ## Privacidade
 
 Os logs são locais e não são enviados automaticamente. O Twinverse mascara

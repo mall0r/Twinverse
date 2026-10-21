@@ -14,6 +14,11 @@ All notable changes to this project will be documented in this file. This projec
 - Add `--clear-logs`, which empties the log directory and exits, and `TWINVERSE_LOG_KEEP_INSTANCES`, `TWINVERSE_LOG_KEEP_HELPERS`, `TWINVERSE_LOG_MAX_AGE_DAYS` and `TWINVERSE_LOG_MAX_TOTAL_MB` to adjust the retention.
 - Find the instances that outlived a previous session: Twinverse remembers what it launched, shows the survivors as running, and stops them with the same button.
 - Put the footer button in stop mode when an instance survived a crash, instead of waiting for a single instance to be stopped.
+- Follow the startup of every instance: the interface says that the Steam client is starting, confirms when it opens, and reports the reason the Steam gave when it fails or the instance stops on its own. The check is scoped by the process group of the instance, so the instances and the Steam of the user are never mixed, and it waits for the Steam instead of using a timeout.
+- Make the buttons of the interface follow the state that was confirmed: an instance only offers to stop after its Steam client was confirmed to be up, and only goes back to start after the instance was confirmed to be gone. The button of the footer only turns into a stop when every instance it follows is confirmed to be running, and a client that never came up leaves the leftover stopped.
+- Let an instance that is still starting be cancelled, so a Steam client that never comes up and never writes a log does not leave the interface stuck.
+- Show a spinner and what the Steam client is doing while an instance starts, so a Steam that updates itself does not look like a hang, and minimize the window only after the last instance is confirmed to be open.
+- Show the messages of the application as desktop notifications while the window is hidden, so a failure is not missed behind a game.
 
 ### Fixed
 

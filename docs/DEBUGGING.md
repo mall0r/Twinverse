@@ -137,7 +137,6 @@ log directory. Review them before sharing: paths and command lines can still
 identify your setup, even though common passwords and tokens are masked.
 
 ## Crashes and unhandled exceptions
-
 Twinverse installs exception hooks and enables `faulthandler`. Python
 tracebacks go to `twinverse.log`; native crashes and hard aborts write a Python
 stack to `crash.log`, including the state of every thread. A crash in a child
@@ -158,6 +157,52 @@ The log system never uses a pipe for the instance output: the child writes
 directly to its file, so a chatty Steam or Proton session cannot fill a pipe
 and freeze the instance. The Flatpak path uses the same redirect, so the
 output of an instance that outlives the application is never lost.
+
+## When the Steam client does not open
+
+The sandbox can start while the Steam client never comes up, leaving a
+compositor window that never appears. Twinverse follows the startup of every
+instance it launches and tells the user what is happening:
+
+- while the client starts, a message appears over the window;
+- when the client reports that it opened, the message is replaced by a short
+  confirmation;
+- when the Steam client writes a fatal line in its own log, or the instance
+  stops on its own, the message says what the Steam reported and the reason
+  is written to `twinverse.log` as a warning.
+
+There is no timeout in any of it. A slow machine takes as long as it needs,
+and the message stays until the Steam client says it is up.
+
+The check never mixes the instances. It only accepts a Steam client that
+belongs to the process group of that instance, so the client of another
+instance, and the Steam of the user, are never taken for ours.
+
+While the client starts, the row of the instance shows a spinner and the
+tooltip tells what the Steam is doing, taken from the log of the client. A
+Steam that updates itself can take minutes, and the spinner makes it clear
+that something is still happening. The window is only minimized once every
+instance was confirmed to be open.
+
+The messages of the application are shown over the window. When the window is
+minimized, or in the background behind a game, the same message is also shown
+as a desktop notification, so a failure is not missed while a game is in
+front. The notification uses the notification portal, which needs no extra
+permission.
+
+The buttons of the interface follow the same rule. An instance only shows
+"Stop" after its Steam client was confirmed to be up, and it only goes back
+to "Start" after the instance was confirmed to be gone. While an instance is
+starting its button says "Cancel", which stops the instance that never came
+up, and while it is stopping the button cannot be pressed. The button of the
+footer only turns into "Stop" when every instance it follows is confirmed to
+be running, so a launch that is still going on cannot be interrupted halfway.
+A client that never came up leaves nothing to preserve, so the leftover is
+stopped and the instance goes back to "Start".
+
+The log of the Steam client itself is in the home of the instance, at
+`.local/share/Steam/logs/console-linux.txt`. That file holds the reason of a
+failure in the words of the Steam, and the message of the interface quotes it.
 
 ## Privacy
 
