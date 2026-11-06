@@ -29,7 +29,7 @@ from .instance_registry import (
 from .kde_manager import KdeManager
 from .network import network_command
 from .steam_input import SteamInputDisabler
-from .steam_probe import SteamClientProbe
+from .steam_probe import ClientUpdate, SteamClientProbe
 
 logger = logging.getLogger(__name__)
 
@@ -151,25 +151,38 @@ class InstanceService:
             return False
         return SteamClientProbe(instance_num).is_client_up(pgid)
 
-    def client_status(self, instance_num: int) -> tuple[Optional[str], Optional[str]]:
+    def client_status(self, instance_num: int) -> ClientUpdate:
         """
         Return what the Steam client is doing and the reason it gave up.
 
         The log of the client is read from the last place it was read, so a
-        long update does not make every check read the whole log again.
+        long update does not make every check read the whole log again. The
+        percentage of the last update that gave one is kept, so the bar does
+        not lose the progress when the client writes a step without a
+        percentage.
         """
         offsets = getattr(self, "_client_log_offsets", None)
         if offsets is None:
             offsets = {}
             self._client_log_offsets = offsets
 
+        percents = getattr(self, "_client_log_percents", None)
+        if percents is None:
+            percents = {}
+            self._client_log_percents = percents
+
         probe = SteamClientProbe(instance_num)
         since = offsets.get(instance_num)
         if since is None:
             since = probe.client_log_size()
-        progress, failure = probe.read_updates(since)
+        update = probe.read_updates(since)
         offsets[instance_num] = probe.client_log_size()
-        return progress, failure
+
+        if update.percent is not None:
+            percents[instance_num] = update.percent
+        elif instance_num in percents:
+            update = update._replace(percent=percents[instance_num])
+        return update
 
     @property
     def instance_logs(self) -> dict[int, InstanceLog]:

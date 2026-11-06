@@ -11,6 +11,7 @@ from src.services.steam_probe import (
     STATUS_UP,
     SteamClientProbe,
     find_client_pids,
+    is_update_progress,
 )
 
 
@@ -158,10 +159,18 @@ def test_the_progress_comes_from_the_log_of_the_client(tmp_path, monkeypatch):
         stream.write("[2026-10-20] ERROR: ld.so: object x cannot be loaded\n")
         stream.write("[2026-10-20] Manifest download: waiting for download to finish\n")
 
-    progress, failure = probe.read_updates(mark)
+    update = probe.read_updates(mark)
 
-    assert progress == "Manifest download: waiting for download to finish"
-    assert failure is None
+    assert update.progress == "Manifest download: waiting for download to finish"
+    assert update.failure is None
+
+
+def test_the_lines_of_an_update_are_told_apart():
+    """A client that updates itself says so, and a client that starts does not."""
+    assert is_update_progress("Checking for available updates...") is True
+    assert is_update_progress("Downloading update...") is True
+    assert is_update_progress("Manifest download: waiting for download to finish") is True
+    assert is_update_progress("Build: Mar  8 2026, at 12:00:00") is False
 
 
 def test_a_line_that_only_looks_like_a_failure_is_not_a_failure(tmp_path, monkeypatch):
@@ -177,10 +186,10 @@ def test_a_line_that_only_looks_like_a_failure_is_not_a_failure(tmp_path, monkey
         stream.write("[2026-10-20] Failed to open the update window, continuing\n")
         stream.write("[2026-10-20] Manifest download: waiting for download to finish\n")
 
-    progress, failure = probe.read_updates(mark)
+    update = probe.read_updates(mark)
 
-    assert failure is None
-    assert progress == "Manifest download: waiting for download to finish"
+    assert update.failure is None
+    assert update.progress == "Manifest download: waiting for download to finish"
 
 
 def test_the_failure_reason_comes_from_the_log_of_the_client(tmp_path, monkeypatch):
@@ -195,8 +204,8 @@ def test_the_failure_reason_comes_from_the_log_of_the_client(tmp_path, monkeypat
     with log.open("a", encoding="utf-8") as stream:
         stream.write('[2026-10-20] XIO:  fatal IO error 110 (Connection timed out) on X server ":0"\n')
 
-    progress, failure = probe.read_updates(mark)
+    update = probe.read_updates(mark)
 
-    assert failure is not None
-    assert "fatal IO error" in failure
-    assert "some old line" not in failure
+    assert update.failure is not None
+    assert "fatal IO error" in update.failure
+    assert "some old line" not in update.failure

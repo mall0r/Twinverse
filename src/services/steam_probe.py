@@ -16,11 +16,20 @@ import os
 import re
 import shlex
 from pathlib import Path
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from src.core import Config, Utils
 
 logger = logging.getLogger(__name__)
+
+
+class ClientUpdate(NamedTuple):
+    """What the log of the client tells about this launch."""
+
+    progress: Optional[str] = None
+    failure: Optional[str] = None
+    percent: Optional[int] = None
+
 
 # The names the Steam client uses. The launcher of the user has the same
 # name, but it lives in another process group.
@@ -87,7 +96,45 @@ NOISE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# The lines that say that the client is updating itself. A client that only
+# starts does not write them, so the user only hears about an update when
+# there is one.
+UPDATE_PATTERN = re.compile(
+    r"updat|download|install|patch|unpack",
+    re.IGNORECASE,
+)
+
+# The Steam writes how far the update went in brackets, and the steps that
+# have no percentage as dashes.
+PERCENT_PATTERN = re.compile(r"\[\s*(\d{1,3})\s*%\]")
+
+# The client also says how much it downloaded, and how much it has to.
+DOWNLOAD_PATTERN = re.compile(
+    r"downloading update \(\s*([\d,]+) of ([\d,]+) KB\s*\)",
+    re.IGNORECASE,
+)
+
 _TIMESTAMP_PATTERN = re.compile(r"^\[[^\]]*\]\s*")
+
+
+def is_update_progress(message: str) -> bool:
+    """Tell whether the line says that the client is updating itself."""
+    return bool(UPDATE_PATTERN.search(message))
+
+
+def _percent_of(line: str) -> Optional[int]:
+    """Return how far the update went, in percent, or None when it is unknown."""
+    match = PERCENT_PATTERN.search(line)
+    if match:
+        return min(int(match.group(1)), 100)
+
+    match = DOWNLOAD_PATTERN.search(line)
+    if match:
+        done = int(match.group(1).replace(",", ""))
+        total = int(match.group(2).replace(",", ""))
+        if total > 0:
+            return min(int(done * 100 / total), 100)
+    return None
 
 
 def _useful_line(line: str) -> str:
@@ -165,22 +212,25 @@ class SteamClientProbe:
         except OSError:
             return 0
 
-    def read_updates(self, since: int = 0) -> tuple[Optional[str], Optional[str]]:
+    def read_updates(self, since: int = 0) -> ClientUpdate:
         """
         Return what the Steam client is doing and the reason it gave up.
 
         Only the lines written since the given offset are read, so a long
-        update does not make every check read the whole log again.
+        update does not make every check read the whole log again. The
+        percentage is the one of the last line that gave one, so the bar of
+        the update knows how far it went.
         """
         try:
             with self.client_log_path.open("rb") as stream:
                 stream.seek(since)
                 text = stream.read().decode("utf-8", "replace")
         except OSError:
-            return None, None
+            return ClientUpdate()
 
         progress = None
         failure = None
+        percent = None
         for line in text.splitlines():
             message = _useful_line(line)
             if not message:
@@ -189,7 +239,10 @@ class SteamClientProbe:
                 failure = message
                 continue
             progress = message
-        return progress, failure
+            found = _percent_of(line)
+            if found is not None:
+                percent = found
+        return ClientUpdate(progress, failure, percent)
 
     def failure_reason(self, since: int = 0) -> Optional[str]:
         """Return the fatal line the Steam client reported, if any."""
