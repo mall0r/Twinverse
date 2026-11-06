@@ -45,6 +45,8 @@ All notable changes to this project will be documented in this file. This projec
 - Write the profile once the user stops typing, instead of on every keystroke.
 - Restore the panel visibility of the desktop, which was broken by the line break of the value.
 - Stop throwing in the KWin script when no window is focused, and restore the selection of the mouse only on one instance.
+- Bind the `linux-dmabuf` interface of the GTK bundled in the AppImage to version 5, so the window opens on a compositor that advertises version 6, such as KWin 6.8, instead of crashing during `Gtk.init()`.
+- Re-apply the cursor theme configured in the user settings on startup and whenever the `gtk-cursor-theme-name` setting changes, so a resolution that missed on the first pass does not leave the built-in default cursor in the AppImage.
 
 ### Changed
 

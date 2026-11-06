@@ -24,6 +24,7 @@ ENV PKG_CONFIG_PATH=/opt/twinverse/lib/pkgconfig:/opt/twinverse/share/pkgconfig
 ENV GI_TYPELIB_PATH=/opt/twinverse/lib/girepository-1.0
 ENV XDG_DATA_DIRS=/opt/twinverse/share:/usr/local/share:/usr/share
 COPY scripts/appimage/build-stack.sh /tmp/build-stack.sh
+COPY scripts/appimage/patches /tmp/patches
 RUN bash /tmp/build-stack.sh
 ENV GI_TYPELIB_PATH=/opt/twinverse/lib/girepository-1.0:/usr/lib/x86_64-linux-gnu/girepository-1.0
 RUN python3 -m venv /opt/python && /opt/python/bin/pip install --no-cache-dir \

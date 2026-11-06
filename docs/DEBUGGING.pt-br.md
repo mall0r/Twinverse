@@ -163,6 +163,39 @@ não pode encher um pipe e congelar a instância. O caminho do Flatpak usa o
 mesmo redirecionamento, então a saída de uma instância que sobrevive ao
 aplicativo nunca é perdida.
 
+### A janela nunca aparece no Wayland
+
+Um AppImage pode morrer antes de a janela existir por um motivo fora do
+Twinverse: o GTK que ele empacota. O GTK 4.16 se liga à versão do
+`linux-dmabuf` que o compositor anuncia, mas só implementa o feedback da
+versão 5. Em um compositor que anuncia a versão 6, como o KWin 6.8, nenhum
+evento `main_device` chega e o primeiro evento `tranche_done` desreferencia um
+ponteiro nulo, então o processo morre com `SIGSEGV` dentro de `Gtk.init()`.
+
+O `crash.log` mostra a falha em `gi/overrides/Gtk.py`, antes de qualquer código
+da aplicação rodar. O Flatpak não é afetado, porque o runtime do GNOME traz um
+GTK atual. Se um AppImage ainda empacota o GTK 4.16, execute-o no backend X11,
+que nunca se liga à interface do Wayland:
+
+```bash
+GDK_BACKEND=x11 ./Twinverse-x86_64.AppImage
+```
+
+`GDK_DISABLE=dmabuf` não ajuda: o display se liga à interface antes de
+consultar essa configuração.
+
+### O cursor muda dentro da janela
+
+A aplicação nunca define um cursor. O GTK escolhe o cursor a partir do tema
+definido em `gtk-cursor-theme-name` e do tamanho em `gtk-cursor-theme-size`,
+e usa o cursor default interno quando o tema não é encontrado.
+
+A aplicação reaplica o tema de cursor configurado nas configurações do
+usuário no startup e quando a configuração `gtk-cursor-theme-name` muda, para
+que o tema configurado seja resolvido de novo em vez de ficar no cursor
+default. Isso cobre o AppImage e o Flatpak, que trazem seus próprios builds do
+GTK, e mantém o cursor que o usuário escolheu.
+
 ## Quando o cliente da Steam não abre
 
 O sandbox pode subir enquanto o cliente da Steam nunca aparece, deixando uma

@@ -29,6 +29,7 @@ class TwinverseApplication(Adw.Application):
         super().__init__(application_id=Config.APP_ID, **kwargs)
         self.base_path = Utils.get_base_path()
         self.win = None
+        self._applying_cursor_theme = False
 
         logger.debug("Loading application resources from %s", self.base_path)
         self._load_resources()
@@ -41,8 +42,56 @@ class TwinverseApplication(Adw.Application):
         style_manager = Adw.StyleManager.get_default()
         style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
+    def _watch_cursor_theme(self) -> None:
+        """Follow the cursor theme setting for as long as the application runs.
+
+        The setting can change while the application is open, for example when
+        the user picks another theme in the desktop settings. Re-applying the
+        value keeps the cursor the user picked, both on the host and inside the
+        sandbox of an AppImage or Flatpak.
+        """
+        settings = Gtk.Settings.get_default()
+        if settings is None:
+            return
+        settings.connect("notify::gtk-cursor-theme-name", self._on_cursor_theme_changed)
+        settings.connect("notify::gtk-cursor-theme-size", self._on_cursor_theme_changed)
+
+    def _on_cursor_theme_changed(self, settings, _pspec) -> None:
+        """Re-apply the cursor theme when the user changes the setting."""
+        self._apply_cursor_theme()
+
+    def _apply_cursor_theme(self) -> None:
+        """Apply the cursor theme configured by the user.
+
+        GTK resolves the cursor theme from the settings when they change, but
+        the resolution can miss the theme on startup and leave the built-in
+        default cursor in place instead of the configured one. Re-applying the
+        configured value keeps the cursor the user picked, both on the host and
+        inside the sandbox of an AppImage or Flatpak.
+        """
+        if self._applying_cursor_theme:
+            return
+        self._applying_cursor_theme = True
+        try:
+            settings = Gtk.Settings.get_default()
+            if settings is None:
+                return
+            theme_name = str(settings.get_property("gtk-cursor-theme-name") or "default")
+            cursor_size = int(settings.get_property("gtk-cursor-theme-size") or 24)
+            settings.set_property("gtk-cursor-theme-name", theme_name)
+            settings.set_property("gtk-cursor-theme-size", cursor_size)
+            logger.debug("Applied cursor theme %s (size %d)", theme_name, cursor_size)
+        except Exception:  # noqa: BLE001 - a missing display must not block startup
+            logger.warning("Could not apply the cursor theme", exc_info=True)
+        finally:
+            self._applying_cursor_theme = False
+
     def on_startup(self, app):
         """Handle the application startup event."""
+        # The display only exists once the application starts, so the cursor
+        # theme is applied here and not while the object is built.
+        self._watch_cursor_theme()
+        self._apply_cursor_theme()
         logger.info("Application startup completed (pid=%d)", os.getpid())
 
     def _load_resources(self):
