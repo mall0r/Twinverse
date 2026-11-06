@@ -67,6 +67,14 @@ class PlayerRow(Adw.ExpanderRow):
         self.audio_row.connect("notify::selected-item", lambda *args: self.emit("settings-changed"))
         self.add_row(self.audio_row)
 
+        self.guest_ip_row = Adw.EntryRow(title="Guest IP")
+        self.guest_ip_row.set_tooltip_text(
+            "Optional IPv4 address for this instance on the LAN. "
+            "Leave it empty to select a free address automatically."
+        )
+        self.guest_ip_row.connect("changed", lambda *args: self.emit("settings-changed"))
+        self.add_row(self.guest_ip_row)
+
         self._create_env_section()
 
         self.launch_button = Gtk.Button(label="Install")
@@ -184,6 +192,8 @@ class PlayerRow(Adw.ExpanderRow):
 
         self._set_combo_selection(self.audio_row, self._devices_info.get("audio", []), config.audio_device_id)
 
+        self.guest_ip_row.set_text(config.guest_ip or "")
+
         for key, value in (config.env or {}).items():
             self._add_env_row(key, value)
 
@@ -196,6 +206,7 @@ class PlayerRow(Adw.ExpanderRow):
             GRAB_INPUT_DEVICES=self.grab_input_switch.get_active(),
             AUDIO_DEVICE_ID=self._get_combo_device_id(self.audio_row, self._devices_info.get("audio", [])),
             ENV=self._collect_env_vars(),
+            GUEST_IP=self.guest_ip_row.get_text().strip() or None,
         )
 
     def is_selected(self) -> bool:

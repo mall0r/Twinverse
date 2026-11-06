@@ -67,7 +67,7 @@ To use Twinverse without issues, ensure the following requirements are met:
 
 You need to have the *native* `gamescope` and `steam` packages from your distribution installed.
 
-**Optional:** `pasta` (usually provided by the `passt` package) enables automatic per-instance network isolation with internet access, without running Twinverse as root. Install it on the host, including when using Twinverse via Flatpak. If it is absent, Twinverse keeps using the shared host network. See the [connection troubleshooting guide](docs/GUIDE.md#connection-problems).
+**Optional:** `pasta` (usually provided by the `passt` package) enables automatic per-instance network isolation with internet access, without running Twinverse as root. Install it on the host, including when using Twinverse via Flatpak. Each instance receives its own free IPv4 address on the host's LAN, so a game client and a dedicated server on the same machine no longer share an address and Steam can connect directly instead of through a relay. The address can be set per instance with the "Guest IP" field; leave it empty to choose automatically. If `pasta` is absent, Twinverse keeps using the shared host network. See the [connection troubleshooting guide](docs/GUIDE.md#connection-problems).
 
 For Gamescope to function correctly, based on your GPU, you will need:
 

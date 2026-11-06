@@ -11,6 +11,8 @@ Bem-vindo ao guia do Twinverse! Este documento irá guiá-lo pelo processo de co
 
 Se o Steam Link ou jogos apresentarem problemas de conexão causados por várias instâncias usando as mesmas portas, instale o `pasta` no sistema (geralmente pelo pacote `passt`) e reabra as instâncias. O Twinverse o detecta automaticamente e isola a rede de cada instância mantendo o acesso à internet, sem executar como root. Isso também vale para a versão Flatpak: o `pasta` precisa estar disponível no `PATH` do host.
 
+Cada instância também recebe um endereço IPv4 livre na sub-rede do host. Isso importa quando o servidor do jogo roda na mesma máquina dos clientes: sem um endereço distinto, o guest e o servidor compartilham o endereço do host e o Steam pode encaminhar a conexão por um relay, aumentando a latência. O Twinverse escolhe um endereço livre automaticamente e nunca usa o endereço do host. Se precisar de um endereço fixo, preencha o campo "Guest IP" da instância; deixe-o vazio para manter a escolha automática. Use endereços livres na sua rede e mantenha-os diferentes entre as instâncias.
+
 Sem o `pasta`, a rede funciona como antes, compartilhando a rede do host entre as instâncias.
 
 ## 1. Número de Instâncias

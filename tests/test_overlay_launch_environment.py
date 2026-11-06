@@ -33,7 +33,7 @@ class OverlayLaunchEnvironmentTests(unittest.TestCase):
             with (
                 patch.dict(os.environ, {"MANGOHUD_CONFIG": "read_cfg"}),
                 patch("time.sleep"),
-                patch("src.services.instance.network_command", side_effect=lambda command: command),
+                patch("src.services.instance.network_command", side_effect=lambda command, *args: command),
             ):
                 with patch("subprocess.Popen", return_value=process) as spawn:
                     with patch.object(Config, "logs_dir", lambda: logs):

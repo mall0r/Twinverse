@@ -1,6 +1,7 @@
 """Launch, termination and configuration of Steam instances in isolated environments."""
 
 import copy
+import ipaddress
 import logging
 import os
 import shlex
@@ -179,6 +180,33 @@ class InstanceService:
             self._instance_logs = logs
         return logs
 
+    @staticmethod
+    def _configured_guest_address(profile: Profile, instance_num: int) -> Optional[str]:
+        """Return the guest address chosen for one instance, if one is valid.
+
+        An empty value leaves the choice to the host network setup, which
+        picks a free address in the subnet. A value without a prefix is
+        completed with the prefix of the host interface.
+        """
+        if not 0 <= instance_num < len(profile.player_configs):
+            return None
+        value = (profile.player_configs[instance_num].guest_ip or "").strip()
+        if not value:
+            return None
+        try:
+            if "/" in value:
+                ipaddress.IPv4Interface(value)
+            else:
+                ipaddress.IPv4Address(value)
+        except ValueError:
+            logger.warning(
+                "Instance %s: invalid GUEST_IP %r; selecting a free address instead",
+                instance_num + 1,
+                value,
+            )
+            return None
+        return value
+
     def _prepare_instance_launch(
         self, profile: Profile, instance_num: int, application_command: Optional[list[str]] = None
     ) -> tuple[list[str], dict]:
@@ -221,6 +249,7 @@ class InstanceService:
             logger.info("Preparing instance %s", instance_num + 1)
 
             base_command, instance_env = self._prepare_instance_launch(profile, instance_num)
+            guest_address = self._configured_guest_address(profile, instance_num)
             instance_log = InstanceLog.create(
                 instance_num,
                 command=base_command,
@@ -235,10 +264,22 @@ class InstanceService:
             try:
                 if Utils.is_flatpak():
                     logger.info("Launching instance %s in the Flatpak environment", instance_num + 1)
-                    process, pgid = self._launch_in_flatpak(instance_num, base_command, instance_env, log=instance_log)
+                    process, pgid = self._launch_in_flatpak(
+                        instance_num,
+                        base_command,
+                        instance_env,
+                        log=instance_log,
+                        guest_address=guest_address,
+                    )
                 else:
                     logger.info("Launching instance %s natively", instance_num + 1)
-                    process, pgid = self._launch_natively(instance_num, base_command, instance_env, log=instance_log)
+                    process, pgid = self._launch_natively(
+                        instance_num,
+                        base_command,
+                        instance_env,
+                        log=instance_log,
+                        guest_address=guest_address,
+                    )
 
                 self.pids[instance_num] = process.pid
                 self.pgids[instance_num] = pgid
@@ -264,6 +305,7 @@ class InstanceService:
         base_command: list[str],
         instance_env: dict,
         log: Optional[InstanceLog] = None,
+        guest_address: Optional[str] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance within a Flatpak environment."""
         if log is None:
@@ -280,7 +322,7 @@ class InstanceService:
         ]
         env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
         escaped_command = shlex.join(base_command)
-        network_launch = shlex.join(network_command(base_command))
+        network_launch = shlex.join(network_command(base_command, guest_address, instance_num))
         # The instance writes straight to its log file, the same way the native
         # launch does. A pipe would break as soon as the application dies and
         # would stop the output of an instance that outlives it.
@@ -391,6 +433,7 @@ class InstanceService:
         base_command: list[str],
         instance_env: dict,
         log: Optional[InstanceLog] = None,
+        guest_address: Optional[str] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance natively."""
         if log is None:
@@ -419,7 +462,7 @@ class InstanceService:
             raise DependencyError(error_msg)
 
         if shutil.which("pasta"):
-            base_command = network_command(base_command)
+            base_command = network_command(base_command, guest_address, instance_num)
 
         try:
             # The output goes straight to the instance log, so a chatty Steam

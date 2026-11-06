@@ -11,6 +11,8 @@ Welcome to the Twinverse guide! This document will walk you through the process 
 
 If Steam Link or games have connection problems caused by multiple instances using the same ports, install `pasta` on your system (usually the `passt` package) and relaunch the instances. Twinverse detects it automatically and isolates each instance's network while providing internet access, without running as root. This also applies to the Flatpak version: `pasta` must be available on the host's `PATH`.
 
+Each instance also receives its own free IPv4 address in the host's subnet. This matters when the game server runs on the same machine as the clients: without a distinct address, the guest and the server share the host address, and Steam may route the connection through a relay, adding latency. Twinverse picks an unused address automatically and never uses the host address. If you need a fixed address, fill in the "Guest IP" field of the instance; leave it empty to keep the automatic choice. Use addresses that are free on your network, and keep them different between instances.
+
 Without `pasta`, networking works as before, sharing the host network between instances.
 
 ## 1. Number of Instances

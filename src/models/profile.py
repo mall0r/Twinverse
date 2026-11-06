@@ -23,6 +23,7 @@ class PlayerInstanceConfig(BaseModel):
     grab_input_devices: bool = Field(default=False, alias="GRAB_INPUT_DEVICES")
     audio_device_id: Optional[str] = Field(default=None, alias="AUDIO_DEVICE_ID")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
+    guest_ip: Optional[str] = Field(default=None, alias="GUEST_IP")
 
 
 class SplitscreenConfig(BaseModel):

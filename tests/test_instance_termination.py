@@ -146,7 +146,20 @@ def test_the_network_setup_lets_the_application_stop_itself(tmp_path):
 
     environment = {**os.environ, "XDG_RUNTIME_DIR": str(tmp_path)}
     process = subprocess.Popen(
-        ["bash", "-c", NETWORK_SETUP, "twinverse-network", "bwrap", "--dev-bind", "/", "/", "--", str(app)],
+        [
+            "bash",
+            "-c",
+            NETWORK_SETUP,
+            "twinverse-network",
+            "",
+            "0",
+            "bwrap",
+            "--dev-bind",
+            "/",
+            "/",
+            "--",
+            str(app),
+        ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         env=environment,

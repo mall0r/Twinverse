@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file. This projec
 - Let an instance that is still starting be cancelled, so a Steam client that never comes up and never writes a log does not leave the interface stuck.
 - Show a spinner and what the Steam client is doing while an instance starts, so a Steam that updates itself does not look like a hang, and minimize the window only after the last instance is confirmed to be open.
 - Show the messages of the application as desktop notifications while the window is hidden, so a failure is not missed behind a game.
+- Give every isolated instance its own free IPv4 address from the host's subnet, so a game client and a dedicated server on the same machine no longer share an address and Steam can connect directly instead of through a relay. Add a per-instance `GUEST_IP` setting to override the automatic choice.
 
 ### Fixed
 
