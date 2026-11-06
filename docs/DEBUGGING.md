@@ -188,7 +188,17 @@ The messages of the application are shown over the window. When the window is
 minimized, or in the background behind a game, the same message is also shown
 as a desktop notification, so a failure is not missed while a game is in
 front. The notification uses the notification portal, which needs no extra
-permission.
+permission. A message has a level, and the level decides the icon and how
+urgent it is: a failure is an error, and it is critical, so it is not missed,
+while a client that is starting, or updating itself, is a work in progress,
+and the other messages are only information.
+
+A client that updates itself can take minutes. The row of the instance shows a
+small bar next to its name, with the percentage that the Steam wrote in its
+log, so the wait does not look like a hang. The bar has no percentage when
+the client only says what it is doing, and it pulses instead. The tooltip of
+the bar tells what the Steam is doing, and the log of the client itself is
+in the home of the instance, at `.local/share/Steam/logs/console-linux.txt`.
 
 The buttons of the interface follow the same rule. An instance only shows
 "Stop" after its Steam client was confirmed to be up, and it only goes back

@@ -12,6 +12,7 @@ from src.gui.controllers import (
     VerificationController,
 )
 from src.gui.dialogs import ErrorDialog
+from src.gui.notifications import BUSY, ERROR
 from src.gui.utils import ErrorHandler
 from src.gui.widgets.player_row import (
     INSTANCE_IDLE,
@@ -21,6 +22,7 @@ from src.gui.widgets.player_row import (
 )
 from src.gui.windows import MainWindow, PreferencesWindow
 from src.services import DeviceManager, InstanceService, KdeManager, SteamVerifier
+from src.services.steam_probe import is_update_progress
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,7 @@ class MainPresenter:
         self._starting_instances: set[int] = set()
         self._owned_instances: set[int] = set()
         self._instance_states: dict[int, str] = {}
+        self._progress_shown: dict[int, tuple[str, Optional[int]]] = {}
         self._minimized_after_launch = False
 
         self._load_initial_data()
@@ -87,7 +90,12 @@ class MainPresenter:
         self._owned_instances.add(instance_num)
         self._starting_instances.add(instance_num)
         self._set_instance_state(instance_num, INSTANCE_STARTING)
-        self.window.show_toast(f"Starting the Steam client of instance {instance_num + 1}… please wait")
+        # The client may take a long time when it updates itself, so the
+        # message says that something is still working.
+        self.window.show_toast(
+            f"Starting the Steam client of instance {instance_num + 1}… please wait",
+            level=BUSY,
+        )
         self._ensure_instance_watch()
 
     def _ensure_instance_watch(self):
@@ -110,26 +118,30 @@ class MainPresenter:
                 self._report_instance_stopped(instance_num)
                 continue
 
-            progress, reason = service.client_status(instance_num)
+            status = service.client_status(instance_num)
 
             # A client that is up is a client that works: the log of the Steam
             # may hold old complaints that do not concern this launch.
             if service.is_client_up(instance_num):
                 self._starting_instances.discard(instance_num)
+                self._forget_progress(instance_num)
                 logger.info("The Steam client of instance %s started", instance_num + 1)
                 self._set_instance_state(instance_num, INSTANCE_RUNNING)
                 self.window.show_toast(f"Steam started for instance {instance_num + 1}")
                 continue
 
-            if reason:
+            if status.failure:
                 self._starting_instances.discard(instance_num)
-                self._report_instance_failure(instance_num, reason)
+                self._forget_progress(instance_num)
+                self._report_instance_failure(instance_num, status.failure)
                 continue
 
             # The client may take a long time when it updates itself. The row
             # tells the user that it is still working, and what it is doing,
-            # so the wait does not look like a hang.
-            self._set_instance_detail(instance_num, progress)
+            # so the wait does not look like a hang, and the bar of the row
+            # shows how far the update went.
+            self._set_instance_detail(instance_num, status.progress)
+            self._report_progress(instance_num, status.progress, status.percent)
 
         for instance_num in list(self._owned_instances):
             process = service.processes.get(instance_num)
@@ -161,11 +173,45 @@ class MainPresenter:
         if 0 <= instance_num < len(layout_page.player_rows):
             layout_page.player_rows[instance_num].set_status_detail(detail or "")
 
+    def _report_progress(self, instance_num: int, progress: Optional[str], percent: Optional[int] = None):
+        """
+        Show how far the update of the client went.
+
+        A client that updates itself can take minutes, so the row of the
+        instance shows a bar with the progress, next to its name, and the
+        user sees that the wait is not a hang. A message would be read as
+        noise, because it changes all the time.
+        """
+        if not progress or not is_update_progress(progress):
+            return
+        if progress == self._progress_shown.get(instance_num, (None, None))[0]:
+            return
+        self._progress_shown[instance_num] = (progress, percent)
+        self._show_progress_bar()
+
+    def _forget_progress(self, instance_num: int):
+        """Forget the progress of an instance that is not updating anymore."""
+        self._progress_shown.pop(instance_num, None)
+        self._show_progress_bar()
+
+    def _show_progress_bar(self):
+        """Show the bar of every instance that is updating itself."""
+        layout_page = self.window.get_layout_page()
+        rows = layout_page.player_rows
+
+        for index, row in enumerate(rows):
+            progress = self._progress_shown.get(index)
+            if progress is None:
+                row.clear_update_progress()
+                continue
+            detail, percent = progress
+            row.set_update_progress(detail, percent)
+
     def _report_instance_failure(self, instance_num: int, reason: str):
         """Tell the user that the Steam client of an instance gave up."""
         message = f"The Steam client of instance {instance_num + 1} failed: {reason}"
         logger.warning("%s", message)
-        self.window.show_toast(message)
+        self.window.show_toast(message, level=ERROR)
         # The reason stays on the row, because the toast is gone in seconds.
         self._set_instance_detail(instance_num, reason)
         # The client never came up, so there is no game to preserve. The
@@ -179,12 +225,12 @@ class MainPresenter:
 
     def _report_instance_stopped(self, instance_num: int):
         """Tell the user that an instance stopped on its own."""
-        _, reason = self._instance_service.client_status(instance_num)
+        reason = self._instance_service.client_status(instance_num).failure
         message = f"Instance {instance_num + 1} stopped unexpectedly"
         if reason:
             message = f"The Steam client of instance {instance_num + 1} failed: {reason}"
         logger.warning("%s", message)
-        self.window.show_toast(message)
+        self.window.show_toast(message, level=ERROR)
         self._instance_service.finish_instance_log(instance_num)
         self._set_instance_state(instance_num, INSTANCE_IDLE)
 

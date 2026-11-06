@@ -1,9 +1,10 @@
 """Widget for player configuration."""
 
 import os
+from typing import Optional
 
 import gi
-from gi.repository import Adw, GObject, Gtk
+from gi.repository import Adw, GLib, GObject, Gtk
 
 from src.gui.widgets.env_variable_row import EnvVariableRow
 from src.models import PlayerInstanceConfig
@@ -15,6 +16,9 @@ INSTANCE_IDLE = "idle"
 INSTANCE_STARTING = "starting"
 INSTANCE_RUNNING = "running"
 INSTANCE_STOPPING = "stopping"
+
+# How often the bar of the update pulses when the percentage is not known.
+PULSE_INTERVAL_MS = 100
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -39,6 +43,7 @@ class PlayerRow(Adw.ExpanderRow):
         self._state = INSTANCE_IDLE
         self._status_detail = ""
         self._env_rows: list[EnvVariableRow] = []
+        self._pulse_id = 0
 
         self.set_title(f"Player {player_num + 1}")
         self.get_style_context().add_class("player-expander")
@@ -52,6 +57,27 @@ class PlayerRow(Adw.ExpanderRow):
         self.checkbox.get_style_context().add_class("player-checkbox")
         self.checkbox.connect("toggled", self._on_checkbox_toggled)
         self.add_prefix(self.checkbox)
+
+        # The bar of the update of the client, in the middle of the row. It
+        # only joins the row while the client updates itself, and it leaves
+        # when the update is over.
+        self.update_bar = Gtk.ProgressBar()
+        self.update_bar.set_size_request(110, -1)
+        self.update_bar.set_valign(Gtk.Align.CENTER)
+        self.update_bar.get_style_context().add_class("update-bar")
+
+        self.update_percent = Gtk.Label()
+        self.update_percent.get_style_context().add_class("caption-heading")
+        self.update_percent.get_style_context().add_class("update-percent")
+
+        self.update_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        self.update_box.append(self.update_bar)
+        self.update_box.append(self.update_percent)
+        self.update_box.set_valign(Gtk.Align.CENTER)
+
+        # The space that keeps the bar in the middle of the row.
+        self._update_spacer_before = Gtk.Box(hexpand=True)
+        self._update_spacer_after = Gtk.Box(hexpand=True)
 
         self._create_device_rows()
 
@@ -234,6 +260,76 @@ class PlayerRow(Adw.ExpanderRow):
         """Set what the status icon tells about the instance."""
         self._status_detail = detail
         self._update_status_icon()
+
+    def set_update_progress(self, detail: str, percent: Optional[int] = None):
+        """
+        Show how far the update of the Steam client went.
+
+        The percentage is the one that the Steam wrote in its log. When the
+        client does not say how far it went, the bar pulses instead, so the
+        user still sees that something is happening. The bar goes to the
+        right of the name of the instance, and it leaves when the update is
+        over.
+        """
+        self.update_box.set_tooltip_text(detail or "")
+        if percent is None:
+            self.update_percent.set_text("")
+            self._start_pulsing()
+        else:
+            self._stop_pulsing()
+            self.update_bar.set_fraction(percent / 100)
+            self.update_percent.set_text(f"{percent}%")
+
+        title_box = self._title_box()
+        if title_box is not None and self.update_box.get_parent() is None:
+            # The name of the instance and the bar share the same line, and
+            # the bar sits in the middle of the row.
+            title_box.set_orientation(Gtk.Orientation.HORIZONTAL)
+            title_box.append(self._update_spacer_before)
+            title_box.append(self.update_box)
+            title_box.append(self._update_spacer_after)
+
+    def clear_update_progress(self):
+        """Take the bar of the update away."""
+        self._stop_pulsing()
+        if self.update_box.get_parent() is not None:
+            self.update_box.get_parent().remove(self.update_box)
+            self._update_spacer_before.get_parent().remove(self._update_spacer_before)
+            self._update_spacer_after.get_parent().remove(self._update_spacer_after)
+
+    def _title_box(self):
+        """Find the box that holds the name of the instance."""
+        return self._find_by_style(self, "title")
+
+    def _find_by_style(self, widget, style_class: str):
+        """Find the first widget with the given style class."""
+        if widget.get_style_context().has_class(style_class):
+            return widget
+        child = widget.get_first_child()
+        while child is not None:
+            found = self._find_by_style(child, style_class)
+            if found is not None:
+                return found
+            child = child.get_next_sibling()
+        return None
+
+    def _start_pulsing(self):
+        """Make the bar pulse, for an update that has no percentage."""
+        if self._pulse_id:
+            return
+        self._pulse_id = GLib.timeout_add(PULSE_INTERVAL_MS, self._pulse)
+
+    def _stop_pulsing(self):
+        """Stop the bar from pulsing."""
+        if not self._pulse_id:
+            return
+        GLib.source_remove(self._pulse_id)
+        self._pulse_id = 0
+
+    def _pulse(self) -> bool:
+        """Move the pulse of the bar."""
+        self.update_bar.pulse()
+        return True
 
     def set_verification_status(self, is_verified: bool):
         """Set the verification status and update UI."""

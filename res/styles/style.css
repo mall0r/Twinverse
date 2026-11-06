@@ -109,3 +109,38 @@ AdwToolbarView > GtkActionBar {
     min-width: 80px;
     min-height: 32px;
 }
+
+
+/* The message that appears over the window */
+
+.toast-card {
+    background-color: @card_bg_color;
+    border: 1px solid @borders;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 8px;
+}
+
+/* A failure is outlined in red, so it is not read as a notice */
+.toast-card.toast-error {
+    border-color: @error_color;
+}
+
+.toast-card.toast-error .toast-icon {
+    color: @error_color;
+}
+
+.toast-icon {
+    -gtk-icon-size: 20px;
+}
+
+
+/* The bar of the update, in the middle of the row */
+
+.update-bar {
+    min-height: 6px;
+}
+
+.update-percent {
+    min-width: 34px;
+}

@@ -54,6 +54,8 @@ All notable changes to this project will be documented in this file. This projec
 - Mark the instance home directory of the player as read-only for the instances, and keep the input device of the virtual joystick private.
 - Reset all the settings of the profile in the preferences window, and report a home directory that could not be removed.
 - Present the same window when the application is started again, instead of opening a second one.
+- Show the messages of the application with the icon of what they are: a failure is an error, a client that is starting or updating itself is a work in progress, and the other messages are only information. The desktop notification follows the same level, and a failure is critical, so it is not missed behind a game.
+- Show a small bar next to the name of the instance when its Steam client updates itself, with the percentage that the Steam wrote in its log, so a long update is not a wait without an answer.
 
 ## [1.1.4] - 2026-10-15
 

@@ -2,6 +2,7 @@
 
 from unittest.mock import Mock
 
+from src.gui.notifications import BUSY, ERROR
 from src.gui.presenters.main_presenter import MainPresenter
 from src.gui.widgets.player_row import (
     INSTANCE_IDLE,
@@ -11,6 +12,7 @@ from src.gui.widgets.player_row import (
 )
 from src.models import Profile
 from src.services.instance_registry import InstanceRecord
+from src.services.steam_probe import ClientUpdate
 
 
 class _Row:
@@ -21,6 +23,7 @@ class _Row:
         self._is_running = False
         self._state = INSTANCE_IDLE
         self._detail = ""
+        self.update = None
 
     def set_running_state(self, is_running: bool):
         """Store the running state."""
@@ -34,6 +37,14 @@ class _Row:
     def set_status_detail(self, detail: str):
         """Store what the instance is doing."""
         self._detail = detail
+
+    def set_update_progress(self, detail: str, percent=None):
+        """Store how far the update of the client went."""
+        self.update = (detail, percent)
+
+    def clear_update_progress(self):
+        """Forget the update of the client."""
+        self.update = None
 
     def get_instance_state(self) -> str:
         """Return the state of the instance."""
@@ -50,7 +61,7 @@ def _presenter(recovered=None):
     presenter._instance_service = Mock()
     presenter._instance_service.recovered_instances = recovered or []
     presenter._instance_service.processes = {}
-    presenter._instance_service.client_status.return_value = (None, None)
+    presenter._instance_service.client_status.return_value = ClientUpdate()
     presenter._verification_controller = Mock()
     presenter._verification_controller.get_verification_status.return_value = True
     presenter._verification_controller.get_all_statuses.return_value = {}
@@ -63,6 +74,7 @@ def _presenter(recovered=None):
     presenter._starting_instances = set()
     presenter._owned_instances = set()
     presenter._instance_states = {}
+    presenter._progress_shown = {}
     presenter._minimized_after_launch = False
     presenter.window = Mock()
     layout_page = Mock()
@@ -187,9 +199,8 @@ def test_the_row_tells_what_the_steam_is_doing():
     presenter = _presenter()
     presenter._instance_service.processes[0] = _running_process()
     presenter._instance_service.is_client_up.return_value = False
-    presenter._instance_service.client_status.return_value = (
-        "Manifest download: waiting for download to finish",
-        None,
+    presenter._instance_service.client_status.return_value = ClientUpdate(
+        progress="Manifest download: waiting for download to finish",
     )
 
     presenter._watch_instance_start(0)
@@ -238,10 +249,128 @@ def test_a_client_that_never_came_up_leaves_the_leftover_stopped():
     presenter = _presenter()
     presenter._instance_service.processes[0] = _running_process()
     presenter._instance_service.is_client_up.return_value = False
-    presenter._instance_service.client_status.return_value = (None, "fatal IO error 110")
+    presenter._instance_service.client_status.return_value = ClientUpdate(failure="fatal IO error 110")
     presenter._watch_instance_start(0)
 
     presenter._watch_instances()
 
     assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_STOPPING
     presenter._launch_controller.terminate_single_instance.assert_called_once_with(0)
+
+
+def test_a_failure_is_shown_as_an_error():
+    """A client that gave up is a failure, and it is shown as one."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(failure="fatal IO error 110")
+    presenter._watch_instance_start(0)
+
+    presenter._watch_instances()
+
+    assert presenter.window.show_toast.call_args.kwargs["level"] == ERROR
+
+
+def test_a_client_that_is_starting_is_shown_as_busy():
+    """A client that is starting, or updating itself, is only busy."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+
+    presenter._watch_instance_start(0)
+
+    assert presenter.window.show_toast.call_args.kwargs["level"] == BUSY
+
+
+def test_an_instance_that_stops_on_its_own_is_shown_as_an_error():
+    """An instance that dies is a failure, and it is shown as one."""
+    presenter = _presenter()
+    process = _running_process()
+    presenter._instance_service.processes[0] = process
+    presenter._instance_service.client_status.return_value = ClientUpdate(failure="fatal IO error 110")
+    presenter._watch_instance_start(0)
+
+    # The process of the instance is gone.
+    process.poll.return_value = 1
+    presenter._watch_instances()
+
+    call = presenter.window.show_toast.call_args
+    assert "fatal IO error 110" in call[0][0]
+    assert call.kwargs["level"] == ERROR
+
+
+def test_the_row_shows_the_update_of_the_client():
+    """A client that updates itself shows how far it went."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(
+        progress="Downloading update...",
+        percent=41,
+    )
+    presenter._watch_instance_start(0)
+
+    presenter._watch_instances()
+
+    row = presenter.window.get_layout_page().player_rows[0]
+    assert row.update == ("Downloading update...", 41)
+
+
+def test_the_update_of_the_client_is_not_a_message():
+    """A progress that changes all the time would be read as noise."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(progress="Downloading update...")
+    presenter._watch_instance_start(0)
+
+    presenter._watch_instances()
+
+    assert presenter.window.show_toast.call_count == 1
+
+
+def test_the_same_progress_is_not_told_again():
+    """The bar follows the update, and does not repeat itself."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(progress="Downloading update...")
+    presenter._watch_instance_start(0)
+
+    presenter._watch_instances()
+    presenter._watch_instances()
+
+    row = presenter.window.get_layout_page().player_rows[0]
+    assert row.update == ("Downloading update...", None)
+
+
+def test_a_line_that_is_not_an_update_leaves_the_row_alone():
+    """A client that only starts does not show a bar."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(progress="Build: Mar  8 2026, at 12:00:00")
+    presenter._watch_instance_start(0)
+
+    presenter._watch_instances()
+
+    row = presenter.window.get_layout_page().player_rows[0]
+    assert row.update is None
+
+
+def test_the_bar_goes_away_when_the_client_is_up():
+    """The bar of the update has no place when the client is running."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(
+        progress="Downloading update...",
+        percent=41,
+    )
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    presenter._instance_service.is_client_up.return_value = True
+    presenter._watch_instances()
+
+    row = presenter.window.get_layout_page().player_rows[0]
+    assert row.update is None

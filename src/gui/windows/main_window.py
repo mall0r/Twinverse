@@ -4,8 +4,9 @@ import gi
 from gi.repository import Adw, Gio, Gtk
 
 from src.gui.dialogs import ErrorDialog
-from src.gui.notifications import send_desktop_notification
+from src.gui.notifications import INFO, send_desktop_notification
 from src.gui.pages import LayoutSettingsPage
+from src.gui.widgets.toast import ToastOverlay
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -26,8 +27,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _build_ui(self):
         """Build the user interface."""
-        self._toast = None
-        self.toast_overlay = Adw.ToastOverlay()
+        self.toast_overlay = ToastOverlay()
         self.toolbar_view = Adw.ToolbarView()
         self.toolbar_view.get_style_context().add_class("main-content")
 
@@ -44,25 +44,22 @@ class MainWindow(Adw.ApplicationWindow):
         self._create_content_area()
         self._create_footer_bar()
 
-    def show_toast(self, message: str, timeout: int = 3):
+    def show_toast(self, message: str, timeout: int = 3, level: str = INFO):
         """
         Show a message over the window, without blocking it.
 
         The message goes away on its own, and the next one replaces it
         instead of waiting in a queue. When the window is hidden, or in the
         background behind a game, the same message is shown as a desktop
-        notification, so the user knows about it either way.
+        notification, so the user knows about it either way. The level of the
+        message decides the icon of both, and how urgent the desktop
+        notification is.
         """
         if not self.is_active():
-            send_desktop_notification("Twinverse", message)
+            send_desktop_notification("Twinverse", message, level)
 
-        if self._toast is not None:
-            self._toast.dismiss()
-        toast = Adw.Toast.new(message)
-        toast.set_timeout(timeout)
-        self.toast_overlay.add_toast(toast)
-        self._toast = toast
-        return toast
+        self.toast_overlay.show_toast(message, level, timeout)
+        return self.toast_overlay
 
     def _create_header_bar(self):
         """Create the header bar with menu."""
