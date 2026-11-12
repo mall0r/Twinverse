@@ -5,10 +5,12 @@ import logging
 import os
 
 import pydbus
+from gi.repository import Gio, GLib
 
 from src.core.config import Config, ensure_private_dir
 from src.models import Profile
 from src.services.device_manager import DeviceManager
+from src.services.kwin_layout import INTERFACE, OBJECT_PATH, KwinLayoutResolver
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +22,9 @@ class KdeManager:
         """Initialize the KDE manager with necessary components."""
         self.original_panel_states: dict[int, str] = {}
         self.kwin_script_id = None
+        self._kwin_script_name = f"{Config.APP_ID}.layout"
+        self._kwin_script_signature = None
+        self._layout_resolver = None
         self.session_bus = None
         self._init_dbus()
 
@@ -27,6 +32,7 @@ class KdeManager:
         """Initialize D-Bus connection."""
         try:
             self.session_bus = pydbus.SessionBus()
+            self._layout_resolver = KwinLayoutResolver(self.session_bus.con)
         except Exception:
             logger.exception("Failed to connect to session D-Bus")
 
@@ -50,22 +56,35 @@ class KdeManager:
             return
 
         shared_temp_path = None
-        temp_script_path = None
+        new_script_loaded = False
 
         try:
-            script_content = script_path.read_text()
-
-            # Use the same monitor order as DeviceManager, matching KWin outputs by connector.
-            monitor_names = json.dumps([monitor.name for monitor in DeviceManager.get_ordered_monitors()])
-            script_content = script_content.replace(
-                "var screens = workspace.screens;",
-                f"var screens = {monitor_names}.map(function (name) {{"
-                " return workspace.screens.find(function (screen) { return screen.name === name; });"
-                " }).filter(Boolean);",
+            if self._layout_resolver is None:
+                logger.error("KWin layout identity service is unavailable; refusing an unordered layout")
+                return
+            monitor_names = [monitor.name for monitor in DeviceManager.get_ordered_monitors()]
+            instances = profile.layout_indices()
+            signature = (script_name, tuple(monitor_names), tuple(instances))
+            if self.kwin_script_id is not None:
+                if self._kwin_script_signature == signature:
+                    return
+                self.stop_kwin_script()
+                if self.kwin_script_id is not None:
+                    return
+            settings = {
+                "instances": instances,
+                "monitors": monitor_names,
+                "service": self._layout_resolver.service_name,
+                "path": OBJECT_PATH,
+                "interface": INTERFACE,
+            }
+            shared_script = (script_path.parent / "kwin_layout.js").read_text()
+            script_content = (
+                f"var twinverseLayout = {json.dumps(settings)};\n" + shared_script + script_path.read_text()
             )
 
             cache_dir = ensure_private_dir(Config.cache_dir())
-            shared_temp_path = cache_dir / f"kwin_script_{os.getpid()}_{script_name}"
+            shared_temp_path = cache_dir / f"kwin_layout_{os.getpid()}_{script_name}"
             with open(shared_temp_path, "w", encoding="utf-8") as stream:
                 stream.write(script_content)
 
@@ -74,29 +93,63 @@ class KdeManager:
             kwin_scripting = self.session_bus.get("org.kde.KWin", "/Scripting")
             logger.info("Loading KWin script from %s", shared_temp_path)
 
-            self.kwin_script_id = kwin_scripting.loadScript(str(shared_temp_path))
+            # Older releases used the full cache path as the plugin name, then
+            # incorrectly tried to unload its numeric ID. Only inspect our own
+            # legacy cache files; never unload arbitrary desktop scripts.
+            for legacy_path in cache_dir.glob("kwin_script_*_kwin_gamescope*.js"):
+                legacy_pid = legacy_path.name.removeprefix("kwin_script_").split("_", 1)[0]
+                if legacy_pid.isdigit() and kwin_scripting.isScriptLoaded(str(legacy_path)):
+                    if not kwin_scripting.unloadScript(str(legacy_path)):
+                        raise RuntimeError("KWin refused to unload a legacy Twinverse layout")
+                    logger.info("Unloaded legacy Twinverse layout %s", legacy_path)
+            # Replace a script left behind by a previous application session.
+            if kwin_scripting.isScriptLoaded(self._kwin_script_name):
+                if not kwin_scripting.unloadScript(self._kwin_script_name):
+                    raise RuntimeError("KWin refused to unload the previous layout script")
+            # KWin overloads loadScript(s) and loadScript(ss). pydbus exposes
+            # only one overload, so call the named variant explicitly via Gio.
+            result = self.session_bus.con.call_sync(
+                "org.kde.KWin",
+                "/Scripting",
+                "org.kde.kwin.Scripting",
+                "loadScript",
+                GLib.Variant("(ss)", (str(shared_temp_path), self._kwin_script_name)),
+                GLib.VariantType("(i)"),
+                Gio.DBusCallFlags.NONE,
+                5000,
+                None,
+            )
+            script_id = result.unpack()[0]
+            if script_id < 0:
+                raise RuntimeError("KWin refused to load the layout script")
+            self.kwin_script_id = script_id
+            new_script_loaded = True
             kwin_scripting.start()
+            self._kwin_script_signature = signature
 
             logger.info("KWin script loaded and started with ID %s", self.kwin_script_id)
 
         except Exception:
             logger.exception("Failed to load KWin script")
 
+            if new_script_loaded:
+                self.stop_kwin_script()
             if shared_temp_path and shared_temp_path.exists():
                 shared_temp_path.unlink()
-            if temp_script_path and temp_script_path.exists():
-                temp_script_path.unlink()
 
     def stop_kwin_script(self):
         """Stop and unload the KWin script."""
-        if not self.kwin_script_id or not self.session_bus:
+        if self.kwin_script_id is None or not self.session_bus:
             logger.info("No KWin script ID to stop or D-Bus unavailable.")
             return
 
         try:
             kwin_scripting = self.session_bus.get("org.kde.KWin", "/Scripting")
             logger.info("Unloading KWin script with ID %s", self.kwin_script_id)
-            kwin_scripting.unloadScript(str(self.kwin_script_id))
+            # unloadScript takes the plugin name, NOT the numeric loadScript ID.
+            if not kwin_scripting.unloadScript(self._kwin_script_name):
+                logger.error("KWin refused to unload script %s", self._kwin_script_name)
+                return
 
             if hasattr(self, "_kwin_script_temp_path") and self._kwin_script_temp_path:
                 if os.path.exists(self._kwin_script_temp_path):
@@ -104,6 +157,7 @@ class KdeManager:
 
             logger.info("KWin script unloaded successfully")
             self.kwin_script_id = None
+            self._kwin_script_signature = None
 
         except Exception:
             logger.exception("Failed to stop KWin script")

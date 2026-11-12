@@ -62,6 +62,12 @@ Ao selecionar "Splitscreen", você pode escolher entre duas orientações:
 Posições e formatos variam de acordo com o número de instâncias.
 É possível ver um preview do layout no ícone <img width="24" height="24" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> em **Screen Settings**.
 
+#### Posicionamento das Instâncias
+
+Por padrão, as instâncias ocupam os espaços disponíveis em ordem numérica. Para escolher qual instância ocupa cada espaço, selecione **Custom** em **Instance Placement** e escolha a instância em cada espaço do preview. Escolher uma instância que já está em outro espaço troca as duas posições, então nenhuma instância aparece duas vezes. O preview acompanha a divisão da tela e a orientação do monitor, e a escolha é salva no perfil e usada tanto nas dimensões do Gamescope quanto no layout do KWin.
+
+O posicionamento é aplicado no próximo lançamento. Ao reduzir o número de instâncias, as posições salvas ficam ocultas e voltam se você aumentar a quantidade novamente.
+
 ## 3. Configuração da Instância
 
 > [!IMPORTANT]

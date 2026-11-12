@@ -184,6 +184,27 @@ GDK_BACKEND=x11 ./Twinverse-x86_64.AppImage
 `GDK_DISABLE=dmabuf` não ajuda: o display se liga à interface antes de
 consultar essa configuração.
 
+### As janelas trocam de posição ao abrir ou fechar um jogo
+
+O layout do KWin associa cada janela a uma instância explícita, não à ordem
+de `workspace.windowList()`. O launcher coloca `TWINVERSE_KWIN_INSTANCE` no
+ambiente do Gamescope. Um serviço D-Bus do Twinverse identifica a instância
+pelo PID informado pelo KWin; no Flatpak, a consulta usa o PID do host.
+O título do jogo, o objeto da janela e o PID podem mudar sem mudar a posição
+reservada para aquela instância.
+
+A quantidade de divisões vem da seleção de jogadores, não da quantidade de
+janelas visíveis naquele instante. Uma janela que desaparece deixa seu espaço
+reservado: as outras não são deslocadas ou ampliadas. Mudanças externas de
+geometria são corrigidas pelo script. Janelas de Gamescope que não pertencem
+às instâncias selecionadas são ignoradas.
+
+Mantenha o Twinverse aberto, mesmo minimizado, para identificar janelas novas.
+O log de depuração registra PID e instância, sem registrar o ambiente do
+processo. O KWin também imprime a associação de instância e posição nos seus
+próprios logs. Ao alterar o layout, o script anterior é descarregado pelo
+nome do plugin; IDs numéricos não são nomes válidos para `unloadScript`.
+
 ### O cursor muda dentro da janela
 
 A aplicação nunca define um cursor. O GTK escolhe o cursor a partir do tema

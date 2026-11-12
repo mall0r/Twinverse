@@ -179,6 +179,26 @@ GDK_BACKEND=x11 ./Twinverse-x86_64.AppImage
 `GDK_DISABLE=dmabuf` does not help: the display binds the interface before it
 consults that setting.
 
+### Windows swap positions when starting or closing a game
+
+The KWin layout associates each window with an explicit instance, not its
+position in `workspace.windowList()`. The launcher sets
+`TWINVERSE_KWIN_INSTANCE` in Gamescope's environment. A Twinverse D-Bus
+service identifies the instance using KWin's window-owner PID; in Flatpak,
+the lookup uses the host PID. The game title, window object and PID can
+change without changing that instance's reserved position.
+
+The split count comes from the player selection, not the number of windows
+currently visible. A disappearing window leaves its slot reserved instead
+of moving or enlarging the other instances. The script corrects external
+geometry changes and ignores Gamescope windows outside the selected instances.
+
+Keep Twinverse running, even minimized, to identify new windows. Debug logs
+record the PID and instance without recording the process environment. KWin
+also prints instance-to-slot associations in its own logs. Layout changes
+unload the previous script by plugin name; numeric script IDs are not valid
+names for `unloadScript`.
+
 ### The cursor changes inside the window
 
 The application never sets a cursor. GTK chooses it from the theme named by

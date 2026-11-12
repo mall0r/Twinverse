@@ -5,11 +5,12 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
 from pydantic.functional_validators import field_validator
 
 from src.core import Config, Utils
 from src.core.config import ensure_private_dir
+from src.core.layout import LayoutCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +58,19 @@ class Profile(BaseModel):
         alias="PLAYERS",
     )
     selected_players: List[int] = Field(default_factory=list, alias="selected_players")
+    # None preserves the automatic layout of existing profiles. A list is the
+    # custom instance order, independent of selection and launch timing.
+    layout_order: Optional[List[StrictInt]] = Field(default=None, alias="LAYOUT_ORDER")
     use_steamdeck_tag: bool = Field(default=True, alias="USE_STEAMDECK_TAG")
     use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_gamescope_wsi: bool = Field(default=Utils.is_wayland(), alias="ENABLE_GAMESCOPE_WSI")
+
+    @field_validator("layout_order")
+    def validate_layout_order(cls, value):
+        """Reject duplicate or negative instance IDs in a saved custom layout."""
+        if value is not None and (any(index < 0 for index in value) or len(value) != len(set(value))):
+            raise ValueError("Layout order must contain unique, non-negative instance indices.")
+        return value
 
     @classmethod
     def load(cls) -> "Profile":
@@ -118,8 +129,8 @@ class Profile(BaseModel):
         """
         Return the indices of the instances that take part in a launch.
 
-        The selected instances are laid out as if they were the only ones, so
-        they always fill the first positions of the split, in order.
+        Launch timing stays in instance-number order. Display placement is
+        independent and is returned by layout_indices().
         """
         count = max(0, self.num_players)
         if self.selected_players:
@@ -129,6 +140,10 @@ class Profile(BaseModel):
     def effective_num_players(self) -> int:
         """Return how many instances take part in a launch."""
         return len(self.launch_indices())
+
+    def layout_indices(self) -> List[int]:
+        """Return selected instances in display-slot order, without changing launch order."""
+        return LayoutCalculator.order_instances(self.launch_indices(), self.layout_order)
 
     def get_env_for_instance(self, instance_idx: int) -> Dict[str, str]:
         """Return the merged environment variables for a given instance index (0-based).

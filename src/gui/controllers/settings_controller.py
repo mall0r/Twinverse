@@ -40,6 +40,8 @@ class SettingsController:
 
         self._profile.num_players = ui_data["num_players"]
         self._profile.mode = ui_data["mode"]
+        if "layout_order" in ui_data:
+            self._profile.layout_order = ui_data["layout_order"]
 
         if self._profile.mode == "splitscreen" and ui_data["orientation"]:
             self._profile.splitscreen = SplitscreenConfig(ORIENTATION=ui_data["orientation"])

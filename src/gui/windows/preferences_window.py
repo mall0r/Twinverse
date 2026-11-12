@@ -272,6 +272,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._profile.splitscreen = copy.deepcopy(default_profile.splitscreen)
         self._profile.player_configs = copy.deepcopy(list(default_profile.player_configs))
         self._profile.selected_players = list(default_profile.selected_players)
+        self._profile.layout_order = default_profile.layout_order
         self._profile.env = copy.deepcopy(default_profile.env)
 
         self.steamdeck_row.set_active(self._profile.use_steamdeck_tag)

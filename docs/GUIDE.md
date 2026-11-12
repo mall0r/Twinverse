@@ -60,6 +60,12 @@ When selecting "Splitscreen," you can choose between two orientations:
 Positions and layouts adjust automatically based on the number of instances.
 You can see a preview of the layout by clicking the icon <img width="24" height="24" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> on the **Screen Settings**.
 
+#### Instance Placement
+
+By default, the instances fill the available spaces in numerical order. To choose which instance occupies each space, set **Instance Placement** to **Custom** and pick an instance in each preview slot. Choosing an instance that is already assigned swaps the two positions, so no instance appears twice. The preview follows the split geometry and monitor orientation, and the choice is saved in the profile and used by the Gamescope dimensions and the KWin layout.
+
+Placement is applied on the next launch. Reducing the number of instances keeps the saved positions hidden, so they come back if you increase the count again.
+
 ## 3. Instance Configuration
 
 > [!IMPORTANT]

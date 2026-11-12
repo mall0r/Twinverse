@@ -6,7 +6,7 @@ import json
 import logging
 import re
 import subprocess
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, TypedDict
 
 import gi
 
@@ -20,6 +20,18 @@ from src.core import LayoutCalculator
 from src.models import Profile
 
 logger = logging.getLogger(__name__)
+
+
+class ScreenInfo(TypedDict):
+    """Current pixel dimensions and connector identity of a display."""
+
+    id: int
+    name: str
+    x: int
+    y: int
+    width: int
+    height: int
+    refresh_rate_mhz: int
 
 
 class DeviceManager:
@@ -159,7 +171,7 @@ class DeviceManager:
                 logger.warning("Could not determine the primary monitor from Plasma: %s", e)
         return sorted(monitors, key=lambda monitor: not (monitor.is_primary or monitor.name == primary_name))
 
-    def get_screen_info(self) -> List[Dict[str, Union[int, bool]]]:
+    def get_screen_info(self) -> List[ScreenInfo]:
         """Get information about connected screens/monitors."""
         # Match connectors rather than enumeration order: GDK and screeninfo
         # need not list monitors in the same order. GDK reports current mHz.
@@ -170,7 +182,7 @@ class DeviceManager:
             for monitor in display.get_monitors():
                 refresh_rates[monitor.get_connector()] = monitor.get_refresh_rate()
                 geometries[monitor.get_connector()] = monitor.get_geometry()
-        monitors = []
+        monitors: List[ScreenInfo] = []
         for i, monitor in enumerate(self.get_ordered_monitors()):
             width, height = monitor.width, monitor.height
             geometry = geometries.get(monitor.name)
@@ -183,6 +195,7 @@ class DeviceManager:
             monitors.append(
                 {
                     "id": i,
+                    "name": monitor.name or f"Monitor {i + 1}",
                     "x": monitor.x,
                     "y": monitor.y,
                     "width": width,
@@ -205,16 +218,16 @@ class DeviceManager:
         """
         Return the position of an instance inside the group being laid out.
 
-        The position follows the launch order, so a selection that skips an
-        instance still fills the split from the first position.
+        The position follows the configured display order, independently of
+        the order in which instance processes or windows happen to start.
         """
         slots = DeviceManager._get_launch_slots(profile)
         return slots.get(instance_num, instance_num)
 
     @staticmethod
     def _get_launch_slots(profile: Profile) -> Dict[int, int]:
-        """Map every instance index to its position in the launch order."""
-        return {index: slot for slot, index in enumerate(profile.launch_indices())}
+        """Map every selected instance to its configured display slot."""
+        return {index: slot for slot, index in enumerate(profile.layout_indices())}
 
     @classmethod
     def _resolve_monitor_index(cls, profile: Profile, instance_num: int, num_monitors: int) -> int:
@@ -239,7 +252,7 @@ class DeviceManager:
         Calculate instance dimensions, accounting for splitscreen.
 
         The selected instances are laid out in groups of four, following the
-        launch order, so a partial selection still fills the split.
+        configured placement order, so a partial selection still fills the split.
         """
         monitors = self.get_screen_info()
 

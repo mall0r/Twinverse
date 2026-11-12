@@ -8,6 +8,7 @@ from src.core.exceptions import TwinverseError
 from src.core.utils import Utils
 from src.models import Profile
 from src.services.device_manager import DeviceManager
+from src.services.kwin_layout import INSTANCE_ENV
 from src.services.webhelper_sync import build_webhelper_mounts
 
 logger = logging.getLogger(__name__)
@@ -299,4 +300,8 @@ stream.rules = [
             # Override the host path used to prepare the config before launch.
             cmd.extend(["--setenv", "MANGOHUD_CONFIGFILE", str(orig_home / self.MANGOAPP_CONFIG)])
             cmd.extend(["--unsetenv", "MANGOHUD_CONFIG"])
+        if self.profile.use_gamescope:
+            # Set this after user environment overrides. Gamescope keeps the
+            # marker even when it recreates its host window or changes title.
+            cmd.extend(["--setenv", INSTANCE_ENV, str(instance_idx)])
         return cmd

@@ -186,12 +186,20 @@ def test_kwin_placement_matches_refresh_assignment(manager, script, function, mo
     kde = KdeManager.__new__(KdeManager)
     kde.logger = Mock()
     kde.session_bus = Mock()
+    kde.session_bus.con.call_sync.return_value = SimpleNamespace(unpack=lambda: (0,))
+    kde.session_bus.get.return_value.isScriptLoaded.return_value = False
+    kde.kwin_script_id = None
+    kde._kwin_script_name = "twinverse-layout-test"
+    kde._kwin_script_signature = None
+    kde._layout_resolver = SimpleNamespace(service_name=":1.42")
     monkeypatch.setenv("XDG_CURRENT_DESKTOP", "KDE")
     monkeypatch.setattr("src.services.kde_manager.Config.cache_dir", lambda: tmp_path)
     kde.start_kwin_script(profile)
     source = kde._kwin_script_temp_path.read_text()
     harness = """
-const clients = Array.from({length: PLAYERS}, () => ({resourceClass: "gamescope"}));
+const clients = Array.from({length: PLAYERS}, (_, i) => ({resourceClass: "gamescope", pid: 100 + i}));
+const print = () => {};
+function callDBus(service, path, iface, method, pid, callback) { callback(pid - 100); }
 const workspace = {
   screens: [
     {name: "DP-1", geometry: {x: 1920, y: 0, width: 2560, height: 1440}},

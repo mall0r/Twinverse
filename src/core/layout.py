@@ -1,10 +1,20 @@
 """Screen layout calculation for splitscreen modes."""
 
-from typing import List, Tuple, cast
+from typing import List, Optional, Sequence, Tuple, cast
 
 
 class LayoutCalculator:
     """Coordinate tables and per-instance placement in pixels."""
+
+    @staticmethod
+    def order_instances(instances: Sequence[int], preferred: Optional[Sequence[int]] = None) -> List[int]:
+        """Apply a saved placement order, appending new instances and omitting hidden ones."""
+        available = set(instances)
+        ordered: List[int] = []
+        for instance in list(preferred or []) + list(instances):
+            if instance in available and instance not in ordered:
+                ordered.append(instance)
+        return ordered
 
     @staticmethod
     def get_layout_coordinates(

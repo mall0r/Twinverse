@@ -4,7 +4,7 @@ import gi
 from gi.repository import Adw, GObject, Gtk
 
 from src.core.layout import LayoutCalculator
-from src.gui.widgets import PlayerRow
+from src.gui.widgets import LayoutPreview, PlayerRow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -29,6 +29,9 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self._num_monitors = 1  # Will be set from devices_info
         self.screen_settings_icon = None  # Will be initialized in _build_ui
         self._last_user_selected_mode = None  # Track the last mode explicitly selected by the user
+        self._layout_order: list[int] = []
+        self._known_instance_count = 0
+        self._displays: list[dict] = []
         self._build_ui()
 
     def _update_screen_settings_icon(self):
@@ -108,6 +111,23 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self.orientation_row.connect("notify::selected-item", self._on_setting_changed)
         gamescope_expander.add_row(self.orientation_row)
 
+        self.placement_mode_row = Adw.ComboRow(
+            title="Instance Placement",
+            subtitle="Automatic order or a custom instance for each space",
+            model=Gtk.StringList.new(["Automatic", "Custom"]),
+        )
+        self.placement_mode_row.connect("notify::selected", self._on_setting_changed)
+        gamescope_expander.add_row(self.placement_mode_row)
+
+        self.layout_preview_group = Adw.PreferencesGroup(
+            title="Layout Preview",
+            description="Positions are applied by the KWin script. Changes apply to the next launch.",
+        )
+        self.layout_preview = LayoutPreview()
+        self.layout_preview.connect("order-changed", self._on_layout_order_changed)
+        self.layout_preview_group.add(self.layout_preview)
+        self.add(self.layout_preview_group)
+
         self.players_group = Adw.PreferencesGroup(title="Instance Configurations")
         self.players_group.add_css_class("players-group")
         self.add(self.players_group)
@@ -116,10 +136,17 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         """Load data into the UI."""
         self._is_loading = True
 
-        self._num_monitors = len(devices_info.get("displays", []))
+        self._displays = list(devices_info.get("displays", []))
+        self._num_monitors = len(self._displays)
         if self._num_monitors == 0:
             self._num_monitors = 1  # Fallback
 
+        saved_instances = [index + 1 for index in profile.layout_order or []]
+        self._known_instance_count = max(profile.num_players, len(profile.player_configs), *saved_instances, 0)
+        self._layout_order = LayoutCalculator.order_instances(
+            list(range(self._known_instance_count)), profile.layout_order
+        )
+        self.placement_mode_row.set_selected(0 if profile.layout_order is None else 1)
         adj = self.num_players_row.get_adjustment()
         adj.set_value(profile.num_players)
 
@@ -128,6 +155,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self._update_num_players_limits(is_splitscreen)
         self.orientation_row.set_visible(is_splitscreen)
         self.gamescope_settings_group.set_visible(profile.use_gamescope)
+        self.layout_preview_group.set_visible(profile.use_gamescope)
 
         if is_splitscreen and profile.splitscreen:
             orientation = profile.splitscreen.orientation.capitalize()
@@ -151,6 +179,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         self._apply_grab_input_exclusivity()
 
         self._update_screen_settings_icon()
+        self._update_layout_preview()
 
         self._is_loading = False
 
@@ -223,6 +252,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             "orientation": None,
             "player_configs": [],
             "selected_players": [],
+            "layout_order": list(self._layout_order) if self.placement_mode_row.get_selected() == 1 else None,
         }
 
         if data["mode"] == "splitscreen":
@@ -253,8 +283,7 @@ class LayoutSettingsPage(Adw.PreferencesPage):
     def _on_num_players_changed(self, adjustment):
         """Handle number of players changed."""
         if not self._is_loading:
-            self.emit("settings-changed")
-            self._update_screen_settings_icon()
+            self._on_setting_changed()
 
     def _on_screen_mode_changed(self, combo_row, *args):
         """Handle screen mode changed."""
@@ -274,13 +303,41 @@ class LayoutSettingsPage(Adw.PreferencesPage):
             adjustment.set_value(new_upper_limit)
 
         if not self._is_loading:
-            self.emit("settings-changed")
-            self._update_screen_settings_icon()
+            self._on_setting_changed()
 
     def update_devices_info(self, devices_info: dict):
         """Update devices info in all player rows."""
         for player_row in self.player_rows:
             player_row.update_devices(devices_info)
+        self._displays = list(devices_info.get("displays", []))
+        self._num_monitors = max(1, len(self._displays))
+        self._update_layout_preview()
+
+    def _update_layout_preview(self):
+        """Use the same selected-instance ordering and split tables as the launcher."""
+        self._known_instance_count = max(self._known_instance_count, len(self.player_rows))
+        self._layout_order = LayoutCalculator.order_instances(
+            list(range(self._known_instance_count)), self._layout_order
+        )
+        custom = self.placement_mode_row.get_selected() == 1
+        instances = LayoutCalculator.order_instances(
+            self.get_selected_players(), self._layout_order if custom else None
+        )
+        self.layout_preview.configure(
+            instances,
+            self.screen_mode_row.get_selected_item().get_string().lower(),
+            self.orientation_row.get_selected_item().get_string().lower(),
+            self._displays,
+            custom,
+        )
+
+    def _on_layout_order_changed(self, _preview, visible_order):
+        """Persist a swap without discarding positions of unchecked or hidden instances."""
+        selected = set(self.get_selected_players())
+        positions = [index for index, instance in enumerate(self._layout_order) if instance in selected]
+        for position, instance in zip(positions, visible_order):
+            self._layout_order[position] = instance
+        self._on_setting_changed()
 
     def _update_num_players_limits(self, is_splitscreen: bool):
         """Update the limits for number of players based on screen mode."""
@@ -296,8 +353,9 @@ class LayoutSettingsPage(Adw.PreferencesPage):
     def _on_setting_changed(self, *args):
         """Handle any setting changed."""
         if not self._is_loading:
-            self.emit("settings-changed")
             self._update_screen_settings_icon()
+            self._update_layout_preview()
+            self.emit("settings-changed")
 
     def set_number_of_instances_sensitive(self, sensitive: bool):
         """Set the sensitivity of the number of instances spin button."""
@@ -307,6 +365,8 @@ class LayoutSettingsPage(Adw.PreferencesPage):
         """Set the sensitivity of the screen settings controls."""
         self.screen_mode_row.set_sensitive(sensitive)
         self.orientation_row.set_sensitive(sensitive)
+        self.placement_mode_row.set_sensitive(sensitive)
+        self.layout_preview.set_sensitive(sensitive)
 
     def set_checkboxes_sensitive(self, sensitive: bool):
         """Set the sensitivity of the instance checkboxes."""

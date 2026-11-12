@@ -144,3 +144,17 @@ AdwToolbarView > GtkActionBar {
 .update-percent {
     min-width: 34px;
 }
+
+/* Instance placement follows theme colors in both light and dark mode. */
+.layout-monitor {
+    padding: 6px;
+    border: 1px solid @borders;
+    border-radius: 10px;
+}
+
+.layout-slot {
+    padding: 8px;
+    background-color: @card_bg_color;
+    border: 1px solid @borders;
+    border-radius: 6px;
+}
