@@ -165,18 +165,28 @@ class DeviceManager:
         # need not list monitors in the same order. GDK reports current mHz.
         display = Gdk.Display.get_default()
         refresh_rates = {}
+        geometries = {}
         if display:
             for monitor in display.get_monitors():
                 refresh_rates[monitor.get_connector()] = monitor.get_refresh_rate()
+                geometries[monitor.get_connector()] = monitor.get_geometry()
         monitors = []
         for i, monitor in enumerate(self.get_ordered_monitors()):
+            width, height = monitor.width, monitor.height
+            geometry = geometries.get(monitor.name)
+            # Some screeninfo backends report the unrotated mode. GDK's
+            # logical geometry already includes rotation; use only its aspect
+            # orientation so desktop scaling does not change the pixel size.
+            if geometry and geometry.width > 0 and geometry.height > 0 and geometry.width != geometry.height:
+                if (width > height) != (geometry.width > geometry.height):
+                    width, height = height, width
             monitors.append(
                 {
                     "id": i,
                     "x": monitor.x,
                     "y": monitor.y,
-                    "width": monitor.width,
-                    "height": monitor.height,
+                    "width": width,
+                    "height": height,
                     "refresh_rate_mhz": refresh_rates.get(monitor.name, 0),
                 }
             )

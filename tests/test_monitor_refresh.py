@@ -25,13 +25,79 @@ def manager(monkeypatch):
     hdmi, dp = Mock(), Mock()
     hdmi.get_connector.return_value = "HDMI-A-1"
     hdmi.get_refresh_rate.return_value = 74973
+    hdmi.get_geometry.return_value = SimpleNamespace(width=1920, height=1080)
     dp.get_connector.return_value = "DP-1"
     dp.get_refresh_rate.return_value = 143980
+    dp.get_geometry.return_value = SimpleNamespace(width=2560, height=1440)
     display = Mock()
     display.get_monitors.return_value = [dp, hdmi]
     monkeypatch.setattr("src.services.device_manager.get_monitors", lambda: monitors)
     monkeypatch.setattr("src.services.device_manager.Gdk.Display.get_default", lambda: display)
     return DeviceManager()
+
+
+@pytest.mark.parametrize(
+    "reported, logical, expected",
+    [
+        ((1920, 1080), (1080, 1920), (1080, 1920)),
+        ((1920, 1080), (720, 1280), (1080, 1920)),
+        ((1080, 1920), (720, 1280), (1080, 1920)),
+        ((1080, 1920), (1920, 1080), (1920, 1080)),
+        ((1920, 1080), (1280, 720), (1920, 1080)),
+        ((1920, 1080), (0, 0), (1920, 1080)),
+        ((1920, 1080), (1000, 1000), (1920, 1080)),
+    ],
+)
+@pytest.mark.parametrize("orientation", ["horizontal", "vertical"])
+@pytest.mark.parametrize("players", [1, 2, 3, 4])
+def test_rotated_monitor_dimensions(manager, reported, logical, expected, orientation, players):
+    """Orient pixel dimensions once, even with scaling or an already rotated backend."""
+    from gi.repository import Gdk
+
+    from src.core import LayoutCalculator
+
+    monitor = manager.get_ordered_monitors()[0]
+    monitor.width, monitor.height = reported
+    Gdk.Display.get_default().get_monitors()[1].get_geometry.return_value = SimpleNamespace(
+        width=logical[0], height=logical[1]
+    )
+    profile = Profile(num_players=players, player_configs=[PlayerInstanceConfig() for _ in range(players)])
+    profile.splitscreen.orientation = orientation
+    info = manager.get_screen_info()[0]
+    assert (info["width"], info["height"]) == expected
+    # The other connector must keep its own dimensions and frequency.
+    assert manager.get_screen_info()[1]["width"] == 2560
+    assert manager.get_instance_refresh_rate(profile, 0) == 75
+    for index in range(players):
+        dimensions = LayoutCalculator.calculate_position(*expected, players, index, orientation)[2:]
+        assert manager.get_instance_dimensions(profile, index) == dimensions
+        command = CommandBuilder(profile, {}, manager, index, Path("/unused"), None)._build_gamescope_command(False)
+        for flag, value in zip(("-W", "-H", "-w", "-h"), dimensions * 2):
+            assert command[command.index(flag) + 1] == str(value)
+
+
+def test_orientation_is_read_again_for_new_launch(manager):
+    """Changing rotation affects the next launch without restarting the application."""
+    from gi.repository import Gdk
+
+    profile = Profile()
+    assert manager.get_instance_dimensions(profile, 0) == (960, 1080)
+    Gdk.Display.get_default().get_monitors()[1].get_geometry.return_value = SimpleNamespace(width=1080, height=1920)
+    assert manager.get_instance_dimensions(profile, 0) == (540, 1920)
+
+
+@pytest.mark.parametrize("available_connector", [None, "UNKNOWN"])
+def test_missing_orientation_preserves_reported_dimensions(manager, monkeypatch, available_connector):
+    """Keep screeninfo's dimensions when GDK cannot identify the output."""
+    from gi.repository import Gdk
+
+    display = Gdk.Display.get_default()
+    if available_connector is None:
+        monkeypatch.setattr("src.services.device_manager.Gdk.Display.get_default", lambda: None)
+    else:
+        for monitor in display.get_monitors():
+            monitor.get_connector.return_value = available_connector
+    assert manager.get_instance_dimensions(Profile(), 0) == (960, 1080)
 
 
 @pytest.mark.parametrize(
