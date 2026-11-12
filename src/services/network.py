@@ -189,9 +189,7 @@ wait -n "$sandbox" "$helper"
 )
 
 
-def network_command(
-    command: list[str], guest_address: Optional[str] = None, instance_index: int = 0
-) -> list[str]:
+def network_command(command: list[str], guest_address: Optional[str] = None, instance_index: int = 0) -> list[str]:
     """Attach pasta to one bwrap, retaining its arguments and application."""
     return [
         "bash",

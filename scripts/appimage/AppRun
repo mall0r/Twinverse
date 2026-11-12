@@ -1,9 +1,26 @@
 #!/bin/bash
 set -euo pipefail
 HERE=$(dirname "$(readlink -f "$0")")
-export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+# Host themes and cursors take precedence; bundled Adwaita is only a fallback.
+# Include PyInstaller's share directory now, otherwise its GLib hook prepends it.
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}:$HERE/usr/share:$HERE/usr/bin/_internal/share"
 export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-export FONTCONFIG_PATH="$HERE/usr/bin/_internal/etc/fonts"
-export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"
+# GTK 4.16 uses GSettings outside Flatpak, but our private GLib has no host
+# settings backend. The Settings portal supplies the desktop's font/cursor
+# preferences (and live updates) without loading incompatible host modules.
+# GTK_USE_PORTAL is not used by this GTK version. Honour an explicit opt-out.
+if [[ ! "${GDK_DEBUG:-}" =~ (^|[,:\;[:space:]])no-portals($|[,:\;[:space:]]) ]]; then
+    export GDK_DEBUG="${GDK_DEBUG:+$GDK_DEBUG,}portals"
+fi
+# Use the host's font aliases, rendering rules and user customizations, not
+# Ubuntu's. Keep the bundled configuration for hosts without fontconfig data.
+if [ -z "${FONTCONFIG_FILE:-}" ] && [ -z "${FONTCONFIG_PATH:-}" ]; then
+    if [ -r /etc/fonts/fonts.conf ]; then
+        export FONTCONFIG_PATH=/etc/fonts
+    else
+        export FONTCONFIG_PATH="$HERE/usr/bin/_internal/etc/fonts"
+    fi
+    export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"
+fi
 # PyInstaller's GI runtime hook sets typelib and schema paths inside _internal.
 exec "$HERE/usr/bin/twinverse" "$@"

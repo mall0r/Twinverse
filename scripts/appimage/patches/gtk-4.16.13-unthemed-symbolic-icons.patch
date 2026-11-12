@@ -1,0 +1,20 @@
+Recognize symbolic icons in the unthemed fallback lookup.
+
+Application icons directly under a GResource icons/ directory go through
+this branch, unlike icons in a theme's scalable/actions/ directory. GTK
+4.16 forgets is_symbolic here and renders the original SVG colors instead
+of the widget's foreground color. This affects the sun and layout preview
+icons in the AppImage. Match the detection already used by themed icons
+and gtk_icon_paintable_new_for_file, without changing application resources
+or other packages.
+
+--- a/gtk/gtkicontheme.c
++++ b/gtk/gtkicontheme.c
+@@ -2227,6 +2227,7 @@
+             {
+               icon->is_svg = suffix_from_name (icon->filename) == ICON_CACHE_FLAG_SVG_SUFFIX;
+               icon->is_resource = unthemed_icon->is_resource;
++              icon->is_symbolic = icon_uri_is_symbolic (icon->filename, -1);
+               goto out;
+             }
+         }

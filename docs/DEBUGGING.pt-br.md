@@ -193,8 +193,28 @@ e usa o cursor default interno quando o tema não é encontrado.
 A aplicação reaplica o tema de cursor configurado nas configurações do
 usuário no startup e quando a configuração `gtk-cursor-theme-name` muda, para
 que o tema configurado seja resolvido de novo em vez de ficar no cursor
-default. Isso cobre o AppImage e o Flatpak, que trazem seus próprios builds do
-GTK, e mantém o cursor que o usuário escolheu.
+default. Mas reaplicar o valor não resolve quando o próprio GTK lê o tema
+errado: no AppImage, o GTK 4.16 usava GSettings sem o backend de configurações
+do host e obtinha `Adwaita` em vez do tema escolhido no KDE. Isso acontece
+também no Wayland e não indica uma troca para X11.
+
+O launcher do AppImage habilita o portal de configurações (`GDK_DEBUG=portals`)
+para receber o tema do cursor, tamanho e fonte do desktop, incluindo mudanças
+durante a execução. Os temas do host têm prioridade sobre o fallback empacotado.
+Para depuração, `GDK_DEBUG=no-portals` desabilita essa integração explicitamente.
+
+### Fontes e ícones diferentes apenas no AppImage
+
+O AppImage usa `/etc/fonts` do host e respeita `FONTCONFIG_FILE` e
+`FONTCONFIG_PATH` definidos pelo usuário. A configuração empacotada só é usada
+se a configuração do host estiver ausente. O fontconfig empacotado é atualizado
+para interpretar também as regras das distribuições recentes.
+
+O GTK 4.16 também não marcava como simbólicos os ícones encontrados diretamente
+no diretório de recursos `icons/`, deixando o preenchimento branco do SVG fixo
+no tema claro. Um patch exclusivo do AppImage corrige essa classificação.
+O build testa os pixels dos ícones com foreground preto e branco usando o GTK
+que será empacotado, sem alterar os SVGs usados pelos outros formatos.
 
 ## Quando o cliente da Steam não abre
 

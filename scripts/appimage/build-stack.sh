@@ -50,6 +50,18 @@ tar -xf protocols.tar.xz
 meson setup wayland-protocols-1.36/build wayland-protocols-1.36 --prefix="$PREFIX" -Dtests=false
 ninja -C wayland-protocols-1.36/build install
 
+# Ubuntu 22.04's fontconfig 2.13 cannot parse modern host rules (generic
+# families and xsi:nil). Build a current parser so AppRun can use /etc/fonts
+# instead of forcing Ubuntu's aliases and hinting on every distribution.
+curl --fail --location --retry 3 \
+    https://codeload.github.com/fontconfig/fontconfig/tar.gz/refs/tags/2.18.3 \
+    -o fontconfig.tar.gz
+tar -xf fontconfig.tar.gz
+meson setup fontconfig-2.18.3/build fontconfig-2.18.3 --prefix="$PREFIX" --libdir=lib \
+    --sysconfdir=/etc --buildtype=release --wrap-mode=nofallback \
+    -Dtemplate-dir=/etc/fonts/conf.avail -Ddoc=disabled -Dtests=disabled -Dtools=disabled
+ninja -C fontconfig-2.18.3/build -j"$JOBS" install
+
 curl --fail --location --retry 3 https://cairographics.org/releases/cairo-1.18.4.tar.xz -o cairo.tar.xz
 tar -xf cairo.tar.xz
 meson setup cairo-1.18.4/build cairo-1.18.4 --prefix="$PREFIX" --libdir=lib \

@@ -11,9 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgraphene-1.0-dev libxkbcommon-dev libx11-dev libxext-dev libxi-dev \
     libxrandr-dev libxcursor-dev libxdamage-dev libxfixes-dev libxinerama-dev \
     libwayland-dev libegl1-mesa-dev libgl1-mesa-dev libvulkan-dev libdrm-dev \
-    libjpeg-dev libpng-dev libtiff-dev shared-mime-info adwaita-icon-theme \
+    libjpeg-dev libpng-dev libtiff-dev libfreetype6-dev libexpat1-dev gperf \
+    shared-mime-info adwaita-icon-theme \
     libappstream-dev librsvg2-common desktop-file-utils squashfs-tools && rm -rf /var/lib/apt/lists/*
-RUN python3 -m pip install --no-cache-dir meson==1.7.2 packaging
+RUN python3 -m pip install --no-cache-dir meson==1.11.2 packaging
 
 # Build the modern GNOME stack against glibc 2.35, rather than copying it
 # from a rolling-release workstation. Keep the prefix out of the host system.
@@ -26,6 +27,7 @@ ENV XDG_DATA_DIRS=/opt/twinverse/share:/usr/local/share:/usr/share
 COPY scripts/appimage/build-stack.sh /tmp/build-stack.sh
 COPY scripts/appimage/patches /tmp/patches
 RUN bash /tmp/build-stack.sh
+RUN apt-get update && apt-get install -y --no-install-recommends xvfb xauth && rm -rf /var/lib/apt/lists/*
 ENV GI_TYPELIB_PATH=/opt/twinverse/lib/girepository-1.0:/usr/lib/x86_64-linux-gnu/girepository-1.0
 RUN python3 -m venv /opt/python && /opt/python/bin/pip install --no-cache-dir \
     pyinstaller==6.14.2 PyGObject==3.52.3 pycairo==1.28.0 \
