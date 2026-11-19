@@ -29,7 +29,7 @@ class ToastOverlay(Gtk.Overlay):
         self._timeout_id = 0
 
         self._icon = Gtk.Image()
-        self._icon.get_style_context().add_class("toast-icon")
+        self._icon.add_css_class("toast-icon")
 
         self._label = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, xalign=0.5)
         self._label.set_max_width_chars(60)
@@ -37,7 +37,7 @@ class ToastOverlay(Gtk.Overlay):
         self._card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._card.append(self._icon)
         self._card.append(self._label)
-        self._card.get_style_context().add_class("toast-card")
+        self._card.add_css_class("toast-card")
 
         self._revealer = Gtk.Revealer(
             transition_type=Gtk.RevealerTransitionType.SLIDE_UP,
@@ -61,10 +61,9 @@ class ToastOverlay(Gtk.Overlay):
         self._icon.set_from_icon_name(ICONS.get(level, ICONS[INFO]))
         self._label.set_text(message)
 
-        style = self._card.get_style_context()
         for name in LEVEL_CLASSES.values():
-            style.remove_class(name)
-        style.add_class(LEVEL_CLASSES.get(level, LEVEL_CLASSES[INFO]))
+            self._card.remove_css_class(name)
+        self._card.add_css_class(LEVEL_CLASSES.get(level, LEVEL_CLASSES[INFO]))
 
         self._revealer.set_reveal_child(True)
         self._schedule_hide(timeout)

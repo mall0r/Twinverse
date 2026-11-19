@@ -16,21 +16,19 @@ def _overlay():
 def test_a_failure_is_outlined_in_red():
     """A failure is not read as a notice."""
     overlay = _overlay()
-    style = overlay._card.get_style_context.return_value
 
     ToastOverlay.show_toast(overlay, "a Steam nao abriu", ERROR)
 
-    assert style.add_class.call_args[0][0] == "toast-error"
+    overlay._card.add_css_class.assert_called_once_with("toast-error")
 
 
 def test_a_message_of_a_work_in_progress_is_not_an_error():
     """A client that is starting, or updating, is only busy."""
     overlay = _overlay()
-    style = overlay._card.get_style_context.return_value
 
     ToastOverlay.show_toast(overlay, "Starting the Steam client…", BUSY)
 
-    assert style.add_class.call_args[0][0] == "toast-busy"
+    overlay._card.add_css_class.assert_called_once_with("toast-busy")
 
 
 def test_the_card_takes_the_icon_of_the_message():
@@ -45,11 +43,10 @@ def test_the_card_takes_the_icon_of_the_message():
 def test_the_look_of_the_previous_message_is_taken_away():
     """A message that comes after a failure is not red anymore."""
     overlay = _overlay()
-    style = overlay._card.get_style_context.return_value
 
     ToastOverlay.show_toast(overlay, "a Steam nao abriu", ERROR)
     ToastOverlay.show_toast(overlay, "Steam started", INFO)
 
-    removed = [call[0][0] for call in style.remove_class.call_args_list]
+    removed = [call[0][0] for call in overlay._card.remove_css_class.call_args_list]
     assert "toast-error" in removed
-    assert style.add_class.call_args[0][0] == LEVEL_CLASSES[INFO]
+    overlay._card.add_css_class.assert_called_with(LEVEL_CLASSES[INFO])
