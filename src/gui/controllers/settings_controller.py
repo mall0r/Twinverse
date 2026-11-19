@@ -36,6 +36,9 @@ class SettingsController:
             ui_data: As returned by the layout page; "selected_players" and
                 "player_configs" are pruned to num_players.
         """
+        if "monitor_layouts" in ui_data:
+            validated = Profile.model_validate({"monitor_layouts": ui_data["monitor_layouts"]})
+            self._profile.monitor_layouts = validated.monitor_layouts
         old_player_configs = self._profile.player_configs[:]
 
         self._profile.num_players = ui_data["num_players"]

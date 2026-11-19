@@ -17,6 +17,7 @@ from gi.repository import Gdk
 from screeninfo import get_monitors
 
 from src.core import LayoutCalculator
+from src.core.tiling import build_tiling_plan
 from src.models import Profile
 
 logger = logging.getLogger(__name__)
@@ -237,8 +238,24 @@ class DeviceManager:
             return 0
         return index
 
+    def get_instance_placement(self, profile: Profile, instance_num: int):
+        """Return (MonitorPlan, proportional rectangle), or None when unassigned.
+
+        This helper is for explicit monitor layouts; legacy callers retain their
+        existing slot calculation. Discovery is refreshed on every invocation.
+        """
+        plan = build_tiling_plan(profile.layout_indices(), self.get_screen_info(), profile.monitor_layouts)
+        for monitor in plan.monitors:
+            if instance_num in monitor.players:
+                return monitor, monitor.template.rectangles[monitor.players.index(instance_num)]
+        return None
+
     def get_instance_refresh_rate(self, profile: Profile, instance_num: int) -> Optional[int]:
         """Return the assigned monitor's current rate in Gamescope's integer Hz."""
+        if profile.monitor_layouts:
+            placement = self.get_instance_placement(profile, instance_num)
+            rate = placement[0].display.get("refresh_rate_mhz", 0) if placement else 0
+            return max(1, int(rate / 1000 + 0.5)) if rate > 0 else None
         monitors = sorted(self.get_screen_info(), key=lambda monitor: monitor["id"])
         index = self._resolve_monitor_index(profile, instance_num, len(monitors))
         if 0 <= index < len(monitors):
@@ -254,6 +271,12 @@ class DeviceManager:
         The selected instances are laid out in groups of four, following the
         configured placement order, so a partial selection still fills the split.
         """
+        if profile.monitor_layouts:
+            placement = self.get_instance_placement(profile, instance_num)
+            if placement is None:
+                return None, None
+            monitor, (_, _, width, height) = placement
+            return int(monitor.display["width"] * width), int(monitor.display["height"] * height)
         monitors = self.get_screen_info()
 
         monitors_sorted = sorted(monitors, key=lambda x: x["id"])

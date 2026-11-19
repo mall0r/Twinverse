@@ -49,7 +49,26 @@ function twinversePositionClients(position) {
     var clients = getGamescopeClients();
     for (var i = 0; i < clients.length; i++) {
       var slot = twinverseSlot(clients[i]);
-      if (slot >= 0) position(clients[i], slot);
+      if (slot < 0) continue;
+      if (twinverseLayout.placements !== undefined) {
+        var placement = twinverseLayout.placements[String(twinverseRecord(clients[i]).instance)];
+        if (!placement) continue;
+        var output = workspace.screens.find(function (screen) { return screen.name === placement.monitor; });
+        // Explicit layouts never fall back to a different connector.
+        if (!output) continue;
+        var rect = placement.rectangle;
+        var geometry = output.geometry;
+        if (clients[i].fullScreen) clients[i].fullScreen = false;
+        if (clients[i].maximizeMode && clients[i].setMaximize) clients[i].setMaximize(false, false);
+        twinverseGeometry(clients[i], {
+          x: geometry.x + Math.floor(rect[0] * geometry.width),
+          y: geometry.y + Math.floor(rect[1] * geometry.height),
+          width: Math.floor(rect[2] * geometry.width),
+          height: Math.floor(rect[3] * geometry.height)
+        });
+      } else {
+        position(clients[i], slot);
+      }
     }
   } finally {
     twinverseUpdating = false;

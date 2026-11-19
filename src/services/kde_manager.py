@@ -8,6 +8,7 @@ import pydbus
 from gi.repository import Gio, GLib
 
 from src.core.config import Config, ensure_private_dir
+from src.core.tiling import build_tiling_plan
 from src.models import Profile
 from src.services.device_manager import DeviceManager
 from src.services.kwin_layout import INTERFACE, OBJECT_PATH, KwinLayoutResolver
@@ -62,9 +63,29 @@ class KdeManager:
             if self._layout_resolver is None:
                 logger.error("KWin layout identity service is unavailable; refusing an unordered layout")
                 return
-            monitor_names = [monitor.name for monitor in DeviceManager.get_ordered_monitors()]
             instances = profile.layout_indices()
-            signature = (script_name, tuple(monitor_names), tuple(instances))
+            placements = None
+            if profile.monitor_layouts:
+                plan = build_tiling_plan(instances, DeviceManager().get_screen_info(), profile.monitor_layouts)
+                monitor_names = [monitor.key for monitor in plan.monitors]
+                placements = {
+                    str(player): {
+                        "monitor": monitor.key,
+                        "template": monitor.template.id,
+                        "rectangle": monitor.template.rectangles[slot],
+                    }
+                    for monitor in plan.monitors
+                    for slot, player in enumerate(monitor.players)
+                    if player is not None
+                }
+            else:
+                monitor_names = [monitor.name for monitor in DeviceManager.get_ordered_monitors()]
+            signature: tuple[object, ...] = (script_name, tuple(monitor_names), tuple(instances))
+            if placements is not None:
+                signature += (
+                    json.dumps(placements, sort_keys=True),
+                    profile.model_dump_json(include={"monitor_layouts"}),
+                )
             if self.kwin_script_id is not None:
                 if self._kwin_script_signature == signature:
                     return
@@ -78,6 +99,8 @@ class KdeManager:
                 "path": OBJECT_PATH,
                 "interface": INTERFACE,
             }
+            if placements is not None:
+                settings["placements"] = placements
             shared_script = (script_path.parent / "kwin_layout.js").read_text()
             script_content = (
                 f"var twinverseLayout = {json.dumps(settings)};\n" + shared_script + script_path.read_text()

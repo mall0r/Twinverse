@@ -3,14 +3,15 @@
 import json
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
-from pydantic.functional_validators import field_validator
+from pydantic.functional_validators import field_validator, model_validator
 
 from src.core import Config, Utils
 from src.core.config import ensure_private_dir
 from src.core.layout import LayoutCalculator
+from src.core.tiling import TEMPLATES
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,23 @@ class SplitscreenConfig(BaseModel):
         return v
 
 
+class MonitorLayoutConfig(BaseModel):
+    """Saved template and optional instance reservations for one connector."""
+
+    template: Literal["fullscreen", "columns", "rows", "main-left", "main-top", "grid"] = "fullscreen"
+    players: list[StrictInt | None] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_players(self):
+        """Reject excess slots and duplicate or negative player IDs."""
+        assigned = [player for player in self.players if player is not None]
+        if len(self.players) > TEMPLATES[self.template].capacity:
+            raise ValueError("Players exceed the template capacity.")
+        if any(player < 0 for player in assigned) or len(assigned) != len(set(assigned)):
+            raise ValueError("Players must contain unique, non-negative instance IDs.")
+        return self
+
+
 class Profile(BaseModel):
     """A profile for launching a set of Steam instances with a specific configuration."""
 
@@ -61,6 +79,7 @@ class Profile(BaseModel):
     # None preserves the automatic layout of existing profiles. A list is the
     # custom instance order, independent of selection and launch timing.
     layout_order: Optional[List[StrictInt]] = Field(default=None, alias="LAYOUT_ORDER")
+    monitor_layouts: dict[str, MonitorLayoutConfig] = Field(default_factory=dict, alias="MONITOR_LAYOUTS")
     use_steamdeck_tag: bool = Field(default=True, alias="USE_STEAMDECK_TAG")
     use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_gamescope_wsi: bool = Field(default=Utils.is_wayland(), alias="ENABLE_GAMESCOPE_WSI")

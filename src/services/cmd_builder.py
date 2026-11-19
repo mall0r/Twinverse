@@ -148,7 +148,10 @@ stream.rules = [
         if self.profile.use_steamdeck_tag:
             cmd.append("--mangoapp")
 
-        if not self.profile.is_splitscreen_mode:
+        if self.profile.monitor_layouts:
+            placement = self.device_manager.get_instance_placement(self.profile, self.instance_num)
+            cmd.append("-f" if placement and placement[0].template.id == "fullscreen" else "-b")
+        elif not self.profile.is_splitscreen_mode:
             cmd.append("-f")
         else:
             cmd.append("-b")
