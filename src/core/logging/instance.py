@@ -64,12 +64,12 @@ class InstanceLog:
                 suffix += 1
 
             descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_APPEND, 0o600)
-            stream = os.fdopen(descriptor, "ab")
+            os.close(descriptor)
         except OSError as error:
             logger.warning("Could not create the log for instance %s: %s", instance_num + 1, error)
             return cls(instance_num, None, max_bytes=max_bytes, error=error)
 
-        instance_log = cls(instance_num, path, stream, max_bytes=max_bytes)
+        instance_log = cls(instance_num, path, max_bytes=max_bytes)
         instance_log._write_header(command=command, env_keys=env_keys, cwd=cwd)
         instance_log._update_latest()
         return instance_log
@@ -109,7 +109,7 @@ class InstanceLog:
                 pass
 
     def open_stream(self) -> BinaryIO:
-        """Return the append stream, reopening it when necessary."""
+        """Return a caller-managed append stream, reopening it when necessary."""
         with self._lock:
             if self._stream is None or self._stream.closed:
                 if self.path is None:
@@ -123,21 +123,26 @@ class InstanceLog:
             return
         with self._lock:
             try:
-                stream = self._stream
-                if stream is None or stream.closed:
-                    stream = open(self.path, "ab")
-                    self._stream = stream
-                size = os.fstat(stream.fileno()).st_size
-                if size >= self.max_bytes:
-                    if not self._limit_reported:
-                        stream.write(b"\n# log size limit reached; further output is not stored\n")
-                        self._limit_reported = True
-                    return
-                remaining = self.max_bytes - size
-                stream.write(data[:remaining])
-                stream.flush()
+                if self._stream is not None and not self._stream.closed:
+                    self._append(self._stream, data)
+                else:
+                    with open(self.path, "ab") as stream:
+                        self._append(stream, data)
             except OSError as error:
                 logger.warning("Could not write the log for instance %s: %s", self.display_num, error)
+
+    def _append(self, stream: BinaryIO, data: bytes) -> None:
+        """Append capped output with the lock held by the caller."""
+        size = os.fstat(stream.fileno()).st_size
+        if size >= self.max_bytes:
+            if not self._limit_reported:
+                stream.write(b"\n# log size limit reached; further output is not stored\n")
+                stream.flush()
+                self._limit_reported = True
+            return
+        remaining = self.max_bytes - size
+        stream.write(data[:remaining])
+        stream.flush()
 
     def start_drain(self, stream: IO[bytes]) -> threading.Thread:
         """Consume a pipe in the background so the child never blocks on it."""

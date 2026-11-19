@@ -1,5 +1,6 @@
 """Exercise XDG paths, logging setup, redaction and diagnostics."""
 
+import io
 import json
 import logging
 import os
@@ -172,6 +173,117 @@ def test_instance_log_redacts_the_command_and_retains_a_limit(tmp_path):
     assert removed == 3
     assert len(list(paths.instances.glob("instance-01-*.log"))) == 2
     handle.shutdown()
+
+
+@pytest.fixture
+def instance_log_streams(monkeypatch):
+    """Track real log streams without relying on garbage collection to close them."""
+    streams = []
+
+    def track_open(factory):
+        def open_stream(*args, **kwargs):
+            stream = factory(*args, **kwargs)
+            streams.append(stream)
+            return stream
+
+        return open_stream
+
+    monkeypatch.setattr("src.core.logging.instance.open", track_open(open), raising=False)
+    monkeypatch.setattr(os, "fdopen", track_open(os.fdopen))
+    yield streams
+    for stream in streams:
+        stream.close()
+
+
+def test_instance_log_create_and_write_close_implicit_streams(tmp_path, instance_log_streams):
+    """Header and output writes need no finish call to release their files."""
+    instance_log = InstanceLog.create(0, base_dir=tmp_path)
+
+    assert instance_log.path is not None
+    assert instance_log_streams
+    assert all(stream.closed for stream in instance_log_streams)
+    assert instance_log.path.stat().st_mode & 0o777 == 0o600
+    assert (instance_log.path.parent / "latest.log").resolve() == instance_log.path
+    assert "# Twinverse instance log" in instance_log.path.read_text()
+
+    for index in range(2):
+        instance_log.write(f"child output {index}\n".encode())
+        assert all(stream.closed for stream in instance_log_streams)
+        assert f"child output {index}" in instance_log.path.read_text()
+
+
+def test_instance_log_explicit_stream_can_be_closed_and_reopened(tmp_path, instance_log_streams):
+    """Only explicit streams stay open, including across ordinary writes."""
+    instance_log = InstanceLog.create(0, base_dir=tmp_path)
+    assert instance_log.path is not None
+
+    with instance_log.open_stream() as stream:
+        assert instance_log.open_stream() is stream
+        stream.write(b"explicit output\n")
+        stream.flush()
+        opened = len(instance_log_streams)
+        instance_log.write(b"shared output\n")
+        assert not stream.closed
+        assert len(instance_log_streams) == opened
+        assert "shared output" in instance_log.path.read_text()
+
+    instance_log.write(b"scoped output\n")
+    assert all(stream.closed for stream in instance_log_streams)
+    with instance_log.open_stream() as reopened:
+        assert reopened is not stream
+        reopened.write(b"reopened output\n")
+
+    output = instance_log.open_stream()
+    output.write(b"final output\n")
+    instance_log.finish(exit_code=7)
+
+    assert all(stream.closed for stream in instance_log_streams)
+    text = instance_log.path.read_text()
+    for marker in ("explicit", "shared", "scoped", "reopened", "final"):
+        assert f"{marker} output" in text
+    assert "# finished:" in text
+    assert "exit_code=7" in text
+
+
+@pytest.mark.parametrize("explicit_stream", [False, True])
+def test_instance_log_size_limit_notice_is_flushed_once(tmp_path, instance_log_streams, explicit_stream):
+    """Both ownership modes cap output without dropping the notice or footer."""
+    instance_log = InstanceLog.create(0, base_dir=tmp_path)
+    assert instance_log.path is not None
+    header = instance_log.path.read_bytes()
+    instance_log.max_bytes = len(header) + 4
+    if explicit_stream:
+        instance_log.open_stream()
+
+    instance_log.write(b"abcdefgh")
+    assert instance_log.path.read_bytes() == header + b"abcd"
+    instance_log.write(b"discarded")
+    notice = b"\n# log size limit reached; further output is not stored\n"
+    assert instance_log.path.read_bytes() == header + b"abcd" + notice
+    instance_log.write(b"also discarded")
+    assert instance_log.path.read_bytes() == header + b"abcd" + notice
+
+    instance_log.finish(exit_code=0)
+
+    assert all(stream.closed for stream in instance_log_streams)
+    text = instance_log.path.read_text()
+    assert text.count(notice.decode()) == 1
+    assert "exit_code=0" in text
+
+
+def test_instance_log_drain_completion_closes_implicit_output(tmp_path, instance_log_streams):
+    """Finishing a pipe drain releases both ends without a log finish call."""
+    instance_log = InstanceLog.create(0, base_dir=tmp_path)
+    source = io.BytesIO(b"child output\n" * 1000)
+
+    thread = instance_log.start_drain(source)
+    thread.join(timeout=5)
+
+    assert not thread.is_alive()
+    assert source.closed
+    assert all(stream.closed for stream in instance_log_streams)
+    assert instance_log.path is not None
+    assert instance_log.path.read_bytes().endswith(b"child output\n" * 1000)
 
 
 def test_diagnostics_are_available_before_gtk(tmp_path):
