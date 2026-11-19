@@ -118,9 +118,9 @@ def test_the_host_shell_reports_the_process_group_of_the_instance():
     process = subprocess.Popen(
         ["bash", "-c", leader], stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
     )
+    reported = ""
     try:
         deadline = time.monotonic() + 10
-        reported = ""
         while time.monotonic() < deadline and not reported:
             reported = process.stdout.readline().decode().strip()
             if not reported:
@@ -132,8 +132,16 @@ def test_the_host_shell_reports_the_process_group_of_the_instance():
         groups = {line.split()[1] for line in listing.splitlines() if "sleep 30" in line and "bwrap" not in line}
         assert reported in groups, "the reported group does not match the group of the instance"
     finally:
-        process.kill()
-        process.wait(timeout=5)
+        cleanup_groups = {process.pid}
+        if reported.isdigit():
+            cleanup_groups.add(int(reported))
+        for pgid in cleanup_groups:
+            if pgid != os.getpgrp():
+                try:
+                    os.killpg(pgid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+        process.communicate(timeout=5)
 
 
 @pytest.mark.skipif(not Path("/bin/bash").exists(), reason="bash is needed for the network setup")
