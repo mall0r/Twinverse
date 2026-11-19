@@ -48,12 +48,12 @@ def test_loading_preview_does_not_emit_a_profile_change(page, devices):
     assert page.get_data()["layout_order"] == [2, 0, 3, 1]
 
 
-def test_automatic_is_the_default_and_its_selectors_are_read_only(page, devices):
-    """Existing profiles remain automatic until the user explicitly chooses Custom."""
+def test_automatic_is_the_default_and_destinations_are_available_in_player_setup(page, devices):
+    """Profiles stay automatic until a player is actually moved by dragging or selection."""
     page.load_data(Profile(num_players=4), devices, {})
     assert page.get_data()["layout_order"] is None
     assert page.layout_preview.instances == [0, 1, 2, 3]
-    assert all(not selector.is_sensitive() for selector in page.layout_preview.slot_selectors)
+    assert all(row.position_row.is_sensitive() for row in page.player_rows)
 
 
 def test_selecting_an_instance_swaps_both_slots_and_emits_once(page, devices):
@@ -62,9 +62,9 @@ def test_selecting_an_instance_swaps_both_slots_and_emits_once(page, devices):
     page.placement_mode_row.set_selected(1)
     changes = []
     page.connect("settings-changed", lambda _page: changes.append(True))
-    page.layout_preview.slot_selectors[0].set_selected(2)
+    page.player_rows[2].position_row.set_selected(0)
     assert page.get_data()["layout_order"] == [2, 1, 0, 3]
-    assert [selector.get_selected() for selector in page.layout_preview.slot_selectors] == [2, 1, 0, 3]
+    assert [row.position_row.get_selected() for row in page.player_rows] == [2, 1, 0, 3]
     assert changes == [True]
 
 
@@ -72,7 +72,7 @@ def test_swapping_between_monitors_keeps_monitor_labels_and_unique_assignments(p
     """All visible slots share one assignment set, including slots on another monitor."""
     page.load_data(Profile(num_players=6), devices, {})
     page.placement_mode_row.set_selected(1)
-    page.layout_preview.slot_selectors[0].set_selected(5)
+    page.player_rows[5].position_row.set_selected(0)
     assert page.get_data()["layout_order"] == [5, 1, 2, 3, 4, 0]
     assert page.layout_preview.monitor_names == ["Monitor 1 · HDMI-A-1", "Monitor 2 · DP-1"]
     assert len(set(page.layout_preview.instances)) == 6
@@ -85,8 +85,9 @@ def test_unchecking_players_keeps_their_saved_order_but_removes_their_slots(page
     page.player_rows[1].checkbox.set_active(False)
     page.player_rows[3].checkbox.set_active(False)
     assert page.layout_preview.instances == [0, 2]
-    assert all(selector.get_model().get_n_items() == 2 for selector in page.layout_preview.slot_selectors)
-    page.layout_preview.slot_selectors[0].set_selected(1)
+    assert all(page.player_rows[index].position_row.get_model().get_n_items() == 2 for index in (0, 2))
+    assert all(not page.player_rows[index].position_row.is_sensitive() for index in (1, 3))
+    page.player_rows[2].position_row.set_selected(0)
     assert page.get_data()["layout_order"] == [2, 1, 0, 3]
     page.player_rows[1].checkbox.set_active(True)
     page.player_rows[3].checkbox.set_active(True)
@@ -99,7 +100,8 @@ def test_no_selected_players_has_no_assignment_controls(page, devices):
     for row in page.player_rows:
         row.checkbox.set_active(False)
     assert page.layout_preview.instances == []
-    assert page.layout_preview.slot_selectors == []
+    assert page.layout_preview.slot_labels == []
+    assert all(not row.position_row.is_sensitive() for row in page.player_rows)
     assert "Select at least one instance" in page.layout_preview.get_first_child().get_label()
 
 
@@ -119,8 +121,8 @@ def test_preview_spans_match_the_launcher_split_tables(page, devices, count, ori
     profile.splitscreen.orientation = orientation
     page.load_data(profile, devices, {})
     xs, ys, widths, heights = LayoutCalculator.get_layout_coordinates(count, orientation)
-    for slot, selector in enumerate(page.layout_preview.slot_selectors):
-        cell = selector.get_parent()
+    for slot, widgets in enumerate(page.layout_preview._slots):
+        cell = widgets.cell
         grid = cell.get_parent()
         assert tuple(grid.query_child(cell)) == (
             round(xs[slot] * 2),
@@ -134,7 +136,7 @@ def test_fullscreen_previews_one_slot_per_monitor_with_a_fallback_warning(page, 
     """Fullscreen slots identify their actual output, including the existing monitor fallback."""
     page.load_data(Profile(mode="fullscreen", num_players=3), devices, {})
     assert page.layout_preview.monitor_names == ["Monitor 1 · HDMI-A-1", "Monitor 2 · DP-1", "Monitor 1 · HDMI-A-1"]
-    fallback = page.layout_preview.get_last_child()
+    fallback = page.layout_preview.monitor_cards[-1]
     assert "No dedicated display" in fallback.get_first_child().get_next_sibling().get_label()
 
 
@@ -142,7 +144,7 @@ def test_monitor_rotation_is_reflected_in_the_preview_aspect_ratio(page, devices
     """A portrait display must not be presented as a landscape monitor."""
     devices["displays"][0].update(width=1080, height=1920)
     page.load_data(Profile(), devices, {})
-    frame = page.layout_preview.get_first_child().get_last_child()
+    frame = page.layout_preview.monitor_cards[0].get_last_child()
     assert frame.get_ratio() == pytest.approx(1080 / 1920)
 
 
@@ -151,9 +153,9 @@ def test_running_state_disables_placement_changes(page, devices):
     page.load_data(Profile(layout_order=[1, 0]), devices, {})
     page.set_screen_settings_sensitive(False)
     assert not page.placement_mode_row.is_sensitive()
-    assert all(not selector.is_sensitive() for selector in page.layout_preview.slot_selectors)
+    assert all(not row.position_row.is_sensitive() for row in page.player_rows)
     page.set_screen_settings_sensitive(True)
-    assert all(selector.is_sensitive() for selector in page.layout_preview.slot_selectors)
+    assert all(row.position_row.is_sensitive() for row in page.player_rows)
 
 
 def test_ui_order_round_trips_through_the_controller_and_profile(page, devices, monkeypatch, tmp_path):
@@ -161,7 +163,7 @@ def test_ui_order_round_trips_through_the_controller_and_profile(page, devices, 
     monkeypatch.setattr(Config, "get_profile_path", lambda: tmp_path / "profile.json")
     page.load_data(Profile(num_players=4), devices, {})
     page.placement_mode_row.set_selected(1)
-    page.layout_preview.slot_selectors[0].set_selected(3)
+    page.player_rows[3].position_row.set_selected(0)
     controller = SettingsController.__new__(SettingsController)
     controller._profile = Profile()
     controller.update_from_ui_data(page.get_data())

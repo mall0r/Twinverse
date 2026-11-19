@@ -79,6 +79,7 @@ def _presenter(recovered=None):
     presenter.window = Mock()
     layout_page = Mock()
     layout_page.get_selected_players.return_value = [0, 1]
+    layout_page.get_layout_error.return_value = None
     layout_page.player_rows = [_Row(), _Row()]
     presenter.window.get_layout_page.return_value = layout_page
     return presenter
@@ -105,6 +106,47 @@ def _footer_label(presenter) -> str:
         if name == "show_stopping_state":
             return "Stopping"
     return "Play"
+
+
+def test_unassigned_players_block_bulk_launch_before_starting_clients():
+    """Insufficient monitor capacity is reported before changing any instance state."""
+    presenter = _presenter()
+    page = presenter.window.get_layout_page()
+    page.get_layout_error.return_value = "Player 2 has no display space."
+    presenter._on_launch_requested()
+    presenter.window.show_error.assert_called_once_with("Player 2 has no display space.")
+    presenter._launch_controller.launch_instances.assert_not_called()
+    presenter._settings_controller.save_profile.assert_not_called()
+    assert presenter._instance_states == {}
+
+
+def test_unassigned_player_cannot_launch_individually():
+    """The per-player action obeys the same monitor capacity validation."""
+    presenter = _presenter()
+    page = presenter.window.get_layout_page()
+    page.get_layout_error.return_value = "Player 1 has no display space."
+    presenter.on_instance_launch_requested(0)
+    page.get_layout_error.assert_called_once_with(0)
+    presenter.window.show_error.assert_called_once_with("Player 1 has no display space.")
+    presenter._launch_controller.launch_single_instance.assert_not_called()
+    assert presenter._instance_states == {}
+
+
+def test_unassigned_players_disable_session_launch():
+    """Launch readiness includes available monitor capacity."""
+    presenter = _presenter()
+    presenter.window.get_layout_page().get_layout_error.return_value = "Choose a larger template."
+    presenter._update_launch_button_sensitivity()
+    presenter.window.update_launch_button_sensitivity.assert_called_once_with(False)
+
+
+def test_missing_display_space_never_disables_session_stop():
+    """A disconnected monitor must not strand already running clients."""
+    presenter = _presenter()
+    presenter._instance_states = {0: INSTANCE_RUNNING}
+    presenter.window.get_layout_page().get_layout_error.return_value = "Monitor disconnected."
+    presenter._update_launch_button_sensitivity()
+    presenter.window.update_launch_button_sensitivity.assert_called_once_with(True)
 
 
 def test_an_instance_that_survived_the_crash_puts_the_footer_in_stop():

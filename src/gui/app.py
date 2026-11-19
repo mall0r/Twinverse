@@ -12,7 +12,7 @@ import gi
 gi.require_version("Gtk", "4.0")  # noqa: E402
 gi.require_version("Adw", "1")  # noqa: E402
 
-from gi.repository import Adw, Gio, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, Gtk  # noqa: E402
 
 from src.core.config import Config
 from src.core.utils import Utils
@@ -92,6 +92,7 @@ class TwinverseApplication(Adw.Application):
         # theme is applied here and not while the object is built.
         self._watch_cursor_theme()
         self._apply_cursor_theme()
+        Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_resource_path("/io/github/mall0r/Twinverse/icons")
         logger.info("Application startup completed (pid=%d)", os.getpid())
 
     def _load_resources(self):
@@ -115,9 +116,9 @@ class TwinverseApplication(Adw.Application):
                 self.win.present()
                 return
 
+            self._load_css()
             presenter = MainPresenter(app)
             self.win = presenter.window
-            self._load_css()
             self.win.present()
             logger.info("Main window presented")
         except Exception:
@@ -127,9 +128,13 @@ class TwinverseApplication(Adw.Application):
     def _load_css(self):
         """Load application CSS."""
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_resource("/io/github/mall0r/Twinverse/styles/style.css")
+        stylesheet = self.base_path / "res" / "styles" / "style.css"
+        if stylesheet.exists():
+            css_provider.load_from_path(str(stylesheet))
+        else:
+            css_provider.load_from_resource("/io/github/mall0r/Twinverse/styles/style.css")
         Gtk.StyleContext.add_provider_for_display(
-            self.win.get_display(),
+            Gdk.Display.get_default(),
             css_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )

@@ -324,6 +324,10 @@ class MainPresenter:
                 instance_num, on_complete=lambda: GLib.idle_add(self._on_single_instance_stopped, instance_num)
             )
         else:
+            layout_error = layout_page.get_layout_error(instance_num)
+            if layout_error:
+                self.window.show_error(layout_error)
+                return
             logger.info(f"Launch requested for instance {instance_num} (no verification required).")
 
             self._save_current_settings()
@@ -404,10 +408,15 @@ class MainPresenter:
 
         layout_page = self.window.get_layout_page()
         layout_page.update_devices_info(devices_info)
+        self._update_launch_button_sensitivity()
 
     def _on_launch_requested(self):
         """Handle launch request."""
         logger.info("Launch requested by user.")
+        layout_error = self.window.get_layout_page().get_layout_error()
+        if layout_error:
+            self.window.show_error(layout_error)
+            return
 
         self._bulk_operation_in_progress = True
 
@@ -578,6 +587,9 @@ class MainPresenter:
         else:
             self._settings_controller.update_preference(key, value)
 
+        if key == "use_gamescope":
+            self.window.get_layout_page().set_gamescope_enabled(bool(value))
+
         if key == "player_configs":
             profile = self._settings_controller.get_profile()
             devices_info = self._settings_controller.get_devices_info()
@@ -618,9 +630,12 @@ class MainPresenter:
     def _update_launch_button_sensitivity(self):
         """Update launch button enabled state."""
         layout_page = self.window.get_layout_page()
+        if self._footer_state() == INSTANCE_RUNNING:
+            self.window.update_launch_button_sensitivity(True)
+            return
         selected_players = layout_page.get_selected_players()
 
-        if not selected_players:
+        if not selected_players or layout_page.get_layout_error():
             self.window.update_launch_button_sensitivity(False)
             return
 

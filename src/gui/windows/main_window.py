@@ -1,259 +1,317 @@
-"""Main window UI - presentation only."""
+"""Application shell for the native GTK session studio."""
+
+# flake8: noqa: E402
 
 import gi
-from gi.repository import Adw, Gio, Gtk
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
 
 from src.gui.dialogs import ErrorDialog
 from src.gui.notifications import INFO, send_desktop_notification
 from src.gui.pages import LayoutSettingsPage
+from src.gui.widgets.player_row import INSTANCE_RUNNING
 from src.gui.widgets.toast import ToastOverlay
-
-gi.require_version("Gtk", "4.0")
-gi.require_version("Adw", "1")
 
 
 class MainWindow(Adw.ApplicationWindow):
-    """Window chrome, launch button and the layout page."""
+    """A canvas-led workspace with a party navigator and contextual player inspector."""
 
     def __init__(self, application, presenter, *args, **kwargs):
-        """Initialize the main window."""
+        """Build the studio shell around the existing presenter contract."""
         super().__init__(*args, application=application, **kwargs)
         self._presenter = presenter
+        self._session_state = "idle"
         self.set_title("Twinverse")
-        self.set_default_size(810, 740)
-        self.theme_toggle_button = None  # Store reference to theme toggle button
-        self._build_ui()
-        self.connect("close-request", self._on_close_request)
-
-    def _build_ui(self):
-        """Build the user interface."""
+        self.set_default_size(1380, 860)
+        self.set_size_request(660, 560)
+        self.add_css_class("twinverse-studio")
         self.toast_overlay = ToastOverlay()
         self.toolbar_view = Adw.ToolbarView()
-        self.toolbar_view.get_style_context().add_class("main-content")
-
-        style_manager = Adw.StyleManager.get_default()
-        if not style_manager.get_dark():
-            self.toolbar_view.get_style_context().add_class("light")
-
-        style_manager.connect("notify::dark", self._on_theme_changed)
-
         self.toast_overlay.set_child(self.toolbar_view)
         self.set_content(self.toast_overlay)
+        self._build_workspace()
+        self._build_session_status()
+        self._build_header()
+        self._configure_adaptation()
+        style = Adw.StyleManager.get_default()
+        style.connect("notify::dark", self._on_theme_changed)
+        self._on_theme_changed(style, None)
+        self._update_session_summary()
+        self.connect("close-request", self._on_close_request)
 
-        self._create_header_bar()
-        self._create_content_area()
-        self._create_footer_bar()
-
-    def show_toast(self, message: str, timeout: int = 3, level: str = INFO):
-        """
-        Show a message over the window, without blocking it.
-
-        The message goes away on its own, and the next one replaces it
-        instead of waiting in a queue. When the window is hidden, or in the
-        background behind a game, the same message is shown as a desktop
-        notification, so the user knows about it either way. The level of the
-        message decides the icon of both, and how urgent the desktop
-        notification is.
-        """
-        if not self.is_active():
-            send_desktop_notification("Twinverse", message, level)
-
-        self.toast_overlay.show_toast(message, level, timeout)
-        return self.toast_overlay
-
-    def _create_header_bar(self):
-        """Create the header bar with menu."""
-        menu_items = Gio.Menu.new()
-
-        about_action = Gio.SimpleAction.new("about", None)
-        about_action.connect("activate", lambda a, p: self._presenter.on_about_clicked())
-        self.add_action(about_action)
-        menu_items.append("About", "win.about")
-
-        prefs_action = Gio.SimpleAction.new("preferences", None)
-        prefs_action.connect("activate", lambda a, p: self._presenter.on_preferences_clicked())
-        self.add_action(prefs_action)
-        menu_items.append("Preferences", "win.preferences")
-
-        menu_button = Gtk.MenuButton()
-        menu_button.set_icon_name("open-menu-symbolic")
-        menu_button.set_menu_model(menu_items)
-
-        self.theme_toggle_button = Gtk.Button()
-        style_manager = Adw.StyleManager.get_default()
-
-        if style_manager.get_dark():
-            self.theme_toggle_button.set_icon_name("moon-outline-symbolic")  # Moon icon for dark mode
-        else:
-            self.theme_toggle_button.set_icon_name("sun-outline-symbolic")  # Sun icon for light mode
-
-        self.theme_toggle_button.connect("clicked", self._toggle_theme)
-        self.theme_toggle_button.set_tooltip_text("Toggle Theme")
-
-        header_bar = Adw.HeaderBar()
-        header_bar.get_style_context().add_class("header-bar")
-        header_bar.pack_end(self.theme_toggle_button)
-        header_bar.pack_end(menu_button)
-        self.toolbar_view.add_top_bar(header_bar)
-
-    def _create_content_area(self):
-        """Create the main content area."""
+    def _build_workspace(self):
         self.layout_settings_page = LayoutSettingsPage()
-        self.layout_settings_page.connect("settings-changed", lambda *args: self._presenter.on_settings_changed())
-        self.layout_settings_page.connect(
-            "verification-completed", lambda *args: self._presenter.on_verification_completed()
+        page = self.layout_settings_page
+        page.connect("settings-changed", lambda *_: self._presenter.on_settings_changed())
+        page.connect("verification-completed", lambda *_: self._presenter.on_verification_completed())
+        page.connect(
+            "instance-launch-requested", lambda _w, number: self._presenter.on_instance_launch_requested(number)
         )
-        self.layout_settings_page.connect(
-            "instance-launch-requested",
-            lambda _, instance_num: self._presenter.on_instance_launch_requested(instance_num),
-        )
-        self.layout_settings_page.connect(
-            "devices-refresh-requested", lambda *args: self._presenter.on_devices_refresh_requested()
-        )
-        self.toolbar_view.set_content(self.layout_settings_page)
+        page.connect("devices-refresh-requested", lambda *_: self._presenter.on_devices_refresh_requested())
+        page.connect("summary-changed", lambda *_: self._update_session_summary())
+        self.toolbar_view.set_content(page)
 
-    def _create_footer_bar(self):
-        """Create the footer bar with launch button."""
-        self.footer_bar = Gtk.Box(
-            orientation=Gtk.Orientation.HORIZONTAL,
-            spacing=0,
-            margin_start=12,
-            margin_end=12,
-            margin_top=6,
-            margin_bottom=6,
-            homogeneous=False,
-            halign=Gtk.Align.END,
-        )
+    def _build_session_status(self):
+        area = self.layout_settings_page.session_controls
+        line = Gtk.Box(spacing=8)
+        self.session_icon = Gtk.Image(icon_name="radio-symbolic", pixel_size=12)
+        self.session_icon.add_css_class("session-indicator")
+        line.append(self.session_icon)
+        self.session_title = Gtk.Label(label="Session setup", xalign=0, wrap=True)
+        self.session_title.add_css_class("session-status-title")
+        line.append(self.session_title)
+        area.append(line)
+        self.session_detail = Gtk.Label(xalign=0, wrap=True)
+        self.session_detail.add_css_class("session-status-detail")
+        area.append(self.session_detail)
+        self._build_launch_button()
+        area.append(self.launch_button)
 
-        spacer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        spacer.set_hexpand(True)
-        self.footer_bar.append(spacer)
-
-        self.launch_button = Gtk.Button()
-        self.launch_button.get_style_context().add_class("launch-button")
-        self.launch_button.get_style_context().add_class("play-button-fixed-size")
-        self.launch_button.connect("clicked", lambda b: self._presenter.on_launch_clicked())
+    def _build_launch_button(self):
+        self.launch_button = Gtk.Button(hexpand=True)
+        self.launch_button.add_css_class("studio-launch")
+        self.launch_button.add_css_class("launch-button")
         self.launch_button.set_sensitive(False)
-
+        self.launch_button.set_tooltip_text("Launch all selected players (Ctrl+Enter)")
+        self.launch_button.connect("clicked", lambda *_: self._presenter.on_launch_clicked())
+        self.launch_content_box = Gtk.Box(spacing=9, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        self.launch_icon = Gtk.Image(icon_name="media-playback-start-symbolic")
+        self.launch_label = Gtk.Label(label="Launch session")
         self.launch_spinner = Gtk.Spinner()
-        self.launch_spinner.set_spinning(False)
-        self.launch_label = Gtk.Label(label="Play")
-
-        self.launch_content_box = Gtk.Box(
-            orientation=Gtk.Orientation.HORIZONTAL,
-            spacing=6,
-            hexpand=False,
-            halign=Gtk.Align.CENTER,
-            valign=Gtk.Align.CENTER,
-        )
+        self.launch_content_box.append(self.launch_icon)
         self.launch_content_box.append(self.launch_label)
         self.launch_button.set_child(self.launch_content_box)
 
-        self.footer_bar.append(self.launch_button)
-        self.toolbar_view.add_bottom_bar(self.footer_bar)
+    def _build_header(self):
+        header = Adw.HeaderBar()
+        header.add_css_class("studio-header")
+        panel_toggles = Gtk.Box(spacing=4)
+        panel_toggles.add_css_class("panel-toggles")
+        self.roster_toggle = Gtk.ToggleButton(icon_name="panel-left-symbolic")
+        self.inspector_toggle = Gtk.ToggleButton(icon_name="panel-right-symbolic")
+        self._panel_controls = (
+            (self.layout_settings_page.roster_split, self.roster_toggle, "party", "Alt+1"),
+            (self.layout_settings_page.inspector_split, self.inspector_toggle, "player setup", "F9"),
+        )
+        self._panel_bindings = []
+        for split, button, title, shortcut in self._panel_controls:
+            button.add_css_class("panel-toggle")
+            panel_toggles.append(button)
+            self._panel_bindings.append(
+                split.bind_property(
+                    "show-sidebar",
+                    button,
+                    "active",
+                    GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE,
+                )
+            )
+            split.connect("notify::show-sidebar", self._sync_panel_toggle, button, title, shortcut)
+            self._sync_panel_toggle(split, None, button, title, shortcut)
 
-    def get_layout_page(self) -> LayoutSettingsPage:
-        """Get the layout settings page."""
+        # An empty custom title also prevents the window title from appearing here.
+        header.set_title_widget(Gtk.Box())
+
+        self.theme_toggle_button = Gtk.Button()
+        self.theme_toggle_button.add_css_class("flat")
+        self.theme_toggle_button.set_tooltip_text("Switch light / dark appearance")
+        self.theme_toggle_button.connect("clicked", self._toggle_theme)
+
+        menu = Gio.Menu()
+        menu.append("Preferences", "win.preferences")
+        menu.append("Refresh devices", "win.refresh-devices")
+        menu.append("About Twinverse", "win.about")
+        self.menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
+        self.menu_button.add_css_class("flat")
+        self.menu_button.set_tooltip_text("Application menu")
+        self.header_tools = Gtk.Box(spacing=4)
+        self.header_tools.append(self.theme_toggle_button)
+        self.header_tools.append(panel_toggles)
+        self.header_tools.append(self.menu_button)
+        header.pack_start(self.header_tools)
+        self.toolbar_view.add_top_bar(header)
+
+        actions = {
+            "about": self._presenter.on_about_clicked,
+            "preferences": self._presenter.on_preferences_clicked,
+            "players": self._toggle_roster,
+            "inspector": self._toggle_inspector,
+            "refresh-devices": self._presenter.on_devices_refresh_requested,
+            "launch": lambda: self._presenter.on_launch_clicked() if self.launch_button.get_sensitive() else None,
+        }
+        for name, callback in actions.items():
+            action = Gio.SimpleAction.new(name, None)
+            action.connect("activate", lambda _a, _p, target=callback: target())
+            self.add_action(action)
+        app = self.get_application()
+        app.set_accels_for_action("win.preferences", ["<Control>comma"])
+        app.set_accels_for_action("win.players", ["<Alt>1"])
+        app.set_accels_for_action("win.inspector", ["F9", "<Alt>2"])
+        app.set_accels_for_action("win.refresh-devices", ["F5"])
+        app.set_accels_for_action("win.launch", ["<Control>Return"])
+
+    def _configure_adaptation(self):
+        compact = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 1120sp"))
+        compact.add_setter(self.layout_settings_page.inspector_split, "collapsed", True)
+        compact.add_setter(self.layout_settings_page.inspector_split, "show-sidebar", False)
+
+        self.add_breakpoint(compact)
+        narrow = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 760sp"))
+        narrow.add_setter(self.layout_settings_page.inspector_split, "collapsed", True)
+        narrow.add_setter(self.layout_settings_page.inspector_split, "show-sidebar", False)
+
+        narrow.add_setter(self.layout_settings_page.roster_split, "collapsed", True)
+        narrow.add_setter(self.layout_settings_page.roster_split, "show-sidebar", False)
+        self.add_breakpoint(narrow)
+
+    def _sync_panel_toggle(self, split, _pspec, button, title, shortcut):
+        visible = split.get_show_sidebar()
+        verb = "Hide" if visible else "Show"
+        button.set_tooltip_text(f"{verb} {title} ({shortcut})")
+        button.update_property([Gtk.AccessibleProperty.LABEL], [f"{verb} {title}"])
+        expanded = Gtk.AccessibleTristate.TRUE if visible else Gtk.AccessibleTristate.FALSE
+        # EXPANDED expects an integer tristate, not a boolean GValue.
+        button.update_state([Gtk.AccessibleState.EXPANDED], [int(expanded)])
+        if visible and split.get_collapsed():
+            for other, _button, _title, _shortcut in self._panel_controls:
+                if other is not split and other.get_collapsed():
+                    other.set_show_sidebar(False)
+
+    def _toggle_inspector(self):
+        split = self.layout_settings_page.inspector_split
+        split.set_show_sidebar(not split.get_show_sidebar())
+
+    def _toggle_roster(self):
+        split = self.layout_settings_page.roster_split
+        split.set_show_sidebar(not split.get_show_sidebar())
+
+    def _update_session_summary(self):
+        if not hasattr(self, "session_title"):
+            return
+        rows = self.layout_settings_page.player_rows
+        selected = [row for row in rows if row.is_selected()]
+        ready = sum(bool(getattr(row, "_is_verified", False)) for row in selected)
+        running = sum(row.get_instance_state() == INSTANCE_RUNNING for row in rows)
+        state = self._session_state
+        if state == "starting":
+            title, detail = "Starting your session", "Steam progress is shown beside each player."
+        elif state == "stopping":
+            title, detail = "Ending the session", "Waiting for all instances to close."
+        elif state == "running":
+            title, detail = "You're live", f"{running} running. Select any player to manage their instance."
+        elif not selected:
+            title, detail = "Your party is empty", "Check a player to include them in the session."
+        elif ready < len(selected):
+            title, detail = (
+                "Setup needed",
+                f"{ready} of {len(selected)} ready. Select a player and install their Steam instance.",
+            )
+        else:
+            title, detail = "Ready to play", f"{len(selected)} players selected. Your space is ready."
+        self.session_title.set_label(title)
+        self.session_detail.set_label(detail)
+        for candidate in ("idle", "starting", "stopping", "running"):
+            self.session_icon.remove_css_class(f"session-{candidate}")
+        self.session_icon.add_css_class(f"session-{state}")
+
+    def get_layout_page(self):
+        """Expose studio settings through the presenter's existing view interface."""
         return self.layout_settings_page
 
     def show_launching_state(self):
-        """Update UI to show launching state."""
-        self.launch_label.set_label("Starting")
+        """Show pending startup without prematurely offering a stop action."""
+        self._session_state = "starting"
+        self.launch_label.set_label("Starting…")
         self.launch_button.set_sensitive(False)
         self._show_spinner()
         self.layout_settings_page.set_checkboxes_sensitive(False)
+        self._update_session_summary()
 
     def show_running_state(self):
-        """Update UI to show running state."""
+        """Offer session termination only after clients are confirmed running."""
+        self._session_state = "running"
         self.update_launch_button_action(True)
-        self.launch_spinner.stop()
-        if self.launch_spinner.get_parent() == self.launch_content_box:
-            self.launch_content_box.remove(self.launch_spinner)
+        self._hide_spinner()
         self.launch_button.set_sensitive(True)
-        # The page stays active, so a single instance can still be stopped.
         self.layout_settings_page.set_number_of_instances_sensitive(False)
         self.layout_settings_page.set_screen_settings_sensitive(False)
         self.layout_settings_page.set_checkboxes_sensitive(False)
+        self._update_session_summary()
 
     def show_stopping_state(self):
-        """Update UI to show stopping state."""
-        self.launch_label.set_label("Stopping")
+        """Keep termination pending until processes are confirmed gone."""
+        self._session_state = "stopping"
+        self.launch_label.set_label("Stopping…")
         self.launch_button.set_sensitive(False)
         self._show_spinner()
+        self._update_session_summary()
 
     def show_idle_state(self):
-        """Update UI to show idle state (ready to launch)."""
+        """Restore participation controls after all active instances end."""
+        self._session_state = "idle"
         self.update_launch_button_action(False)
-        self.launch_spinner.stop()
-        if self.launch_spinner.get_parent() == self.launch_content_box:
-            self.launch_content_box.remove(self.launch_spinner)
+        self._hide_spinner()
         self.layout_settings_page.set_sensitive(True)
         self.layout_settings_page.set_running_state(False)
         self.layout_settings_page.set_checkboxes_sensitive(True)
+        self._update_session_summary()
 
-    def update_launch_button_action(self, is_running: bool):
-        """Show the footer button as a start or a stop action."""
-        if is_running:
-            self.launch_label.set_label("Stop")
-            self.launch_button.get_style_context().remove_class("launch-button")
-            self.launch_button.get_style_context().add_class("stop-button")
-        else:
-            self.launch_label.set_label("Play")
-            self.launch_button.get_style_context().remove_class("stop-button")
-            self.launch_button.get_style_context().add_class("launch-button")
+    def update_launch_button_action(self, is_running):
+        """Keep the primary label, icon and tooltip aligned with its actual action."""
+        self.launch_label.set_label("End session" if is_running else "Launch session")
+        self.launch_icon.set_from_icon_name(
+            "media-playback-stop-symbolic" if is_running else "media-playback-start-symbolic"
+        )
+        self.launch_button.set_tooltip_text(
+            "Stop all instances" if is_running else "Launch all selected players (Ctrl+Enter)"
+        )
+        self.launch_button.remove_css_class("launch-button" if is_running else "stop-button")
+        self.launch_button.add_css_class("stop-button" if is_running else "launch-button")
 
     def _show_spinner(self):
-        """Show the spinner in the footer button."""
-        if self.launch_spinner.get_parent() == self.launch_content_box:
-            return
-        self.launch_content_box.append(self.launch_spinner)
+        self.launch_icon.set_visible(False)
+        if self.launch_spinner.get_parent() is None:
+            self.launch_content_box.prepend(self.launch_spinner)
         self.launch_spinner.start()
 
-    def update_launch_button_sensitivity(self, enabled: bool):
-        """Update launch button enabled state."""
-        self.launch_button.set_sensitive(enabled)
+    def _hide_spinner(self):
+        self.launch_spinner.stop()
+        if self.launch_spinner.get_parent() is not None:
+            self.launch_content_box.remove(self.launch_spinner)
+        self.launch_icon.set_visible(True)
 
-    def show_error(self, message: str, title: str = "Error"):
-        """Show an error dialog."""
-        dialog = ErrorDialog(self, title, message)
-        dialog.present()
+    def update_launch_button_sensitivity(self, enabled):
+        """Apply the presenter's launch-readiness decision to the primary action."""
+        self.launch_button.set_sensitive(enabled)
+        self._update_session_summary()
+
+    def show_toast(self, message, timeout=3, level=INFO):
+        """Report in-app events, using desktop notifications when the window is inactive."""
+        if not self.is_active():
+            send_desktop_notification("Twinverse", message, level)
+        self.toast_overlay.show_toast(message, level, timeout)
+        return self.toast_overlay
+
+    def show_error(self, message, title="Error"):
+        """Present failures without interrupting or rebuilding the workspace."""
+        ErrorDialog(self, title, message).present()
 
     def minimize_window(self):
-        """Minimize the window."""
+        """Give launched games focus when the presenter confirms startup."""
         self.minimize()
 
-    def _toggle_theme(self, button):
-        """Toggle between light and dark themes."""
-        style_manager = Adw.StyleManager.get_default()
-        current_is_dark = style_manager.get_dark()
+    def _toggle_theme(self, _button):
+        style = Adw.StyleManager.get_default()
+        style.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT if style.get_dark() else Adw.ColorScheme.FORCE_DARK)
 
-        if current_is_dark:
-            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
+    def _on_theme_changed(self, style, _pspec):
+        if style.get_dark():
+            self.remove_css_class("light")
         else:
-            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+            self.add_css_class("light")
+        self.theme_toggle_button.set_icon_name("moon-outline-symbolic" if style.get_dark() else "sun-outline-symbolic")
 
-        self._update_theme_icon(button)
-
-    def _update_theme_icon(self, button):
-        """Update the theme toggle button icon based on current theme."""
-        style_manager = Adw.StyleManager.get_default()
-        if style_manager.get_dark():
-            button.set_icon_name("moon-outline-symbolic")  # Moon icon for dark mode
-        else:
-            button.set_icon_name("sun-outline-symbolic")  # Sun icon for light mode
-
-    def _on_theme_changed(self, style_manager, pspec):
-        """Handle theme change."""
-        is_dark = style_manager.get_dark()
-        if is_dark:
-            self.toolbar_view.get_style_context().remove_class("light")
-        else:
-            self.toolbar_view.get_style_context().add_class("light")
-
-        if self.theme_toggle_button:
-            self._update_theme_icon(self.theme_toggle_button)
-
-    def _on_close_request(self, *args):
-        """Handle close request."""
+    def _on_close_request(self, *_args):
         self._presenter.on_close_requested()
         return True

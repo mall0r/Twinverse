@@ -1,14 +1,16 @@
-"""Environment variable input widget."""
+"""Compact environment variable editor for the player inspector."""
+
+# flake8: noqa: E402
 
 import gi
-from gi.repository import Adw, GObject, Gtk
 
 gi.require_version("Gtk", "4.0")
-gi.require_version("Adw", "1")
+
+from gi.repository import GObject, Gtk
 
 
-class EnvVariableRow(Adw.ActionRow):
-    """Widget for editing a single environment variable."""
+class EnvVariableRow(Gtk.Box):
+    """Edit one key/value pair without imposing a preferences-row width."""
 
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
@@ -16,42 +18,46 @@ class EnvVariableRow(Adw.ActionRow):
     }
 
     def __init__(self, key: str = "", value: str = "", **kwargs):
-        """Initialize the environment variable row."""
+        """Build labelled, vertically stacked fields for a narrow inspector."""
         super().__init__(**kwargs)
-        self.get_style_context().add_class("env-var-row")
-        self._build_ui(key, value)
+        self.set_orientation(Gtk.Orientation.VERTICAL)
+        self.set_spacing(8)
+        self.add_css_class("inspector-env-row")
 
-    def _build_ui(self, key: str, value: str):
-        """Build the UI."""
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        box.get_style_context().add_class("env-var-box")
+        key_line = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        key_field, self.key_entry = self._create_field("_Key", "VARIABLE_NAME", key)
+        self.key_entry.add_css_class("inspector-env-key")
+        key_line.append(key_field)
 
-        self.key_entry = Gtk.Entry(placeholder_text="KEY")
-        self.key_entry.get_style_context().add_class("env-key-entry")
-        self.key_entry.set_text(key)
-        self.key_entry.connect("changed", lambda *args: self.emit("changed"))
+        self.remove_button = Gtk.Button.new_from_icon_name("user-trash-symbolic")
+        self.remove_button.add_css_class("flat")
+        self.remove_button.add_css_class("inspector-env-remove")
+        self.remove_button.set_valign(Gtk.Align.END)
+        self.remove_button.set_tooltip_text("Remove environment variable")
+        self.remove_button.connect("clicked", lambda *_args: self.emit("remove-requested"))
+        key_line.append(self.remove_button)
+        self.append(key_line)
 
-        equals_label = Gtk.Label(label="=")
+        value_field, self.value_entry = self._create_field("_Value", "Value (may be empty)", value)
+        self.value_entry.add_css_class("inspector-env-value")
+        self.append(value_field)
 
-        self.value_entry = Gtk.Entry(placeholder_text="VALUE")
-        self.value_entry.get_style_context().add_class("env-value-entry")
-        self.value_entry.set_text(value)
-        self.value_entry.connect("changed", lambda *args: self.emit("changed"))
+    def _create_field(self, title: str, placeholder: str, text: str):
+        field = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
+        label = Gtk.Label(label=title, use_underline=True, xalign=0)
+        label.add_css_class("inspector-field-label")
+        field.append(label)
 
-        remove_btn = Gtk.Button.new_from_icon_name("user-trash-symbolic")
-        remove_btn.get_style_context().add_class("remove-button")
-        remove_btn.set_valign(Gtk.Align.CENTER)
-        remove_btn.connect("clicked", lambda *args: self.emit("remove-requested"))
-
-        box.append(self.key_entry)
-        box.append(equals_label)
-        box.append(self.value_entry)
-        box.append(remove_btn)
-
-        self.set_child(box)
+        entry = Gtk.Entry(placeholder_text=placeholder, hexpand=True)
+        entry.set_width_chars(1)
+        entry.set_max_width_chars(24)
+        entry.add_css_class("inspector-entry")
+        entry.set_text(text)
+        entry.connect("changed", lambda *_args: self.emit("changed"))
+        label.set_mnemonic_widget(entry)
+        field.append(entry)
+        return field, entry
 
     def get_values(self) -> tuple[str, str]:
-        """Get the key and value."""
-        key = (self.key_entry.get_text() or "").strip()
-        value = self.value_entry.get_text() if self.value_entry else ""
-        return key, value
+        """Normalize the key, but preserve every character of the value."""
+        return self.key_entry.get_text().strip(), self.value_entry.get_text()
