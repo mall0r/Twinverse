@@ -26,7 +26,7 @@
 **Twinverse** is an tool for Linux/SteamOS that allows you to create and manage multiple instances of `Steam Big Picture` simultaneously. This enables multiple players to enjoy their game library on a single computer, either in split-screen mode or each with their own display, along with dedicated audio output and input devices.
 
 <p align="center">
-  <img alt="twinverse_ui" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/twinverse-ui.png" />
+  <img alt="Twinverse session studio" src="share/screenshots/twinverse-session-dark.png" />
 </p>
 
 > [!WARNING]

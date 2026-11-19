@@ -22,9 +22,9 @@ Primeiro, você precisa decidir quantas instâncias do Steam deseja executar. O 
 - **Tela Dividida (Splitscreen):** Você pode executar no máximo 4 instâncias por monitor.
 - **Tela Cheia (Fullscreen):** Cada instância é executada em um monitor separado.
 
-Use o seletor numérico "Número de Instâncias" para definir a quantidade desejada.
+Use **Party size**, na lateral esquerda, para definir a quantidade e marque os jogadores que vão participar. O botão **Launch session** fica no rodapé dessa lateral. Os controles de abrir e fechar os painéis ficam junto ao menu do aplicativo, à esquerda do cabeçalho.
 
-<img alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/general-layout.png" />
+![Studio de sessões](../share/screenshots/twinverse-session-dark.png)
 
 ## 2. Modo de Tela
 
@@ -32,39 +32,27 @@ Use o seletor numérico "Número de Instâncias" para definir a quantidade desej
 > Para que o auto-tiling das janelas funcione bem, é recomendado usar KDE Plasma 6.0+.
 > Em outras DE, será necessário mover as janelas você mesmo, todo o resto deve funcionar bem.
 
-Você pode escolher entre dois modos de tela:
+Escolha um molde pelos seis ícones de layout abaixo do título de cada monitor. A escolha é independente por monitor:
 
-- **Tela Cheia (Fullscreen):** Cada instância será executada em um monitor separado.
-- **Tela Dividida (Splitscreen):** As instâncias serão dispostas em um único monitor, seja horizontal ou verticalmente.
+- **Fullscreen:** um espaço ocupando o monitor inteiro.
+- **Columns / Rows:** dois espaços, lado a lado ou empilhados.
+- **Main left / Main top:** três espaços, com uma área principal maior à esquerda ou no topo.
+- **Grid:** quatro espaços iguais.
 
-<img alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/screen-settings.png" />
+Você pode combinar moldes: por exemplo, dois jogadores em colunas no Monitor 1 e um jogador em tela cheia no Monitor 2. O canvas mostra os espaços exatos; ao passar o ponteiro sobre um ícone, aparecem seu nome e sua capacidade. Monitores ainda não utilizados também têm seu próprio seletor.
 
-### Opções de Tela Dividida
+Espaços vazios ficam disponíveis para arrastar jogadores ou escolher pelo Player Setup. Se os moldes não comportarem todos os participantes, os excedentes aparecem em **Players without a space**. O início da sessão fica bloqueado até você escolher um molde maior ou desmarcar esses jogadores.
 
-Ao selecionar "Splitscreen", você pode escolher entre duas orientações:
-
-- **Horizontal:** As instâncias são dispostas uma acima da outra.
-
-  - Exemplos com `2` e `3` Players:
-
-  <img width="128" height="128" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-square-symbolic.svg" />
-  <img width="128" height="128" alt="horizontal-three-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-three-square-symbolic.svg" />
-
-<!-- <img width="1024" height="576" alt="horizontal-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/horizontal-game.png" /> -->
-- **Vertical:** As instâncias são dispostas lado a lado.
-
-  - Exemplos com `2` e `3` Players:
-
-  <img width="128" height="128" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-square-symbolic.svg" />
-  <img width="128" height="128" alt="vertical-three-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-three-square-symbolic.svg" />
-<!-- <img width="1024" height="576" alt="vertical-game" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/vertical-game.png" /> -->
-
-Posições e formatos variam de acordo com o número de instâncias.
-É possível ver um preview do layout no ícone <img width="24" height="24" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> em **Screen Settings**.
+Os moldes e as posições são salvos por conector de monitor. Eles determinam as dimensões e a taxa de atualização do Gamescope e o posicionamento das janelas no KWin. Perfis existentes mantêm a disposição anterior até você escolher um molde.
 
 #### Posicionamento das Instâncias
 
-Por padrão, as instâncias ocupam os espaços disponíveis em ordem numérica. Para escolher qual instância ocupa cada espaço, selecione **Custom** em **Instance Placement** e escolha a instância em cada espaço do preview. Escolher uma instância que já está em outro espaço troca as duas posições, então nenhuma instância aparece duas vezes. O preview acompanha a divisão da tela e a orientação do monitor, e a escolha é salva no perfil e usada tanto nas dimensões do Gamescope quanto no layout do KWin.
+Por padrão, as instâncias ocupam o layout em ordem numérica. Você pode mudar a posição de um jogador de duas formas:
+
+- **Arrastar e soltar:** arraste o jogador da lateral ou de um espaço do canvas até outro espaço, inclusive em outro monitor. Mantenha o ponteiro próximo à borda superior ou inferior do canvas para rolar uma disposição com vários monitores.
+- **Player Setup:** selecione o jogador e escolha **Monitor / space** na seção **Display position**. A lista de destinos corresponde aos espaços mostrados no canvas.
+
+Espaços ocupados trocam seus jogadores, sem duplicar ou perder participantes. A primeira alteração ativa **Custom** em **Placement** automaticamente. Escolha **Automatic** para restaurar a ordem numérica sem alterar os moldes dos monitores. O arraste e a seleção ficam sincronizados e são bloqueados enquanto alguma instância inicia, está em execução ou encerra. A ordem salva é usada nas dimensões do Gamescope e no posicionamento do KWin.
 
 O posicionamento é aplicado no próximo lançamento. Ao reduzir o número de instâncias, as posições salvas ficam ocultas e voltam se você aumentar a quantidade novamente.
 

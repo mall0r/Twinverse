@@ -22,9 +22,9 @@ First, you need to decide how many Steam instances you want to run. Twinverse su
 - **Splitscreen:** You can run a maximum of 4 instances per monitor.
 - **Fullscreen:** Each instance runs on its own monitor.
 
-Use the numeric selector "Number of Instances" to set the desired amount.
+Use **Party size** in the left sidebar to set the desired amount, then check the players who should join. **Launch session** is at the bottom of that sidebar. The panel visibility buttons are beside the application menu on the left of the header.
 
-<img alt="general-layout" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/general-layout.png" />
+![Session studio](../share/screenshots/twinverse-session-dark.png)
 
 ## 2. Screen Mode
 
@@ -32,37 +32,27 @@ Use the numeric selector "Number of Instances" to set the desired amount.
 > For window auto-tiling to work properly, it is recommended to use KDE Plasma 6.0+.
 > In other DEs, you will need to move the windows yourself, everything else should work fine.
 
-You can choose between two screen modes:
+Choose a template using the six miniature layout icons beneath each monitor heading. Each monitor has its own selection:
 
-- **Fullscreen:** Each instance will run on a separate monitor.
-- **Splitscreen:** Instances will be arranged on a single monitor, either horizontally or vertically.
+- **Fullscreen:** one space covering the monitor.
+- **Columns / Rows:** two spaces, side by side or stacked.
+- **Main left / Main top:** three spaces, with a larger main area on the left or top.
+- **Grid:** four equal spaces.
 
-<img alt="screen-settings" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/screen-settings.png" />
+You can mix templates: for example, two players in columns on Monitor 1 and one fullscreen player on Monitor 2. The canvas previews the exact spaces; hovering an icon shows its name and capacity. Unused monitors also have their own selector.
 
-### Splitscreen Options
+Empty spaces remain available for dragging or selection in Player Setup. If the templates cannot fit every participating player, the extra players appear under **Players without a space**, and launching is blocked until you choose a larger template or exclude those players.
 
-When selecting "Splitscreen," you can choose between two orientations:
-
-- **Horizontal:** Instances are arranged stacked on top of each other.
-
-  - Examples with 2 and 3 Players:
-
-    <img width="128" height="128" alt="horizontal-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-square-symbolic.svg" />
-    <img width="128" height="128" alt="horizontal-three-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/horizontal-three-square-symbolic.svg" />
-
-- **Vertical:** Instances are arranged side by side.
-
-  - Examples with 2 and 3 Players:
-
-    <img width="128" height="128" alt="vertical-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-square-symbolic.svg" />
-    <img width="128" height="128" alt="vertical-three-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/vertical-three-square-symbolic.svg" />
-
-Positions and layouts adjust automatically based on the number of instances.
-You can see a preview of the layout by clicking the icon <img width="24" height="24" alt="fullscreen-square-symbolic" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/fullscreen-square-symbolic.svg" /> on the **Screen Settings**.
+Templates and player assignments are saved per monitor connector. They determine Gamescope dimensions and refresh rates as well as KWin window positioning; existing profiles keep their previous arrangement until you choose a template.
 
 #### Instance Placement
 
-By default, the instances fill the available spaces in numerical order. To choose which instance occupies each space, set **Instance Placement** to **Custom** and pick an instance in each preview slot. Choosing an instance that is already assigned swaps the two positions, so no instance appears twice. The preview follows the split geometry and monitor orientation, and the choice is saved in the profile and used by the Gamescope dimensions and the KWin layout.
+By default, instances fill the layout in numerical order. Change a player's position in either of two ways:
+
+- **Drag and drop:** drag the player from the party sidebar or a canvas space onto another space, including one on another monitor. Hold near the top or bottom edge of the canvas to scroll through a long monitor layout.
+- **Player Setup:** select the player and choose **Monitor / space** under **Display position**. The destination list corresponds to the spaces shown on the canvas.
+
+Occupied spaces swap players, keeping each participating player assigned exactly once. The first move switches **Placement** to **Custom** automatically. Choose **Automatic** to restore numerical order without changing the monitor templates. Dragging and selection stay synchronized and are locked while any instance is starting, running or stopping. The saved order drives both Gamescope dimensions and KWin positioning.
 
 Placement is applied on the next launch. Reducing the number of instances keeps the saved positions hidden, so they come back if you increase the count again.
 
