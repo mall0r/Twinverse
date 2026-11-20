@@ -106,6 +106,8 @@ def test_native_load_has_six_choices_on_every_detected_monitor(workspace):
     assert dock.get_first_child().get_next_sibling() is None
     click(page, "HDMI-1", "fullscreen")
     assert page.get_data()["monitor_layouts"]["HDMI-1"]["template"] == "fullscreen"
+    assert page.placement_mode_row.get_selected() == 0
+    assert page.get_data()["layout_order"] is None
     changes.assert_called_once()
 
 
@@ -115,6 +117,8 @@ def test_each_native_picker_edit_emits_once_and_allocates_two_plus_one(workspace
         changes.reset_mock()
         click(page, connector, template)
         changes.assert_called_once()
+    assert page.placement_mode_row.get_selected() == 0
+    assert page.get_data()["layout_order"] is None
     assert page.layout_preview.instances == [0, 1, 2]
     assert page.layout_preview.monitor_slot_ranges == {"DP-1": (0, 2), "HDMI-1": (2, 3)}
     profile = Profile(num_players=3, monitor_layouts=page.get_data()["monitor_layouts"])
@@ -131,6 +135,7 @@ def test_independent_templates_controller_disk_roundtrip(workspace, displays, tm
     page, _ = workspace()
     click(page, "DP-1", template)
     click(page, "HDMI-1", "rows")
+    assert page.placement_mode_row.get_selected() == 0
     manager = DeviceManager()
     monkeypatch.setattr(manager, "get_screen_info", lambda: displays)
     settings = SettingsController(manager)
@@ -140,11 +145,13 @@ def test_independent_templates_controller_disk_roundtrip(workspace, displays, tm
     assert all(isinstance(config, MonitorLayoutConfig) for config in saved.monitor_layouts.values())
     assert saved.monitor_layouts["DP-1"].template == template
     assert saved.monitor_layouts["HDMI-1"].template == "rows"
+    assert saved.layout_order is None
     expected = [
         (manager.get_instance_dimensions(saved, i), manager.get_instance_refresh_rate(saved, i)) for i in range(3)
     ]
     monkeypatch.setattr(manager, "get_screen_info", lambda: list(reversed(displays)))
     restored, changes = workspace(saved)
+    assert restored.placement_mode_row.get_selected() == 0
     assert restored.get_data()["monitor_layouts"] == page.get_data()["monitor_layouts"]
     assert [
         (manager.get_instance_dimensions(saved, i), manager.get_instance_refresh_rate(saved, i)) for i in range(3)
@@ -172,7 +179,7 @@ def test_reduce_capacity_tray_error_expand_and_direct_mode(workspace):
     assert page.get_layout_error() is None
 
 
-def test_native_empty_monitor_drop_preserves_source_and_syncs_inspector(workspace):
+def test_native_empty_monitor_drop_preserves_source_and_switches_to_custom(workspace):
     profile = Profile(
         num_players=2,
         monitor_layouts={
@@ -197,8 +204,7 @@ def test_native_empty_monitor_drop_preserves_source_and_syncs_inspector(workspac
         "HDMI-1": {"template": "fullscreen", "players": [0]},
     }
     assert data["layout_order"] == [1, 0]
-    assert page.player_rows[0].position_row.get_selected() == 2
-    assert page.player_rows[1].position_row.get_selected() == 1
+    assert page.placement_mode_row.get_selected() == 1
     source.emit("drag-end", None, False)
     assert not target.emit("drop", preview._drag_payload, 1.0, 1.0)
 
@@ -223,11 +229,19 @@ def test_tray_is_not_a_drop_destination(workspace):
     source.emit("drag-end", None, False)
 
 
-def test_automatic_clears_reservations_not_templates(workspace):
+def test_template_switch_stays_automatic_until_manual_move_and_automatic_clears_reservations(workspace):
     page, changes = workspace()
     mixed(page)
+    assert page.placement_mode_row.get_selected() == 0
+    assert page.get_data()["layout_order"] is None
+    assert all(config["players"] == [] for config in page.get_data()["monitor_layouts"].values())
+
+    # Only a manual player rearrangement switches placement to Custom.
+    assert page.layout_preview.assign_player(0, 2)
+    assert page.placement_mode_row.get_selected() == 1
     before = page.get_data()["monitor_layouts"]
     assert any(config["players"] for config in before.values())
+
     changes.reset_mock()
     page.placement_mode_row.set_selected(0)
     changes.assert_called_once()

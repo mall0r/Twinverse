@@ -110,15 +110,15 @@ def test_reloading_does_not_reopen_a_deliberately_closed_inspector(window):
 
 
 def test_custom_placement_controls_return_after_runtime_refresh(window):
-    """Unlocking after a session restores both assignment visibility and sensitivity."""
+    """Unlocking after a session restores canvas repositioning."""
     page = window.get_layout_page()
     page.placement_mode_row.set_selected(1)
     page.set_screen_settings_sensitive(False)
     page.update_devices_info({})
-    assert all(not row.position_row.is_sensitive() for row in page.player_rows)
+    assert not page.layout_preview._allow_reposition
     assert not page.layout_preview.assign_player(0, 1)
     page.set_screen_settings_sensitive(True)
-    assert all(row.position_row.is_sensitive() for row in page.player_rows)
+    assert page.layout_preview._allow_reposition
 
 
 def test_participation_is_independent_from_inspector_selection(window):
@@ -169,7 +169,6 @@ def test_running_locks_placement_but_keeps_player_navigation(window):
     window.show_running_state()
     assert not page.screen_mode_row.is_sensitive()
     assert not page.num_players_row.is_sensitive()
-    assert all(not row.position_row.is_sensitive() for row in page.player_rows)
     assert not page.layout_preview.assign_player(0, 1)
     page.layout_preview._slots[1].button.emit("clicked")
     assert page.inspector_stack.get_visible_child() is page.player_rows[1]

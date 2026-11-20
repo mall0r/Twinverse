@@ -89,7 +89,6 @@ class LayoutSettingsPage(Gtk.Box):
         heading.append(self._label("Your party", "party-heading", hexpand=True))
 
         sidebar.append(heading)
-        sidebar.append(self._label("Choose who joins this session.", "muted", wrap=True))
 
         self.roster = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.roster.add_css_class("party-list")
@@ -128,10 +127,6 @@ class LayoutSettingsPage(Gtk.Box):
         top = Gtk.Box(spacing=16)
         titles = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True)
         titles.append(self._label("SESSION STUDIO", "eyebrow"))
-        titles.append(self._label("A space for everyone.", "studio-title", wrap=True))
-        titles.append(
-            self._label("Arrange your screens. Connect your players. Play together.", "studio-subtitle", wrap=True)
-        )
         top.append(titles)
 
         studio.append(top)
@@ -139,7 +134,6 @@ class LayoutSettingsPage(Gtk.Box):
         canvas_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, vexpand=True)
         canvas_box.add_css_class("stage-surface")
         canvas_heading = Gtk.Box(spacing=8)
-        canvas_heading.append(Gtk.Image(icon_name="video-display-symbolic"))
         canvas_heading.append(self._label("LIVE LAYOUT", "canvas-kicker", hexpand=True))
         self.display_summary = self._label("Detecting displays", "canvas-display-count")
         canvas_heading.append(self.display_summary)
@@ -170,7 +164,7 @@ class LayoutSettingsPage(Gtk.Box):
         hint.append(Gtk.Image(icon_name="input-mouse-symbolic"))
         hint.append(
             self._label(
-                "Drag players between spaces to swap them, or choose a destination in Player Setup.",
+                "Drag players between spaces to swap them.",
                 "canvas-hint",
                 wrap=True,
             )
@@ -338,7 +332,6 @@ class LayoutSettingsPage(Gtk.Box):
             player = PlayerRow(index, devices_info)
             player.set_parent_page(self)
             player.connect("settings-changed", self._on_setting_changed)
-            player.connect("placement-requested", self._on_player_placement_requested)
             player.connect("launch-clicked", lambda _w, number: self.emit("instance-launch-requested", number))
             player.connect("refresh-devices-requested", lambda *_: self.emit("devices-refresh-requested"))
             player.connect("status-changed", lambda *_: self._sync_roster())
@@ -403,32 +396,7 @@ class LayoutSettingsPage(Gtk.Box):
         )
 
     def _sync_placement_controls(self):
-        allowed = self._can_reposition_players()
-        self.layout_preview.set_reposition_enabled(allowed)
-        instances = self.layout_preview.instances
-        for index, row in enumerate(self.player_rows):
-            if not self._gamescope_enabled:
-                options, selected, reason = [], None, "Enable Gamescope in Preferences to arrange displays."
-            elif index not in instances:
-                options, selected, reason = [], None, "Include this player in your party to choose a space."
-            else:
-                capacity = (
-                    sum(end - start for start, end in self.layout_preview.monitor_slot_ranges.values())
-                    if self._monitor_layouts
-                    else len(instances)
-                )
-                options = self.layout_preview.slot_labels[:capacity]
-                slot = instances.index(index)
-                selected = slot if slot < capacity else None
-                reason = "" if allowed else "Stop the session to change player positions."
-                if allowed and selected is None:
-                    reason = "This player needs a space. Choose a monitor destination or a larger template."
-            row.set_placement_options(options, selected, allowed and index in instances, reason)
-
-    def _on_player_placement_requested(self, _row, instance, target_slot):
-        if self._can_reposition_players() and self.layout_preview.assign_player(instance, target_slot):
-            return
-        self._sync_placement_controls()
+        self.layout_preview.set_reposition_enabled(self._can_reposition_players())
 
     def _apply_grab_input_exclusivity(self):
         active = next((i for i, row in enumerate(self.player_rows) if row.grab_input_switch.get_active()), None)
@@ -580,16 +548,18 @@ class LayoutSettingsPage(Gtk.Box):
         layouts = preview.get_monitor_layouts()
         if key not in layouts:
             return
-        self._monitor_layouts.update(layouts)
-        config = self._monitor_layouts[key]
-        config["template"] = template_id
-        config["players"] = config["players"][: TEMPLATES[template_id].capacity]
-        loading = self._is_loading
-        self._is_loading = True
-        try:
-            self.placement_mode_row.set_selected(1)
-        finally:
-            self._is_loading = loading
+        if self.placement_mode_row.get_selected() == 1:
+            self._monitor_layouts.update(layouts)
+            config = self._monitor_layouts[key]
+            config["template"] = template_id
+            config["players"] = config["players"][: TEMPLATES[template_id].capacity]
+        else:
+            for monitor_name, layout in layouts.items():
+                self._monitor_layouts[monitor_name] = {
+                    "template": layout["template"],
+                    "players": [],
+                }
+            self._monitor_layouts[key]["template"] = template_id
         self._on_setting_changed()
 
     def get_layout_error(self, instance=None):

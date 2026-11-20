@@ -122,6 +122,11 @@ class LayoutPreview(Gtk.Box):
         self._pending_card_images: dict[Gtk.Widget, Gdk.Paintable] = {}
         self.connect("unmap", lambda *_: self._motion.finish())
 
+    @staticmethod
+    def _monitor_display_name(monitor: dict) -> str:
+        """Return only the display connector name without a numeric monitor prefix."""
+        return monitor.get("name") or "Unknown connector"
+
     def do_snapshot(self, snapshot):
         """Draw floating cards above all monitor grids, in canvas coordinates."""
         if self._motion.active and self._motion_size != (self.get_width(), self.get_height()):
@@ -185,7 +190,7 @@ class LayoutPreview(Gtk.Box):
                 monitor = monitors[monitor_index]
                 width = max(1, int(monitor.get("width") or 1920))
                 height = max(1, int(monitor.get("height") or 1080))
-                name = f"Monitor {monitor_index + 1} · {monitor.get('name', 'Unknown connector')}"
+                name = self._monitor_display_name(monitor)
                 self.monitor_names.append(name)
 
                 box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, hexpand=True, vexpand=True)
@@ -198,7 +203,7 @@ class LayoutPreview(Gtk.Box):
                     self.monitor_slot_ranges[key] = (start, start + len(group))
                     self._add_picker(header, key, template)
                 if requested_monitor >= len(monitors):
-                    self._append_warning(box, "No dedicated display for this group; it shares Monitor 1.")
+                    self._append_warning(box, f"No dedicated display for this group; it shares {name}.")
                 elif not has_displays:
                     self._append_warning(
                         box, "No display detected. Using a 1920 × 1080 preview until one is available."
@@ -218,9 +223,7 @@ class LayoutPreview(Gtk.Box):
                 for local_slot, instance in enumerate(group):
                     slot = start + local_slot
                     geometry = LayoutCalculator.calculate_position(width, height, len(group), local_slot, orientation)
-                    self.slot_labels.append(
-                        f"Monitor {monitor_index + 1} · Space {slot + 1} — {monitor.get('name', 'Unknown connector')}"
-                    )
+                    self.slot_labels.append(f"{name} · Space {slot + 1}")
                     cell = self._make_slot(slot, instance, name, geometry)
                     grid.attach(
                         cell,
@@ -292,7 +295,7 @@ class LayoutPreview(Gtk.Box):
         width = max(1, int(monitor.get("width") or 1920))
         height = max(1, int(monitor.get("height") or 1080))
         header = self._make_monitor_header(
-            f"Monitor {index + 1} · {monitor.get('name', 'Unknown connector')}",
+            self._monitor_display_name(monitor),
             width,
             height,
             0,
@@ -341,7 +344,7 @@ class LayoutPreview(Gtk.Box):
                 self.monitor_slot_ranges[monitor.key] = (start, len(self.instances))
                 width = max(1, int(monitor.display.get("width") or 1920))
                 height = max(1, int(monitor.display.get("height") or 1080))
-                name = f"Monitor {monitor.index + 1} · {monitor.display.get('name', 'Unknown connector')}"
+                name = self._monitor_display_name(monitor.display)
                 self.monitor_names.append(name)
                 box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, hexpand=True, vexpand=True)
                 box.add_css_class("canvas-monitor")

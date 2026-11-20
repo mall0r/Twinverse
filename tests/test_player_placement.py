@@ -1,4 +1,4 @@
-"""Exercise native GTK drag/drop payloads and their synchronized Player Setup alternative."""
+"""Exercise native GTK drag/drop payloads and canvas repositioning."""
 
 # flake8: noqa: E402
 
@@ -85,27 +85,23 @@ def test_roster_drag_can_swap_players_between_monitors(page):
     target = _controller(preview._slots[0].cell, Gtk.DropTarget)
     assert target.emit("drop", payload, 5.0, 5.0)
     assert preview.instances == [5, 1, 2, 3, 4, 0]
-    assert page.player_rows[5].position_row.get_selected() == 0
-    assert page.player_rows[0].position_row.get_selected() == 5
-    assert "Monitor 2" in preview.slot_labels[5]
+    assert "DP-1" in preview.slot_labels[5]
+    assert "Monitor" not in preview.slot_labels[5]
     assert "Space 6" in preview.slot_labels[5]
     assert len(set(preview.instances)) == 6
 
 
-def test_inspector_destination_and_canvas_drop_stay_synchronized(page):
-    """Either interaction updates every affected player's destination without feedback loops."""
+def test_canvas_assignment_and_drop_stay_synchronized(page):
+    """Programmatic assignment and native drops update every affected slot without feedback loops."""
     preview = page.layout_preview
     edits = []
     page.connect("settings-changed", lambda *_: edits.append(True))
-    page.player_rows[0].position_row.set_selected(4)
+    assert preview.assign_player(0, 4)
     assert preview.instances == [4, 1, 2, 3, 0, 5]
-    assert page.player_rows[4].position_row.get_selected() == 0
     _source, payload = _prepare(preview, preview._slots[0].cell)
     target = _controller(preview._slots[5].cell, Gtk.DropTarget)
     assert target.emit("drop", payload, 5.0, 5.0)
     assert preview.instances == [5, 1, 2, 3, 0, 4]
-    assert page.player_rows[4].position_row.get_selected() == 5
-    assert page.player_rows[5].position_row.get_selected() == 0
     assert len(edits) == 2
 
 
@@ -122,20 +118,20 @@ def test_reused_tile_source_resolves_its_new_occupant(page):
 
 
 @pytest.mark.parametrize("state", ["starting", "running", "stopping"])
-def test_runtime_states_block_both_drag_and_selection_immediately(page, state):
+def test_runtime_states_block_repositioning_immediately(page, state):
     """Even before the presenter locks global controls, a busy player locks all placement."""
     preview = page.layout_preview
     _source, payload = _prepare(preview, preview._slots[0].cell)
     target = _controller(preview._slots[1].cell, Gtk.DropTarget)
     page.player_rows[0].set_instance_state(state)
-    assert all(not row.position_row.is_sensitive() for row in page.player_rows)
+    assert not preview._allow_reposition
     assert not target.emit("drop", payload, 4.0, 4.0)
     source = _controller(preview._slots[0].cell, Gtk.DragSource)
     assert source.emit("prepare", 4.0, 4.0) is None
     assert not preview.assign_player(0, 1)
     assert page.get_data()["layout_order"] is None
     page.player_rows[0].set_instance_state("idle")
-    assert all(row.position_row.is_sensitive() for row in page.player_rows)
+    assert preview._allow_reposition
 
 
 def test_foreign_owner_and_same_destination_are_rejected_without_autosave(page):
@@ -173,8 +169,6 @@ def test_excluded_players_cannot_be_dragged_or_assigned(page):
     page.player_rows[1].checkbox.set_active(False)
     source = _controller(page._roster_rows[1], Gtk.DragSource)
     assert source.emit("prepare", 8.0, 8.0) is None
-    assert not page.player_rows[1].position_row.is_sensitive()
-    assert page.player_rows[1].position_row.get_model().get_n_items() == 0
     assert not page.layout_preview.assign_player(1, 0)
 
 
@@ -193,16 +187,16 @@ def test_selection_press_keeps_the_party_drawer_open_until_activation(page):
     assert not page.roster_split.get_show_sidebar()
 
 
-def test_direct_mode_clears_destinations_and_rejects_dragging(page):
+def test_direct_mode_rejects_dragging_and_restores_on_reenable(page):
     """A hidden Gamescope canvas must not remain a backdoor to changing placement."""
     preview = page.layout_preview
     source = _controller(preview._slots[0].cell, Gtk.DragSource)
     page.set_gamescope_enabled(False)
     assert source.emit("prepare", 4.0, 4.0) is None
     assert not preview.assign_player(0, 1)
-    assert all(row.position_row.get_model().get_n_items() == 0 for row in page.player_rows)
+    assert not preview._allow_reposition
     page.set_gamescope_enabled(True)
-    assert all(row.position_row.is_sensitive() for row in page.player_rows)
+    assert preview._allow_reposition
 
 
 @pytest.mark.parametrize(

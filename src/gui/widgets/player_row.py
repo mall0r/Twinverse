@@ -28,7 +28,6 @@ class PlayerRow(Gtk.Box):
         "settings-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
         "status-changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
         "launch-clicked": (GObject.SignalFlags.RUN_FIRST, None, (int,)),
-        "placement-requested": (GObject.SignalFlags.RUN_FIRST, None, (int, int)),
         "refresh-devices-requested": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
@@ -45,8 +44,6 @@ class PlayerRow(Gtk.Box):
         self._devices_info = {kind: list(devices_info.get(kind, [])) for kind in ("joystick", "audio")}
         self._parent_page = None
         self._is_loading = False
-        self._syncing_placement = False
-        self._placement_selected = Gtk.INVALID_LIST_POSITION
         self._is_verified = False
         self._is_running = False
         self._state = INSTANCE_IDLE
@@ -74,7 +71,6 @@ class PlayerRow(Gtk.Box):
 
         self._create_header()
         self._content.append(Gtk.Separator())
-        self._create_placement_section()
         self._create_device_rows()
         self._content.append(Gtk.Separator())
         self._create_env_section()
@@ -128,55 +124,6 @@ class PlayerRow(Gtk.Box):
         self.launch_button.connect("clicked", self._on_launch_clicked)
         header.append(self.launch_button)
         self._content.append(header)
-
-    def _create_placement_section(self):
-        section = self._create_section("Display position", "video-display-symbolic")
-        self.position_row = self._create_dropdown([], self._on_placement_selected)
-        self.position_row.update_property([Gtk.AccessibleProperty.LABEL], ["Monitor / space"])
-        field = self._create_field("_Monitor / space", self.position_row)
-        self.position_help_label = self._help_label("")
-        field.append(self.position_help_label)
-        section.append(field)
-        self.set_placement_options([], None, False)
-
-    def set_placement_options(self, options: list[str], selected: int | None, enabled: bool, reason: str = ""):
-        """Sync parent-owned destinations and their zero-based selection without signals."""
-        was_syncing = self._syncing_placement
-        self._syncing_placement = True
-        try:
-            model = self.position_row.get_model()
-            if options != [model.get_string(index) for index in range(model.get_n_items())]:
-                # Keep GTK's selection model alive during a parent's immediate resync.
-                model.splice(0, model.get_n_items(), options)
-            self.position_row.set_selected(
-                selected if selected is not None and 0 <= selected < len(options) else Gtk.INVALID_LIST_POSITION
-            )
-            can_place = enabled and bool(options)
-            self.position_row.set_sensitive(can_place)
-            if can_place:
-                help_text = "Choose a destination or drag this player. Occupied spaces swap players."
-            elif options:
-                help_text = "Display placement is currently unavailable."
-            else:
-                help_text = "No monitor or space is available."
-            self.position_help_label.set_text(reason or help_text)
-            self._placement_selected = self.position_row.get_selected()
-        finally:
-            self._syncing_placement = was_syncing
-
-    def _on_placement_selected(self, dropdown, _gparam):
-        if self._syncing_placement:
-            return
-        target_slot = dropdown.get_selected()
-        if target_slot == self._placement_selected:
-            return
-        # GTK can defer selection notifications until after a parent's resync.
-        self._placement_selected = target_slot
-        if self._is_loading or not dropdown.is_sensitive() or not self.is_selected() or self._state != INSTANCE_IDLE:
-            return
-        model = dropdown.get_model()
-        if model is not None and 0 <= target_slot < model.get_n_items():
-            self.emit("placement-requested", self._player_num, target_slot)
 
     def _create_device_rows(self):
         controls = self._create_section("Controls", "input-gaming-symbolic")

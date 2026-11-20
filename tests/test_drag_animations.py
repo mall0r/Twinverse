@@ -155,9 +155,6 @@ def _assert_order(scene, expected):
     assert scene.page.placement_mode_row.get_selected() == 1
     assert scene.orders == [expected]
     assert scene.edits == [expected]
-    assert [row.position_row.get_selected() for row in scene.page.player_rows] == [
-        expected.index(instance) for instance in range(6)
-    ]
 
 
 def _assert_drag_cleared(preview):
@@ -343,7 +340,7 @@ def test_manual_player_setup_assignment_animates_both_cards_between_different_mo
     cells = tuple(slot.cell for slot in preview._slots)
     source_rect = _bounds(preview, cells[0])
     destination_rect = _bounds(preview, cells[5])
-    scene.page.player_rows[0].position_row.set_selected(5)
+    assert preview.assign_player(0, 5)
     assert preview._motion.active
     preview._motion._animation.pause()
     displaced, moved = preview._motion._cards
@@ -409,7 +406,7 @@ def test_reduced_motion_updates_the_model_immediately_without_hiding_cells(scene
         assert target.emit("drop", payload, 63.0, 51.0)
         source.emit("drag-end", None, False)
     else:
-        scene.page.player_rows[0].position_row.set_selected(5)
+        assert preview.assign_player(0, 5)
     _assert_motion_cleared(preview)
     _assert_drag_cleared(preview)
     _assert_order(scene, [5, 1, 2, 3, 4, 0])
