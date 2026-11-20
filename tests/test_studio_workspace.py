@@ -307,6 +307,12 @@ def test_roster_sidebar_width_never_grows_across_player_counts_and_states(window
 
     assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
 
+    # A long custom player name must ellipsize rather than widening the roster.
+    page.player_rows[0].start_name_edit()
+    page.player_rows[0].name_entry.set_text("VeryLongCustomPlayerDisplayName32")
+    page.player_rows[0].commit_name_edit()
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
+
     # Adding a 3rd player (unverified) triggers the longer setup summary string.
     page.add_player_button.emit("clicked")
     assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected

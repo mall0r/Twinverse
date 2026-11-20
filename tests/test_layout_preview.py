@@ -251,6 +251,133 @@ def test_slot_shows_controller_icon_in_top_right_when_controller_selected(page, 
     assert not preview._slots[1].controller_icon.get_visible()
 
 
+def test_slot_shows_mouse_icon_alone_and_side_by_side_with_controller(page, devices):
+    """Spaces show the mouse icon in the top-right when grab mouse is enabled, and side-by-side with gamepad."""
+    devices_with_pad = {
+        **devices,
+        "joystick": [{"id": "/dev/input/event10", "name": "Xbox Wireless Controller"}],
+    }
+    page.load_data(Profile(num_players=2), devices_with_pad, {})
+    preview = page.layout_preview
+    first_slot, second_slot = preview._slots[0], preview._slots[1]
+
+    assert first_slot.mouse_icon.get_icon_name() == "mouse-wireless-symbolic"
+    assert first_slot.mouse_icon.get_parent() is first_slot.controller_icon.get_parent()
+    assert first_slot.mouse_icon.get_next_sibling() is first_slot.controller_icon
+    assert not first_slot.mouse_icon.get_visible()
+    assert not second_slot.mouse_icon.get_visible()
+
+    # Enabling grab mouse alone shows only the mouse icon on that player's slot.
+    first_button = first_slot.button
+    page.player_rows[0].grab_input_switch.set_active(True)
+    assert preview._slots[0].button is first_button
+    assert preview._slots[0].mouse_icon.get_visible()
+    assert not preview._slots[0].controller_icon.get_visible()
+    assert not preview._slots[1].mouse_icon.get_visible()
+
+    # Assigning a controller to the same player shows both icons side-by-side.
+    page.player_rows[0].joystick_row.set_selected(1)
+    assert preview._slots[0].mouse_icon.get_visible()
+    assert preview._slots[0].controller_icon.get_visible()
+
+    # Swapping players moves both icons together.
+    assert preview.assign_player(0, 1)
+    assert not preview._slots[0].mouse_icon.get_visible()
+    assert not preview._slots[0].controller_icon.get_visible()
+    assert preview._slots[1].mouse_icon.get_visible()
+    assert preview._slots[1].controller_icon.get_visible()
+
+    # Disabling grab mouse leaves only the controller icon visible.
+    page.player_rows[0].grab_input_switch.set_active(False)
+    assert not preview._slots[1].mouse_icon.get_visible()
+    assert preview._slots[1].controller_icon.get_visible()
+
+
+def test_slot_uses_check_icon_when_ready_and_dot_otherwise(page, devices):
+    """Ready players display the check icon in their space; other states keep the dot icon."""
+    page.load_data(Profile(num_players=2), devices, {0: True, 1: False})
+    preview = page.layout_preview
+
+    assert preview._slots[0].status.get_label() == "Ready"
+    assert preview._slots[0].status_icon.get_icon_name() == "twinverse-check-symbolic"
+    assert preview._slots[0].status_icon.has_css_class("slot-status-ready")
+
+    assert preview._slots[1].status.get_label() == "Not installed"
+    assert preview._slots[1].status_icon.get_icon_name() == "twinverse-dot-symbolic"
+    assert not preview._slots[1].status_icon.has_css_class("slot-status-ready")
+
+    # Switching a Ready player to Running returns to the dot icon; returning to Ready restores check.
+    page.player_rows[0].set_instance_state("running")
+    assert preview._slots[0].status.get_label() == "Running"
+    assert preview._slots[0].status_icon.get_icon_name() == "twinverse-dot-symbolic"
+    assert not preview._slots[0].status_icon.has_css_class("slot-status-ready")
+
+    page.player_rows[0].set_instance_state("idle")
+    assert preview._slots[0].status.get_label() == "Ready"
+    assert preview._slots[0].status_icon.get_icon_name() == "twinverse-check-symbolic"
+    assert preview._slots[0].status_icon.has_css_class("slot-status-ready")
+
+
+def test_player_names_default_to_player_and_sync_inline_edits(page, devices, monkeypatch, tmp_path):
+    """Players default to 'Player', support inline rename via pencil icon, and persist across reloads."""
+    monkeypatch.setattr(Config, "get_profile_path", lambda: tmp_path / "profile.json")
+    page.load_data(Profile(num_players=2), devices, {0: True, 1: True})
+    preview = page.layout_preview
+
+    # Default names have no numeric suffix (numbers live in the UI badges).
+    assert [row.get_player_name() for row in page.player_rows] == ["Player", "Player"]
+    assert [label.get_label() for label in page._roster_names] == ["Player", "Player"]
+    assert [slot.name.get_label() for slot in preview._slots] == ["Player", "Player"]
+
+    row = page.player_rows[0]
+    assert row.edit_name_button.get_icon_name() == "twinverse-edit-symbolic"
+    edits = []
+    page.connect("settings-changed", lambda *_: edits.append(True))
+
+    # Clicking the pencil opens inline editing; Escape discards changes without saving.
+    row.edit_name_button.emit("clicked")
+    assert row._name_stack.get_visible_child_name() == "edit"
+    row.name_entry.set_text("Temporary")
+    row.cancel_name_edit()
+    assert row._name_stack.get_visible_child_name() == "display"
+    assert row.get_player_name() == "Player"
+    assert edits == []
+
+    # Committing a custom name updates Player Setup, roster, canvas and emits settings-changed once.
+    row.edit_name_button.emit("clicked")
+    row.name_entry.set_text("  Alice  ")
+    row.name_entry.emit("activate")
+    assert row._name_stack.get_visible_child_name() == "display"
+    assert row.get_player_name() == "Alice"
+    assert row.title_label.get_label() == "Alice"
+    assert page._roster_names[0].get_label() == "Alice"
+    assert preview._slots[0].name.get_label() == "Alice"
+    assert preview._slots[1].name.get_label() == "Player"
+    assert edits == [True]
+
+    # Round-trip through SettingsController and Profile on disk.
+    controller = SettingsController.__new__(SettingsController)
+    controller._profile = Profile()
+    controller.update_from_ui_data(page.get_data())
+    controller.get_profile().save()
+    reloaded = Profile.load()
+    assert reloaded.player_configs[0].name == "Alice"
+    assert reloaded.player_configs[1].name is None
+
+    page.load_data(reloaded, devices, {0: True, 1: True})
+    assert page.player_rows[0].get_player_name() == "Alice"
+    assert page._roster_names[0].get_label() == "Alice"
+    assert page.layout_preview._slots[0].name.get_label() == "Alice"
+    assert page.player_rows[1].get_player_name() == "Player"
+
+    # Blank edit resets cleanly back to "Player".
+    page.player_rows[0].edit_name_button.emit("clicked")
+    page.player_rows[0].name_entry.set_text("   ")
+    page.player_rows[0].commit_name_edit()
+    assert page.player_rows[0].get_player_name() == "Player"
+    assert page.player_rows[0].get_config().name is None
+
+
 def test_direct_add_and_middle_player_removal_preserve_identities_and_roundtrip(page, devices, monkeypatch, tmp_path):
     """Removing a player from the middle keeps other players' homes, configs and order intact."""
     monkeypatch.setattr(Config, "get_profile_path", lambda: tmp_path / "profile.json")

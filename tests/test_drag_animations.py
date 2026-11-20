@@ -239,8 +239,10 @@ def test_frozen_drag_image_keeps_visual_identity_after_its_slot_changes_player(s
     assert original is not None
     assert preview.assign_player(0, 2)
     assert preview._slots[0].cell is cell
-    assert preview._slots[0].name.get_label() == "Player 3"
-    assert preview._slots[2].name.get_label() == "Player 1"
+    assert preview._slots[0].number.get_label() == "03"
+    assert preview._slots[0].name.get_label() == "Player"
+    assert preview._slots[2].number.get_label() == "01"
+    assert preview._slots[2].name.get_label() == "Player"
     assert _visual_bytes(image, *size) == original
     assert _visual_bytes(preview._motion._cards[1].paintable, *size) == original
     preview._motion.finish()
@@ -415,8 +417,10 @@ def test_reduced_motion_updates_the_model_immediately_without_hiding_cells(scene
     assert tuple(slot.cell for slot in preview._slots) == cells
     assert all(cell.get_opacity() == 1.0 for cell in cells)
     assert _iterate_until(lambda: _widget_node(preview) is not None)
-    assert preview._slots[0].name.get_label() == "Player 6"
-    assert preview._slots[5].name.get_label() == "Player 1"
+    assert preview._slots[0].number.get_label() == "06"
+    assert preview._slots[0].name.get_label() == "Player"
+    assert preview._slots[5].number.get_label() == "01"
+    assert preview._slots[5].name.get_label() == "Player"
 
 
 def test_cancelled_native_drag_does_not_mutate_or_hide_cards_and_rejects_stale_drop(scene):
@@ -499,7 +503,8 @@ def test_new_drag_from_an_animating_slot_freezes_a_nonempty_card_for_its_current
     assert _iterate_until(lambda: _widget_node(preview) is not None)
     assert preview._motion.active
     assert preview._slots[0].cell.get_opacity() == 0.0
-    assert preview._slots[0].name.get_label() == "Player 3"
+    assert preview._slots[0].number.get_label() == "03"
+    assert preview._slots[0].name.get_label() == "Player"
 
     replacement, payload = _prepare(preview, slot=0)
     assert replacement is source

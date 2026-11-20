@@ -9,11 +9,11 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import GObject, Gtk, Pango
+from gi.repository import Gdk, GObject, Gtk, Pango
 
 from src.gui.widgets.env_variable_row import EnvVariableRow
 from src.gui.widgets.spinner import StudioSpinner
-from src.models import PlayerInstanceConfig
+from src.models import DEFAULT_PLAYER_NAME, PlayerInstanceConfig
 
 # Only a confirmed Steam client is running; a pending launch can be cancelled.
 INSTANCE_IDLE = "idle"
@@ -42,6 +42,8 @@ class PlayerRow(Gtk.Box):
         self.add_css_class("inspector-player")
 
         self._player_num = player_num
+        self._player_name = DEFAULT_PLAYER_NAME
+        self._editing_name = False
         self._devices_info = {kind: list(devices_info.get(kind, [])) for kind in ("joystick", "audio")}
         self._parent_page = None
         self._is_loading = False
@@ -58,8 +60,7 @@ class PlayerRow(Gtk.Box):
     def _build_ui(self):
         self.checkbox = Gtk.CheckButton(active=True)
         self.checkbox.add_css_class("player-checkbox")
-        self.checkbox.set_tooltip_text(f"Include Player {self._player_num + 1} in the session")
-        self.checkbox.update_property([Gtk.AccessibleProperty.LABEL], [f"Include Player {self._player_num + 1}"])
+        self._sync_checkbox_accessibility()
         self.checkbox.connect("toggled", self._on_checkbox_toggled)
 
         self._content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
@@ -88,9 +89,41 @@ class PlayerRow(Gtk.Box):
         identity.append(avatar)
 
         titles = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
-        title = Gtk.Label(label=f"Player {self._player_num + 1}", xalign=0)
-        title.add_css_class("inspector-title")
-        titles.append(title)
+        self._name_stack = Gtk.Stack(vhomogeneous=False, hhomogeneous=False, hexpand=True)
+        self._name_display_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, hexpand=True)
+        self.title_label = Gtk.Label(
+            label=self._player_name,
+            xalign=0,
+            ellipsize=Pango.EllipsizeMode.END,
+        )
+        self.title_label.add_css_class("inspector-title")
+        self._name_display_box.append(self.title_label)
+
+        self.edit_name_button = Gtk.Button(icon_name="twinverse-edit-symbolic", valign=Gtk.Align.CENTER)
+        self.edit_name_button.add_css_class("flat")
+        self.edit_name_button.add_css_class("inspector-edit-name-button")
+        self.edit_name_button.set_tooltip_text("Edit player name")
+        self.edit_name_button.update_property([Gtk.AccessibleProperty.LABEL], ["Edit player name"])
+        self.edit_name_button.connect("clicked", lambda *_: self.start_name_edit())
+        self._name_display_box.append(self.edit_name_button)
+
+        self.name_entry = Gtk.Entry(placeholder_text=DEFAULT_PLAYER_NAME, max_length=32, hexpand=True)
+        self.name_entry.set_width_chars(1)
+        self.name_entry.add_css_class("inspector-entry")
+        self.name_entry.add_css_class("inspector-name-entry")
+        self.name_entry.connect("activate", lambda *_: self.commit_name_edit())
+        key_controller = Gtk.EventControllerKey()
+        key_controller.connect("key-pressed", self._on_name_entry_key_pressed)
+        self.name_entry.add_controller(key_controller)
+        focus_controller = Gtk.EventControllerFocus()
+        focus_controller.connect("leave", lambda *_: self.commit_name_edit())
+        self.name_entry.add_controller(focus_controller)
+
+        self._name_stack.add_named(self._name_display_box, "display")
+        self._name_stack.add_named(self.name_entry, "edit")
+        self._name_stack.set_visible_child_name("display")
+        titles.append(self._name_stack)
+
         self._status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         self._status_box.add_css_class("inspector-status-line")
         self.status_icon = Gtk.Image()
@@ -125,6 +158,61 @@ class PlayerRow(Gtk.Box):
         self.launch_button.connect("clicked", self._on_launch_clicked)
         header.append(self.launch_button)
         self._content.append(header)
+
+    def _sync_checkbox_accessibility(self):
+        label = f"{self._player_name} {self._player_num + 1:02d}"
+        self.checkbox.set_tooltip_text(f"Include {label} in the session")
+        self.checkbox.update_property([Gtk.AccessibleProperty.LABEL], [f"Include {label}"])
+
+    def get_player_name(self) -> str:
+        """Return the display name for this player (defaults to 'Player')."""
+        return self._player_name
+
+    def set_player_name(self, name: Optional[str]):
+        """Update the player's display name without reporting a configuration edit."""
+        normalized = (name or "").strip() or DEFAULT_PLAYER_NAME
+        self._editing_name = False
+        self._player_name = normalized
+        self.title_label.set_label(normalized)
+        self.title_label.set_tooltip_text(normalized if normalized != DEFAULT_PLAYER_NAME else None)
+        self._name_stack.set_visible_child_name("display")
+        self._sync_checkbox_accessibility()
+
+    def start_name_edit(self):
+        """Switch the player title into inline edit mode."""
+        self._editing_name = True
+        self.name_entry.set_text(self._player_name)
+        self._name_stack.set_visible_child_name("edit")
+        self.name_entry.grab_focus()
+        self.name_entry.select_region(0, -1)
+
+    def commit_name_edit(self):
+        """Save the edited player name and return to display mode."""
+        if not self._editing_name:
+            return
+        self._editing_name = False
+        normalized = self.name_entry.get_text().strip() or DEFAULT_PLAYER_NAME
+        changed = normalized != self._player_name
+        self._player_name = normalized
+        self.title_label.set_label(normalized)
+        self.title_label.set_tooltip_text(normalized if normalized != DEFAULT_PLAYER_NAME else None)
+        self._name_stack.set_visible_child_name("display")
+        self._sync_checkbox_accessibility()
+        if changed:
+            self._on_setting_changed()
+
+    def cancel_name_edit(self):
+        """Discard in-progress name edits and return to display mode."""
+        if not self._editing_name:
+            return
+        self._editing_name = False
+        self._name_stack.set_visible_child_name("display")
+
+    def _on_name_entry_key_pressed(self, _controller, keyval, _keycode, _state):
+        if keyval == Gdk.KEY_Escape:
+            self.cancel_name_edit()
+            return True
+        return False
 
     def _create_device_rows(self):
         self.refresh_controllers_button = Gtk.Button(icon_name="twinverse-refresh-symbolic", valign=Gtk.Align.CENTER)
@@ -309,6 +397,10 @@ class PlayerRow(Gtk.Box):
         """Return whether this player currently has a controller assigned."""
         return self._get_combo_device_id(self.joystick_row, self._devices_info["joystick"]) is not None
 
+    def has_grab_mouse(self) -> bool:
+        """Return whether this player currently has mouse capture enabled."""
+        return bool(self.grab_input_switch.get_active())
+
     def _on_grab_input_toggled(self, _switch, _gparam):
         if self._is_loading:
             return
@@ -343,6 +435,7 @@ class PlayerRow(Gtk.Box):
         was_loading = self._is_loading
         self._is_loading = True
         try:
+            self.set_player_name(config.name)
             self.grab_input_switch.set_active(config.grab_input_devices)
             self._set_combo_selection(self.joystick_row, self._devices_info["joystick"], config.physical_device_id)
             self._set_combo_selection(self.audio_row, self._devices_info["audio"], config.audio_device_id)
@@ -359,6 +452,7 @@ class PlayerRow(Gtk.Box):
     def get_config(self) -> PlayerInstanceConfig:
         """Read settings; environment values are deliberately not stripped."""
         return PlayerInstanceConfig(
+            NAME=None if self._player_name == DEFAULT_PLAYER_NAME else self._player_name,
             PHYSICAL_DEVICE_ID=self._get_combo_device_id(self.joystick_row, self._devices_info["joystick"]),
             GRAB_INPUT_DEVICES=self.grab_input_switch.get_active(),
             AUDIO_DEVICE_ID=self._get_combo_device_id(self.audio_row, self._devices_info["audio"]),

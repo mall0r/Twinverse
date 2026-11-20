@@ -15,17 +15,36 @@ from src.core.tiling import TEMPLATES
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PLAYER_NAME = "Player"
+
 
 class PlayerInstanceConfig(BaseModel):
     """Defines the specific configuration for a single player's game instance."""
 
     model_config = ConfigDict(populate_by_name=True)
 
+    name: Optional[str] = Field(default=None, alias="NAME")
     physical_device_id: Optional[str] = Field(default=None, alias="PHYSICAL_DEVICE_ID")
     grab_input_devices: bool = Field(default=False, alias="GRAB_INPUT_DEVICES")
     audio_device_id: Optional[str] = Field(default=None, alias="AUDIO_DEVICE_ID")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
     guest_ip: Optional[str] = Field(default=None, alias="GUEST_IP")
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value):
+        """Trim custom player names and omit empty or default values."""
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        if not cleaned or cleaned == DEFAULT_PLAYER_NAME:
+            return None
+        return cleaned
+
+    @property
+    def display_name(self) -> str:
+        """Return the player's configured name or the default label."""
+        return self.name or DEFAULT_PLAYER_NAME
 
 
 class SplitscreenConfig(BaseModel):
@@ -180,6 +199,12 @@ class Profile(BaseModel):
     def layout_indices(self) -> List[int]:
         """Return selected instances in display-slot order, without changing launch order."""
         return LayoutCalculator.order_instances(self.launch_indices(), self.layout_order)
+
+    def get_player_name(self, instance_idx: int) -> str:
+        """Return the display name for a given zero-based instance index."""
+        if 0 <= instance_idx < len(self.player_configs):
+            return self.player_configs[instance_idx].display_name
+        return DEFAULT_PLAYER_NAME
 
     def get_env_for_instance(self, instance_idx: int) -> Dict[str, str]:
         """Return the merged environment variables for a given instance index (0-based).

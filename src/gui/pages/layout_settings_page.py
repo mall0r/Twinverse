@@ -12,7 +12,7 @@ from src.core.layout import LayoutCalculator
 from src.core.tiling import TEMPLATES, build_tiling_plan
 from src.gui.widgets import LayoutPreview, PlayerRow
 from src.gui.widgets.player_row import INSTANCE_IDLE
-from src.models import PlayerInstanceConfig
+from src.models import DEFAULT_PLAYER_NAME, PlayerInstanceConfig
 
 ROSTER_SIDEBAR_WIDTH = 244
 
@@ -57,6 +57,7 @@ class LayoutSettingsPage(Gtk.Box):
         self._verification_statuses = {}
         self.player_rows = []
         self._roster_rows = []
+        self._roster_names = []
         self._roster_status = []
         self._roster_remove_buttons = []
         self.add_css_class("studio-workspace")
@@ -360,7 +361,9 @@ class LayoutSettingsPage(Gtk.Box):
 
         item = Gtk.ListBoxRow()
         item.add_css_class("party-player")
-        item.update_property([Gtk.AccessibleProperty.LABEL], [f"Configure Player {instance_num + 1}"])
+        item.update_property(
+            [Gtk.AccessibleProperty.LABEL], [f"Configure {player.get_player_name()} {instance_num + 1:02d}"]
+        )
         body = Gtk.Box(spacing=8)
         number = Gtk.Label(label=f"{instance_num + 1:02d}", xalign=0.5, yalign=0.5, valign=Gtk.Align.CENTER)
         number.set_size_request(36, 36)
@@ -368,7 +371,10 @@ class LayoutSettingsPage(Gtk.Box):
         number.add_css_class(f"player-color-{instance_num % 8}")
         body.append(number)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
-        text.append(self._label(f"Player {instance_num + 1}", "party-player-name"))
+        name_label = self._label(player.get_player_name(), "party-player-name")
+        name_label.set_ellipsize(Pango.EllipsizeMode.END)
+        name_label.set_max_width_chars(14)
+        text.append(name_label)
         status = self._label("Not installed", "party-player-status")
         status.set_ellipsize(Pango.EllipsizeMode.END)
         status.set_max_width_chars(17)
@@ -381,15 +387,17 @@ class LayoutSettingsPage(Gtk.Box):
         remove_button = Gtk.Button(icon_name="twinverse-close-symbolic", valign=Gtk.Align.CENTER)
         remove_button.add_css_class("flat")
         remove_button.add_css_class("party-remove-button")
-        remove_button.set_tooltip_text(f"Remove Player {instance_num + 1} from party")
-        remove_button.update_property([Gtk.AccessibleProperty.LABEL], [f"Remove Player {instance_num + 1}"])
+        remove_button.set_tooltip_text(f"Remove {player.get_player_name()} ({instance_num + 1:02d}) from party")
+        remove_button.update_property(
+            [Gtk.AccessibleProperty.LABEL], [f"Remove {player.get_player_name()} {instance_num + 1:02d}"]
+        )
         remove_button.connect("clicked", lambda _btn, num=instance_num: self.remove_player(num))
         actions.append(remove_button)
         body.append(actions)
 
         item.set_child(body)
         self.layout_preview.add_player_drag_source(item, instance_num)
-        return player, item, status, remove_button
+        return player, item, name_label, status, remove_button
 
     def rebuild_player_rows(self, players, devices_info):
         """Replace roster entries and inspectors, releasing old progress timers."""
@@ -402,15 +410,17 @@ class LayoutSettingsPage(Gtk.Box):
         self._party_players = []
         self.player_rows = []
         self._roster_rows = []
+        self._roster_names = []
         self._roster_status = []
         self._roster_remove_buttons = []
         for instance_num in party:
-            player, item, status, remove_button = self._create_player_entry(instance_num, devices_info)
+            player, item, name_label, status, remove_button = self._create_player_entry(instance_num, devices_info)
             self.inspector_stack.add_named(player, str(instance_num))
             self.roster.append(item)
             self._party_players.append(instance_num)
             self.player_rows.append(player)
             self._roster_rows.append(item)
+            self._roster_names.append(name_label)
             self._roster_status.append(status)
             self._roster_remove_buttons.append(remove_button)
         self._sync_party_controls()
@@ -444,7 +454,7 @@ class LayoutSettingsPage(Gtk.Box):
         was_loading = self._is_loading
         self._is_loading = True
         try:
-            player, item, status, remove_button = self._create_player_entry(new_index, self._devices_info)
+            player, item, name_label, status, remove_button = self._create_player_entry(new_index, self._devices_info)
             if new_index in self._saved_player_configs:
                 player.load_config(self._saved_player_configs[new_index])
             player.set_selected(True)
@@ -454,6 +464,7 @@ class LayoutSettingsPage(Gtk.Box):
             self._party_players.insert(pos, new_index)
             self.player_rows.insert(pos, player)
             self._roster_rows.insert(pos, item)
+            self._roster_names.insert(pos, name_label)
             self._roster_status.insert(pos, status)
             self._roster_remove_buttons.insert(pos, remove_button)
             self._known_instance_count = max(self._known_instance_count, new_index + 1)
@@ -490,6 +501,7 @@ class LayoutSettingsPage(Gtk.Box):
             self._party_players.pop(pos)
             self.player_rows.pop(pos)
             self._roster_rows.pop(pos)
+            self._roster_names.pop(pos)
             self._roster_status.pop(pos)
             self._roster_remove_buttons.pop(pos)
             if had_grab:
@@ -510,14 +522,27 @@ class LayoutSettingsPage(Gtk.Box):
             return
         statuses = {}
         controllers = {}
+        mouse_grabs = {}
+        names = {}
         for pos, player in enumerate(self.player_rows):
             instance_num = player._player_num
+            player_name = player.get_player_name()
             status = player.get_status_text()
+            names[instance_num] = player_name
             statuses[instance_num] = status
             controllers[instance_num] = player.has_controller_selected()
+            mouse_grabs[instance_num] = player.has_grab_mouse()
+            self._roster_names[pos].set_label(player_name)
+            self._roster_names[pos].set_tooltip_text(player_name if player_name != DEFAULT_PLAYER_NAME else None)
             self._roster_status[pos].set_label(status)
             self._roster_status[pos].set_tooltip_text(status)
             item = self._roster_rows[pos]
+            item.update_property([Gtk.AccessibleProperty.LABEL], [f"Configure {player_name} {instance_num + 1:02d}"])
+            remove_button = self._roster_remove_buttons[pos]
+            remove_button.set_tooltip_text(f"Remove {player_name} ({instance_num + 1:02d}) from party")
+            remove_button.update_property(
+                [Gtk.AccessibleProperty.LABEL], [f"Remove {player_name} {instance_num + 1:02d}"]
+            )
             for state in ("running", "starting", "stopping", "idle"):
                 item.remove_css_class(f"party-{state}")
             item.add_css_class(f"party-{player.get_instance_state()}")
@@ -525,8 +550,10 @@ class LayoutSettingsPage(Gtk.Box):
                 item.remove_css_class("party-excluded")
             else:
                 item.add_css_class("party-excluded")
+        self.layout_preview.set_player_names(names)
         self.layout_preview.set_player_statuses(statuses)
         self.layout_preview.set_player_controllers(controllers)
+        self.layout_preview.set_player_mouse_grabs(mouse_grabs)
 
         count = len(self._displays)
         self.display_summary.set_label(

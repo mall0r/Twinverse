@@ -208,6 +208,7 @@ class PreferencesWindow(Adw.Window):
 
     def _create_player_row(self, player_index):
         """Create a file entry with a player badge, real path and explicit tools."""
+        player_name = self._profile.get_player_name(player_index)
         row = Gtk.ListBoxRow(selectable=False, activatable=False)
         row.add_css_class("settings-player")
         content = Gtk.Box(spacing=12)
@@ -222,7 +223,7 @@ class PreferencesWindow(Adw.Window):
         badge.add_css_class("title-3")
         content.append(badge)
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True, valign=Gtk.Align.CENTER)
-        title = Gtk.Label(label=f"Player {player_index + 1}", xalign=0)
+        title = Gtk.Label(label=player_name, xalign=0, ellipsize=Pango.EllipsizeMode.END)
         title.add_css_class("heading")
         details.append(title)
         home_path = str(Config.get_steam_home_path(player_index))
@@ -235,15 +236,17 @@ class PreferencesWindow(Adw.Window):
 
         tools = Gtk.Box(spacing=6, valign=Gtk.Align.CENTER)
         home_button = Gtk.Button(icon_name="twinverse-folder-open-symbolic")
-        home_button.set_tooltip_text(f"Open home directory for player {player_index + 1}")
+        home_button.set_tooltip_text(f"Open home directory for {player_name} ({player_index + 1:02d})")
         home_button.connect("clicked", self._on_open_home_clicked, player_index)
         tools.append(home_button)
         terminal_button = Gtk.Button(icon_name="twinverse-terminal-symbolic")
-        terminal_button.set_tooltip_text(f"Open terminal for player {player_index + 1}")
+        terminal_button.set_tooltip_text(f"Open terminal for {player_name} ({player_index + 1:02d})")
         terminal_button.connect("clicked", lambda _: self.emit("instance-terminal-requested", player_index))
         tools.append(terminal_button)
         delete_button = Gtk.Button(icon_name="twinverse-trash-symbolic")
-        delete_button.set_tooltip_text(f"Reset player {player_index + 1} settings and remove home directory")
+        delete_button.set_tooltip_text(
+            f"Reset {player_name} ({player_index + 1:02d}) settings and remove home directory"
+        )
         delete_button.add_css_class("destructive-action")
         delete_button.add_css_class("settings-danger")
         delete_button.connect("clicked", self._on_delete_player_clicked, player_index)
@@ -286,10 +289,11 @@ class PreferencesWindow(Adw.Window):
 
     def _on_delete_player_clicked(self, button, player_index):
         """Handle deletion of a player's configuration and home directory."""
+        player_label = f"{self._profile.get_player_name(player_index)} ({player_index + 1:02d})"
         dialog = Adw.MessageDialog(
             transient_for=self,
-            heading=f"Reset Player {player_index + 1}?",
-            body=f"This will reset the player settings to default and permanently delete Player {player_index + 1}'s home directory, along with all its contents. This action cannot be undone.",
+            heading=f"Reset {player_label}?",
+            body=f"This will reset the player settings to default and permanently delete {player_label}'s home directory, along with all its contents. This action cannot be undone.",
         )
 
         dialog.add_response("cancel", "Cancel")

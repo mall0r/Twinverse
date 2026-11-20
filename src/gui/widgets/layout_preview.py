@@ -18,6 +18,7 @@ from src.core.layout import LayoutCalculator
 from src.core.tiling import TilingPlan, monitor_key
 from src.gui.widgets.card_motion import CardMotion, CardRect, MovingCard
 from src.gui.widgets.tiling_picker import TilingPicker
+from src.models import DEFAULT_PLAYER_NAME
 
 
 class _MonitorLayout(Gtk.LayoutManager):
@@ -180,7 +181,9 @@ class _PlayerSlot:
     number: Gtk.Label
     name: Gtk.Label
     status: Gtk.Label
+    status_icon: Gtk.Image
     controller_icon: Gtk.Image
+    mouse_icon: Gtk.Image
     instance: int | None
     location: str
 
@@ -215,6 +218,8 @@ class LayoutPreview(Gtk.Box):
         self._active_player: int | None = None
         self._player_statuses: dict[int, str] = {}
         self._player_controllers: dict[int, bool] = {}
+        self._player_mouse_grabs: dict[int, bool] = {}
+        self._player_names: dict[int, str] = {}
         self._updating = False
         self._allow_reposition = False
         self._using_tiling = False
@@ -546,6 +551,18 @@ class LayoutPreview(Gtk.Box):
     def set_player_controllers(self, controllers: dict[int, bool]):
         """Update per-player controller badges in place, preserving widgets and keyboard focus."""
         self._player_controllers = {player: bool(assigned) for player, assigned in controllers.items()}
+        for slot in range(len(self._slots)):
+            self._refresh_slot(slot)
+
+    def set_player_mouse_grabs(self, grabs: dict[int, bool]):
+        """Update per-player mouse-grab badges in place, preserving widgets and keyboard focus."""
+        self._player_mouse_grabs = {player: bool(enabled) for player, enabled in grabs.items()}
+        for slot in range(len(self._slots)):
+            self._refresh_slot(slot)
+
+    def set_player_names(self, names: dict[int, str]):
+        """Update per-player display names in place, preserving widgets and keyboard focus."""
+        self._player_names = {player: (name or "").strip() or DEFAULT_PLAYER_NAME for player, name in names.items()}
         for slot in range(len(self._slots)):
             self._refresh_slot(slot)
 
@@ -882,16 +899,28 @@ class LayoutPreview(Gtk.Box):
         button.connect("clicked", self._on_player_activated, slot)
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2 if compact else 8, hexpand=True, vexpand=True)
         content.add_css_class("slot-content")
-        caption = Gtk.Box(spacing=6)
+        caption = Gtk.Box(spacing=5)
         caption.add_css_class("slot-caption")
         space = Gtk.Label(label=f"SPACE {slot + 1:02d}", xalign=0, hexpand=True)
         space.add_css_class("slot-space")
         caption.append(space)
+
+        icon_size = 12 if compact else 14
+        mouse_icon = Gtk.Image.new_from_icon_name("mouse-wireless-symbolic")
+        mouse_icon.set_pixel_size(icon_size)
+        mouse_icon.set_valign(Gtk.Align.CENTER)
+        mouse_icon.set_tooltip_text("Mouse grab enabled")
+        mouse_icon.add_css_class("slot-mouse-icon")
+        mouse_icon.add_css_class("slot-input-icon")
+        mouse_icon.set_visible(False)
+        caption.append(mouse_icon)
+
         controller_icon = Gtk.Image.new_from_icon_name("gamepad-symbolic")
-        controller_icon.set_pixel_size(12 if compact else 14)
+        controller_icon.set_pixel_size(icon_size)
         controller_icon.set_valign(Gtk.Align.CENTER)
         controller_icon.set_tooltip_text("Controller assigned")
         controller_icon.add_css_class("slot-controller-icon")
+        controller_icon.add_css_class("slot-input-icon")
         controller_icon.set_visible(False)
         caption.append(controller_icon)
         content.append(caption)
@@ -921,10 +950,10 @@ class LayoutPreview(Gtk.Box):
             identity.append(name)
         status_row = Gtk.Box(spacing=6, halign=Gtk.Align.CENTER)
         status_row.add_css_class("slot-status-row")
-        dot = Gtk.Image.new_from_icon_name("twinverse-dot-symbolic")
-        dot.set_pixel_size(8)
-        dot.add_css_class("slot-status-dot")
-        status_row.append(dot)
+        status_icon = Gtk.Image.new_from_icon_name("twinverse-dot-symbolic")
+        status_icon.set_pixel_size(8)
+        status_icon.add_css_class("slot-status-dot")
+        status_row.append(status_icon)
         status = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, max_width_chars=28)
         status.add_css_class("slot-status")
         status_row.append(status)
@@ -949,7 +978,11 @@ class LayoutPreview(Gtk.Box):
         target.connect("drop", self._on_player_drop, slot)
         cell.add_controller(target)
         location = f"Space {slot + 1} on {monitor_name}. {width} by {height} pixels at x {x}, y {y}."
-        self._slots.append(_PlayerSlot(cell, button, number, name, status, controller_icon, instance, location))
+        self._slots.append(
+            _PlayerSlot(
+                cell, button, number, name, status, status_icon, controller_icon, mouse_icon, instance, location
+            )
+        )
         self._refresh_slot(slot)
         return cell
 
@@ -972,6 +1005,10 @@ class LayoutPreview(Gtk.Box):
         widgets.instance = instance
         if instance is None:
             widgets.controller_icon.set_visible(False)
+            widgets.mouse_icon.set_visible(False)
+            widgets.status_icon.set_from_icon_name("twinverse-dot-symbolic")
+            widgets.status_icon.set_pixel_size(8)
+            widgets.status_icon.remove_css_class("slot-status-ready")
             widgets.number.set_label("—")
             widgets.name.set_label("Empty space")
             widgets.status.set_label("Drop a player here")
@@ -983,9 +1020,19 @@ class LayoutPreview(Gtk.Box):
             )
             return
         widgets.controller_icon.set_visible(bool(self._player_controllers.get(instance, False)))
+        widgets.mouse_icon.set_visible(bool(self._player_mouse_grabs.get(instance, False)))
+        player_name = self._player_names.get(instance) or DEFAULT_PLAYER_NAME
         widgets.number.set_label(f"{instance + 1:02d}")
-        widgets.name.set_label(f"Player {instance + 1}")
+        widgets.name.set_label(player_name)
         status = self._player_statuses.get(instance, "Ready to configure")
+        if status == "Ready":
+            widgets.status_icon.set_from_icon_name("twinverse-check-symbolic")
+            widgets.status_icon.set_pixel_size(11)
+            widgets.status_icon.add_css_class("slot-status-ready")
+        else:
+            widgets.status_icon.set_from_icon_name("twinverse-dot-symbolic")
+            widgets.status_icon.set_pixel_size(8)
+            widgets.status_icon.remove_css_class("slot-status-ready")
         widgets.status.set_label(status)
         widgets.status.set_tooltip_text(status)
         interaction = " Drag to another space to swap players." if self._allow_reposition else ""
@@ -994,9 +1041,11 @@ class LayoutPreview(Gtk.Box):
         )
         widgets.button.update_property(
             [Gtk.AccessibleProperty.LABEL, Gtk.AccessibleProperty.DESCRIPTION],
-            [f"Player {instance + 1}, {status}", description],
+            [f"{player_name} {instance + 1:02d}, {status}", description],
         )
-        widgets.button.set_tooltip_text(f"Configure Player {instance + 1} · {status}\n{widgets.location}{interaction}")
+        widgets.button.set_tooltip_text(
+            f"Configure {player_name} ({instance + 1:02d}) · {status}\n{widgets.location}{interaction}"
+        )
 
     def _on_player_activated(self, button, slot):
         """Resolve the current assignment, not the player present when the button was built."""
