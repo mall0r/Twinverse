@@ -20,6 +20,9 @@ from gi.repository import Adw, Gdk, GLib, GObject, Graphene, Gtk
 
 from src.gui.widgets.card_motion import CardMotion, CardRect, MovingCard
 
+_STATIC_CONTENTS = getattr(Gdk.PaintableFlags, "STATIC_CONTENTS", None) or Gdk.PaintableFlags.CONTENTS
+_STATIC_SIZE = getattr(Gdk.PaintableFlags, "STATIC_SIZE", None) or Gdk.PaintableFlags.SIZE
+
 
 class _CardImage(GObject.Object, Gdk.Paintable):
     """A static, intrinsically sizeless image recording the requested render size."""
@@ -31,7 +34,7 @@ class _CardImage(GObject.Object, Gdk.Paintable):
         self.color.parse("steelblue")
 
     def do_get_flags(self):
-        return Gdk.PaintableFlags.STATIC_CONTENTS | Gdk.PaintableFlags.STATIC_SIZE
+        return _STATIC_CONTENTS | _STATIC_SIZE
 
     def do_get_current_image(self):
         return self
@@ -393,7 +396,7 @@ def test_live_widget_paintable_is_frozen_before_hiding_its_cell(scene):
     assert host.motion.play([_card(live)], [host.source])
     frozen = host.motion._cards[0].paintable
     assert frozen is not live
-    assert frozen.get_flags() & Gdk.PaintableFlags.STATIC_CONTENTS
+    assert frozen.get_flags() & _STATIC_CONTENTS
     snapshot = Gtk.Snapshot()
     host.motion.snapshot(snapshot)
     assert snapshot.to_node() is not None

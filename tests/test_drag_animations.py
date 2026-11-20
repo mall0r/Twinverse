@@ -21,6 +21,8 @@ from src.gui.widgets.layout_preview import _PlayerDragPayload
 from src.models import Profile
 
 _SESSION_RUNTIME_DIR = os.environ.get("XDG_RUNTIME_DIR")
+_STATIC_CONTENTS = getattr(Gdk.PaintableFlags, "STATIC_CONTENTS", None) or Gdk.PaintableFlags.CONTENTS
+_STATIC_SIZE = getattr(Gdk.PaintableFlags, "STATIC_SIZE", None) or Gdk.PaintableFlags.SIZE
 
 
 @dataclass
@@ -214,8 +216,8 @@ def test_prepare_freezes_nonempty_full_card_and_sets_native_icon_with_clamped_ho
     )
     assert payload.instance == 0
     assert not isinstance(image, Gtk.WidgetPaintable)
-    assert image.get_flags() & Gdk.PaintableFlags.STATIC_CONTENTS
-    assert image.get_flags() & Gdk.PaintableFlags.STATIC_SIZE
+    assert image.get_flags() & _STATIC_CONTENTS
+    assert image.get_flags() & _STATIC_SIZE
     assert (image.get_intrinsic_width(), image.get_intrinsic_height()) == (width, height)
     assert preview._drag_size == (width, height)
     assert preview._drag_hotspot == hotspot
@@ -507,7 +509,7 @@ def test_new_drag_from_an_animating_slot_freezes_a_nonempty_card_for_its_current
     assert all(slot.cell.get_opacity() == 1.0 for slot in preview._slots)
     _assert_order(scene, [2, 1, 0, 3, 4, 5])
     image = preview._drag_image
-    assert image.get_flags() & Gdk.PaintableFlags.STATIC_CONTENTS, "The replacement drag must not use a live card"
+    assert image.get_flags() & _STATIC_CONTENTS, "The replacement drag must not use a live card"
     assert _visual_bytes(image, *preview._drag_size) is not None
 
 

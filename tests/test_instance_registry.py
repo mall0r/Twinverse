@@ -3,6 +3,7 @@
 import os
 import shlex
 import subprocess
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -15,6 +16,7 @@ from src.services.instance_registry import (
     InstanceRegistry,
     RecoveredInstance,
     belongs_to_instance,
+    read_cmdline,
     read_host_cmdline,
 )
 from src.services.steam_probe import SteamClientProbe
@@ -22,10 +24,16 @@ from src.services.steam_probe import SteamClientProbe
 
 def _spawn_with_marker(marker: str) -> subprocess.Popen:
     """Start a process whose command line carries the given marker."""
-    return subprocess.Popen(
+    process = subprocess.Popen(
         ["bash", "-c", f"exec -a {shlex.quote(marker)} sleep 30"],
         start_new_session=True,
     )
+    deadline = time.monotonic() + 2.0
+    while time.monotonic() < deadline:
+        if read_cmdline(process.pid).startswith(marker):
+            break
+        time.sleep(0.01)
+    return process
 
 
 def _service(registry: InstanceRegistry, probe: InstanceProbe) -> InstanceService:

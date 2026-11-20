@@ -25,7 +25,8 @@ from src.gui.widgets.layout_preview import LayoutPreview, _PlayerDragPayload
 from src.models import Profile
 
 _SESSION_RUNTIME_DIR = os.environ.get("XDG_RUNTIME_DIR")
-_DEFAULT_SIZE = (1380, 860)
+_DEFAULT_SIZE = (1080, 720)
+_STATIC_CONTENTS = getattr(Gdk.PaintableFlags, "STATIC_CONTENTS", None) or Gdk.PaintableFlags.CONTENTS
 
 
 @dataclass
@@ -329,7 +330,7 @@ def test_mapped_monitor_cards_never_add_a_third_column_and_second_row_is_below(m
 
 @pytest.mark.parametrize("portrait", [False, True], ids=["landscape", "mixed-portrait"])
 def test_two_four_player_monitors_fit_the_full_default_workspace_without_window_growth(workspace, portrait):
-    """Scaled internal text must not enlarge the 1380x860 window or distort either monitor."""
+    """Scaled internal text must not enlarge the 1080x720 window or distort either monitor."""
     displays = _displays(2, portrait=portrait)
     scene = workspace(displays=displays)
     preview = scene.preview
@@ -492,7 +493,7 @@ def test_native_drag_icon_uses_the_visible_scaled_card_size(workspace):
     snapshot = Gtk.Snapshot()
     image.snapshot(snapshot, *preview._drag_size)
     assert snapshot.to_node() is not None, "The native ghost must contain the frozen player card"
-    assert image.get_flags() & Gdk.PaintableFlags.STATIC_CONTENTS
+    assert image.get_flags() & _STATIC_CONTENTS
     assert scene.orders == scene.edits == []
     expected_size = (visible.width, visible.height)
     assert preview._drag_size == pytest.approx(expected_size, abs=1)

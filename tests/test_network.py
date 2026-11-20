@@ -310,7 +310,7 @@ def test_network_setup_replaces_a_regular_resolv_conf(tmp_path):
 
 
 def test_network_setup_follows_a_symlinked_resolv_conf(tmp_path):
-    """bwrap cannot mount over a symlink, so the file it points to is replaced."""
+    """Bubblewrap cannot mount over a symlink, so the file it points to is replaced."""
     if not _unprivileged_namespaces_available():
         pytest.skip("Unprivileged namespaces unavailable")
     (tmp_path / "etc").mkdir()
@@ -341,7 +341,7 @@ def test_network_setup_starts_with_a_dangling_resolv_conf(tmp_path):
 
 
 def test_pasta_does_not_watch_the_namespace_directory(tmp_path):
-    """SELinux denies pasta the /proc/PID/ns directory, so the setup stops it instead."""
+    """The SELinux policy denies pasta the /proc/PID/ns directory, so the setup stops it instead."""
     if not _unprivileged_namespaces_available():
         pytest.skip("Unprivileged namespaces unavailable")
     resolv_conf = tmp_path / "resolv.conf"

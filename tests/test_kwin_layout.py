@@ -43,9 +43,14 @@ def test_native_identity_survives_process_replacement(monkeypatch):
     for _ in range(2):
         env = dict(os.environ, **{INSTANCE_ENV: "3"})
         process = subprocess.Popen(
-            [sys.executable, "-c", "import sys; sys.stdin.read()"], stdin=subprocess.PIPE, env=env
+            [sys.executable, "-c", "import sys; print('ready', flush=True); sys.stdin.read()"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            env=env,
         )
         try:
+            assert process.stdout is not None
+            assert process.stdout.readline() == b"ready\n"
             assert resolve_instance(process.pid) == 3
         finally:
             process.communicate(timeout=3)

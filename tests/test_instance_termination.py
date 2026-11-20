@@ -100,7 +100,10 @@ def test_the_wine_helpers_are_not_killed_outside_the_instance(tmp_path):
             process.wait(timeout=5)
 
 
-@pytest.mark.skipif(not Path("/bin/bash").exists(), reason="bash is needed for the network setup")
+@pytest.mark.skipif(
+    not Path("/bin/bash").exists() or shutil.which("bwrap") is None,
+    reason="bash and bwrap are needed for the host shell",
+)
 def test_the_host_shell_reports_the_process_group_of_the_instance():
     """The instance leads its own group, so it can be stopped as a whole."""
     service = InstanceService.__new__(InstanceService)
@@ -144,7 +147,10 @@ def test_the_host_shell_reports_the_process_group_of_the_instance():
         process.communicate(timeout=5)
 
 
-@pytest.mark.skipif(not Path("/bin/bash").exists(), reason="bash is needed for the network setup")
+@pytest.mark.skipif(
+    not Path("/bin/bash").exists() or shutil.which("bwrap") is None or shutil.which("pasta") is None,
+    reason="bash, bwrap and pasta are needed for the network setup",
+)
 def test_the_network_setup_lets_the_application_stop_itself(tmp_path):
     """Stopping an instance must not kill the application with SIGKILL."""
     log = tmp_path / "app.log"
