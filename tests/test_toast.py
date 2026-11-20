@@ -3,7 +3,7 @@
 from unittest.mock import Mock
 
 from src.gui.notifications import BUSY, ERROR, INFO
-from src.gui.widgets.toast import LEVEL_CLASSES, ToastOverlay
+from src.gui.widgets.toast import LEVEL_CLASSES, TOAST_ICONS, ToastOverlay
 
 
 def _overlay():
@@ -32,12 +32,12 @@ def test_a_message_of_a_work_in_progress_is_not_an_error():
 
 
 def test_the_card_takes_the_icon_of_the_message():
-    """The card shows the icon that represents what happened."""
+    """The card shows the custom symbolic icon that represents what happened."""
     overlay = _overlay()
 
     ToastOverlay.show_toast(overlay, "a Steam nao abriu", ERROR)
 
-    assert overlay._icon.set_from_icon_name.call_args[0][0] == "dialog-error"
+    assert overlay._icon.set_from_icon_name.call_args[0][0] == TOAST_ICONS[ERROR]
 
 
 def test_the_look_of_the_previous_message_is_taken_away():
@@ -50,3 +50,12 @@ def test_the_look_of_the_previous_message_is_taken_away():
     removed = [call[0][0] for call in overlay._card.remove_css_class.call_args_list]
     assert "toast-error" in removed
     overlay._card.add_css_class.assert_called_with(LEVEL_CLASSES[INFO])
+
+
+def test_dismiss_hides_the_toast_immediately():
+    """Dismissing cancels any active toast and collapses the revealer."""
+    overlay = _overlay()
+
+    ToastOverlay.dismiss(overlay)
+
+    overlay._revealer.set_reveal_child.assert_called_once_with(False)

@@ -1,64 +1,94 @@
-"""The message that appears over the window.
+"""Studio-styled floating toast overlay for non-blocking session feedback."""
 
-The toast tells the user what the application is doing, and how important
-that is. A failure is shown as an error, with the icon of an error and a red
-border, and the other messages are only information.
-"""
+# flake8: noqa: E402
 
 import gi
-from gi.repository import GLib, Gtk
-
-from src.gui.notifications import BUSY, ERROR, ICONS, INFO
 
 gi.require_version("Gtk", "4.0")
 
-# The class that gives the card the look of each level.
+from gi.repository import GLib, Gtk
+
+from src.gui.notifications import BUSY, ERROR, INFO
+
+# The CSS class that gives the toast card its semantic styling per level.
 LEVEL_CLASSES = {
     INFO: "toast-info",
     ERROR: "toast-error",
     BUSY: "toast-busy",
 }
 
+# Custom in-app symbolic icons matching the Twinverse studio icon set.
+TOAST_ICONS = {
+    INFO: "twinverse-info-symbolic",
+    ERROR: "twinverse-error-symbolic",
+    BUSY: "twinverse-refresh-symbolic",
+}
+
+LEVEL_TITLES = {
+    INFO: "NOTICE",
+    ERROR: "ERROR",
+    BUSY: "WORKING",
+}
+
 
 class ToastOverlay(Gtk.Overlay):
-    """A card over the window, that tells the user something."""
+    """A floating studio notification pill with semantic badge and quick dismiss."""
 
     def __init__(self, **kwargs):
-        """Initialize the overlay and the card that it holds."""
+        """Initialize the overlay and the studio-styled toast card."""
         super().__init__(**kwargs)
         self._timeout_id = 0
 
         self._icon = Gtk.Image()
         self._icon.add_css_class("toast-icon")
 
-        self._label = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, xalign=0.5)
-        self._label.set_max_width_chars(60)
+        self._badge = Gtk.Box(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        self._badge.set_size_request(32, 32)
+        self._badge.add_css_class("toast-badge")
+        self._badge.append(self._icon)
 
-        self._card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        self._card.append(self._icon)
-        self._card.append(self._label)
+        self._title = Gtk.Label(xalign=0)
+        self._title.add_css_class("toast-title")
+
+        self._label = Gtk.Label(wrap=True, justify=Gtk.Justification.LEFT, xalign=0)
+        self._label.set_max_width_chars(48)
+        self._label.add_css_class("toast-message")
+
+        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, valign=Gtk.Align.CENTER, hexpand=True)
+        body.add_css_class("toast-body")
+        body.append(self._title)
+        body.append(self._label)
+
+        self._dismiss_button = Gtk.Button(icon_name="twinverse-close-symbolic", valign=Gtk.Align.CENTER)
+        self._dismiss_button.add_css_class("flat")
+        self._dismiss_button.add_css_class("toast-dismiss")
+        self._dismiss_button.set_tooltip_text("Dismiss")
+        self._dismiss_button.update_property([Gtk.AccessibleProperty.LABEL], ["Dismiss notification"])
+        self._dismiss_button.connect("clicked", lambda *_: self.dismiss())
+
+        self._card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self._card.append(self._badge)
+        self._card.append(body)
+        self._card.append(self._dismiss_button)
         self._card.add_css_class("toast-card")
 
         self._revealer = Gtk.Revealer(
             transition_type=Gtk.RevealerTransitionType.SLIDE_UP,
+            transition_duration=220,
             halign=Gtk.Align.CENTER,
             valign=Gtk.Align.END,
-            margin_start=12,
-            margin_end=12,
-            margin_bottom=12,
+            margin_start=16,
+            margin_end=16,
+            margin_bottom=18,
         )
         self._revealer.set_child(self._card)
         self.add_overlay(self._revealer)
 
     def show_toast(self, message: str, level: str = INFO, timeout: int = 3):
-        """
-        Show a message over the window, without blocking it.
-
-        The message goes away on its own, and the next one replaces it
-        instead of waiting in a queue. The level of the message decides the
-        icon and the look of the card.
-        """
-        self._icon.set_from_icon_name(ICONS.get(level, ICONS[INFO]))
+        """Show a non-blocking studio toast over the window, replacing any previous one."""
+        self._icon.set_from_icon_name(TOAST_ICONS.get(level, TOAST_ICONS[INFO]))
+        if hasattr(self, "_title"):
+            self._title.set_text(LEVEL_TITLES.get(level, LEVEL_TITLES[INFO]))
         self._label.set_text(message)
 
         for name in LEVEL_CLASSES.values():
@@ -67,6 +97,13 @@ class ToastOverlay(Gtk.Overlay):
 
         self._revealer.set_reveal_child(True)
         self._schedule_hide(timeout)
+
+    def dismiss(self):
+        """Hide the active toast immediately and cancel any pending auto-hide timer."""
+        if self._timeout_id:
+            GLib.source_remove(self._timeout_id)
+            self._timeout_id = 0
+        self._revealer.set_reveal_child(False)
 
     def _schedule_hide(self, timeout: int):
         """Hide the card after the time it was given."""
