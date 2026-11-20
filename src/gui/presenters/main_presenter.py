@@ -56,13 +56,25 @@ class MainPresenter:
 
         self._load_initial_data()
 
+    @staticmethod
+    def _row_instance_num(row, fallback_index: int) -> int:
+        player_num = getattr(row, "_player_num", None)
+        return player_num if isinstance(player_num, int) else fallback_index
+
+    def _get_player_row(self, instance_num: int):
+        layout_page = self.window.get_layout_page()
+        for index, row in enumerate(layout_page.player_rows):
+            if self._row_instance_num(row, index) == instance_num:
+                return row
+        return None
+
     def _load_initial_data(self):
         """Load initial data into the UI."""
         profile = self._settings_controller.get_profile()
         devices_info = self._settings_controller.get_devices_info()
 
-        self._verification_controller.verify_all_instances(
-            profile.num_players, on_each_complete=lambda i, verified: None  # Silent initial verification
+        self._verification_controller.verify_instances(
+            profile.party_indices(), on_each_complete=lambda i, verified: None  # Silent initial verification
         )
 
         verification_statuses = self._verification_controller.get_all_statuses()
@@ -173,18 +185,18 @@ class MainPresenter:
 
     def _set_instance_detail(self, instance_num: int, detail: Optional[str]):
         """Tell the row of an instance what the Steam client is doing."""
-        layout_page = self.window.get_layout_page()
-        if 0 <= instance_num < len(layout_page.player_rows):
-            layout_page.player_rows[instance_num].set_status_detail(detail or "")
+        row = self._get_player_row(instance_num)
+        if row is not None:
+            row.set_status_detail(detail or "")
 
     def _report_progress(self, instance_num: int, progress: Optional[str], percent: Optional[int] = None):
         """
         Show how far the update of the client went.
 
         A client that updates itself can take minutes, so the row of the
-        instance shows a bar with the progress, next to its name, and the
-        user sees that the wait is not a hang. A message would be read as
-        noise, because it changes all the time.
+        instance records its progress next to its name, and the user sees that
+        the wait is not a hang. A message would be read as noise, because it
+        changes all the time.
         """
         if not progress or not is_update_progress(progress):
             return
@@ -199,12 +211,13 @@ class MainPresenter:
         self._show_progress_bar()
 
     def _show_progress_bar(self):
-        """Show the bar of every instance that is updating itself."""
+        """Propagate update progress to every active player row."""
         layout_page = self.window.get_layout_page()
         rows = layout_page.player_rows
 
         for index, row in enumerate(rows):
-            progress = self._progress_shown.get(index)
+            instance_num = self._row_instance_num(row, index)
+            progress = self._progress_shown.get(instance_num)
             if progress is None:
                 row.clear_update_progress()
                 continue
@@ -258,7 +271,7 @@ class MainPresenter:
         running = set()
         for index, row in enumerate(layout_page.player_rows):
             if getattr(row, "_is_running", False):
-                running.add(index)
+                running.add(self._row_instance_num(row, index))
         return running
 
     def _schedule_profile_save(self):
@@ -276,27 +289,32 @@ class MainPresenter:
     def on_settings_changed(self):
         """Handle settings changed in UI."""
         layout_page = self.window.get_layout_page()
-        old_num_players = len(layout_page.player_rows)
+        profile = self._settings_controller.get_profile()
+        old_party = profile.party_indices()
 
         ui_data = layout_page.get_data()
-        new_num_players = ui_data["num_players"]
+        new_party = (
+            list(ui_data["party_players"])
+            if "party_players" in ui_data
+            else list(range(ui_data["num_players"]))
+        )
+        current_row_ids = [
+            self._row_instance_num(row, index) for index, row in enumerate(layout_page.player_rows)
+        ]
 
-        if old_num_players != new_num_players:
-            profile = self._settings_controller.get_profile()
-            profile.num_players = new_num_players
+        self._settings_controller.update_from_ui_data(ui_data)
 
+        if current_row_ids != new_party:
             devices_info = self._settings_controller.get_devices_info()
             verification_statuses = self._verification_controller.get_all_statuses()
             layout_page.load_data(profile, devices_info, verification_statuses)
+            self._settings_controller.update_from_ui_data(layout_page.get_data())
 
-            ui_data = layout_page.get_data()
-
-        self._settings_controller.update_from_ui_data(ui_data)
         # The page reports a change for every keystroke, so the profile is
         # written once the user stops typing.
         self._schedule_profile_save()
 
-        if old_num_players != new_num_players:
+        if old_party != profile.party_indices():
             self._run_all_verifications()
 
         self._update_launch_button_sensitivity()
@@ -309,12 +327,11 @@ class MainPresenter:
         """Handle single instance launch request."""
         profile = self._settings_controller.get_profile()
         layout_page = self.window.get_layout_page()
-        player_rows = layout_page.player_rows
+        player_row = self._get_player_row(instance_num)
 
-        if instance_num >= len(player_rows):
+        if player_row is None:
             return
 
-        player_row = player_rows[instance_num]
         state = player_row.get_instance_state()
 
         if state in (INSTANCE_STARTING, INSTANCE_RUNNING, INSTANCE_STOPPING):
@@ -541,17 +558,17 @@ class MainPresenter:
 
     def _set_instance_running_state(self, instance_num: int, is_running: bool) -> bool:
         """Update the state of one instance row, from the main thread."""
-        layout_page = self.window.get_layout_page()
-        if 0 <= instance_num < len(layout_page.player_rows):
-            layout_page.player_rows[instance_num].set_running_state(is_running)
+        row = self._get_player_row(instance_num)
+        if row is not None:
+            row.set_running_state(is_running)
         return False
 
     def _set_instance_state(self, instance_num: int, state: str) -> bool:
         """Set the state of one instance, from the main thread."""
         self._instance_states[instance_num] = state
-        layout_page = self.window.get_layout_page()
-        if 0 <= instance_num < len(layout_page.player_rows):
-            layout_page.player_rows[instance_num].set_instance_state(state)
+        row = self._get_player_row(instance_num)
+        if row is not None:
+            row.set_instance_state(state)
         self._sync_launch_button_action()
         return False
 
@@ -620,12 +637,12 @@ class MainPresenter:
         self._settings_controller.save_profile()
 
     def _run_all_verifications(self):
-        """Run verifications for all instances."""
+        """Run verifications for all active party instances."""
         profile = self._settings_controller.get_profile()
         layout_page = self.window.get_layout_page()
 
-        self._verification_controller.verify_all_instances(
-            profile.num_players,
+        self._verification_controller.verify_instances(
+            profile.party_indices(),
             on_each_complete=lambda i, verified: layout_page.update_verification_status(i, verified),
         )
 
@@ -652,7 +669,7 @@ class MainPresenter:
         self.window.update_launch_button_sensitivity(all_verified)
 
     def _update_number_of_instances_sensitivity(self):
-        """Update the sensitivity of the number of instances spin button."""
+        """Update the sensitivity of the party add/remove controls."""
         layout_page = self.window.get_layout_page()
 
         is_any_running = any(getattr(player_row, "_is_running", False) for player_row in layout_page.player_rows)
@@ -681,9 +698,10 @@ class MainPresenter:
             if instance_num not in running:
                 self._set_instance_state(instance_num, INSTANCE_IDLE)
 
-        layout_page = self.window.get_layout_page()
         for index in running:
-            layout_page.player_rows[index].set_instance_state(INSTANCE_RUNNING)
+            row = self._get_player_row(index)
+            if row is not None:
+                row.set_instance_state(INSTANCE_RUNNING)
 
         self._run_all_verifications()
         self._update_launch_button_sensitivity()

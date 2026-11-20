@@ -168,7 +168,8 @@ def test_running_locks_placement_but_keeps_player_navigation(window):
     page.player_rows[0].set_instance_state("running")
     window.show_running_state()
     assert not page.screen_mode_row.is_sensitive()
-    assert not page.num_players_row.is_sensitive()
+    assert not page.add_player_button.is_sensitive()
+    assert all(not btn.is_sensitive() for btn in page._roster_remove_buttons)
     assert not page.layout_preview.assign_player(0, 1)
     page.layout_preview._slots[1].button.emit("clicked")
     assert page.inspector_stack.get_visible_child() is page.player_rows[1]
@@ -375,7 +376,8 @@ def test_secondary_actions_have_a_single_menu_entry(window):
     window.lookup_action("preferences").activate(None)
     window._presenter.on_preferences_clicked.assert_called_once_with()
     page = window.get_layout_page()
-    assert not hasattr(page, "add_player_button")
+    assert hasattr(page, "add_player_button")
+    assert not hasattr(page, "num_players_row")
     assert not hasattr(page, "inspector_button")
     assert window.launch_button.get_parent() is page.session_controls
     assert page.session_controls.get_last_child() is window.launch_button
@@ -384,16 +386,21 @@ def test_secondary_actions_have_a_single_menu_entry(window):
     assert window.header_tools.get_last_child() is window.menu_button
 
 
-def test_party_size_is_adjusted_by_one_counter_and_stays_locked_during_play(window):
-    """The single numeric control retains limits, adjustment events and runtime locking."""
+def test_party_add_and_per_player_remove_stay_locked_during_play(window):
+    """Add player appends at the end, per-player remove works on any slot, and both lock during play."""
     page = window.get_layout_page()
     edits = []
     page.connect("settings-changed", lambda *_: edits.append(True))
-    page.num_players_row.spin(Gtk.SpinType.STEP_FORWARD, 1)
+    page.add_player_button.emit("clicked")
     assert page.get_data()["num_players"] == 3
-    assert edits == [True]
+    assert page.get_data()["party_players"] == [0, 1, 2]
+    page._roster_remove_buttons[1].emit("clicked")
+    assert page.get_data()["num_players"] == 2
+    assert page.get_data()["party_players"] == [0, 2]
+    assert len(edits) == 2
     page.set_number_of_instances_sensitive(False)
-    assert not page.num_players_row.is_sensitive()
+    assert not page.add_player_button.is_sensitive()
+    assert all(not btn.is_sensitive() for btn in page._roster_remove_buttons)
 
 
 def test_player_actions_explain_their_scope(window):

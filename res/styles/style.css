@@ -154,7 +154,7 @@
 .party-player {
     border: 1px solid transparent;
     border-radius: 11px;
-    padding: 13px 10px;
+    padding: 11px 8px;
     margin-bottom: 7px;
     background: transparent;
 }
@@ -218,23 +218,48 @@
     color: white;
 }
 
-.party-stepper {
+.party-remove-button {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    border-radius: 6px;
+    color: @studio_muted;
+    -gtk-icon-size: 13px;
+}
+.party-remove-button:hover {
+    background: alpha(@error_color, 0.14);
+    color: @error_color;
+}
+.light .party-remove-button {
+    color: @studio_muted_light;
+}
+.party-remove-button:disabled {
+    opacity: 0.3;
+}
+.party-add-button {
+    min-height: 34px;
+    padding: 4px 10px;
     background: @studio_control;
-    border: none;
-    border-radius: 8px;
+    border: 1px solid @studio_border;
+    border-radius: 9px;
+    color: @studio_fg;
     font-size: 12px;
+    font-weight: 700;
     box-shadow: none;
 }
-.light .party-stepper {
+.party-add-button:hover {
+    background: @studio_border;
+}
+.party-add-button:disabled {
+    opacity: 0.45;
+}
+.light .party-add-button {
     background: @studio_control_light;
+    border-color: @studio_border_light;
+    color: @studio_fg_light;
 }
-.party-stepper button {
-    min-width: 20px;
-    padding: 2px;
-}
-.party-stepper text {
-    min-width: 12px;
-    padding: 2px 4px;
+.light .party-add-button:hover {
+    background: #e2e2e2;
 }
 .party-session-status {
     padding-top: 2px;

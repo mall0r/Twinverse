@@ -65,6 +65,9 @@ class Profile(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     num_players: int = Field(default=2, alias="NUM_PLAYERS")
+    # Explicit zero-based instance IDs present in the party roster. None falls
+    # back to range(num_players) for backward compatibility with older profiles.
+    party_players: Optional[List[StrictInt]] = Field(default=None, alias="PARTY_PLAYERS")
     instance_width: Optional[int] = Field(default=1920, alias="INSTANCE_WIDTH")
     instance_height: Optional[int] = Field(default=1080, alias="INSTANCE_HEIGHT")
     mode: Optional[str] = Field(default="splitscreen", alias="MODE")
@@ -83,6 +86,13 @@ class Profile(BaseModel):
     use_steamdeck_tag: bool = Field(default=True, alias="USE_STEAMDECK_TAG")
     use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_gamescope_wsi: bool = Field(default=Utils.is_wayland(), alias="ENABLE_GAMESCOPE_WSI")
+
+    @field_validator("party_players")
+    def validate_party_players(cls, value):
+        """Reject empty, duplicate or negative instance IDs in a saved party."""
+        if value is not None and (not value or any(index < 0 for index in value) or len(value) != len(set(value))):
+            raise ValueError("Party players must contain unique, non-negative instance indices.")
+        return value
 
     @field_validator("layout_order")
     def validate_layout_order(cls, value):
@@ -144,6 +154,12 @@ class Profile(BaseModel):
         """Check if the profile is configured for splitscreen mode."""
         return self.mode == "splitscreen"
 
+    def party_indices(self) -> List[int]:
+        """Return the zero-based instance IDs currently present in the party."""
+        if self.party_players is not None:
+            return list(self.party_players)
+        return list(range(max(0, self.num_players)))
+
     def launch_indices(self) -> List[int]:
         """
         Return the indices of the instances that take part in a launch.
@@ -151,10 +167,11 @@ class Profile(BaseModel):
         Launch timing stays in instance-number order. Display placement is
         independent and is returned by layout_indices().
         """
-        count = max(0, self.num_players)
+        party = self.party_indices()
         if self.selected_players:
-            return sorted({index for index in self.selected_players if 0 <= index < count})
-        return list(range(count))
+            party_set = set(party)
+            return sorted({index for index in self.selected_players if index in party_set})
+        return sorted(party)
 
     def effective_num_players(self) -> int:
         """Return how many instances take part in a launch."""

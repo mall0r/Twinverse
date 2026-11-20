@@ -14,7 +14,7 @@ from src.core.config import Config
 from src.core.layout import LayoutCalculator
 from src.gui.controllers.settings_controller import SettingsController
 from src.gui.pages.layout_settings_page import LayoutSettingsPage
-from src.models import Profile
+from src.models import PlayerInstanceConfig, Profile
 
 
 @pytest.fixture
@@ -202,6 +202,7 @@ def test_saved_order_above_the_current_count_is_not_discarded(page, devices):
     assert page.layout_preview.instances == [1, 0]
     assert page.get_data()["layout_order"] == [3, 1, 2, 0]
 
+
 def test_studio_header_and_roster_copy_are_minimal(page, devices):
     """Removed titles, subtitles, descriptions and the Live Layout icon stay absent."""
     page.load_data(Profile(), devices, {})
@@ -215,3 +216,53 @@ def test_studio_header_and_roster_copy_are_minimal(page, devices):
     live_layout = next(w for w in _walk_widgets(page) if isinstance(w, Gtk.Label) and w.get_label() == "LIVE LAYOUT")
     assert live_layout.get_prev_sibling() is None
 
+
+def test_direct_add_and_middle_player_removal_preserve_identities_and_roundtrip(page, devices, monkeypatch, tmp_path):
+    """Removing a player from the middle keeps other players' homes, configs and order intact."""
+    monkeypatch.setattr(Config, "get_profile_path", lambda: tmp_path / "profile.json")
+    profile = Profile(
+        num_players=3,
+        player_configs=[
+            PlayerInstanceConfig(GUEST_IP="192.168.1.10"),
+            PlayerInstanceConfig(GUEST_IP="192.168.1.20"),
+            PlayerInstanceConfig(GUEST_IP="192.168.1.30"),
+        ],
+    )
+    page.load_data(profile, devices, {0: True, 1: False, 2: True})
+    assert [row._player_num for row in page.player_rows] == [0, 1, 2]
+
+    # Remove Player 2 (index 1) directly from the middle of the party.
+    page._roster_remove_buttons[1].emit("clicked")
+    assert [row._player_num for row in page.player_rows] == [0, 2]
+    assert page.get_selected_players() == [0, 2]
+    assert page.layout_preview.instances == [0, 2]
+    data = page.get_data()
+    assert data["num_players"] == 2
+    assert data["party_players"] == [0, 2]
+    assert data["player_configs"][0].guest_ip == "192.168.1.10"
+    assert data["player_configs"][1].guest_ip == "192.168.1.20"
+    assert data["player_configs"][2].guest_ip == "192.168.1.30"
+
+    # Persist and reload from disk.
+    controller = SettingsController.__new__(SettingsController)
+    controller._profile = Profile()
+    controller.update_from_ui_data(data)
+    controller.get_profile().save()
+    reloaded = Profile.load()
+    assert reloaded.party_indices() == [0, 2]
+    assert reloaded.launch_indices() == [0, 2]
+
+    page.load_data(reloaded, devices, {0: True, 2: True})
+    assert [row._player_num for row in page.player_rows] == [0, 2]
+    assert page.get_player_row(2).get_config().guest_ip == "192.168.1.30"
+
+    # Remove Player 1 -> only Player 3 remains, and its remove button becomes disabled.
+    page._roster_remove_buttons[0].emit("clicked")
+    assert [row._player_num for row in page.player_rows] == [2]
+    assert not page._roster_remove_buttons[0].is_sensitive()
+    assert not page.remove_player(2)
+
+    # Add player brings back the first free slot with its saved settings intact.
+    page.add_player_button.emit("clicked")
+    assert [row._player_num for row in page.player_rows] == [0, 2]
+    assert page.get_player_row(0).get_config().guest_ip == "192.168.1.10"

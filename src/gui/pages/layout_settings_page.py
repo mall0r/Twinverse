@@ -12,6 +12,7 @@ from src.core.layout import LayoutCalculator
 from src.core.tiling import TEMPLATES, build_tiling_plan
 from src.gui.widgets import LayoutPreview, PlayerRow
 from src.gui.widgets.player_row import INSTANCE_IDLE
+from src.models import PlayerInstanceConfig
 
 
 class LayoutSettingsPage(Gtk.Box):
@@ -32,11 +33,14 @@ class LayoutSettingsPage(Gtk.Box):
         self._applying_exclusivity = False
         self._syncing_roster_selection = False
         self._num_monitors = 1
+        self._max_players = 8
+        self._party_controls_sensitive = True
         self._last_user_selected_mode = None
         self._layout_order = []
         self._monitor_layouts = {}
         self._tiling_plan = None
         self._known_instance_count = 0
+        self._devices_info = {}
         self._displays = []
         self._active_player = 0
         self._screen_settings_sensitive = True
@@ -46,9 +50,13 @@ class LayoutSettingsPage(Gtk.Box):
         self._drag_scroll_id = 0
         self._drag_scroll_drop = None
         self._drag_scroll_step = 0
+        self._party_players = []
+        self._saved_player_configs = {}
+        self._verification_statuses = {}
         self.player_rows = []
         self._roster_rows = []
         self._roster_status = []
+        self._roster_remove_buttons = []
         self.add_css_class("studio-workspace")
         self._build_ui()
         self.connect("unmap", lambda *_: self._stop_drag_scrolling())
@@ -61,9 +69,9 @@ class LayoutSettingsPage(Gtk.Box):
 
     def _build_ui(self):
         self.roster_split = Adw.OverlaySplitView(
-            min_sidebar_width=220,
-            max_sidebar_width=220,
-            sidebar_width_fraction=0.18,
+            min_sidebar_width=244,
+            max_sidebar_width=244,
+            sidebar_width_fraction=0.2,
             hexpand=True,
             vexpand=True,
         )
@@ -98,22 +106,13 @@ class LayoutSettingsPage(Gtk.Box):
         scroll.set_child(self.roster)
         sidebar.append(scroll)
 
-        count_box = Gtk.Box(spacing=8)
-        count_label = Gtk.Label(label="_Party size", use_underline=True, xalign=0, hexpand=True)
-        count_label.add_css_class("muted")
-        count_box.append(count_label)
-        adjustment = Gtk.Adjustment(value=2, lower=1, upper=8, step_increment=1, page_increment=1)
-        self.num_players_row = Gtk.SpinButton(adjustment=adjustment, numeric=True, width_chars=1)
-        self.num_players_row.set_tooltip_text(
-            "Add or remove players. Settings for players removed from the party are kept."
-        )
-        self.num_players_row.set_alignment(1)
-        count_label.set_mnemonic_widget(self.num_players_row)
-        self.num_players_row.update_property([Gtk.AccessibleProperty.LABEL], ["Party size"])
-        self.num_players_row.add_css_class("party-stepper")
-        adjustment.connect("value-changed", self._on_num_players_changed)
-        count_box.append(self.num_players_row)
-        sidebar.append(count_box)
+        self.add_player_button = Gtk.Button(hexpand=True)
+        self.add_player_button.set_child(Adw.ButtonContent(icon_name="list-add-symbolic", label="Add player"))
+        self.add_player_button.set_tooltip_text("Add a player to the party")
+        self.add_player_button.update_property([Gtk.AccessibleProperty.LABEL], ["Add player"])
+        self.add_player_button.add_css_class("party-add-button")
+        self.add_player_button.connect("clicked", self._on_add_player_clicked)
+        sidebar.append(self.add_player_button)
         sidebar.append(Gtk.Separator())
 
         self.session_controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -251,13 +250,27 @@ class LayoutSettingsPage(Gtk.Box):
         panel.append(scroller)
         return panel
 
+    def _player_position(self, instance_num):
+        try:
+            return self._party_players.index(instance_num)
+        except ValueError:
+            return None
+
+    def get_player_row(self, instance_num):
+        """Return the inspector row for a zero-based instance ID, or None."""
+        pos = self._player_position(instance_num)
+        if pos is None:
+            return None
+        return self.player_rows[pos]
+
     def select_player(self, index, open_inspector=True):
         """Inspect a player without changing their participation in the session."""
-        if not 0 <= index < len(self.player_rows):
+        pos = self._player_position(index)
+        if pos is None:
             return
         self._active_player = index
         self.inspector_stack.set_visible_child_name(str(index))
-        row = self._roster_rows[index]
+        row = self._roster_rows[pos]
         if self.roster.get_selected_row() != row:
             self._syncing_roster_selection = True
             try:
@@ -272,7 +285,9 @@ class LayoutSettingsPage(Gtk.Box):
 
     def _on_roster_selection_changed(self, _list, row):
         if row is not None and not self._is_loading and not self._syncing_roster_selection:
-            self.select_player(row.get_index(), open_inspector=False)
+            pos = row.get_index()
+            if 0 <= pos < len(self._party_players):
+                self.select_player(self._party_players[pos], open_inspector=False)
 
     def _on_roster_selected(self, _list, row):
         if (
@@ -281,21 +296,30 @@ class LayoutSettingsPage(Gtk.Box):
             and not self._syncing_roster_selection
             and not self.layout_preview._suppress_activation
         ):
-            self.select_player(row.get_index())
+            pos = row.get_index()
+            if 0 <= pos < len(self._party_players):
+                self.select_player(self._party_players[pos])
 
     def load_data(self, profile, devices_info, verification_statuses):
         """Restore saved assignments without emitting edits or resetting the active player."""
         self._is_loading = True
+        self._devices_info = {kind: list(items) for kind, items in devices_info.items()}
         self._displays = sorted(devices_info.get("displays", []), key=lambda display: display.get("id", 0))
         self._num_monitors = max(1, len(self._displays))
         self._monitor_layouts = {key: config.model_dump() for key, config in profile.monitor_layouts.items()}
+        party = profile.party_indices() or [0]
+        self._saved_player_configs = {
+            index: config.model_copy(deep=True) for index, config in enumerate(profile.player_configs)
+        }
+        self._verification_statuses = dict(verification_statuses)
         saved_instances = [index + 1 for index in profile.layout_order or []]
-        self._known_instance_count = max(profile.num_players, len(profile.player_configs), *saved_instances, 0)
+        self._known_instance_count = max(
+            profile.num_players, len(profile.player_configs), *(index + 1 for index in party), *saved_instances, 0
+        )
         self._layout_order = LayoutCalculator.order_instances(
             list(range(self._known_instance_count)), profile.layout_order
         )
         self.placement_mode_row.set_selected(0 if profile.layout_order is None else 1)
-        self.num_players_row.get_adjustment().set_value(profile.num_players)
         is_split = (self._last_user_selected_mode or profile.mode) == "splitscreen"
         self.screen_mode_row.set_selected(1 if is_split else 0)
         self._update_num_players_limits(is_split)
@@ -304,73 +328,189 @@ class LayoutSettingsPage(Gtk.Box):
         self.set_gamescope_enabled(profile.use_gamescope)
         if is_split and profile.splitscreen:
             self.orientation_row.set_selected(self.orientations.index(profile.splitscreen.orientation.capitalize()))
-        self.rebuild_player_rows(profile.num_players, devices_info)
-        selected = set(profile.selected_players) if profile.selected_players else set(range(len(self.player_rows)))
-        for i, row in enumerate(self.player_rows):
-            if i < len(profile.player_configs):
-                row.load_config(profile.player_configs[i])
-            row.set_selected(i in selected)
-            row.set_verification_status(verification_statuses.get(i, False))
+        self.rebuild_player_rows(party, devices_info)
+        selected = set(profile.selected_players) if profile.selected_players else set(self._party_players)
+        for row in self.player_rows:
+            instance_num = row._player_num
+            if instance_num < len(profile.player_configs):
+                row.load_config(profile.player_configs[instance_num])
+            row.set_selected(instance_num in selected)
+            row.set_verification_status(self._verification_statuses.get(instance_num, False))
         self._apply_grab_input_exclusivity()
         self._is_loading = False
-        self.select_player(min(self._active_player, len(self.player_rows) - 1), open_inspector=False)
+        active = self._active_player if self._active_player in self._party_players else self._party_players[0]
+        self.select_player(active, open_inspector=False)
         self._preview_signature = None
         self._update_layout_preview()
         self._sync_roster()
 
-    def rebuild_player_rows(self, num_players, devices_info):
+    def _create_player_entry(self, instance_num, devices_info):
+        """Build an inspector row and its paired roster entry for one instance ID."""
+        player = PlayerRow(instance_num, devices_info)
+        player.set_parent_page(self)
+        player.connect("settings-changed", self._on_setting_changed)
+        player.connect("launch-clicked", lambda _w, number: self.emit("instance-launch-requested", number))
+        player.connect("refresh-devices-requested", lambda *_: self.emit("devices-refresh-requested"))
+        player.connect("status-changed", lambda *_: self._sync_roster())
+
+        item = Gtk.ListBoxRow()
+        item.add_css_class("party-player")
+        item.update_property([Gtk.AccessibleProperty.LABEL], [f"Configure Player {instance_num + 1}"])
+        body = Gtk.Box(spacing=8)
+        number = Gtk.Label(label=f"{instance_num + 1:02d}", xalign=0.5, yalign=0.5, valign=Gtk.Align.CENTER)
+        number.set_size_request(36, 36)
+        number.add_css_class("party-avatar")
+        number.add_css_class(f"player-color-{instance_num % 8}")
+        body.append(number)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
+        text.append(self._label(f"Player {instance_num + 1}", "party-player-name"))
+        status = self._label("Not installed", "party-player-status")
+        status.set_ellipsize(Pango.EllipsizeMode.END)
+        status.set_max_width_chars(17)
+        text.append(status)
+        body.append(text)
+
+        actions = Gtk.Box(spacing=4, valign=Gtk.Align.CENTER)
+        player.checkbox.set_valign(Gtk.Align.CENTER)
+        actions.append(player.checkbox)
+        remove_button = Gtk.Button(icon_name="window-close-symbolic", valign=Gtk.Align.CENTER)
+        remove_button.add_css_class("flat")
+        remove_button.add_css_class("party-remove-button")
+        remove_button.set_tooltip_text(f"Remove Player {instance_num + 1} from party")
+        remove_button.update_property([Gtk.AccessibleProperty.LABEL], [f"Remove Player {instance_num + 1}"])
+        remove_button.connect("clicked", lambda _btn, num=instance_num: self.remove_player(num))
+        actions.append(remove_button)
+        body.append(actions)
+
+        item.set_child(body)
+        self.layout_preview.add_player_drag_source(item, instance_num)
+        return player, item, status, remove_button
+
+    def rebuild_player_rows(self, players, devices_info):
         """Replace roster entries and inspectors, releasing old progress timers."""
+        party = list(range(players)) if isinstance(players, int) else list(players)
         for row in self.player_rows:
             row.clear_update_progress()
             self.inspector_stack.remove(row)
         while child := self.roster.get_first_child():
             self.roster.remove(child)
+        self._party_players = []
         self.player_rows = []
         self._roster_rows = []
         self._roster_status = []
-        for index in range(num_players):
-            player = PlayerRow(index, devices_info)
-            player.set_parent_page(self)
-            player.connect("settings-changed", self._on_setting_changed)
-            player.connect("launch-clicked", lambda _w, number: self.emit("instance-launch-requested", number))
-            player.connect("refresh-devices-requested", lambda *_: self.emit("devices-refresh-requested"))
-            player.connect("status-changed", lambda *_: self._sync_roster())
-            self.inspector_stack.add_named(player, str(index))
-            self.player_rows.append(player)
-            item = Gtk.ListBoxRow()
-            item.add_css_class("party-player")
-            item.update_property([Gtk.AccessibleProperty.LABEL], [f"Configure Player {index + 1}"])
-            body = Gtk.Box(spacing=10)
-            number = Gtk.Label(label=f"{index + 1:02d}", xalign=0.5, yalign=0.5, valign=Gtk.Align.CENTER)
-            number.set_size_request(36, 36)
-            number.add_css_class("party-avatar")
-            number.add_css_class(f"player-color-{index % 8}")
-            body.append(number)
-            text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
-            text.append(self._label(f"Player {index + 1}", "party-player-name"))
-            status = self._label("Not installed", "party-player-status")
-            status.set_ellipsize(Pango.EllipsizeMode.END)
-            status.set_max_width_chars(17)
-            text.append(status)
-            body.append(text)
-            player.checkbox.set_valign(Gtk.Align.CENTER)
-            body.append(player.checkbox)
-            item.set_child(body)
-            self.layout_preview.add_player_drag_source(item, index)
+        self._roster_remove_buttons = []
+        for instance_num in party:
+            player, item, status, remove_button = self._create_player_entry(instance_num, devices_info)
+            self.inspector_stack.add_named(player, str(instance_num))
             self.roster.append(item)
+            self._party_players.append(instance_num)
+            self.player_rows.append(player)
             self._roster_rows.append(item)
             self._roster_status.append(status)
+            self._roster_remove_buttons.append(remove_button)
+        self._sync_party_controls()
+
+    def _can_modify_party(self):
+        return self._party_controls_sensitive and all(
+            row.get_instance_state() == INSTANCE_IDLE for row in self.player_rows
+        )
+
+    def _sync_party_controls(self):
+        if not hasattr(self, "add_player_button"):
+            return
+        can_modify = self._can_modify_party()
+        self.add_player_button.set_sensitive(can_modify and len(self._party_players) < self._max_players)
+        can_remove = can_modify and len(self._party_players) > 1
+        for button in self._roster_remove_buttons:
+            button.set_sensitive(can_remove)
+
+    def _on_add_player_clicked(self, _button):
+        self.add_player()
+
+    def add_player(self):
+        """Append the next available player slot (up to the current limit) to the party."""
+        if not self._can_modify_party() or len(self._party_players) >= self._max_players:
+            return None
+        new_index = next((index for index in range(8) if index not in self._party_players), None)
+        if new_index is None:
+            return None
+
+        pos = sum(1 for existing in self._party_players if existing < new_index)
+        was_loading = self._is_loading
+        self._is_loading = True
+        try:
+            player, item, status, remove_button = self._create_player_entry(new_index, self._devices_info)
+            if new_index in self._saved_player_configs:
+                player.load_config(self._saved_player_configs[new_index])
+            player.set_selected(True)
+            player.set_verification_status(self._verification_statuses.get(new_index, False))
+            self.inspector_stack.add_named(player, str(new_index))
+            self.roster.insert(item, pos)
+            self._party_players.insert(pos, new_index)
+            self.player_rows.insert(pos, player)
+            self._roster_rows.insert(pos, item)
+            self._roster_status.insert(pos, status)
+            self._roster_remove_buttons.insert(pos, remove_button)
+            self._known_instance_count = max(self._known_instance_count, new_index + 1)
+            if any(row is not player and row.grab_input_switch.get_active() for row in self.player_rows):
+                player.set_grab_input_active(False)
+                player.set_grab_input_sensitive(False)
+            elif player.grab_input_switch.get_active():
+                self._apply_grab_input_exclusivity()
+        finally:
+            self._is_loading = was_loading
+
+        self._sync_party_controls()
+        self._on_setting_changed()
+        return new_index
+
+    def remove_player(self, instance_num):
+        """Remove a specific player directly from the party while keeping their saved settings."""
+        if not self._can_modify_party() or len(self._party_players) <= 1:
+            return False
+        pos = self._player_position(instance_num)
+        if pos is None:
+            return False
+
+        row = self.player_rows[pos]
+        had_grab = row.grab_input_switch.get_active()
+        self._saved_player_configs[instance_num] = row.get_config()
+        row.clear_update_progress()
+
+        was_loading = self._is_loading
+        self._is_loading = True
+        try:
+            self.inspector_stack.remove(row)
+            self.roster.remove(self._roster_rows[pos])
+            self._party_players.pop(pos)
+            self.player_rows.pop(pos)
+            self._roster_rows.pop(pos)
+            self._roster_status.pop(pos)
+            self._roster_remove_buttons.pop(pos)
+            if had_grab:
+                for remaining in self.player_rows:
+                    remaining.set_grab_input_sensitive(True)
+        finally:
+            self._is_loading = was_loading
+
+        if self._active_player == instance_num:
+            next_pos = min(pos, len(self._party_players) - 1)
+            self.select_player(self._party_players[next_pos], open_inspector=False)
+        self._sync_party_controls()
+        self._on_setting_changed()
+        return True
 
     def _sync_roster(self):
         if self._is_loading:
             return
         statuses = {}
-        for index, player in enumerate(self.player_rows):
+        for pos, player in enumerate(self.player_rows):
+            instance_num = player._player_num
             status = player.get_status_text()
-            statuses[index] = status
-            self._roster_status[index].set_label(status)
-            self._roster_status[index].set_tooltip_text(status)
-            item = self._roster_rows[index]
+            statuses[instance_num] = status
+            self._roster_status[pos].set_label(status)
+            self._roster_status[pos].set_tooltip_text(status)
+            item = self._roster_rows[pos]
             for state in ("running", "starting", "stopping", "idle"):
                 item.remove_css_class(f"party-{state}")
             item.add_css_class(f"party-{player.get_instance_state()}")
@@ -386,6 +526,7 @@ class LayoutSettingsPage(Gtk.Box):
         )
 
         self._sync_placement_controls()
+        self._sync_party_controls()
         self.emit("summary-changed")
 
     def _can_reposition_players(self):
@@ -399,22 +540,25 @@ class LayoutSettingsPage(Gtk.Box):
         self.layout_preview.set_reposition_enabled(self._can_reposition_players())
 
     def _apply_grab_input_exclusivity(self):
-        active = next((i for i, row in enumerate(self.player_rows) if row.grab_input_switch.get_active()), None)
+        active = next((row._player_num for row in self.player_rows if row.grab_input_switch.get_active()), None)
         if active is None:
             return
-        for i, row in enumerate(self.player_rows):
-            if i != active:
+        for row in self.player_rows:
+            if row._player_num != active:
                 row.set_grab_input_active(False)
                 row.set_grab_input_sensitive(False)
 
-    def _handle_grab_input_exclusivity(self, active_index):
+    def _handle_grab_input_exclusivity(self, active_instance):
         if self._is_loading or self._applying_exclusivity:
             return
-        active = self.player_rows[active_index].grab_input_switch.get_active()
+        active_row = self.get_player_row(active_instance)
+        if active_row is None:
+            return
+        active = active_row.grab_input_switch.get_active()
         self._applying_exclusivity = True
         try:
-            for i, row in enumerate(self.player_rows):
-                if i != active_index:
+            for row in self.player_rows:
+                if row._player_num != active_instance:
                     if active:
                         row.set_grab_input_active(False)
                     row.set_grab_input_sensitive(not active)
@@ -422,15 +566,25 @@ class LayoutSettingsPage(Gtk.Box):
             self._applying_exclusivity = False
 
     def get_data(self):
-        """Return the existing profile/controller data contract from the new controls."""
+        """Return the existing profile/controller data contract from the studio controls."""
         mode = self.screen_mode_row.get_selected_item().get_string().lower()
+        live_configs = {row._player_num: row.get_config() for row in self.player_rows}
+        max_index = max(
+            max(self._party_players, default=-1),
+            max(self._saved_player_configs, default=-1),
+        )
+        player_configs = [
+            live_configs.get(index, self._saved_player_configs.get(index, PlayerInstanceConfig()))
+            for index in range(max_index + 1)
+        ]
         return {
-            "num_players": int(self.num_players_row.get_value()),
+            "num_players": len(self._party_players),
+            "party_players": list(self._party_players),
             "mode": mode,
             "orientation": (
                 self.orientation_row.get_selected_item().get_string().lower() if mode == "splitscreen" else None
             ),
-            "player_configs": [row.get_config() for row in self.player_rows],
+            "player_configs": player_configs,
             "selected_players": self.get_selected_players(),
             "layout_order": list(self._layout_order) if self.placement_mode_row.get_selected() == 1 else None,
             "monitor_layouts": {
@@ -440,8 +594,8 @@ class LayoutSettingsPage(Gtk.Box):
         }
 
     def get_selected_players(self):
-        """Return participating players independently of the active inspector."""
-        return [i for i, row in enumerate(self.player_rows) if row.is_selected()]
+        """Return participating player instance IDs independently of the active inspector."""
+        return [row._player_num for row in self.player_rows if row.is_selected()]
 
     def set_running_state(self, is_running):
         """Synchronize all inspectors when a bulk operation completes."""
@@ -450,12 +604,10 @@ class LayoutSettingsPage(Gtk.Box):
 
     def update_verification_status(self, instance_num, is_verified):
         """Propagate installation readiness to the inspector, roster and stage."""
-        if 0 <= instance_num < len(self.player_rows):
-            self.player_rows[instance_num].set_verification_status(is_verified)
-
-    def _on_num_players_changed(self, adjustment):
-        if not self._is_loading:
-            self._on_setting_changed()
+        self._verification_statuses[instance_num] = is_verified
+        row = self.get_player_row(instance_num)
+        if row is not None:
+            row.set_verification_status(is_verified)
 
     def _on_screen_mode_changed(self, dropdown, *_args):
         mode = dropdown.get_selected_item().get_string().lower()
@@ -472,17 +624,22 @@ class LayoutSettingsPage(Gtk.Box):
         loading = self._is_loading
         self._is_loading = True
         try:
+            self._devices_info = {kind: list(items) for kind, items in devices_info.items()}
             for row in self.player_rows:
                 row.update_devices(devices_info)
             self._displays = sorted(devices_info.get("displays", []), key=lambda display: display.get("id", 0))
             self._num_monitors = max(1, len(self._displays))
+            self._update_num_players_limits(self.screen_mode_row.get_selected() == 1)
         finally:
             self._is_loading = loading
         self._update_layout_preview()
         self._sync_roster()
 
     def _update_layout_preview(self):
-        self._known_instance_count = max(self._known_instance_count, len(self.player_rows))
+        self._known_instance_count = max(
+            self._known_instance_count,
+            max(self._party_players, default=-1) + 1,
+        )
         self._layout_order = LayoutCalculator.order_instances(
             list(range(self._known_instance_count)), self._layout_order
         )
@@ -573,7 +730,8 @@ class LayoutSettingsPage(Gtk.Box):
         return None
 
     def _update_num_players_limits(self, is_splitscreen):
-        self.num_players_row.get_adjustment().set_upper(min(8, self._num_monitors * 4) if is_splitscreen else 8)
+        self._max_players = min(8, self._num_monitors * 4) if is_splitscreen else 8
+        self._sync_party_controls()
 
     def _on_setting_changed(self, *_args):
         if not self._is_loading:
@@ -593,8 +751,9 @@ class LayoutSettingsPage(Gtk.Box):
             self._sync_placement_controls()
 
     def set_number_of_instances_sensitive(self, sensitive):
-        """Lock the single party-size control while instances are active."""
-        self.num_players_row.set_sensitive(sensitive)
+        """Lock party add and remove controls while instances are active."""
+        self._party_controls_sensitive = bool(sensitive)
+        self._sync_party_controls()
 
     def set_screen_settings_sensitive(self, sensitive):
         """Lock placement while leaving canvas navigation available."""

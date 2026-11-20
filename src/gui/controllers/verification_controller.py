@@ -1,6 +1,7 @@
 """Steam instance verification."""
 
 import logging
+from collections.abc import Iterable
 from typing import Callable, Optional
 
 from src.core import Config
@@ -33,6 +34,17 @@ class VerificationController:
         logger.info("Instance %s verification: %s", instance_num + 1, is_verified)
         return is_verified
 
+    def verify_instances(
+        self,
+        instance_nums: Iterable[int],
+        on_each_complete: Optional[Callable[[int, bool], None]] = None,
+    ):
+        """Verify an explicit sequence of zero-based instance IDs."""
+        for instance_num in instance_nums:
+            is_verified = self.verify_instance(instance_num)
+            if on_each_complete:
+                on_each_complete(instance_num, is_verified)
+
     def verify_all_instances(
         self,
         num_instances: int,
@@ -46,10 +58,7 @@ class VerificationController:
             on_each_complete: Called with (instance_num, is_verified) as each
                 verification finishes.
         """
-        for i in range(num_instances):
-            is_verified = self.verify_instance(i)
-            if on_each_complete:
-                on_each_complete(i, is_verified)
+        self.verify_instances(range(num_instances), on_each_complete=on_each_complete)
 
     def get_verification_status(self, instance_num: int) -> bool:
         """

@@ -33,15 +33,23 @@ class SettingsController:
         Update profile from UI data.
 
         Args:
-            ui_data: As returned by the layout page; "selected_players" and
-                "player_configs" are pruned to num_players.
+            ui_data: As returned by the layout page; "selected_players" is
+                filtered to the active party while "player_configs" retains
+                settings for players outside the current party.
         """
         if "monitor_layouts" in ui_data:
             validated = Profile.model_validate({"monitor_layouts": ui_data["monitor_layouts"]})
             self._profile.monitor_layouts = validated.monitor_layouts
         old_player_configs = self._profile.player_configs[:]
 
-        self._profile.num_players = ui_data["num_players"]
+        if "party_players" in ui_data:
+            party_players = list(ui_data["party_players"])
+            self._profile.party_players = party_players if party_players else None
+            self._profile.num_players = len(party_players) if party_players else ui_data["num_players"]
+        else:
+            self._profile.party_players = None
+            self._profile.num_players = ui_data["num_players"]
+
         self._profile.mode = ui_data["mode"]
         if "layout_order" in ui_data:
             self._profile.layout_order = ui_data["layout_order"]
@@ -50,11 +58,13 @@ class SettingsController:
             self._profile.splitscreen = SplitscreenConfig(ORIENTATION=ui_data["orientation"])
 
         new_player_configs = list(ui_data["player_configs"])
+        party = self._profile.party_indices()
+        min_config_count = max(party, default=-1) + 1
 
         # The page only shows the configured instances, so the settings of the
-        # hidden ones are kept and restored when the count goes up again.
+        # hidden ones are kept and restored when those players return.
         merged = []
-        for index in range(max(len(new_player_configs), len(old_player_configs), self._profile.num_players)):
+        for index in range(max(len(new_player_configs), len(old_player_configs), min_config_count)):
             if index < len(new_player_configs):
                 merged.append(new_player_configs[index])
             elif index < len(old_player_configs):
@@ -63,7 +73,8 @@ class SettingsController:
                 merged.append(PlayerInstanceConfig())
         self._profile.player_configs = merged
 
-        valid_selected_players = [idx for idx in ui_data["selected_players"] if 0 <= idx < self._profile.num_players]
+        party_set = set(party)
+        valid_selected_players = [idx for idx in ui_data["selected_players"] if idx in party_set]
         self._profile.selected_players = valid_selected_players
 
     def update_preference(self, key: str, value):

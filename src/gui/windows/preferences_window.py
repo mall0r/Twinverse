@@ -379,6 +379,7 @@ class PreferencesWindow(Adw.Window):
         self._profile.use_gamescope = default_profile.use_gamescope
         self._profile.enable_gamescope_wsi = default_profile.enable_gamescope_wsi
         self._profile.num_players = default_profile.num_players
+        self._profile.party_players = default_profile.party_players
         self._profile.mode = default_profile.mode
         # The values are copied, so the two profiles do not share the same
         # settings.
