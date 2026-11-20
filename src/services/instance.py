@@ -1,13 +1,15 @@
 """Launch, termination and configuration of Steam instances in isolated environments."""
 
 import copy
+import io
 import os
 import shlex
 import shutil
 import signal
 import subprocess
+import threading
 from pathlib import Path
-from typing import Optional
+from typing import BinaryIO, Optional
 
 from src.core import Config, Logger, Utils
 from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
@@ -37,6 +39,55 @@ class InstanceService:
         self.pgids: dict[int, int] = {}
         self.processes: dict[int, subprocess.Popen] = {}
         self.termination_in_progress = False
+
+    @staticmethod
+    def _drain_process_pipes(process: subprocess.Popen, log_file: Optional[Path] = None) -> None:
+        """Drain stdout and stderr on daemon threads so full pipes never block the instance."""
+        streams: list[io.IOBase] = [
+            stream for stream in (process.stdout, process.stderr) if isinstance(stream, io.IOBase)
+        ]
+        if not streams:
+            return
+
+        log_handle: Optional[BinaryIO] = None
+        if log_file is not None:
+            try:
+                log_file.parent.mkdir(parents=True, exist_ok=True)
+                log_handle = open(log_file, "wb")
+            except OSError:
+                log_handle = None
+
+        lock = threading.Lock()
+        remaining = [len(streams)]
+
+        def _drain(stream: io.IOBase) -> None:
+            read_chunk = getattr(stream, "read1", stream.read)
+            try:
+                while True:
+                    chunk = read_chunk(4096)
+                    if not chunk:
+                        break
+                    if log_handle is not None:
+                        with lock:
+                            log_handle.write(chunk)
+                            log_handle.flush()
+            except OSError:
+                pass
+            finally:
+                try:
+                    stream.close()
+                except OSError:
+                    pass
+                with lock:
+                    remaining[0] -= 1
+                    if remaining[0] == 0 and log_handle is not None:
+                        try:
+                            log_handle.close()
+                        except OSError:
+                            pass
+
+        for stream in streams:
+            threading.Thread(target=_drain, args=(stream,), daemon=True).start()
 
     def _prepare_instance_launch(
         self, profile: Profile, instance_num: int, application_command: Optional[list[str]] = None
@@ -88,10 +139,10 @@ class InstanceService:
         try:
             if Utils.is_flatpak():
                 self.logger.info(f"Instance {instance_num}: Launching in Flatpak environment")
-                process, pgid = self._launch_in_flatpak(instance_num, base_command, instance_env)
+                process, pgid = self._launch_in_flatpak(instance_num, base_command, instance_env, log_file=log_file)
             else:
                 self.logger.info(f"Instance {instance_num}: Launching natively")
-                process, pgid = self._launch_natively(instance_num, base_command, instance_env)
+                process, pgid = self._launch_natively(instance_num, base_command, instance_env, log_file=log_file)
 
             self.pids[instance_num] = process.pid
             self.pgids[instance_num] = pgid
@@ -108,7 +159,11 @@ class InstanceService:
             raise TwinverseError(f"Failed to launch instance {instance_num}: {str(e)}")
 
     def _launch_in_flatpak(
-        self, instance_num: int, base_command: list[str], instance_env: dict
+        self,
+        instance_num: int,
+        base_command: list[str],
+        instance_env: dict,
+        log_file: Optional[Path] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance within a Flatpak environment."""
         env_prefix_parts = [
@@ -166,6 +221,7 @@ class InstanceService:
         pgid_str = process.stdout.readline().decode().strip() if process.stdout else ""
         if pgid_str.isdigit():
             pgid = int(pgid_str)
+            self._drain_process_pipes(process, log_file)
             self.logger.info(
                 f"Instance {instance_num} started on host with PID {process.pid} " f"and captured host PGID: {pgid}"
             )
@@ -186,7 +242,11 @@ class InstanceService:
         raise TwinverseError(f"Failed to get host process group ID for instance {instance_num}: {error_message}")
 
     def _launch_natively(
-        self, instance_num: int, base_command: list[str], instance_env: dict
+        self,
+        instance_num: int,
+        base_command: list[str],
+        instance_env: dict,
+        log_file: Optional[Path] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance natively."""
         native_env = os.environ.copy()
@@ -243,6 +303,7 @@ class InstanceService:
             self.logger.error(f"Instance {instance_num}: Process failed to start:\n{error_message}")
             raise DependencyError(f"Command failed to start: {base_command[0]} - {error_message}")
 
+        self._drain_process_pipes(process, log_file)
         pgid = process.pid
         self.logger.info(f"Instance {instance_num} started with PID: {process.pid} and PGID: {pgid}")
         return process, pgid
