@@ -3,6 +3,16 @@
 
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
 
+## [1.1.5] - 2026-11-20
+
+### Fixed
+
+- Resolve symlinked `/etc/resolv.conf` targets (such as `systemd-resolved` setups on Bazzite, Fedora, and Ubuntu) before bind-mounting into the `bwrap` network sandbox, avoiding immediate startup failures with Bubblewrap 0.13+.
+- Pass `--no-netns-quit` to `pasta` and close the inherited block-fd FIFO (`4>&-`) so `passt-selinux` on enforcing SELinux hosts (Bazzite/Fedora) no longer denies access to `/proc/<pid>/ns` or the state FIFO.
+- Drain `stdout`/`stderr` pipes into `steam_instance_<n>.log` in both Flatpak and native launch paths so verbose Steam installations cannot fill the 64 KB pipe buffer and hang.
+- Backport GTK's `linux-dmabuf` version 5 cap to the bundled GTK 4.16.13 in the AppImage, fixing a `SIGSEGV` crash during `Gtk.init()` on Wayland compositors advertising `linux-dmabuf` v6 (such as KWin 6.8).
+- Re-apply the user's configured cursor theme on startup and setting changes so AppImage and Flatpak builds do not stay stuck on the default cursor.
+
 ## [1.1.4] - 2026-10-15
 
 ### Added
@@ -51,7 +61,7 @@ Users of 1.1.2 or earlier must manually download 1.1.3 once to enable future upd
 
 ### Fixed
 
-- Restore controller navigation of the Steam side menus while a game is running in splitscreen instances.
+- Restore controller navigation of the Steam side menus while a game runs in splitscreen instances.
 - Build the AppImage in an Ubuntu 22.04 container that compiles its own GTK 4.16, libadwaita 1.6 and GLib 2.82 stack, instead of copying the libraries of the build workstation.
 - Reject the AppImage when a bundled library requires a newer glibc than 2.35.
 

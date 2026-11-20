@@ -63,6 +63,14 @@
   </provides>
 
   <releases>
+    <release version="1.1.5" date="2026-11-20" type="stable">
+      <description>
+        <p>Fix Steam instance startup and installation on hosts with a symlinked /etc/resolv.conf and enforcing SELinux (such as Bazzite and Fedora) by resolving the bind-mount target and passing --no-netns-quit to pasta.</p>
+        <p>Drain instance stdout and stderr into each instance's log file so verbose Steam installs cannot fill pipe buffers and stall.</p>
+        <p>Fix the AppImage crashing on startup on Wayland compositors that advertise linux-dmabuf v6 (such as KWin 6.8) by capping GTK 4.16's dmabuf protocol binding at version 5.</p>
+        <p>Re-apply the configured cursor theme on startup and setting changes in AppImage and Flatpak builds.</p>
+      </description>
+    </release>
     <release version="1.1.4" date="2026-10-15" type="stable">
       <description>
         <p>Add optional per-instance network isolation with pasta, keeping internet access and requiring no root.</p>
