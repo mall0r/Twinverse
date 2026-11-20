@@ -12,6 +12,12 @@ from gi.repository import GObject, Graphene, Gsk, Gtk
 
 from src.core.tiling import TEMPLATES
 
+_THUMB_WIDTH = 26
+_THUMB_HEIGHT = 18
+_THUMB_INSET = 2
+_BUTTON_WIDTH = 34
+_BUTTON_HEIGHT = 26
+
 
 def _rect(x, y, width, height):
     rect = Graphene.Rect()
@@ -23,7 +29,7 @@ class _Thumbnail(Gtk.Widget):
     def __init__(self, template):
         super().__init__()
         self.template = template
-        self.set_size_request(34, 24)
+        self.set_size_request(_THUMB_WIDTH, _THUMB_HEIGHT)
         self.set_halign(Gtk.Align.CENTER)
         self.set_valign(Gtk.Align.CENTER)
         self.set_can_target(False)
@@ -33,12 +39,22 @@ class _Thumbnail(Gtk.Widget):
     def do_snapshot(self, snapshot):
         color = self.get_color()
         outline = Gsk.RoundedRect()
-        outline.init_from_rect(_rect(0, 0, 34, 24), 3)
+        outline.init_from_rect(_rect(0, 0, _THUMB_WIDTH, _THUMB_HEIGHT), 2.5)
         snapshot.append_border(outline, [1.0] * 4, [color] * 4)
+        inner_width = _THUMB_WIDTH - 2 * _THUMB_INSET
+        inner_height = _THUMB_HEIGHT - 2 * _THUMB_INSET
         # A shared inset and half-pixel gutters preserve the template proportions.
         for x, y, width, height in self.template.rectangles:
             cell = Gsk.RoundedRect()
-            cell.init_from_rect(_rect(3 + x * 28 + 0.5, 3 + y * 18 + 0.5, width * 28 - 1, height * 18 - 1), 1)
+            cell.init_from_rect(
+                _rect(
+                    _THUMB_INSET + x * inner_width + 0.5,
+                    _THUMB_INSET + y * inner_height + 0.5,
+                    width * inner_width - 1,
+                    height * inner_height - 1,
+                ),
+                1,
+            )
             snapshot.push_rounded_clip(cell)
             snapshot.append_color(color, cell.bounds)
             snapshot.pop()
@@ -69,7 +85,7 @@ class TilingPicker(Gtk.Box):
     }
 
     def __init__(self, selected: str = "fullscreen"):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
         self.add_css_class("tiling-picker")
         self._editable = True
         self._updating = False
@@ -78,17 +94,20 @@ class TilingPicker(Gtk.Box):
         flow = Gtk.FlowBox()
         flow.set_selection_mode(Gtk.SelectionMode.NONE)
         flow.set_min_children_per_line(1)
-        flow.set_max_children_per_line(6)
+        flow.set_max_children_per_line(len(TEMPLATES))
         flow.set_column_spacing(4)
         flow.set_row_spacing(4)
         flow.set_homogeneous(True)
         flow.set_halign(Gtk.Align.START)
+        flow.set_hexpand(True)
         self.append(flow)
         first = None
         for template in TEMPLATES.values():
             button = _Option(self, template.id)
             button.add_css_class("tiling-option")
-            button.set_size_request(42, 36)
+            button.set_size_request(_BUTTON_WIDTH, _BUTTON_HEIGHT)
+            button.set_halign(Gtk.Align.START)
+            button.set_valign(Gtk.Align.CENTER)
             button.set_child(_Thumbnail(template))
             capacity = f"{template.capacity} player" + ("s" if template.capacity != 1 else "")
             description = f"{template.title} · {capacity}"

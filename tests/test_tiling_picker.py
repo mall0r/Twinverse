@@ -5,12 +5,20 @@
 import pytest
 
 gi = pytest.importorskip("gi")
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 
 from gi.repository import Gdk, Gtk
 
 from src.core.tiling import TEMPLATES
-from src.gui.widgets.tiling_picker import TilingPicker
+from src.gui.widgets.tiling_picker import (
+    _BUTTON_HEIGHT,
+    _BUTTON_WIDTH,
+    _THUMB_HEIGHT,
+    _THUMB_INSET,
+    _THUMB_WIDTH,
+    TilingPicker,
+)
 
 
 @pytest.fixture
@@ -38,8 +46,8 @@ def test_six_compact_native_controls(picker):
         assert button.get_accessible_role() == Gtk.AccessibleRole.TOGGLE_BUTTON
         assert TEMPLATES[key].title in button.get_tooltip_text()
         assert str(TEMPLATES[key].capacity) in button.get_tooltip_text()
-        assert button.get_size_request() == (42, 36)
-        assert button.get_child().get_size_request() == (34, 24)
+        assert button.get_size_request() == (_BUTTON_WIDTH, _BUTTON_HEIGHT)
+        assert button.get_child().get_size_request() == (_THUMB_WIDTH, _THUMB_HEIGHT)
 
 
 def test_clicks_emit_once_and_keep_radio_selection(picker):
@@ -98,8 +106,8 @@ def test_snapshot_contains_actual_template_rectangles(picker, template_id):
     node = snapshot.to_node()
     assert node is not None
     bounds = node.get_bounds()
-    assert bounds.get_width() == 34
-    assert bounds.get_height() == 24
+    assert bounds.get_width() == _THUMB_WIDTH
+    assert bounds.get_height() == _THUMB_HEIGHT
 
     class RecordingSnapshot:
         def __init__(self):
@@ -119,8 +127,16 @@ def test_snapshot_contains_actual_template_rectangles(picker, template_id):
 
     recording = RecordingSnapshot()
     thumbnail.do_snapshot(recording)
+    inner_w = _THUMB_WIDTH - 2 * _THUMB_INSET
+    inner_h = _THUMB_HEIGHT - 2 * _THUMB_INSET
     expected = [
-        (3 + x * 28 + 0.5, 3 + y * 18 + 0.5, w * 28 - 1, h * 18 - 1) for x, y, w, h in TEMPLATES[template_id].rectangles
+        (
+            _THUMB_INSET + x * inner_w + 0.5,
+            _THUMB_INSET + y * inner_h + 0.5,
+            w * inner_w - 1,
+            h * inner_h - 1,
+        )
+        for x, y, w, h in TEMPLATES[template_id].rectangles
     ]
     assert recording.cells == expected
 
