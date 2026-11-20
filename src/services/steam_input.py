@@ -238,12 +238,14 @@ class SteamInputDisabler:
         names = [account for account, _ in accounts]
 
         if handled is not None and set(handled) == set(names):
-            logger.debug("Instance %s: Steam Input was already handled, keeping the current settings.", instance_num)
+            logger.debug(
+                "Instance %s: Steam Input was already handled, keeping the current settings.", instance_num + 1
+            )
             return False
 
         if not accounts:
             logger.info(
-                "Instance %s: no Steam account yet, Steam Input will be disabled on a later launch.", instance_num
+                "Instance %s: no Steam account yet, Steam Input will be disabled on a later launch.", instance_num + 1
             )
             return False
 
@@ -258,16 +260,18 @@ class SteamInputDisabler:
                 if self._disable_in_account(instance_num, account, config_path, appids):
                     logger.info(
                         "Instance %s: Steam Input disabled for account %s (%s games in the library).",
-                        instance_num,
+                        instance_num + 1,
                         account,
                         len(appids),
                     )
                 disabled.append(account)
             except (OSError, VdfFormatError, UnicodeDecodeError) as e:
-                logger.warning("Instance %s: could not disable Steam Input for %s: %s", instance_num, account, e)
+                logger.warning("Instance %s: could not disable Steam Input for %s: %s", instance_num + 1, account, e)
 
         if len(disabled) < len(pending):
-            logger.info("Instance %s: Steam Input still pending, it will be retried on the next launch.", instance_num)
+            logger.info(
+                "Instance %s: Steam Input still pending, it will be retried on the next launch.", instance_num + 1
+            )
             return False
 
         # The marker ends up listing the accounts present now, so an account removed
@@ -294,12 +298,12 @@ class SteamInputDisabler:
                 logger.info(
                     "Instance %s: applying the Steam Input settings again, "
                     "the recorded state comes from an older version.",
-                    instance_num,
+                    instance_num + 1,
                 )
                 return None
             return sorted(payload["accounts"])
         except (OSError, ValueError, KeyError, TypeError) as e:
-            logger.debug("Instance %s: cannot read '%s': %s", instance_num, marker, e)
+            logger.debug("Instance %s: cannot read '%s': %s", instance_num + 1, marker, e)
             return None
 
     def _account_configs(self, instance_num: int, home_path: Path) -> list[tuple[str, Path]]:
@@ -308,7 +312,7 @@ class SteamInputDisabler:
         try:
             entries = sorted(userdata.iterdir())
         except OSError as e:
-            logger.debug("Instance %s: cannot read '%s': %s", instance_num, userdata, e)
+            logger.debug("Instance %s: cannot read '%s': %s", instance_num + 1, userdata, e)
             return []
 
         accounts = []
@@ -320,7 +324,7 @@ class SteamInputDisabler:
                 if entry.is_dir() and config.is_file():
                     accounts.append((entry.name, config))
             except OSError as e:
-                logger.debug("Instance %s: skipping account '%s': %s", instance_num, entry.name, e)
+                logger.debug("Instance %s: skipping account '%s': %s", instance_num + 1, entry.name, e)
         return accounts
 
     def _library_appids(self, instance_num: int, home_path: Path) -> list[str]:
@@ -330,14 +334,14 @@ class SteamInputDisabler:
         try:
             manifests = sorted(steamapps.glob("appmanifest_*.acf"))
         except OSError as e:
-            logger.debug("Instance %s: cannot read '%s': %s", instance_num, steamapps, e)
+            logger.debug("Instance %s: cannot read '%s': %s", instance_num + 1, steamapps, e)
             return []
 
         for manifest in manifests:
             try:
                 content = manifest.read_text(encoding="utf-8", errors="replace")
             except OSError as e:
-                logger.debug("Instance %s: cannot read manifest '%s': %s", instance_num, manifest.name, e)
+                logger.debug("Instance %s: cannot read manifest '%s': %s", instance_num + 1, manifest.name, e)
                 continue
             match = _APPID.search(content)
             if match:
@@ -356,7 +360,7 @@ class SteamInputDisabler:
             document.set_value((ROOT_KEY, APPS_KEY, appid, PER_GAME_TOGGLE_KEY), PER_GAME_TOGGLE_OFF)
 
         if not document.modified:
-            logger.debug("Instance %s: account %s already has Steam Input disabled.", instance_num, account)
+            logger.debug("Instance %s: account %s already has Steam Input disabled.", instance_num + 1, account)
             return False
         document.save(config_path)
         return True
@@ -374,7 +378,7 @@ class SteamInputDisabler:
             marker.parent.mkdir(parents=True, exist_ok=True)
             marker.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
         except OSError as e:
-            logger.warning("Instance %s: could not record the Steam Input state: %s", instance_num, e)
+            logger.warning("Instance %s: could not record the Steam Input state: %s", instance_num + 1, e)
             logger.info("Twinverse will check the settings again on the next launch.")
             return False
         return True

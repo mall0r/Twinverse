@@ -199,7 +199,9 @@ def _build_handlers(settings: LogSettings, paths: Optional[LogPaths], handle: Lo
             sys.stderr.write(f"Twinverse: file logging disabled: {error}\n")
 
     if not handle.handlers:
-        handle.root.addHandler(logging.NullHandler())
+        null_handler = logging.NullHandler()
+        handle.root.addHandler(null_handler)
+        handle.handlers.append(null_handler)
 
 
 def configure_logging(settings: Optional[LogSettings] = None) -> LoggingHandle:

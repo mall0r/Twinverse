@@ -358,3 +358,59 @@ def test_clear_logs_removes_every_log(tmp_path):
 
     assert twinverse.main(["--clear-logs", "--log-dir", str(tmp_path)]) == 0
     assert not tmp_path.exists()
+
+
+def test_private_rotating_file_handler_reports_handle_error_once(tmp_path, capsys):
+    """Handler failure notices are written once instead of spamming stderr on every record."""
+    from src.core.logging.handlers import PrivateRotatingFileHandler
+
+    handler = PrivateRotatingFileHandler(tmp_path / "test.log", delay=True)
+    record = logging.LogRecord("src.test", logging.INFO, __file__, 1, "msg", (), None)
+    try:
+        handler.handleError(record)
+        handler.handleError(record)
+    finally:
+        handler.close()
+
+    stderr = capsys.readouterr().err
+    assert stderr.count("Twinverse: could not write to") == 1
+
+
+def test_null_handler_is_removed_on_shutdown(monkeypatch):
+    """Disabling both console and file sinks must not leak a NullHandler on the root logger."""
+    root = logging.getLogger()
+    before = list(root.handlers)
+
+    monkeypatch.setattr("src.core.logging.setup.LogPaths.ensure", Mock(side_effect=OSError("ro")))
+    monkeypatch.setattr("src.core.logging.setup._fallback_paths", lambda: None)
+
+    handle = configure_logging(LogSettings(console=False))
+    assert any(isinstance(h, logging.NullHandler) for h in handle.handlers)
+
+    handle.shutdown()
+    assert list(root.handlers) == before
+
+
+def test_terminate_instance_logs_one_based_number_and_context(tmp_path, monkeypatch):
+    """Termination logs carry instance=1 context and 1-based numbering, never the PID as instance ID."""
+    monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path)
+    handle = configure_logging(LogSettings(log_dir=tmp_path, console=False))
+    try:
+        service = InstanceService.__new__(InstanceService)
+        process = _finished_process()
+        process.pid = 7777
+        service.processes = {0: process}
+        service.pids = {0: 7777}
+        service.pgids = {0: 7777}
+        instance_log = InstanceLog.create(0, command=["steam"], base_dir=tmp_path)
+        service.instance_logs[0] = instance_log
+
+        service.terminate_instance(0)
+    finally:
+        handle.shutdown()
+
+    text = (tmp_path / "twinverse.log").read_text()
+    assert "instance=1" in text
+    assert "Terminating instance 1 (PID 7777)" in text
+    assert "Terminating instance 7777" not in text
+    assert "Instance 1 log finished (exit_code=0):" in text
