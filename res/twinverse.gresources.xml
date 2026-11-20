@@ -3,18 +3,37 @@
     <gresource prefix="/io/github/mall0r/Twinverse">
         <file>icons/check-icon.svg</file>
         <file>icons/alert-icon.svg</file>
-        <file>icons/four-square-symbolic.svg</file>
-        <file>icons/fullscreen-square-symbolic.svg</file>
-        <file>icons/gamepad-symbolic.svg</file>
-        <file>icons/horizontal-square-symbolic.svg</file>
-        <file>icons/horizontal-three-square-symbolic.svg</file>
-        <file>icons/moon-outline-symbolic.svg</file>
-        <file>icons/panel-left-symbolic.svg</file>
-        <file>icons/panel-right-symbolic.svg</file>
-        <file>icons/mouse-wireless-symbolic.svg</file>
-        <file>icons/sun-outline-symbolic.svg</file>
-        <file>icons/vertical-square-symbolic.svg</file>
-        <file>icons/vertical-three-square-symbolic.svg</file>
+        <file alias="icons/scalable/actions/four-square-symbolic.svg">icons/four-square-symbolic.svg</file>
+        <file alias="icons/scalable/actions/fullscreen-square-symbolic.svg">icons/fullscreen-square-symbolic.svg</file>
+        <file alias="icons/scalable/actions/gamepad-symbolic.svg">icons/gamepad-symbolic.svg</file>
+        <file alias="icons/scalable/actions/horizontal-square-symbolic.svg">icons/horizontal-square-symbolic.svg</file>
+        <file alias="icons/scalable/actions/horizontal-three-square-symbolic.svg">icons/horizontal-three-square-symbolic.svg</file>
+        <file alias="icons/scalable/actions/moon-outline-symbolic.svg">icons/moon-outline-symbolic.svg</file>
+        <file alias="icons/scalable/actions/panel-left-symbolic.svg">icons/panel-left-symbolic.svg</file>
+        <file alias="icons/scalable/actions/panel-right-symbolic.svg">icons/panel-right-symbolic.svg</file>
+        <file alias="icons/scalable/actions/mouse-wireless-symbolic.svg">icons/mouse-wireless-symbolic.svg</file>
+        <file alias="icons/scalable/actions/sun-outline-symbolic.svg">icons/sun-outline-symbolic.svg</file>
+        <file alias="icons/scalable/actions/vertical-square-symbolic.svg">icons/vertical-square-symbolic.svg</file>
+        <file alias="icons/scalable/actions/vertical-three-square-symbolic.svg">icons/vertical-three-square-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-add-symbolic.svg">icons/twinverse-add-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-audio-symbolic.svg">icons/twinverse-audio-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-close-symbolic.svg">icons/twinverse-close-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-menu-symbolic.svg">icons/twinverse-menu-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-refresh-symbolic.svg">icons/twinverse-refresh-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-play-symbolic.svg">icons/twinverse-play-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-stop-symbolic.svg">icons/twinverse-stop-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-check-symbolic.svg">icons/twinverse-check-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-download-symbolic.svg">icons/twinverse-download-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-dot-symbolic.svg">icons/twinverse-dot-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-display-symbolic.svg">icons/twinverse-display-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-network-symbolic.svg">icons/twinverse-network-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-terminal-symbolic.svg">icons/twinverse-terminal-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-trash-symbolic.svg">icons/twinverse-trash-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-folder-symbolic.svg">icons/twinverse-folder-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-folder-open-symbolic.svg">icons/twinverse-folder-open-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-window-symbolic.svg">icons/twinverse-window-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-info-symbolic.svg">icons/twinverse-info-symbolic.svg</file>
+        <file alias="icons/scalable/actions/twinverse-error-symbolic.svg">icons/twinverse-error-symbolic.svg</file>
         <file alias="icons/io.github.mall0r.Twinverse.svg">../share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg</file>
         <file>styles/style.css</file>
     </gresource>

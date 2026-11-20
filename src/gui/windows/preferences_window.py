@@ -1,4 +1,4 @@
-"""Compact engine controls and instance-file tools for the session studio."""
+"""Compact engine controls and instance-file tools for the session layout."""
 
 # flake8: noqa: E402
 
@@ -168,7 +168,7 @@ class PreferencesWindow(Adw.Window):
         empty.set_margin_end(24)
         empty.set_margin_top(48)
         empty.set_margin_bottom(48)
-        icon = Gtk.Image(icon_name="folder-symbolic", pixel_size=48)
+        icon = Gtk.Image(icon_name="twinverse-folder-symbolic", pixel_size=48)
         icon.add_css_class("dim-label")
         empty.append(icon)
         title = Gtk.Label(label="No instance data yet")
@@ -234,15 +234,15 @@ class PreferencesWindow(Adw.Window):
         content.append(details)
 
         tools = Gtk.Box(spacing=6, valign=Gtk.Align.CENTER)
-        home_button = Gtk.Button(icon_name="folder-open-symbolic")
+        home_button = Gtk.Button(icon_name="twinverse-folder-open-symbolic")
         home_button.set_tooltip_text(f"Open home directory for player {player_index + 1}")
         home_button.connect("clicked", self._on_open_home_clicked, player_index)
         tools.append(home_button)
-        terminal_button = Gtk.Button(icon_name="utilities-terminal-symbolic")
+        terminal_button = Gtk.Button(icon_name="twinverse-terminal-symbolic")
         terminal_button.set_tooltip_text(f"Open terminal for player {player_index + 1}")
         terminal_button.connect("clicked", lambda _: self.emit("instance-terminal-requested", player_index))
         tools.append(terminal_button)
-        delete_button = Gtk.Button(icon_name="user-trash-symbolic")
+        delete_button = Gtk.Button(icon_name="twinverse-trash-symbolic")
         delete_button.set_tooltip_text(f"Reset player {player_index + 1} settings and remove home directory")
         delete_button.add_css_class("destructive-action")
         delete_button.add_css_class("settings-danger")

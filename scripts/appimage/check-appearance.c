@@ -1,4 +1,4 @@
-/* Exercise the bundled GTK's unthemed GResource lookup and actual recoloring.
+/* Exercise the bundled GTK's GResource icon lookup and actual recoloring.
  * Compile/run in the AppImage builder, not against the workstation's GTK. */
 #include <gtk/gtk.h>
 
@@ -14,7 +14,14 @@ main (int argc, char **argv)
     "sun-outline-symbolic", "moon-outline-symbolic", "fullscreen-square-symbolic",
     "horizontal-square-symbolic", "vertical-square-symbolic", "four-square-symbolic",
     "horizontal-three-square-symbolic", "vertical-three-square-symbolic",
-    "gamepad-symbolic", "mouse-wireless-symbolic"
+    "gamepad-symbolic", "mouse-wireless-symbolic", "panel-left-symbolic",
+    "panel-right-symbolic", "twinverse-add-symbolic", "twinverse-audio-symbolic",
+    "twinverse-close-symbolic", "twinverse-menu-symbolic", "twinverse-refresh-symbolic",
+    "twinverse-play-symbolic", "twinverse-stop-symbolic", "twinverse-check-symbolic",
+    "twinverse-download-symbolic", "twinverse-dot-symbolic", "twinverse-display-symbolic",
+    "twinverse-network-symbolic", "twinverse-terminal-symbolic", "twinverse-trash-symbolic",
+    "twinverse-folder-symbolic", "twinverse-folder-open-symbolic", "twinverse-window-symbolic",
+    "twinverse-info-symbolic", "twinverse-error-symbolic"
   };
 
   g_assert_cmpint (argc, ==, 2);

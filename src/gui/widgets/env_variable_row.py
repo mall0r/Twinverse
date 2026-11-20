@@ -29,7 +29,7 @@ class EnvVariableRow(Gtk.Box):
         self.key_entry.add_css_class("inspector-env-key")
         key_line.append(key_field)
 
-        self.remove_button = Gtk.Button.new_from_icon_name("user-trash-symbolic")
+        self.remove_button = Gtk.Button.new_from_icon_name("twinverse-trash-symbolic")
         self.remove_button.add_css_class("flat")
         self.remove_button.add_css_class("inspector-env-remove")
         self.remove_button.set_valign(Gtk.Align.END)
