@@ -39,10 +39,21 @@ class ToastOverlay(Gtk.Overlay):
         super().__init__(**kwargs)
         self._timeout_id = 0
 
-        self._icon = Gtk.Image()
+        self._icon = Gtk.Image(
+            pixel_size=16,
+            halign=Gtk.Align.CENTER,
+            valign=Gtk.Align.CENTER,
+            hexpand=True,
+            vexpand=True,
+        )
         self._icon.add_css_class("toast-icon")
 
-        self._badge = Gtk.Box(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        self._badge = Gtk.Box(
+            halign=Gtk.Align.CENTER,
+            valign=Gtk.Align.CENTER,
+            hexpand=False,
+            vexpand=False,
+        )
         self._badge.set_size_request(32, 32)
         self._badge.add_css_class("toast-badge")
         self._badge.append(self._icon)
