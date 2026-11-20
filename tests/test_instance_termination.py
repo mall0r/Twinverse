@@ -7,7 +7,7 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -98,6 +98,221 @@ def test_the_wine_helpers_are_not_killed_outside_the_instance(tmp_path):
         for process in (mine, other):
             process.kill()
             process.wait(timeout=5)
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Return True when ``pid`` exists and is not a zombie."""
+    parsed = InstanceService._read_proc_info(str(pid))
+    return parsed is not None and parsed[3] != "Z"
+
+
+def _spawn_setsid_instance(ignore_term: bool = False) -> tuple[subprocess.Popen, int]:
+    """Spawn a launcher whose descendant moves into its own session via setsid."""
+    trap_cmd = "trap '' TERM; " if ignore_term else ""
+    inner = f"setsid bash -c '{trap_cmd}echo $$; exec sleep 30' & wait"
+    process = subprocess.Popen(
+        ["bash", "-c", inner],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        preexec_fn=os.setpgrp,
+    )
+    assert process.stdout is not None
+    child_pid = int(process.stdout.readline().strip())
+    return process, child_pid
+
+
+@pytest.mark.skipif(shutil.which("setsid") is None, reason="setsid is required")
+def test_terminate_instance_stops_setsid_descendants_without_touching_others():
+    """Stop must terminate SteamRT3-style setsid descendants even after the parent exits."""
+    service = InstanceService.__new__(InstanceService)
+    service.processes = {}
+    service.pids = {}
+    service.pgids = {}
+    service.termination_in_progress = False
+
+    unrelated = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    launcher, setsid_child = _spawn_setsid_instance(ignore_term=False)
+    try:
+        assert os.getpgid(setsid_child) != launcher.pid
+        service.processes[0] = launcher
+        service.pids[0] = launcher.pid
+        service.pgids[0] = launcher.pid
+
+        service.terminate_instance(0)
+
+        assert launcher.poll() is not None
+        assert not _is_pid_alive(setsid_child)
+        assert unrelated.poll() is None
+        assert 0 not in service.processes
+    finally:
+        for pid in (setsid_child,):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        for proc in (launcher, unrelated):
+            proc.kill()
+            proc.wait(timeout=5)
+
+
+@pytest.mark.skipif(shutil.which("setsid") is None, reason="setsid is required")
+def test_terminate_all_escalates_to_sigkill_for_stubborn_setsid_descendants():
+    """End session must SIGKILL setsid descendants that ignore SIGTERM after the launcher exits."""
+    service = InstanceService.__new__(InstanceService)
+    service._GRACEFUL_TERMINATION_TIMEOUT = 0.4
+    service.processes = {}
+    service.pids = {}
+    service.pgids = {}
+    service.termination_in_progress = False
+
+    unrelated = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    launcher, setsid_child = _spawn_setsid_instance(ignore_term=True)
+    try:
+        assert os.getpgid(setsid_child) != launcher.pid
+        service.processes[0] = launcher
+        service.pids[0] = launcher.pid
+        service.pgids[0] = launcher.pid
+
+        service.terminate_all()
+
+        assert launcher.poll() is not None
+        assert not _is_pid_alive(setsid_child)
+        assert unrelated.poll() is None
+        assert service.processes == {}
+    finally:
+        try:
+            os.kill(setsid_child, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        for proc in (launcher, unrelated):
+            proc.kill()
+            proc.wait(timeout=5)
+
+
+@pytest.mark.skipif(shutil.which("setsid") is None, reason="setsid is required")
+def test_collect_instance_pids_strictly_isolates_target_tree():
+    """Native PID collection returns only the target tree and nothing for unknown PGIDs."""
+    unrelated = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    launcher, setsid_child = _spawn_setsid_instance(ignore_term=False)
+    try:
+        assert InstanceService._collect_instance_pids(9999999) == {}
+
+        collected = InstanceService._collect_instance_pids(launcher.pid)
+        assert launcher.pid in collected
+        assert setsid_child in collected
+        assert unrelated.pid not in collected
+        assert os.getpid() not in collected
+        assert os.getppid() not in collected
+    finally:
+        try:
+            os.kill(setsid_child, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        for proc in (launcher, unrelated):
+            proc.kill()
+            proc.wait(timeout=5)
+
+
+def test_unsafe_pgids_are_refused_in_native_and_flatpak_paths():
+    """Unsafe PGIDs (<= 1 or own process group) must never signal any process."""
+    service = InstanceService.__new__(InstanceService)
+    own_pgid = os.getpgrp()
+
+    for unsafe_pgid in (-5, 0, 1, own_pgid):
+        assert InstanceService._collect_instance_pids(unsafe_pgid) == {}
+        with (
+            patch("src.services.instance.os.killpg") as mock_killpg,
+            patch("src.services.instance.os.kill") as mock_kill,
+        ):
+            service._terminate_native_instance(0, Mock(), unsafe_pgid, {}, [])
+            mock_killpg.assert_not_called()
+            mock_kill.assert_not_called()
+
+    for unsafe_pgid in (-5, 0, 1):
+        with patch("src.services.instance.Utils.flatpak_spawn_host") as mock_spawn:
+            service._terminate_flatpak_instance(0, Mock(), unsafe_pgid)
+            mock_spawn.assert_not_called()
+
+    unrelated = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    try:
+        for unsafe_pgid in (0, 1):
+            script = InstanceService._build_flatpak_termination_script(unsafe_pgid, timeout=0.3)
+            result = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=5)
+            assert result.returncode == 0
+            assert unrelated.poll() is None
+    finally:
+        unrelated.kill()
+        unrelated.wait(timeout=5)
+
+
+def test_flatpak_termination_script_never_matches_or_signals_unrelated_processes():
+    """The Flatpak host script must return 0 PIDs for unknown PGIDs and never touch host processes."""
+    unrelated = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    try:
+        script = InstanceService._build_flatpak_termination_script(9999999, timeout=0.3)
+        # Verify the collector alone emits zero PIDs for a non-existent PGID
+        # (guards against AWK associative-array auto-vivification bugs).
+        probe = script.split("items=$(collect '');", 1)[0] + 'collect ""'
+        probe_result = subprocess.run(["bash", "-c", probe], capture_output=True, text=True, timeout=5)
+        assert probe_result.returncode == 0
+        assert probe_result.stdout.strip() == ""
+
+        # Execute the full termination script and confirm the unrelated process survives.
+        result = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=5)
+        assert result.returncode == 0
+        assert unrelated.poll() is None
+    finally:
+        unrelated.kill()
+        unrelated.wait(timeout=5)
+
+
+@pytest.mark.skipif(shutil.which("setsid") is None, reason="setsid is required")
+def test_flatpak_termination_script_stops_setsid_descendants_without_touching_others():
+    """The Flatpak host script must stop setsid descendants via SIGTERM without touching siblings."""
+    unrelated = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    launcher, setsid_child = _spawn_setsid_instance(ignore_term=False)
+    try:
+        assert os.getpgid(setsid_child) != launcher.pid
+        script = InstanceService._build_flatpak_termination_script(launcher.pid, timeout=1.0)
+        result = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=10)
+        assert result.returncode == 0
+
+        launcher.wait(timeout=5)
+        assert not _is_pid_alive(setsid_child)
+        assert unrelated.poll() is None
+    finally:
+        try:
+            os.kill(setsid_child, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        for proc in (launcher, unrelated):
+            proc.kill()
+            proc.wait(timeout=5)
+
+
+@pytest.mark.skipif(shutil.which("setsid") is None, reason="setsid is required")
+def test_flatpak_termination_script_escalates_to_sigkill_for_stubborn_setsid_descendants():
+    """The Flatpak host script must SIGKILL stubborn setsid descendants without touching siblings."""
+    unrelated = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    launcher, setsid_child = _spawn_setsid_instance(ignore_term=True)
+    try:
+        assert os.getpgid(setsid_child) != launcher.pid
+        script = InstanceService._build_flatpak_termination_script(launcher.pid, timeout=0.4)
+        result = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=10)
+        assert result.returncode == 0
+
+        launcher.wait(timeout=5)
+        assert not _is_pid_alive(setsid_child)
+        assert unrelated.poll() is None
+    finally:
+        try:
+            os.kill(setsid_child, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        for proc in (launcher, unrelated):
+            proc.kill()
+            proc.wait(timeout=5)
 
 
 @pytest.mark.skipif(

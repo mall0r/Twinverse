@@ -8,6 +8,7 @@ import shlex
 import shutil
 import signal
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -44,6 +45,8 @@ def _instance_log_limit() -> int:
 
 class InstanceService:
     """Tracks the process, PGID and Popen of every managed instance."""
+
+    _GRACEFUL_TERMINATION_TIMEOUT = 10.0
 
     def __init__(self, kde_manager: Optional[KdeManager] = None):
         """Initialize the instance service."""
@@ -143,6 +146,38 @@ class InstanceService:
         instance_log = self.instance_logs.pop(instance_num, None)
         if instance_log is not None:
             instance_log.finish(exit_code=exit_code)
+            logger.info(
+                "Instance %s log finished (exit_code=%s): %s",
+                instance_num + 1,
+                exit_code,
+                instance_log.path or "unavailable",
+            )
+
+    def _cleanup_shared_resources(self) -> None:
+        """Release shared session resources once no managed instances remain."""
+        if getattr(self, "_virtual_joystick_path", None):
+            self.virtual_device.destroy_virtual_joystick()
+            self._virtual_joystick_path = None
+        self._virtual_joystick_checked = False
+
+        kde_manager = getattr(self, "kde_manager", None)
+        if kde_manager:
+            kde_manager.stop_kwin_script()
+            kde_manager.restore_panel_states()
+            logger.info("KDE-specific cleanup complete.")
+
+    def cleanup_stopped_instance(self, instance_num: int, exit_code: Optional[int] = None) -> None:
+        """Clean up tracking and shared resources for an instance that exited on its own."""
+        with log_context(instance=instance_num + 1):
+            process = self.processes.pop(instance_num, None)
+            self.pids.pop(instance_num, None)
+            self.pgids.pop(instance_num, None)
+            if exit_code is None and process is not None:
+                exit_code = process.poll()
+            self.finish_instance_log(instance_num, exit_code=exit_code)
+            self._forget_instance(instance_num)
+            if not self.processes and not getattr(self, "termination_in_progress", False):
+                self._cleanup_shared_resources()
 
     def is_client_up(self, instance_num: int) -> bool:
         """
@@ -241,7 +276,7 @@ class InstanceService:
 
         home_path = Config.get_steam_home_path(instance_num)
         home_path.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Instance {instance_num}: Using isolated home path '{home_path}'")
+        logger.info("Instance %s: Using isolated home path '%s'", instance_num + 1, home_path)
 
         self._prepare_home(home_path)
         if application_command is None:
@@ -250,7 +285,7 @@ class InstanceService:
             # land before the client starts reading it.
             self.steam_input.disable_once(instance_num, home_path)
 
-        device_info = self._validate_input_devices(profile, instance_num, instance_num)
+        device_info = self._validate_input_devices(profile, instance_num, instance_num + 1)
         instance_env = self._prepare_environment(profile, device_info, instance_num)
 
         from .cmd_builder import CommandBuilder
@@ -383,7 +418,8 @@ class InstanceService:
             leader = f"exec {bash_path} -c {shlex.quote(inner_script)}"
         shell_command = f"{env_prefix}{leader}"
 
-        logger.info("Launching instance %s on the host via shell: %s", instance_num + 1, shell_command)
+        logger.info("Instance %s full command: %s", instance_num + 1, escaped_command)
+        logger.debug("Instance %s host shell command: %s", instance_num + 1, shell_command)
 
         flatpak_env = os.environ.copy()
         flatpak_env.pop("PYTHONHOME", None)
@@ -407,8 +443,6 @@ class InstanceService:
         except Exception as error:
             logger.exception("Unexpected error when spawning the host process")
             raise TwinverseError(f"Unexpected error when launching instance {instance_num}: {error}") from error
-
-        import time
 
         time.sleep(0.1)
 
@@ -533,8 +567,6 @@ class InstanceService:
             except OSError:
                 pass
 
-        import time
-
         time.sleep(0.1)
 
         if process.poll() is not None:
@@ -633,11 +665,104 @@ class InstanceService:
                 max_bytes=_instance_log_limit(),
             )
             logger.info("Opening a terminal for instance %s: %s", instance_num + 1, shlex.join(command))
-            self.instance_logs[instance_num] = instance_log
             if Utils.is_flatpak():
                 self._launch_in_flatpak(instance_num, command, instance_env, log=instance_log)
             else:
                 self._launch_natively(instance_num, command, instance_env, log=instance_log)
+
+    @staticmethod
+    def _read_proc_info(pid_str: str) -> Optional[tuple[int, int, int, str, int]]:
+        """Return ``(pid, ppid, pgrp, state, starttime)`` from ``/proc/<pid>/stat``, or None."""
+        try:
+            stat = Path(f"/proc/{pid_str}/stat").read_text()
+        except OSError:
+            return None
+        open_paren = stat.find("(")
+        close_paren = stat.rfind(")")
+        if open_paren == -1 or close_paren <= open_paren:
+            return None
+        fields = stat[close_paren + 1 :].split()
+        if len(fields) < 20:
+            return None
+        try:
+            return int(pid_str), int(fields[1]), int(fields[2]), fields[0], int(fields[19])
+        except ValueError:
+            return None
+
+    @classmethod
+    def _collect_instance_pids(cls, pgid: int, seed_pids: Optional[dict[int, int]] = None) -> dict[int, int]:
+        """Return ``{pid: starttime}`` strictly for live descendants of ``pgid``.
+
+        Inside SteamRT3, pressure-vessel (``pv-adverb``, ``srt-bwrap``) and
+        ``steamwebhelper`` call ``setsid()``, moving into new process groups
+        outside ``pgid``. Walking only the parent-child tree rooted at ``pgid``
+        (and carrying verified ``(pid, starttime)`` seeds across shutdown ticks)
+        stops every sub-session child without ever touching other instances or
+        any host session process.
+        """
+        self_pid = os.getpid()
+        self_ppid = os.getppid()
+        self_pgid = os.getpgrp()
+        if pgid <= 1 or pgid == self_pgid:
+            return {}
+
+        try:
+            entries = list(Path("/proc").iterdir())
+        except OSError:
+            return {}
+
+        procs: dict[int, tuple[int, int, str, int]] = {}
+        children: dict[int, list[int]] = {}
+        queue: list[int] = []
+        visited: set[int] = set()
+
+        for entry in entries:
+            if not entry.name.isdigit():
+                continue
+            parsed = cls._read_proc_info(entry.name)
+            if parsed is None:
+                continue
+            pid, ppid, pgrp, state, starttime = parsed
+            if pid <= 1 or pid == self_pid or pid == self_ppid or pgrp == self_pgid:
+                continue
+            procs[pid] = (ppid, pgrp, state, starttime)
+            children.setdefault(ppid, []).append(pid)
+            is_group_member = pgrp == pgid
+            is_seed_member = seed_pids is not None and seed_pids.get(pid) == starttime
+            if (is_group_member or is_seed_member) and pid not in visited:
+                visited.add(pid)
+                queue.append(pid)
+
+        while queue:
+            current = queue.pop()
+            for child in children.get(current, ()):
+                if child not in visited:
+                    visited.add(child)
+                    queue.append(child)
+
+        return {pid: procs[pid][3] for pid in visited if pid in procs and procs[pid][2] != "Z"}
+
+    @classmethod
+    def _signal_pids(cls, pids: dict[int, int], sig: int, exclude_pgid: Optional[int] = None) -> None:
+        """Send a signal to tracked PIDs whose start times still match."""
+        self_pid = os.getpid()
+        self_ppid = os.getppid()
+        self_pgid = os.getpgrp()
+        for pid, expected_starttime in pids.items():
+            if pid <= 1 or pid == self_pid or pid == self_ppid:
+                continue
+            parsed = cls._read_proc_info(str(pid))
+            if parsed is None:
+                continue
+            _, _, pgrp, state, starttime = parsed
+            if state == "Z" or starttime != expected_starttime or pgrp == self_pgid:
+                continue
+            if exclude_pgid is not None and pgrp == exclude_pgid:
+                continue
+            try:
+                os.kill(pid, sig)
+            except (ProcessLookupError, PermissionError):
+                pass
 
     @staticmethod
     def _collect_wine_devices(pgid: int) -> list[int]:
@@ -695,94 +820,222 @@ class InstanceService:
             try:
                 os.kill(pid, signal.SIGKILL)
             except (ProcessLookupError, PermissionError) as e:
-                logger.warning(f"Instance {instance_num}: Could not stop the Wine helper {pid}: {e}")
+                logger.warning("Instance %s: Could not stop the Wine helper %s: %s", instance_num + 1, pid, e)
         if pids:
-            logger.info(f"Instance {instance_num}: stopped {len(pids)} Wine helper(s) of this instance.")
+            logger.info("Instance %s: stopped %s Wine helper(s) of this instance.", instance_num + 1, len(pids))
 
-    def terminate_instance(self, instance_num: int) -> None:
-        """Terminates a single Steam instance gracefully."""
-        if instance_num not in self.processes:
-            logger.warning(f"Attempted to terminate non-existent instance {instance_num}")
+    def _terminate_native_instance(
+        self,
+        instance_num: int,
+        process: ProcessHandle,
+        pgid: int,
+        tracked: dict[int, int],
+        wine_devices: list[int],
+    ) -> None:
+        """Terminate a native instance's process group and all sub-session descendants."""
+        display_num = instance_num + 1
+        if pgid <= 1 or pgid == os.getpgrp():
+            logger.warning("Refusing to signal unsafe PGID %s for instance %s.", pgid, display_num)
             return
 
-        process = self.processes[instance_num]
-        logger.info(f"Terminating instance {process.pid}...")
+        logger.info("Sending SIGTERM to process group %s for instance %s", pgid, display_num)
+        # Signal sub-session descendants (such as SteamRT3's pv-adverb / steam /
+        # steamwebhelper) first so they begin graceful shutdown even if bwrap
+        # exits immediately on SIGTERM.
+        self._signal_pids(tracked, signal.SIGTERM, exclude_pgid=pgid)
+        try:
+            os.killpg(pgid, signal.SIGTERM)
+        except ProcessLookupError:
+            logger.warning("Process group %s not found for instance %s.", pgid, display_num)
 
-        if process.poll() is None:
-            # Get the appropriate process/group ID for termination.
-            # For Flatpak, this is the host PGID we captured.
-            # For native, it's the PGID we created.
-            pgid = self.pgids.get(instance_num)
-            if pgid:
-                # The Wine helpers are collected while the process tree is
-                # still intact, so only the ones of this instance are found.
-                wine_devices = self._collect_wine_devices(pgid)
-                if Utils.is_flatpak():
-                    logger.info(f"Sending SIGTERM to host process group {pgid} for instance {instance_num}")
-                    Utils.flatpak_spawn_host(["sh", "-c", f"kill -15 -{pgid}"])
-                else:
-                    try:
-                        logger.info(f"Sending SIGTERM to process group {pgid} for instance {instance_num}")
-                        os.killpg(pgid, signal.SIGTERM)
-                    except ProcessLookupError:
-                        logger.warning(f"Process group {pgid} not found for instance {instance_num}.")
+        timeout = getattr(self, "_GRACEFUL_TERMINATION_TIMEOUT", 10.0)
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            exited = process.poll() is not None
+            tracked = self._collect_instance_pids(pgid, seed_pids=tracked)
+            if exited and not tracked:
+                logger.info("Instance %s terminated gracefully.", display_num)
+                return
+            time.sleep(0.1)
 
-                try:
-                    process.wait(timeout=10)
-                    logger.info(f"Instance {instance_num} terminated gracefully.")
-                except subprocess.TimeoutExpired:
-                    logger.warning(f"Instance {instance_num} did not terminate after 10s. Sending SIGKILL.")
-                    if Utils.is_flatpak():
-                        try:
-                            Utils.flatpak_spawn_host(["sh", "-c", f"kill -9 -{pgid}"])
-                        except Exception as e:
-                            logger.warning(f"Failed to send SIGKILL to host PGID {pgid}: {e}")
+        logger.warning("Instance %s did not terminate after %gs. Sending SIGKILL.", display_num, timeout)
+        tracked = self._collect_instance_pids(pgid, seed_pids=tracked)
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+        except ProcessLookupError:
+            logger.warning("Process group %s not found when sending SIGKILL for instance %s.", pgid, display_num)
+        except PermissionError as e:
+            logger.error("Permission denied when sending SIGKILL to process group %s: %s", pgid, e)
+            raise TwinverseError(f"Permission denied when terminating instance {display_num}: {e}")
 
-                        logger.info(f"Instance {instance_num} terminated with SIGKILL.")
-                    else:
-                        try:
-                            os.killpg(pgid, signal.SIGKILL)
-                        except ProcessLookupError:
-                            logger.warning(
-                                f"Process group {pgid} not found when sending SIGKILL for instance {instance_num}."
-                            )
-                        except PermissionError as e:
-                            logger.error(f"Permission denied when sending SIGKILL to process group {pgid}: {e}")
-                            raise TwinverseError(f"Permission denied when terminating instance {instance_num}: {e}")
+        self._signal_pids(tracked, signal.SIGKILL)
+        # This is necessary as a temporary measure for the problem described in:
+        # https://github.com/ValveSoftware/gamescope/issues/1482
+        self._kill_wine_devices(instance_num, wine_devices)
 
-                        logger.info(f"Instance {instance_num} terminated with SIGKILL.")
+        kill_deadline = time.monotonic() + 2.0
+        while time.monotonic() < kill_deadline:
+            exited = process.poll() is not None
+            tracked = self._collect_instance_pids(pgid, seed_pids=tracked)
+            if tracked:
+                self._signal_pids(tracked, signal.SIGKILL)
+            if exited and not tracked:
+                break
+            time.sleep(0.05)
 
-                    # This is necessary as a temporary measure for the problem described in:
-                    # https://github.com/ValveSoftware/gamescope/issues/1482
-                    self._kill_wine_devices(instance_num, wine_devices)
-            else:
-                logger.warning(f"No PGID found for instance {instance_num}, cannot send termination signal.")
+        logger.info("Instance %s terminated with SIGKILL.", display_num)
 
-        if process.poll() is None:
+    @staticmethod
+    def _build_flatpak_termination_script(pgid: int, timeout: float) -> str:
+        """Build a host shell script that stops only ``pgid`` and its strict descendants.
+
+        The AWK collector performs a read-only upward parent walk (`cur in root`)
+        so it can never auto-vivify unrelated array entries or match any host
+        process outside the instance's process tree.
+        """
+        target_pgid = int(pgid)
+        timeout_ticks = max(1, int(timeout * 10))
+        awk_program = shlex.quote(
+            "BEGIN { "
+            "target_g = g + 0; sp = self_pid + 0; spp = self_ppid + 0; spg = self_pgid + 0; "
+            "if (target_g <= 1 || (spg > 1 && target_g == spg)) exit 0; "
+            'n = split(seeds, arr, " "); '
+            "for (i = 1; i <= n; i++) { "
+            'idx = index(arr[i], ":"); '
+            "if (idx > 1) { "
+            "spid = substr(arr[i], 1, idx - 1) + 0; "
+            "scomm = substr(arr[i], idx + 1); "
+            'if (spid > 1 && scomm != "") seed_comm[spid] = scomm; '
+            "} } } "
+            "{ "
+            "pid = $1 + 0; ppid = $2 + 0; pgrp = $3 + 0; st = $4; comm = $5; "
+            "if (pid <= 1 || pid == sp || pid == spp) next; "
+            "if (spg > 1 && pgrp == spg) next; "
+            "p[pid] = ppid; c[pid] = comm; "
+            'z[pid] = (substr(st, 1, 1) == "Z"); '
+            "all[pid] = 1; "
+            "if (pgrp == target_g) root[pid] = 1; "
+            "if ((pid in seed_comm) && seed_comm[pid] == comm) root[pid] = 1; "
+            "} "
+            "END { "
+            "for (k in all) { "
+            "if (z[k]) continue; "
+            "cur = k; steps = 0; "
+            "while (cur > 1 && ++steps < 64) { "
+            "if ((cur in root) && root[cur] == 1) { "
+            'print k ":" c[k]; break; '
+            "} "
+            "if (!(cur in p)) break; "
+            "cur = p[cur]; "
+            "} } }"
+        )
+        return (
+            "set -f; "
+            f"g={target_pgid}; "
+            '[ "$g" -gt 1 ] || exit 0; '
+            "self_pid=$$; self_ppid=$PPID; "
+            "self_pgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' '); "
+            '[ "$g" != "$self_pgid" ] || exit 0; '
+            "collect() { "
+            "ps -eo pid=,ppid=,pgid=,stat=,comm= 2>/dev/null | "
+            'awk -v g="$g" -v self_pid="$self_pid" -v self_ppid="$self_ppid" '
+            f'-v self_pgid="$self_pgid" -v seeds="$1" {awk_program}; '
+            "}; "
+            "signal_items() { "
+            "local sig=$1 item p; shift; "
+            "for item in $1; do "
+            "p=${item%%:*}; "
+            "case \"$p\" in ''|*[!0-9]*) continue ;; esac; "
+            '[ "$p" -gt 1 ] || continue; '
+            '[ "$p" != "$self_pid" ] && [ "$p" != "$self_ppid" ] || continue; '
+            'kill -"$sig" "$p" 2>/dev/null || true; '
+            "done; "
+            "}; "
+            "items=$(collect ''); "
+            'signal_items TERM "$items"; '
+            'kill -TERM -"$g" 2>/dev/null || true; '
+            f"for ((i = 0; i < {timeout_ticks}; i++)); do "
+            'items=$(collect "$items"); '
+            'if ! kill -0 -"$g" 2>/dev/null && [ -z "$items" ]; then exit 0; fi; '
+            "sleep 0.1; "
+            "done; "
+            'items=$(collect "$items"); '
+            'kill -KILL -"$g" 2>/dev/null || true; '
+            'signal_items KILL "$items"'
+        )
+
+    def _terminate_flatpak_instance(self, instance_num: int, process: ProcessHandle, pgid: int) -> None:
+        """Terminate a Flatpak host instance's process group and all sub-session descendants."""
+        display_num = instance_num + 1
+        if pgid <= 1:
+            logger.warning("Refusing to signal unsafe host PGID %s for instance %s.", pgid, display_num)
+            return
+
+        logger.info("Sending SIGTERM to host process group %s for instance %s", pgid, display_num)
+        timeout = getattr(self, "_GRACEFUL_TERMINATION_TIMEOUT", 10.0)
+        script = self._build_flatpak_termination_script(pgid, timeout)
+        try:
+            Utils.flatpak_spawn_host(["bash", "-c", script])
+        except Exception as e:
+            logger.warning("Failed to terminate host process tree for PGID %s: %s", pgid, e)
+
+        try:
+            process.wait(timeout=10)
+            logger.info("Instance %s terminated gracefully.", display_num)
+        except subprocess.TimeoutExpired:
+            logger.warning("Instance %s did not terminate after 10s. Sending SIGKILL.", display_num)
             try:
-                process.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                logger.warning(f"Instance {instance_num} is still running after the termination request.")
-                process.kill()
-                process.wait()
+                Utils.flatpak_spawn_host(["sh", "-c", f"kill -9 -{int(pgid)}"])
+            except Exception as e:
+                logger.warning("Failed to send SIGKILL to host PGID %s: %s", pgid, e)
+            logger.info("Instance %s terminated with SIGKILL.", display_num)
 
-        if instance_num in self.processes:
-            del self.processes[instance_num]
-        if instance_num in self.pids:
-            del self.pids[instance_num]
-        if instance_num in self.pgids:
-            del self.pgids[instance_num]
+    def terminate_instance(self, instance_num: int) -> None:
+        """Terminate a single Steam instance and all of its sub-session processes."""
+        display_num = instance_num + 1
+        with log_context(instance=display_num):
+            if instance_num not in self.processes:
+                logger.warning("Attempted to terminate non-existent instance %s", display_num)
+                return
 
-        instance_log = self.instance_logs.pop(instance_num, None)
-        if instance_log is not None:
-            exit_code = process.poll()
-            instance_log.finish(exit_code=exit_code)
-            logger.info(
-                "Instance %s log finished: %s",
-                instance_num + 1,
-                instance_log.path or "unavailable",
-            )
-        self._forget_instance(instance_num)
+            process = self.processes[instance_num]
+            logger.info("Terminating instance %s (PID %s)...", display_num, process.pid)
+
+            pgid = self.pgids.get(instance_num)
+            if Utils.is_flatpak():
+                if process.poll() is None:
+                    if pgid:
+                        self._terminate_flatpak_instance(instance_num, process, pgid)
+                    else:
+                        logger.warning("No PGID found for instance %s, cannot send termination signal.", display_num)
+            else:
+                # Collect the entire process tree while it is still intact so
+                # sub-session processes (like SteamRT3's pv-adverb / steam /
+                # steamwebhelper) remain tracked even after bwrap exits.
+                tracked = self._collect_instance_pids(pgid) if pgid else {}
+                if process.poll() is None or tracked:
+                    if pgid:
+                        wine_devices = self._collect_wine_devices(pgid)
+                        self._terminate_native_instance(instance_num, process, pgid, tracked, wine_devices)
+                    else:
+                        logger.warning("No PGID found for instance %s, cannot send termination signal.", display_num)
+
+            if process.poll() is None:
+                try:
+                    process.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    logger.warning("Instance %s is still running after the termination request.", display_num)
+                    process.kill()
+                    process.wait()
+
+            self.processes.pop(instance_num, None)
+            self.pids.pop(instance_num, None)
+            self.pgids.pop(instance_num, None)
+
+            self.finish_instance_log(instance_num, exit_code=process.poll())
+            self._forget_instance(instance_num)
+            if not self.processes and not getattr(self, "termination_in_progress", False):
+                self._cleanup_shared_resources()
 
     def _prepare_home(self, home_path: Path) -> None:
         """
@@ -847,12 +1100,14 @@ class InstanceService:
         if device_info.get("audio_device_id_for_instance"):
             env["PULSE_SINK"] = device_info["audio_device_id_for_instance"]
             logger.info(
-                f"Instance {instance_num}: Setting PULSE_SINK to '{device_info['audio_device_id_for_instance']}'."
+                "Instance %s: Setting PULSE_SINK to '%s'.",
+                instance_num + 1,
+                device_info["audio_device_id_for_instance"],
             )
 
         # Custom ENV variables from the profile are set via bwrap --setenv, so we don't handle them here.
 
-        logger.info(f"Instance {instance_num}: Environment variables prepared.")
+        logger.info("Instance %s: Environment variables prepared.", instance_num + 1)
         return env
 
     def _validate_input_devices(self, profile: Profile, instance_num: int, instance_num_display: int) -> dict:
@@ -895,24 +1150,14 @@ class InstanceService:
             self.termination_in_progress = True
             logger.info("Starting termination of all instances...")
 
-            if self._virtual_joystick_path:
-                self.virtual_device.destroy_virtual_joystick()
-                self._virtual_joystick_path = None
-                logger.info("Virtual joystick destroyed.")
-            self._virtual_joystick_checked = False
-
-            if self.kde_manager:
-                self.kde_manager.stop_kwin_script()
-                self.kde_manager.restore_panel_states()
-                logger.info("KDE-specific cleanup complete.")
+            self._cleanup_shared_resources()
 
             # A failure with one instance must not leave the others running.
             for instance_num in list(self.processes.keys()):
                 try:
                     self.terminate_instance(instance_num)
-                except Exception as e:
-                    logger.error(f"Could not terminate instance {instance_num}: {e}")
-                    logger.exception("Exception details:")
+                except Exception:
+                    logger.exception("Could not terminate instance %s", instance_num + 1)
 
             logger.info("Instance termination complete.")
             # The instances remove themselves from the tracking, so an entry
