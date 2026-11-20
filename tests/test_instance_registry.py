@@ -217,3 +217,21 @@ def test_the_host_command_line_is_read_through_the_flatpak_helper(monkeypatch):
 
     assert "/logs/one.log" in cmdline
     assert belongs_to_instance(record, cmdline) is True
+
+
+def test_a_truncated_client_log_is_read_from_the_beginning(tmp_path, monkeypatch):
+    """When Steam rotates console-linux.txt, polling must not get stuck past EOF."""
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    service = InstanceService.__new__(InstanceService)
+    service._client_log_offsets = {}
+
+    probe = SteamClientProbe(0)
+    log = probe.client_log_path
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("x" * 200 + "\n")
+    service.client_status(0)
+
+    log.write_text("[2026-11-19] Extracting package...\n")
+    update = service.client_status(0)
+    assert update.progress == "Extracting package..."

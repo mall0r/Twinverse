@@ -126,6 +126,12 @@ class InstanceService:
     def _forget_instance(self, instance_num: int) -> None:
         """Forget an instance that is not running anymore."""
         SteamClientProbe(instance_num).clear_status()
+        offsets = getattr(self, "_client_log_offsets", None)
+        if offsets is not None:
+            offsets.pop(instance_num, None)
+        percents = getattr(self, "_client_log_percents", None)
+        if percents is not None:
+            percents.pop(instance_num, None)
         registry = getattr(self, "_registry", None)
         if registry is None:
             return
@@ -172,9 +178,13 @@ class InstanceService:
             self._client_log_percents = percents
 
         probe = SteamClientProbe(instance_num)
+        current_size = probe.client_log_size()
         since = offsets.get(instance_num)
         if since is None:
-            since = probe.client_log_size()
+            since = current_size
+        elif current_size < since:
+            # Steam rotated or truncated its log; read from the start of the new file.
+            since = 0
         update = probe.read_updates(since)
         offsets[instance_num] = probe.client_log_size()
 
@@ -273,6 +283,16 @@ class InstanceService:
             logger.info("Launching instance %s (log: %s)", instance_num + 1, instance_log.path or "disabled")
             logger.debug("Environment keys: %s", ", ".join(sorted(instance_env)))
             self.instance_logs[instance_num] = instance_log
+            probe = SteamClientProbe(instance_num)
+            probe.clear_status()
+            offsets = getattr(self, "_client_log_offsets", None)
+            if offsets is None:
+                offsets = {}
+                self._client_log_offsets = offsets
+            offsets[instance_num] = probe.client_log_size()
+            percents = getattr(self, "_client_log_percents", None)
+            if percents is not None:
+                percents.pop(instance_num, None)
 
             try:
                 if Utils.is_flatpak():
