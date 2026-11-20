@@ -28,9 +28,9 @@ class _MonitorLayout(Gtk.LayoutManager):
 
     def do_measure(self, widget, orientation, for_size):
         if orientation == Gtk.Orientation.HORIZONTAL:
-            return 80, 320, -1, -1
+            return 40, 320, -1, -1
         natural = ceil(max(1, for_size if for_size >= 0 else 320) / widget.get_ratio())
-        return min(80, natural), natural, -1, -1
+        return min(40, natural), natural, -1, -1
 
     def do_allocate(self, widget, width, height, baseline):
         child = widget.get_child()
@@ -59,6 +59,111 @@ class _MonitorFrame(Gtk.AspectFrame):
         self.set_layout_manager(_MonitorLayout())
 
 
+class _MonitorCardLayout(Gtk.LayoutManager):
+    """Keep monitor title, tiling picker and screen coupled at every window aspect ratio."""
+
+    def __init__(self, spacing: int = 10):
+        super().__init__()
+        self._spacing = spacing
+
+    @staticmethod
+    def _visible_children(widget):
+        children = []
+        child = widget.get_first_child()
+        while child is not None:
+            if child.should_layout():
+                children.append(child)
+            child = child.get_next_sibling()
+        return children
+
+    def do_get_request_mode(self, widget):
+        return Gtk.SizeRequestMode.HEIGHT_FOR_WIDTH
+
+    def do_measure(self, widget, orientation, for_size):
+        children = self._visible_children(widget)
+        if not children:
+            return 0, 0, -1, -1
+        if orientation == Gtk.Orientation.HORIZONTAL:
+            min_w = 0
+            nat_w = 0
+            for child in children:
+                c_min, c_nat = child.measure(Gtk.Orientation.HORIZONTAL, -1)[:2]
+                min_w = max(min_w, c_min)
+                nat_w = max(nat_w, c_nat)
+            return min_w, nat_w, -1, -1
+        gaps = self._spacing * max(0, len(children) - 1)
+        min_h = gaps
+        nat_h = gaps
+        for child in children:
+            c_min, c_nat = child.measure(Gtk.Orientation.VERTICAL, for_size)[:2]
+            min_h += c_min
+            nat_h += c_nat
+        return min_h, nat_h, -1, -1
+
+    def do_allocate(self, widget, width, height, baseline):
+        children = self._visible_children(widget)
+        if not children or width <= 0 or height <= 0:
+            return
+        frame = children[-1] if isinstance(children[-1], _MonitorFrame) else None
+        top_children = children[:-1] if frame is not None else children
+        gaps = self._spacing * max(0, len(children) - 1)
+
+        if frame is None:
+            y = 0
+            for child in top_children:
+                child_h = max(1, child.measure(Gtk.Orientation.VERTICAL, width)[0])
+                child.allocate(width, child_h, -1, Gsk.Transform.new().translate(Graphene.Point().init(0, y)))
+                y += child_h + self._spacing
+            return
+
+        ratio = frame.get_ratio()
+        top_min_w = max((child.measure(Gtk.Orientation.HORIZONTAL, -1)[0] for child in top_children), default=0)
+        picker_nat_w = 0
+        if top_children:
+            last_header_child = top_children[0].get_last_child()
+            if isinstance(last_header_child, TilingPicker):
+                picker_nat_w = last_header_child.measure(Gtk.Orientation.HORIZONTAL, -1)[1]
+        preferred_min_header_w = min(width, max(top_min_w, picker_nat_w))
+
+        content_w = width
+        frame_w = float(width)
+        frame_h = float(height)
+        top_heights: list[int] = []
+        for _ in range(3):
+            top_heights = [max(1, child.measure(Gtk.Orientation.VERTICAL, content_w)[0]) for child in top_children]
+            avail_h = max(1, height - sum(top_heights) - gaps)
+            frame_w = min(float(width), avail_h * ratio)
+            frame_h = frame_w / ratio
+            next_w = min(width, max(ceil(frame_w), preferred_min_header_w))
+            if next_w == content_w:
+                break
+            content_w = next_w
+
+        avail_h = max(1, height - sum(top_heights) - gaps)
+        frame_w_int = max(1, min(width, round(frame_w)))
+        frame_h_int = max(1, min(avail_h, round(frame_h)))
+
+        content_x = (width - content_w) / 2
+        frame_x = (width - frame_w_int) / 2
+
+        y = 0
+        for child, child_h in zip(top_children, top_heights):
+            child.allocate(
+                content_w,
+                child_h,
+                -1,
+                Gsk.Transform.new().translate(Graphene.Point().init(content_x, y)),
+            )
+            y += child_h + self._spacing
+
+        frame.allocate(
+            frame_w_int,
+            frame_h_int,
+            -1,
+            Gsk.Transform.new().translate(Graphene.Point().init(frame_x, y)),
+        )
+
+
 class _PlayerDragPayload(GObject.Object):
     """An in-process player identity that cannot be confused with external drag data."""
 
@@ -75,6 +180,7 @@ class _PlayerSlot:
     number: Gtk.Label
     name: Gtk.Label
     status: Gtk.Label
+    controller_icon: Gtk.Image
     instance: int | None
     location: str
 
@@ -99,6 +205,7 @@ class LayoutPreview(Gtk.Box):
         self.instances: list[int | None] = []
         self.monitor_slot_ranges: dict[str, tuple[int, int]] = {}
         self.tiling_pickers: dict[str, TilingPicker] = {}
+        self._monitor_badges: dict[str, Gtk.Label] = {}
         self.slot_labels: list[str] = []
         self.monitor_grids: list[Gtk.Grid] = []
         self.monitor_names: list[str] = []
@@ -107,6 +214,7 @@ class LayoutPreview(Gtk.Box):
         self._slots: list[_PlayerSlot] = []
         self._active_player: int | None = None
         self._player_statuses: dict[int, str] = {}
+        self._player_controllers: dict[int, bool] = {}
         self._updating = False
         self._allow_reposition = False
         self._using_tiling = False
@@ -126,6 +234,14 @@ class LayoutPreview(Gtk.Box):
     def _monitor_display_name(monitor: dict) -> str:
         """Return only the display connector name without a numeric monitor prefix."""
         return monitor.get("name") or "Unknown connector"
+
+    @staticmethod
+    def _make_monitor_card() -> Gtk.Box:
+        """Build a monitor card whose header stays anchored tightly to the screen."""
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, hexpand=True, vexpand=True)
+        box.set_layout_manager(_MonitorCardLayout(spacing=10))
+        box.add_css_class("canvas-monitor")
+        return box
 
     def do_snapshot(self, snapshot):
         """Draw floating cards above all monitor grids, in canvas coordinates."""
@@ -162,6 +278,7 @@ class LayoutPreview(Gtk.Box):
             self._slots = []
             self.monitor_slot_ranges = {}
             self.tiling_pickers = {}
+            self._monitor_badges = {}
             if not self.instances:
                 label = Gtk.Label(
                     label="Your session canvas is empty.\nSelect at least one instance from the roster to begin.",
@@ -193,8 +310,7 @@ class LayoutPreview(Gtk.Box):
                 name = self._monitor_display_name(monitor)
                 self.monitor_names.append(name)
 
-                box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, hexpand=True, vexpand=True)
-                box.add_css_class("canvas-monitor")
+                box = self._make_monitor_card()
                 header = self._make_monitor_header(name, width, height, len(group), mode, orientation)
                 box.append(header)
                 key = monitor_key(monitor, monitor_index)
@@ -224,7 +340,7 @@ class LayoutPreview(Gtk.Box):
                     slot = start + local_slot
                     geometry = LayoutCalculator.calculate_position(width, height, len(group), local_slot, orientation)
                     self.slot_labels.append(f"{name} · Space {slot + 1}")
-                    cell = self._make_slot(slot, instance, name, geometry)
+                    cell = self._make_slot(slot, instance, name, geometry, compact=heights[local_slot] < 1.0)
                     grid.attach(
                         cell,
                         round(xs[local_slot] * 2),
@@ -282,9 +398,12 @@ class LayoutPreview(Gtk.Box):
         picker.set_selected(template_id)
         picker.set_editable(self._allow_reposition)
         picker.connect("template-selected", self._on_template_selected, key)
-        # Keep the responsive option row inside the heading's details column.
-        header.get_first_child().get_next_sibling().append(picker)
+        # Span the full width of this monitor header before wrapping to additional rows.
+        header.append(picker)
         self.tiling_pickers[key] = picker
+        badge = getattr(header, "_count_badge", None)
+        if badge is not None:
+            self._monitor_badges[key] = badge
 
     def _on_template_selected(self, _picker, template_id, key):
         if not self._updating and self._allow_reposition and self.is_sensitive():
@@ -337,6 +456,7 @@ class LayoutPreview(Gtk.Box):
             self.monitor_cards = []
             self.monitor_slot_ranges = {}
             self.tiling_pickers = {}
+            self._monitor_badges = {}
             self._slots = []
             for monitor in plan.monitors:
                 start = len(self.instances)
@@ -346,12 +466,10 @@ class LayoutPreview(Gtk.Box):
                 height = max(1, int(monitor.display.get("height") or 1080))
                 name = self._monitor_display_name(monitor.display)
                 self.monitor_names.append(name)
-                box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, hexpand=True, vexpand=True)
-                box.add_css_class("canvas-monitor")
+                box = self._make_monitor_card()
                 header = self._make_monitor_header(name, width, height, 0, "fullscreen", "horizontal")
-                details = header.get_first_child().get_next_sibling()
-                details.get_first_child().get_next_sibling().set_label(f"{width} × {height} · {monitor.template.title}")
-                header.get_last_child().set_label(
+                header._metadata_label.set_label(f"{width} × {height} · {monitor.template.title}")
+                header._count_badge.set_label(
                     f"{sum(player is not None for player in monitor.players)} / {monitor.template.capacity} PLAYERS"
                 )
                 self._add_picker(header, monitor.key, monitor.template.id)
@@ -370,7 +488,7 @@ class LayoutPreview(Gtk.Box):
                     slot = start + local
                     self.slot_labels.append(f"{name} · Space {local + 1}")
                     geometry = (int(x * width), int(y * height), int(w * width), int(h * height))
-                    cell = self._make_slot(slot, self.instances[slot], name, geometry)
+                    cell = self._make_slot(slot, self.instances[slot], name, geometry, compact=h < 1.0)
                     grid.attach(cell, round(x * 2), round(y * 2), round(w * 2), round(h * 2))
                 frame = _MonitorFrame(ratio=width / height, obey_child=False, hexpand=True, vexpand=True)
                 frame.add_css_class("canvas-monitor-frame")
@@ -389,12 +507,22 @@ class LayoutPreview(Gtk.Box):
                 primary = plan.monitors[0].display if plan.monitors else {}
                 width = max(1, int(primary.get("width") or 1920))
                 height = max(1, int(primary.get("height") or 1080))
-                for player in plan.unassigned:
+                tray_grid = Gtk.Grid(
+                    column_homogeneous=True,
+                    column_spacing=8,
+                    row_spacing=8,
+                    hexpand=True,
+                )
+                for tray_index, player in enumerate(plan.unassigned):
                     slot = len(self.instances)
                     self.instances.append(player)
                     self.slot_labels.append("Unassigned · Players without a space")
-                    cell = self._make_slot(slot, player, "Unassigned (preview geometry only)", (0, 0, width, height))
-                    tray.append(cell)
+                    cell = self._make_slot(
+                        slot, player, "Unassigned (preview geometry only)", (0, 0, width, height), compact=True
+                    )
+                    cell.set_vexpand(False)
+                    tray_grid.attach(cell, tray_index % 2, tray_index // 2, 1, 1)
+                tray.append(tray_grid)
                 self.append(tray)
         finally:
             self._updating = False
@@ -412,6 +540,12 @@ class LayoutPreview(Gtk.Box):
         selection survive subsequent calls to configure, including temporary removal.
         """
         self._player_statuses = dict(statuses)
+        for slot in range(len(self._slots)):
+            self._refresh_slot(slot)
+
+    def set_player_controllers(self, controllers: dict[int, bool]):
+        """Update per-player controller badges in place, preserving widgets and keyboard focus."""
+        self._player_controllers = {player: bool(assigned) for player, assigned in controllers.items()}
         for slot in range(len(self._slots)):
             self._refresh_slot(slot)
 
@@ -472,10 +606,9 @@ class LayoutPreview(Gtk.Box):
             self.instances[target_slot], self.instances[other_slot] = instance, self.instances[target_slot]
             self.set_active_player(instance)
             for key, (start, end) in self.monitor_slot_ranges.items():
-                picker = self.tiling_pickers[key]
-                badge = picker.get_parent().get_parent().get_last_child()
+                badge = self._monitor_badges.get(key)
                 # Legacy badges retain their original count-only presentation.
-                if " / " in badge.get_label():
+                if badge is not None and " / " in badge.get_label():
                     occupied = sum(player is not None for player in self.instances[start:end])
                     badge.set_label(f"{occupied} / {end - start} PLAYERS")
             self._clear_drop_highlights()
@@ -698,12 +831,15 @@ class LayoutPreview(Gtk.Box):
 
     @staticmethod
     def _make_monitor_header(name, width, height, player_count, mode, orientation):
-        header = Gtk.Box(spacing=12, hexpand=True)
+        header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, hexpand=True)
         header.add_css_class("canvas-monitor-header")
-        icon = Gtk.Image.new_from_icon_name("video-display-symbolic")
+        top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10, hexpand=True)
+        top_row.add_css_class("canvas-monitor-top")
+        icon = Gtk.Image.new_from_icon_name("twinverse-display-symbolic")
+        icon.set_valign(Gtk.Align.CENTER)
         icon.add_css_class("canvas-monitor-icon")
-        header.append(icon)
-        details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3, hexpand=True)
+        top_row.append(icon)
+        details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
         title = Gtk.Label(label=name, xalign=0, wrap=True)
         title.add_css_class("canvas-monitor-title")
         title.add_css_class("heading")
@@ -713,12 +849,15 @@ class LayoutPreview(Gtk.Box):
         metadata.add_css_class("canvas-monitor-meta")
         metadata.add_css_class("dim-label")
         details.append(metadata)
-        header.append(details)
+        top_row.append(details)
         count = Gtk.Label(
             label=f"{player_count} {'PLAYER' if player_count == 1 else 'PLAYERS'}", valign=Gtk.Align.START
         )
         count.add_css_class("canvas-monitor-badge")
-        header.append(count)
+        top_row.append(count)
+        header.append(top_row)
+        header._metadata_label = metadata
+        header._count_badge = count
         return header
 
     @staticmethod
@@ -728,10 +867,12 @@ class LayoutPreview(Gtk.Box):
         warning.add_css_class("warning")
         box.append(warning)
 
-    def _make_slot(self, slot, instance, monitor_name, geometry):
+    def _make_slot(self, slot, instance, monitor_name, geometry, *, compact=False):
         """Keep activation inside a reusable, draggable cell without changing its size request."""
         cell = Gtk.Overlay(hexpand=True, vexpand=True)
         cell.add_css_class("slot-cell")
+        if compact:
+            cell.add_css_class("slot-compact")
         if self._allow_reposition:
             cell.add_css_class("slot-editable")
 
@@ -739,21 +880,25 @@ class LayoutPreview(Gtk.Box):
         button.add_css_class("slot-button")
         button.set_cursor_from_name("grab" if self._allow_reposition else "default")
         button.connect("clicked", self._on_player_activated, slot)
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, hexpand=True, vexpand=True)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2 if compact else 8, hexpand=True, vexpand=True)
         content.add_css_class("slot-content")
         caption = Gtk.Box(spacing=6)
         caption.add_css_class("slot-caption")
         space = Gtk.Label(label=f"SPACE {slot + 1:02d}", xalign=0, hexpand=True)
         space.add_css_class("slot-space")
         caption.append(space)
-        action = Gtk.Image.new_from_icon_name("go-next-symbolic")
-        action.add_css_class("slot-action")
-        caption.append(action)
+        controller_icon = Gtk.Image.new_from_icon_name("gamepad-symbolic")
+        controller_icon.set_pixel_size(12 if compact else 14)
+        controller_icon.set_valign(Gtk.Align.CENTER)
+        controller_icon.set_tooltip_text("Controller assigned")
+        controller_icon.add_css_class("slot-controller-icon")
+        controller_icon.set_visible(False)
+        caption.append(controller_icon)
         content.append(caption)
 
         identity = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
-            spacing=4,
+            spacing=2 if compact else 4,
             hexpand=True,
             vexpand=True,
             valign=Gtk.Align.CENTER,
@@ -761,15 +906,22 @@ class LayoutPreview(Gtk.Box):
         identity.add_css_class("slot-identity")
         number = Gtk.Label()
         number.add_css_class("slot-number")
-        number.add_css_class("title-1")
-        identity.append(number)
+        if not compact:
+            number.add_css_class("title-1")
         name = Gtk.Label(ellipsize=Pango.EllipsizeMode.END)
         name.add_css_class("slot-name")
         name.add_css_class("heading")
-        identity.append(name)
+        if compact:
+            title_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, halign=Gtk.Align.CENTER)
+            title_row.append(number)
+            title_row.append(name)
+            identity.append(title_row)
+        else:
+            identity.append(number)
+            identity.append(name)
         status_row = Gtk.Box(spacing=6, halign=Gtk.Align.CENTER)
         status_row.add_css_class("slot-status-row")
-        dot = Gtk.Image.new_from_icon_name("media-record-symbolic")
+        dot = Gtk.Image.new_from_icon_name("twinverse-dot-symbolic")
         dot.set_pixel_size(8)
         dot.add_css_class("slot-status-dot")
         status_row.append(dot)
@@ -797,7 +949,7 @@ class LayoutPreview(Gtk.Box):
         target.connect("drop", self._on_player_drop, slot)
         cell.add_controller(target)
         location = f"Space {slot + 1} on {monitor_name}. {width} by {height} pixels at x {x}, y {y}."
-        self._slots.append(_PlayerSlot(cell, button, number, name, status, instance, location))
+        self._slots.append(_PlayerSlot(cell, button, number, name, status, controller_icon, instance, location))
         self._refresh_slot(slot)
         return cell
 
@@ -819,6 +971,7 @@ class LayoutPreview(Gtk.Box):
                 widget.remove_css_class("slot-active")
         widgets.instance = instance
         if instance is None:
+            widgets.controller_icon.set_visible(False)
             widgets.number.set_label("—")
             widgets.name.set_label("Empty space")
             widgets.status.set_label("Drop a player here")
@@ -829,6 +982,7 @@ class LayoutPreview(Gtk.Box):
                 ["Empty space", f"{widgets.location} Drop a player here."],
             )
             return
+        widgets.controller_icon.set_visible(bool(self._player_controllers.get(instance, False)))
         widgets.number.set_label(f"{instance + 1:02d}")
         widgets.name.set_label(f"Player {instance + 1}")
         status = self._player_statuses.get(instance, "Ready to configure")

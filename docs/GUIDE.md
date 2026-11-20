@@ -24,7 +24,7 @@ First, you need to decide how many Steam instances you want to run. Twinverse su
 
 Use **Party size** in the left sidebar to set the desired amount, then check the players who should join. **Launch session** is at the bottom of that sidebar. The panel visibility buttons are beside the application menu on the left of the header.
 
-![Session studio](../share/screenshots/twinverse-session-dark.png)
+![Session Layout](../share/screenshots/twinverse-session-dark.png)
 
 ## 2. Screen Mode
 

@@ -1,4 +1,4 @@
-"""Application shell for the native GTK session studio."""
+"""Application shell for the native GTK session layout."""
 
 # flake8: noqa: E402
 
@@ -6,12 +6,13 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GObject, Gtk, Pango  # noqa: E402
 
 from src.gui.dialogs import ErrorDialog
 from src.gui.notifications import INFO, send_desktop_notification
 from src.gui.pages import LayoutSettingsPage
 from src.gui.widgets.player_row import INSTANCE_RUNNING
+from src.gui.widgets.spinner import StudioSpinner
 from src.gui.widgets.toast import ToastOverlay
 
 
@@ -24,7 +25,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._presenter = presenter
         self._session_state = "idle"
         self.set_title("Twinverse")
-        self.set_default_size(1380, 860)
+        self.set_default_size(1080, 720)
         self.set_size_request(660, 560)
         self.add_css_class("twinverse-studio")
         self.toast_overlay = ToastOverlay()
@@ -56,14 +57,27 @@ class MainWindow(Adw.ApplicationWindow):
     def _build_session_status(self):
         area = self.layout_settings_page.session_controls
         line = Gtk.Box(spacing=8)
-        self.session_icon = Gtk.Image(icon_name="radio-symbolic", pixel_size=12)
+        self.session_icon = Gtk.Image(icon_name="twinverse-dot-symbolic", pixel_size=12)
         self.session_icon.add_css_class("session-indicator")
         line.append(self.session_icon)
-        self.session_title = Gtk.Label(label="Session setup", xalign=0, wrap=True)
+        self.session_title = Gtk.Label(
+            label="Session setup",
+            xalign=0,
+            wrap=True,
+            wrap_mode=Pango.WrapMode.WORD_CHAR,
+            width_chars=1,
+            max_width_chars=24,
+        )
         self.session_title.add_css_class("session-status-title")
         line.append(self.session_title)
         area.append(line)
-        self.session_detail = Gtk.Label(xalign=0, wrap=True)
+        self.session_detail = Gtk.Label(
+            xalign=0,
+            wrap=True,
+            wrap_mode=Pango.WrapMode.WORD_CHAR,
+            width_chars=1,
+            max_width_chars=26,
+        )
         self.session_detail.add_css_class("session-status-detail")
         area.append(self.session_detail)
         self._build_launch_button()
@@ -77,9 +91,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.launch_button.set_tooltip_text("Launch all selected players (Ctrl+Enter)")
         self.launch_button.connect("clicked", lambda *_: self._presenter.on_launch_clicked())
         self.launch_content_box = Gtk.Box(spacing=9, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
-        self.launch_icon = Gtk.Image(icon_name="media-playback-start-symbolic")
+        self.launch_icon = Gtk.Image(icon_name="twinverse-play-symbolic")
         self.launch_label = Gtk.Label(label="Launch session")
-        self.launch_spinner = Gtk.Spinner()
+        self.launch_spinner = StudioSpinner(size=16)
         self.launch_content_box.append(self.launch_icon)
         self.launch_content_box.append(self.launch_label)
         self.launch_button.set_child(self.launch_content_box)
@@ -87,18 +101,14 @@ class MainWindow(Adw.ApplicationWindow):
     def _build_header(self):
         header = Adw.HeaderBar()
         header.add_css_class("studio-header")
-        panel_toggles = Gtk.Box(spacing=4)
-        panel_toggles.add_css_class("panel-toggles")
-        self.roster_toggle = Gtk.ToggleButton(icon_name="panel-left-symbolic")
-        self.inspector_toggle = Gtk.ToggleButton(icon_name="panel-right-symbolic")
+        self.inspector_toggle = Gtk.ToggleButton(icon_name="panel-right-symbolic", valign=Gtk.Align.CENTER)
         self._panel_controls = (
-            (self.layout_settings_page.roster_split, self.roster_toggle, "party", "Alt+1"),
             (self.layout_settings_page.inspector_split, self.inspector_toggle, "player setup", "F9"),
         )
         self._panel_bindings = []
         for split, button, title, shortcut in self._panel_controls:
             button.add_css_class("panel-toggle")
-            panel_toggles.append(button)
+            self.layout_settings_page.stage_header.append(button)
             self._panel_bindings.append(
                 split.bind_property(
                     "show-sidebar",
@@ -122,12 +132,11 @@ class MainWindow(Adw.ApplicationWindow):
         menu.append("Preferences", "win.preferences")
         menu.append("Refresh devices", "win.refresh-devices")
         menu.append("About Twinverse", "win.about")
-        self.menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
+        self.menu_button = Gtk.MenuButton(icon_name="twinverse-menu-symbolic", menu_model=menu)
         self.menu_button.add_css_class("flat")
         self.menu_button.set_tooltip_text("Application menu")
         self.header_tools = Gtk.Box(spacing=4)
         self.header_tools.append(self.theme_toggle_button)
-        self.header_tools.append(panel_toggles)
         self.header_tools.append(self.menu_button)
         header.pack_start(self.header_tools)
         self.toolbar_view.add_top_bar(header)
@@ -135,7 +144,6 @@ class MainWindow(Adw.ApplicationWindow):
         actions = {
             "about": self._presenter.on_about_clicked,
             "preferences": self._presenter.on_preferences_clicked,
-            "players": self._toggle_roster,
             "inspector": self._toggle_inspector,
             "refresh-devices": self._presenter.on_devices_refresh_requested,
             "launch": lambda: self._presenter.on_launch_clicked() if self.launch_button.get_sensitive() else None,
@@ -146,7 +154,6 @@ class MainWindow(Adw.ApplicationWindow):
             self.add_action(action)
         app = self.get_application()
         app.set_accels_for_action("win.preferences", ["<Control>comma"])
-        app.set_accels_for_action("win.players", ["<Alt>1"])
         app.set_accels_for_action("win.inspector", ["F9", "<Alt>2"])
         app.set_accels_for_action("win.refresh-devices", ["F5"])
         app.set_accels_for_action("win.launch", ["<Control>Return"])
@@ -155,15 +162,7 @@ class MainWindow(Adw.ApplicationWindow):
         compact = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 1120sp"))
         compact.add_setter(self.layout_settings_page.inspector_split, "collapsed", True)
         compact.add_setter(self.layout_settings_page.inspector_split, "show-sidebar", False)
-
         self.add_breakpoint(compact)
-        narrow = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 760sp"))
-        narrow.add_setter(self.layout_settings_page.inspector_split, "collapsed", True)
-        narrow.add_setter(self.layout_settings_page.inspector_split, "show-sidebar", False)
-
-        narrow.add_setter(self.layout_settings_page.roster_split, "collapsed", True)
-        narrow.add_setter(self.layout_settings_page.roster_split, "show-sidebar", False)
-        self.add_breakpoint(narrow)
 
     def _sync_panel_toggle(self, split, _pspec, button, title, shortcut):
         visible = split.get_show_sidebar()
@@ -173,17 +172,9 @@ class MainWindow(Adw.ApplicationWindow):
         expanded = Gtk.AccessibleTristate.TRUE if visible else Gtk.AccessibleTristate.FALSE
         # EXPANDED expects an integer tristate, not a boolean GValue.
         button.update_state([Gtk.AccessibleState.EXPANDED], [int(expanded)])
-        if visible and split.get_collapsed():
-            for other, _button, _title, _shortcut in self._panel_controls:
-                if other is not split and other.get_collapsed():
-                    other.set_show_sidebar(False)
 
     def _toggle_inspector(self):
         split = self.layout_settings_page.inspector_split
-        split.set_show_sidebar(not split.get_show_sidebar())
-
-    def _toggle_roster(self):
-        split = self.layout_settings_page.roster_split
         split.set_show_sidebar(not split.get_show_sidebar())
 
     def _update_session_summary(self):
@@ -260,9 +251,7 @@ class MainWindow(Adw.ApplicationWindow):
     def update_launch_button_action(self, is_running):
         """Keep the primary label, icon and tooltip aligned with its actual action."""
         self.launch_label.set_label("End session" if is_running else "Launch session")
-        self.launch_icon.set_from_icon_name(
-            "media-playback-stop-symbolic" if is_running else "media-playback-start-symbolic"
-        )
+        self.launch_icon.set_from_icon_name("twinverse-stop-symbolic" if is_running else "twinverse-play-symbolic")
         self.launch_button.set_tooltip_text(
             "Stop all instances" if is_running else "Launch all selected players (Ctrl+Enter)"
         )

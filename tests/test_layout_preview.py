@@ -207,14 +207,48 @@ def test_studio_header_and_roster_copy_are_minimal(page, devices):
     """Removed titles, subtitles, descriptions and the Live Layout icon stay absent."""
     page.load_data(Profile(), devices, {})
     labels = [w.get_label() for w in _walk_widgets(page) if isinstance(w, Gtk.Label)]
-    assert "SESSION STUDIO" in labels
-    assert "LIVE LAYOUT" in labels
+    assert "SESSION LAYOUT" in labels
     assert "A space for everyone." not in labels
     assert "Arrange your screens. Connect your players. Play together." not in labels
     assert "Choose who joins this session." not in labels
     assert "Display position" not in labels
-    live_layout = next(w for w in _walk_widgets(page) if isinstance(w, Gtk.Label) and w.get_label() == "LIVE LAYOUT")
-    assert live_layout.get_prev_sibling() is None
+    slot_icons = [w.get_icon_name() for w in _walk_widgets(page.layout_preview) if isinstance(w, Gtk.Image)]
+    assert "go-next-symbolic" not in slot_icons
+
+
+def test_slot_shows_controller_icon_in_top_right_when_controller_selected(page, devices):
+    """Spaces display a gamepad icon in the top-right only when their player has a controller selected."""
+    devices_with_pad = {
+        **devices,
+        "joystick": [{"id": "/dev/input/event10", "name": "Xbox Wireless Controller"}],
+    }
+    page.load_data(Profile(num_players=2), devices_with_pad, {})
+    preview = page.layout_preview
+
+    first_slot, second_slot = preview._slots[0], preview._slots[1]
+    caption = first_slot.controller_icon.get_parent()
+    assert caption.has_css_class("slot-caption")
+    assert caption.get_last_child() is first_slot.controller_icon
+    assert first_slot.controller_icon.get_icon_name() == "gamepad-symbolic"
+    assert not first_slot.controller_icon.get_visible()
+    assert not second_slot.controller_icon.get_visible()
+
+    # Selecting a controller updates the player's slot icon in place without rebuilding the canvas.
+    first_button = first_slot.button
+    page.player_rows[0].joystick_row.set_selected(1)
+    assert preview._slots[0].button is first_button
+    assert preview._slots[0].controller_icon.get_visible()
+    assert not preview._slots[1].controller_icon.get_visible()
+
+    # Swapping players moves the controller icon along with the player.
+    assert preview.assign_player(0, 1)
+    assert not preview._slots[0].controller_icon.get_visible()
+    assert preview._slots[1].controller_icon.get_visible()
+
+    # Clearing back to "None" hides the icon again.
+    page.player_rows[0].joystick_row.set_selected(0)
+    assert not preview._slots[0].controller_icon.get_visible()
+    assert not preview._slots[1].controller_icon.get_visible()
 
 
 def test_direct_add_and_middle_player_removal_preserve_identities_and_roundtrip(page, devices, monkeypatch, tmp_path):
@@ -266,3 +300,22 @@ def test_direct_add_and_middle_player_removal_preserve_identities_and_roundtrip(
     page.add_player_button.emit("clicked")
     assert [row._player_num for row in page.player_rows] == [0, 2]
     assert page.get_player_row(0).get_config().guest_ip == "192.168.1.10"
+
+
+def test_two_row_layouts_use_compact_slots_to_avoid_tiny_fonts(page, devices):
+    """Half-height slots use compact layout so two-row templates stay near 1:1 scale like Columns."""
+    page.load_data(
+        Profile(
+            num_players=4,
+            monitor_layouts={
+                "HDMI-A-1": {"template": "columns", "players": [0, 1]},
+                "DP-1": {"template": "grid", "players": [2, 3, None, None]},
+            },
+        ),
+        devices,
+        {},
+    )
+    preview = page.layout_preview
+    assert not preview._slots[0].cell.has_css_class("slot-compact")
+    assert not preview._slots[1].cell.has_css_class("slot-compact")
+    assert all(slot.cell.has_css_class("slot-compact") for slot in preview._slots[2:6])

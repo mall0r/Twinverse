@@ -12,6 +12,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import GObject, Gtk, Pango
 
 from src.gui.widgets.env_variable_row import EnvVariableRow
+from src.gui.widgets.spinner import StudioSpinner
 from src.models import PlayerInstanceConfig
 
 # Only a confirmed Steam client is running; a pending launch can be cancelled.
@@ -94,7 +95,7 @@ class PlayerRow(Gtk.Box):
         self._status_box.add_css_class("inspector-status-line")
         self.status_icon = Gtk.Image()
         self.status_icon.add_css_class("inspector-status-icon")
-        self.status_spinner = Gtk.Spinner()
+        self.status_spinner = StudioSpinner(size=14)
         self.status_spinner.add_css_class("inspector-status-icon")
         self.status_label = Gtk.Label(xalign=0, wrap=True)
         self.status_label.add_css_class("inspector-status")
@@ -126,7 +127,14 @@ class PlayerRow(Gtk.Box):
         self._content.append(header)
 
     def _create_device_rows(self):
-        controls = self._create_section("Controls", "input-gaming-symbolic")
+        self.refresh_controllers_button = Gtk.Button(icon_name="twinverse-refresh-symbolic", valign=Gtk.Align.CENTER)
+        self.refresh_controllers_button.add_css_class("flat")
+        self.refresh_controllers_button.add_css_class("inspector-refresh-button")
+        self.refresh_controllers_button.set_tooltip_text("Refresh controllers")
+        self.refresh_controllers_button.update_property([Gtk.AccessibleProperty.LABEL], ["Refresh controllers"])
+        self.refresh_controllers_button.connect("clicked", self._on_refresh_joysticks_clicked)
+
+        controls = self._create_section("Controls", "gamepad-symbolic", action=self.refresh_controllers_button)
         joysticks = self._devices_info["joystick"]
         self.joystick_row = self._create_dropdown(["None"] + [device["name"] for device in joysticks])
         controller_field = self._create_field("_Controller", self.joystick_row)
@@ -152,10 +160,13 @@ class PlayerRow(Gtk.Box):
         controls.append(grab_line)
 
         self._content.append(Gtk.Separator())
-        outputs = self._create_section("Audio & network", "network-workgroup-symbolic")
+        audio_section = self._create_section("Audio", "twinverse-audio-symbolic")
         audio = self._devices_info["audio"]
         self.audio_row = self._create_dropdown(["Default"] + [device["name"] for device in audio])
-        outputs.append(self._create_field("_Audio output", self.audio_row))
+        audio_section.append(self._create_field("_Output device", self.audio_row))
+
+        self._content.append(Gtk.Separator())
+        network_section = self._create_section("Network", "twinverse-network-symbolic")
         self.guest_ip_row = Gtk.Entry(placeholder_text="Automatic", hexpand=True)
         self.guest_ip_row.set_width_chars(1)
         self.guest_ip_row.set_max_width_chars(24)
@@ -167,25 +178,27 @@ class PlayerRow(Gtk.Box):
         self.guest_ip_row.connect("changed", self._on_setting_changed)
         guest_field = self._create_field("_Guest IP (optional)", self.guest_ip_row)
         guest_field.append(self._help_label("Leave blank to choose a free LAN address."))
-        outputs.append(guest_field)
+        network_section.append(guest_field)
 
-    def _create_section(self, title: str, icon_name: str):
+    def _create_section(self, title: str, icon_name: str, action: Optional[Gtk.Widget] = None):
         section = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         section.add_css_class("inspector-section")
-        section.append(self._section_heading(title, icon_name))
+        section.append(self._section_heading(title, icon_name, action=action))
         self._content.append(section)
         return section
 
     @staticmethod
-    def _section_heading(title: str, icon_name: str):
+    def _section_heading(title: str, icon_name: str, action: Optional[Gtk.Widget] = None):
         heading = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         heading.add_css_class("inspector-section-heading")
         icon = Gtk.Image.new_from_icon_name(icon_name)
         icon.add_css_class("inspector-section-icon")
-        label = Gtk.Label(label=title, xalign=0)
+        label = Gtk.Label(label=title, xalign=0, hexpand=True)
         label.add_css_class("inspector-section-title")
         heading.append(icon)
         heading.append(label)
+        if action is not None:
+            heading.append(action)
         return heading
 
     @staticmethod
@@ -233,7 +246,7 @@ class PlayerRow(Gtk.Box):
         self.env_expander = Gtk.Expander()
         self.env_expander.add_css_class("inspector-env-expander")
         self.env_expander.set_label_widget(
-            self._section_heading("Environment variables", "utilities-terminal-symbolic")
+            self._section_heading("Environment variables", "twinverse-terminal-symbolic")
         )
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         body.set_margin_top(12)
@@ -291,6 +304,10 @@ class PlayerRow(Gtk.Box):
     def is_selected(self) -> bool:
         """Return whether this player participates in the session."""
         return self.checkbox.get_active()
+
+    def has_controller_selected(self) -> bool:
+        """Return whether this player currently has a controller assigned."""
+        return self._get_combo_device_id(self.joystick_row, self._devices_info["joystick"]) is not None
 
     def _on_grab_input_toggled(self, _switch, _gparam):
         if self._is_loading:
@@ -454,9 +471,9 @@ class PlayerRow(Gtk.Box):
         for state in ("starting", "running", "stopping", "ready", "unverified"):
             self._status_box.remove_css_class(f"inspector-{state}")
         self._status_box.add_css_class(f"inspector-{style}")
-        icon = "media-playback-start-symbolic" if self._is_running else "emblem-ok-symbolic"
+        icon = "twinverse-play-symbolic" if self._is_running else "twinverse-check-symbolic"
         self.status_icon.set_from_icon_name(
-            icon if self._is_verified or self._is_running else "software-update-available-symbolic"
+            icon if self._is_verified or self._is_running else "twinverse-download-symbolic"
         )
         self.status_label.set_text(self.get_status_text())
         detail = self._status_detail or (self._update_progress[0] if self._update_progress is not None else "")

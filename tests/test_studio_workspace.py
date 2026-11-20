@@ -13,7 +13,10 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, Gtk  # noqa: E402
 
-from src.gui.notifications import BUSY, ERROR, ICONS, INFO  # noqa: E402
+from src.gui.notifications import BUSY, ERROR, INFO  # noqa: E402
+from src.gui.pages.layout_settings_page import ROSTER_SIDEBAR_WIDTH  # noqa: E402
+from src.gui.widgets.spinner import StudioSpinner  # noqa: E402
+from src.gui.widgets.toast import LEVEL_TITLES, TOAST_ICONS  # noqa: E402
 from src.gui.windows.main_window import MainWindow  # noqa: E402
 from src.gui.windows.preferences_window import PreferencesWindow  # noqa: E402
 from src.models import PlayerInstanceConfig, Profile  # noqa: E402
@@ -270,22 +273,56 @@ def test_roster_numbers_are_centered_in_fixed_size_badges(window):
         assert badge.get_size_request() == (36, 36)
 
 
-def test_panel_toggles_share_one_location_and_follow_real_visibility(window):
-    """One control per panel opens and closes it, including externally triggered dismissals."""
+def test_inspector_starts_hidden_by_default_and_toggle_follows_visibility(window):
+    """Player Setup starts hidden without resizing the window, while the roster stays open."""
     page = window.get_layout_page()
-    assert window.roster_toggle.get_parent() is window.inspector_toggle.get_parent()
-    for split, button in (
-        (page.roster_split, window.roster_toggle),
-        (page.inspector_split, window.inspector_toggle),
-    ):
-        split.set_show_sidebar(False)
-        assert not button.get_active()
-        assert button.get_tooltip_text().startswith("Show ")
-        button.set_active(True)
-        assert split.get_show_sidebar()
-        assert button.get_tooltip_text().startswith("Hide ")
-        split.set_show_sidebar(False)
-        assert not button.get_active()
+    assert not hasattr(window, "roster_toggle")
+    assert not hasattr(page, "roster_split")
+    assert page.roster_sidebar.get_visible()
+    assert tuple(window.get_default_size()) == (1080, 720)
+    split, button = page.inspector_split, window.inspector_toggle
+    assert not split.get_show_sidebar()
+    assert not button.get_active()
+    assert button.get_tooltip_text().startswith("Show ")
+    button.set_active(True)
+    assert split.get_show_sidebar()
+    assert button.get_tooltip_text().startswith("Hide ")
+    split.set_show_sidebar(False)
+    assert not button.get_active()
+
+
+def test_roster_sidebar_width_never_grows_across_player_counts_and_states(window):
+    """The left party sidebar must remain locked at its fixed width regardless of party size or status text."""
+    page = window.get_layout_page()
+    displays = {"displays": [{"name": "HDMI-A-1", "width": 1920, "height": 1080}]}
+    expected = (ROSTER_SIDEBAR_WIDTH, ROSTER_SIDEBAR_WIDTH)
+
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
+
+    # Adding a 3rd player (unverified) triggers the longer setup summary string.
+    page.add_player_button.emit("clicked")
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
+
+    page.load_data(Profile(num_players=3), displays, {0: True, 1: True, 2: True})
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
+
+    page.load_data(Profile(num_players=8), displays, {index: index < 4 for index in range(8)})
+    page.player_rows[0].set_update_progress("Updating Steam...", 100)
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
+
+    window.show_launching_state()
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
+
+    window.show_running_state()
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
+
+    window.show_stopping_state()
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
+
+    window.show_idle_state()
+    for row in page.player_rows:
+        row.checkbox.set_active(False)
+    assert page.roster_sidebar.measure(Gtk.Orientation.HORIZONTAL, -1)[:2] == expected
 
 
 @pytest.mark.parametrize("visible", [False, True])
@@ -304,36 +341,20 @@ def test_panel_toggles_publish_integer_expanded_tristates(window, monkeypatch, v
 
 
 def test_panel_keyboard_actions_toggle_in_both_directions(window):
-    """Shortcuts must have the same open/close behavior as their paired header buttons."""
+    """Shortcuts must toggle the inspector in both directions; no roster hide action exists."""
     page = window.get_layout_page()
-    for action_name, split in (("players", page.roster_split), ("inspector", page.inspector_split)):
-        split.set_show_sidebar(False)
-        action = window.lookup_action(action_name)
-        action.activate(None)
-        assert split.get_show_sidebar()
-        action.activate(None)
-        assert not split.get_show_sidebar()
+    assert window.lookup_action("players") is None
+    split = page.inspector_split
+    split.set_show_sidebar(False)
+    action = window.lookup_action("inspector")
+    action.activate(None)
+    assert split.get_show_sidebar()
+    action.activate(None)
+    assert not split.get_show_sidebar()
 
 
-def test_narrow_drawers_are_mutually_exclusive_and_toggles_stay_in_sync(window):
-    """Opening one overlay must not leave the other panel covering or hiding it."""
-    page = window.get_layout_page()
-    for split in (page.roster_split, page.inspector_split):
-        split.set_show_sidebar(False)
-        split.set_collapsed(True)
-    window.roster_toggle.set_active(True)
-    assert page.roster_split.get_show_sidebar()
-    window.inspector_toggle.set_active(True)
-    assert page.inspector_split.get_show_sidebar()
-    assert not page.roster_split.get_show_sidebar()
-    assert not window.roster_toggle.get_active()
-    window.roster_toggle.set_active(True)
-    assert not page.inspector_split.get_show_sidebar()
-    assert not window.inspector_toggle.get_active()
-
-
-def test_header_has_only_left_aligned_tools_in_requested_order(application, monkeypatch):
-    """The header has no branding or title, and groups all four controls on the left."""
+def test_header_has_only_left_aligned_tools_and_inspector_toggle_sits_on_stage_header(application, monkeypatch):
+    """The header bar keeps theme/menu on the left; Player Setup toggle aligns with SESSION LAYOUT."""
     packed = []
     native_pack_start = Adw.HeaderBar.pack_start
     native_pack_end = Adw.HeaderBar.pack_end
@@ -351,16 +372,18 @@ def test_header_has_only_left_aligned_tools_in_requested_order(application, monk
     win = MainWindow(application, Mock())
     try:
         header = win.header_tools.get_ancestor(Adw.HeaderBar)
+        page = win.get_layout_page()
         assert packed == [(header, "start", win.header_tools)]
         assert isinstance(header.get_title_widget(), Gtk.Box)
         assert header.get_title_widget().get_first_child() is None
+        assert not hasattr(win, "roster_toggle")
         assert win.header_tools.get_first_child() is win.theme_toggle_button
-        panels = win.theme_toggle_button.get_next_sibling()
-        assert panels.get_first_child() is win.roster_toggle
-        assert win.roster_toggle.get_next_sibling() is win.inspector_toggle
-        assert panels.get_last_child() is win.inspector_toggle
-        assert panels.get_next_sibling() is win.menu_button
+        assert win.theme_toggle_button.get_next_sibling() is win.menu_button
         assert win.header_tools.get_last_child() is win.menu_button
+        assert win.inspector_toggle.get_parent() is page.stage_header
+        assert page.stage_header.get_last_child() is win.inspector_toggle
+        title_box = page.stage_header.get_first_child()
+        assert title_box.get_first_child().get_label() == "SESSION LAYOUT"
     finally:
         win.destroy()
 
@@ -382,7 +405,8 @@ def test_secondary_actions_have_a_single_menu_entry(window):
     assert window.launch_button.get_parent() is page.session_controls
     assert page.session_controls.get_last_child() is window.launch_button
     assert window.menu_button.get_parent() is window.header_tools
-    assert window.roster_toggle.get_parent().get_parent() is window.header_tools
+    assert window.inspector_toggle.get_parent() is page.stage_header
+    assert page.stage_header.get_last_child() is window.inspector_toggle
     assert window.header_tools.get_last_child() is window.menu_button
 
 
@@ -415,8 +439,41 @@ def test_player_actions_explain_their_scope(window):
     assert row.launch_button.get_label() == "Cancel startup"
 
 
+def test_controls_section_has_right_aligned_icon_only_refresh_button(window):
+    """The Controls header appears once and exposes a compact icon-only refresh button on the right side."""
+    row = window.get_layout_page().player_rows[0]
+    button = row.refresh_controllers_button
+    heading = button.get_parent()
+    title = button.get_prev_sibling()
+
+    labels = []
+
+    def collect_labels(widget):
+        if isinstance(widget, Gtk.Label):
+            labels.append(widget.get_text())
+        child = widget.get_first_child()
+        while child is not None:
+            collect_labels(child)
+            child = child.get_next_sibling()
+
+    collect_labels(row)
+    assert labels.count("Controls") == 1
+
+    assert button.get_icon_name() == "twinverse-refresh-symbolic"
+    assert button.get_label() is None
+    assert button.has_css_class("inspector-refresh-button")
+    assert heading.has_css_class("inspector-section-heading")
+    assert heading.get_last_child() is button
+    assert isinstance(title, Gtk.Label)
+    assert title.get_text() == "Controls"
+    assert title.get_hexpand() is True
+
+    button.emit("clicked")
+    window._presenter.on_devices_refresh_requested.assert_called_once_with()
+
+
 def test_toast_levels_replace_previous_styles_and_preserve_base_classes(window):
-    """Real toast widgets retain their appearance and replace the previous message's level."""
+    """Remodeled studio toast preserves classes, shows custom icons/titles and supports dismiss."""
     overlay = window.toast_overlay
     level_classes = {"toast-info", "toast-error", "toast-busy"}
     for level, css_class in (
@@ -426,12 +483,19 @@ def test_toast_levels_replace_previous_styles_and_preserve_base_classes(window):
         ("unknown", "toast-info"),
     ):
         overlay.show_toast("Session update", level, timeout=0)
+        assert overlay._badge.has_css_class("toast-badge")
         assert overlay._icon.has_css_class("toast-icon")
+        assert overlay._title.has_css_class("toast-title")
         assert overlay._card.has_css_class("toast-card")
+        assert overlay._dismiss_button.has_css_class("toast-dismiss")
+        assert overlay._dismiss_button.get_icon_name() == "twinverse-close-symbolic"
         assert set(overlay._card.get_css_classes()) & level_classes == {css_class}
-        assert overlay._icon.get_icon_name() == ICONS.get(level, ICONS[INFO])
+        assert overlay._icon.get_icon_name() == TOAST_ICONS.get(level, TOAST_ICONS[INFO])
+        assert overlay._title.get_text() == LEVEL_TITLES.get(level, LEVEL_TITLES[INFO])
         assert overlay._label.get_text() == "Session update"
         assert overlay._revealer.get_reveal_child()
+    overlay._dismiss_button.emit("clicked")
+    assert not overlay._revealer.get_reveal_child()
 
 
 def test_surface_tokens_are_neutral_in_both_themes():
@@ -480,3 +544,50 @@ def test_player_console_log_is_single_line_above_action_button(window):
     row.clear_update_progress()
     row.set_status_detail("")
     assert not label.get_visible()
+
+
+def test_spinners_use_studio_spinner_and_survive_hiding_player_setup(window):
+    """Spinners use StudioSpinner so hiding Player Setup never freezes animation."""
+    page = window.get_layout_page()
+    row = page.player_rows[0]
+    assert isinstance(row.status_spinner, StudioSpinner)
+    assert isinstance(window.launch_spinner, StudioSpinner)
+
+    page.select_player(0, open_inspector=True)
+    row.set_instance_state("starting")
+    row.set_update_progress("Downloading Steam...", 30)
+    assert row.status_spinner.get_spinning()
+    assert row.status_spinner.get_visible()
+    assert row.status_spinner._inner.get_visible()
+
+    page.inspector_split.set_show_sidebar(False)
+    row.set_update_progress("Downloading Steam...", 60)
+    page.inspector_split.set_show_sidebar(True)
+    assert row.status_spinner.get_spinning()
+    assert row.status_spinner.get_visible()
+    assert row.status_spinner._inner.get_visible()
+
+    row.clear_update_progress()
+    row.set_instance_state("idle")
+    assert not row.status_spinner.get_spinning()
+    assert not row.status_spinner._inner.get_visible()
+
+
+def test_all_studio_icons_are_bundled_symbolic_assets(window):
+    """Every symbolic icon referenced in src/gui resolves from Twinverse's GResource bundle."""
+    theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
+    gui_root = Path(__file__).resolve().parents[1] / "src/gui"
+    pattern = re.compile(r'"([a-z0-9-]+-symbolic)"')
+    icon_names = {
+        match.group(1)
+        for path in gui_root.rglob("*.py")
+        if path.name != "notifications.py"
+        for match in pattern.finditer(path.read_text())
+    }
+    assert icon_names
+    for name in sorted(icon_names):
+        assert theme.has_icon(name), name
+        paintable = theme.lookup_icon(name, None, 16, 1, Gtk.TextDirection.LTR, 0)
+        uri = paintable.get_file().get_uri() if paintable.get_file() else ""
+        assert uri.startswith("resource:///io/github/mall0r/Twinverse/icons/"), f"{name}: {uri}"
+        assert paintable.is_symbolic(), f"{name} must be symbolic ({uri})"

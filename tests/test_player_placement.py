@@ -172,19 +172,19 @@ def test_excluded_players_cannot_be_dragged_or_assigned(page):
     assert not page.layout_preview.assign_player(1, 0)
 
 
-def test_selection_press_keeps_the_party_drawer_open_until_activation(page):
-    """Pointer selection must not close the source drawer before a drag can begin."""
-    page.roster_split.set_collapsed(True)
+def test_selection_press_keeps_inspector_closed_until_activation_and_roster_always_visible(page):
+    """Pointer selection must not open the inspector prematurely, and the party sidebar stays always open."""
+    assert not hasattr(page, "roster_split")
+    assert page.roster_sidebar.get_visible()
     page.inspector_split.set_collapsed(True)
-    page.roster_split.set_show_sidebar(True)
     page.inspector_split.set_show_sidebar(False)
     page.roster.select_row(page._roster_rows[2])
     assert page._active_player == 2
-    assert page.roster_split.get_show_sidebar()
+    assert page.roster_sidebar.get_visible()
     assert not page.inspector_split.get_show_sidebar()
     page.roster.emit("row-activated", page._roster_rows[2])
     assert page.inspector_split.get_show_sidebar()
-    assert not page.roster_split.get_show_sidebar()
+    assert page.roster_sidebar.get_visible()
 
 
 def test_direct_mode_rejects_dragging_and_restores_on_reenable(page):

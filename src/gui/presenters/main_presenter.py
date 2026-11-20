@@ -294,13 +294,9 @@ class MainPresenter:
 
         ui_data = layout_page.get_data()
         new_party = (
-            list(ui_data["party_players"])
-            if "party_players" in ui_data
-            else list(range(ui_data["num_players"]))
+            list(ui_data["party_players"]) if "party_players" in ui_data else list(range(ui_data["num_players"]))
         )
-        current_row_ids = [
-            self._row_instance_num(row, index) for index, row in enumerate(layout_page.player_rows)
-        ]
+        current_row_ids = [self._row_instance_num(row, index) for index, row in enumerate(layout_page.player_rows)]
 
         self._settings_controller.update_from_ui_data(ui_data)
 

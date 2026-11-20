@@ -1,4 +1,4 @@
-"""Session studio: a party roster, an interactive stage and a focused inspector."""
+"""Session Layout: a party roster, an interactive stage and a focused inspector."""
 
 # flake8: noqa: E402
 
@@ -13,6 +13,8 @@ from src.core.tiling import TEMPLATES, build_tiling_plan
 from src.gui.widgets import LayoutPreview, PlayerRow
 from src.gui.widgets.player_row import INSTANCE_IDLE
 from src.models import PlayerInstanceConfig
+
+ROSTER_SIDEBAR_WIDTH = 244
 
 
 class LayoutSettingsPage(Gtk.Box):
@@ -68,30 +70,31 @@ class LayoutSettingsPage(Gtk.Box):
         return label
 
     def _build_ui(self):
-        self.roster_split = Adw.OverlaySplitView(
-            min_sidebar_width=244,
-            max_sidebar_width=244,
-            sidebar_width_fraction=0.2,
-            hexpand=True,
+        self.roster_sidebar = Adw.Clamp(
+            maximum_size=ROSTER_SIDEBAR_WIDTH,
+            tightening_threshold=ROSTER_SIDEBAR_WIDTH,
+            hexpand=False,
             vexpand=True,
         )
-        self.append(self.roster_split)
-        self.roster_split.set_sidebar(self._build_roster())
+        self.roster_sidebar.set_size_request(ROSTER_SIDEBAR_WIDTH, -1)
+        self.roster_sidebar.set_child(self._build_roster())
+        self.append(self.roster_sidebar)
 
         self.inspector_split = Adw.OverlaySplitView(
             sidebar_position=Gtk.PackType.END,
+            show_sidebar=False,
             min_sidebar_width=324,
             max_sidebar_width=344,
             sidebar_width_fraction=0.3,
             hexpand=True,
             vexpand=True,
         )
-        self.roster_split.set_content(self.inspector_split)
+        self.append(self.inspector_split)
         self.inspector_split.set_content(self._build_stage())
         self.inspector_split.set_sidebar(self._build_inspector())
 
     def _build_roster(self):
-        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20, hexpand=False, vexpand=True)
         sidebar.add_css_class("party-sidebar")
         heading = Gtk.Box(spacing=8)
         heading.append(self._label("Your party", "party-heading", hexpand=True))
@@ -102,12 +105,16 @@ class LayoutSettingsPage(Gtk.Box):
         self.roster.add_css_class("party-list")
         self.roster.connect("row-selected", self._on_roster_selection_changed)
         self.roster.connect("row-activated", self._on_roster_selected)
-        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        scroll = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_width=False,
+            vexpand=True,
+        )
         scroll.set_child(self.roster)
         sidebar.append(scroll)
 
         self.add_player_button = Gtk.Button(hexpand=True)
-        self.add_player_button.set_child(Adw.ButtonContent(icon_name="list-add-symbolic", label="Add player"))
+        self.add_player_button.set_child(Adw.ButtonContent(icon_name="twinverse-add-symbolic", label="Add player"))
         self.add_player_button.set_tooltip_text("Add a player to the party")
         self.add_player_button.update_property([Gtk.AccessibleProperty.LABEL], ["Add player"])
         self.add_player_button.add_css_class("party-add-button")
@@ -123,17 +130,17 @@ class LayoutSettingsPage(Gtk.Box):
     def _build_stage(self):
         studio = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
         studio.add_css_class("studio-stage")
-        top = Gtk.Box(spacing=16)
-        titles = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True)
-        titles.append(self._label("SESSION STUDIO", "eyebrow"))
-        top.append(titles)
+        self.stage_header = Gtk.Box(spacing=16)
+        self.stage_header.add_css_class("stage-header")
+        titles = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True, valign=Gtk.Align.CENTER)
+        titles.append(self._label("SESSION LAYOUT", "eyebrow"))
+        self.stage_header.append(titles)
 
-        studio.append(top)
+        studio.append(self.stage_header)
 
         canvas_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, vexpand=True)
         canvas_box.add_css_class("stage-surface")
         canvas_heading = Gtk.Box(spacing=8)
-        canvas_heading.append(self._label("LIVE LAYOUT", "canvas-kicker", hexpand=True))
         self.display_summary = self._label("Detecting displays", "canvas-display-count")
         canvas_heading.append(self.display_summary)
         canvas_box.append(canvas_heading)
@@ -153,14 +160,14 @@ class LayoutSettingsPage(Gtk.Box):
 
         self.displays_disabled_group = Adw.StatusPage(
             title="Direct Steam mode",
-            icon_name="application-x-executable-symbolic",
+            icon_name="twinverse-window-symbolic",
             description="Players run in independent windows. Enable Gamescope in Preferences to arrange a split-screen session.",
             vexpand=True,
         )
         self.displays_disabled_group.set_visible(False)
         canvas_box.append(self.displays_disabled_group)
         hint = Gtk.Box(spacing=8)
-        hint.append(Gtk.Image(icon_name="input-mouse-symbolic"))
+        hint.append(Gtk.Image(icon_name="mouse-wireless-symbolic"))
         hint.append(
             self._label(
                 "Drag players between spaces to swap them.",
@@ -280,8 +287,6 @@ class LayoutSettingsPage(Gtk.Box):
         self.layout_preview.set_active_player(index)
         if open_inspector:
             self.inspector_split.set_show_sidebar(True)
-            if self.roster_split.get_collapsed():
-                self.roster_split.set_show_sidebar(False)
 
     def _on_roster_selection_changed(self, _list, row):
         if row is not None and not self._is_loading and not self._syncing_roster_selection:
@@ -373,7 +378,7 @@ class LayoutSettingsPage(Gtk.Box):
         actions = Gtk.Box(spacing=4, valign=Gtk.Align.CENTER)
         player.checkbox.set_valign(Gtk.Align.CENTER)
         actions.append(player.checkbox)
-        remove_button = Gtk.Button(icon_name="window-close-symbolic", valign=Gtk.Align.CENTER)
+        remove_button = Gtk.Button(icon_name="twinverse-close-symbolic", valign=Gtk.Align.CENTER)
         remove_button.add_css_class("flat")
         remove_button.add_css_class("party-remove-button")
         remove_button.set_tooltip_text(f"Remove Player {instance_num + 1} from party")
@@ -504,10 +509,12 @@ class LayoutSettingsPage(Gtk.Box):
         if self._is_loading:
             return
         statuses = {}
+        controllers = {}
         for pos, player in enumerate(self.player_rows):
             instance_num = player._player_num
             status = player.get_status_text()
             statuses[instance_num] = status
+            controllers[instance_num] = player.has_controller_selected()
             self._roster_status[pos].set_label(status)
             self._roster_status[pos].set_tooltip_text(status)
             item = self._roster_rows[pos]
@@ -519,6 +526,7 @@ class LayoutSettingsPage(Gtk.Box):
             else:
                 item.add_css_class("party-excluded")
         self.layout_preview.set_player_statuses(statuses)
+        self.layout_preview.set_player_controllers(controllers)
 
         count = len(self._displays)
         self.display_summary.set_label(
