@@ -38,15 +38,34 @@ class _MonitorLayout(Gtk.LayoutManager):
         if child is None or width <= 0 or height <= 0:
             return
         ratio = widget.get_ratio()
-        visual_width = min(width, height * ratio)
+        visual_width = min(float(width), height * ratio)
         visual_height = visual_width / ratio
+        fitted_width = max(1, min(width, round(visual_width)))
+        fitted_height = max(1, min(height, round(visual_height)))
         minimum_width = max(1, child.measure(Gtk.Orientation.HORIZONTAL, -1)[0])
+        if fitted_width >= minimum_width:
+            fitted_min_height = child.measure(Gtk.Orientation.VERTICAL, fitted_width)[0]
+            if (
+                fitted_height >= fitted_min_height
+                and abs((fitted_width / fitted_height) - ratio) <= ratio * 0.005
+            ):
+                offset_x = (width - fitted_width) // 2
+                offset_y = (height - fitted_height) // 2
+                transform = (
+                    Gsk.Transform.new().translate(Graphene.Point().init(offset_x, offset_y))
+                    if (offset_x or offset_y)
+                    else None
+                )
+                child.allocate(fitted_width, fitted_height, -1, transform)
+                return
         minimum_height = child.measure(Gtk.Orientation.VERTICAL, minimum_width)[0]
         logical_width = max(minimum_width, ceil(minimum_height * ratio), ceil(visual_width))
         logical_height = max(1, ceil(logical_width / ratio))
+        offset_x = int((width - visual_width) // 2)
+        offset_y = int((height - visual_height) // 2)
         transform = (
             Gsk.Transform.new()
-            .translate(Graphene.Point().init((width - visual_width) / 2, (height - visual_height) / 2))
+            .translate(Graphene.Point().init(offset_x, offset_y))
             .scale(visual_width / logical_width, visual_height / logical_height)
         )
         child.allocate(logical_width, logical_height, -1, transform)
@@ -144,8 +163,8 @@ class _MonitorCardLayout(Gtk.LayoutManager):
         frame_w_int = max(1, min(width, round(frame_w)))
         frame_h_int = max(1, min(avail_h, round(frame_h)))
 
-        content_x = (width - content_w) / 2
-        frame_x = (width - frame_w_int) / 2
+        content_x = (width - content_w) // 2
+        frame_x = (width - frame_w_int) // 2
 
         y = 0
         for child, child_h in zip(top_children, top_heights):

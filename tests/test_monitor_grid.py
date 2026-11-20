@@ -501,3 +501,27 @@ def test_native_drag_icon_uses_the_visible_scaled_card_size(workspace):
     found, canvas = cell.compute_point(preview, local)
     assert found
     assert preview._drag_hotspot == pytest.approx((canvas.x - visible.x, canvas.y - visible.y), abs=1)
+
+
+@pytest.mark.parametrize("num_players", [1, 2, 3, 4])
+def test_fitting_slots_use_unit_scale_and_integer_pixel_positions(workspace, num_players):
+    """Spaces that fit without downscaling must stay at 1:1 integer pixels to avoid GSK blur."""
+    displays = _displays(1)
+    scene = workspace(profile=Profile(num_players=num_players), displays=displays)
+    preview = scene.preview
+    _assert_monitor_ratios(preview, displays)
+    assert _iterate_until(lambda: all(_rendered(slot.cell) for slot in preview._slots))
+    for grid in preview.monitor_grids:
+        found, matrix = grid.compute_transform(scene.window)
+        assert found
+        assert matrix.get_value(0, 0) == pytest.approx(1.0, abs=1e-6)
+        assert matrix.get_value(1, 1) == pytest.approx(1.0, abs=1e-6)
+        assert matrix.get_value(3, 0) == round(matrix.get_value(3, 0))
+        assert matrix.get_value(3, 1) == round(matrix.get_value(3, 1))
+    for slot in preview._slots:
+        found, matrix = slot.button.compute_transform(scene.window)
+        assert found
+        assert matrix.get_value(0, 0) == pytest.approx(1.0, abs=1e-6)
+        assert matrix.get_value(1, 1) == pytest.approx(1.0, abs=1e-6)
+        assert matrix.get_value(3, 0) == round(matrix.get_value(3, 0))
+        assert matrix.get_value(3, 1) == round(matrix.get_value(3, 1))
