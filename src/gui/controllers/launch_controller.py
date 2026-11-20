@@ -28,6 +28,11 @@ class LaunchController:
         """Check if instances are running."""
         return self._is_running
 
+    def sync_running_state(self) -> bool:
+        """Refresh the running flag from the processes that are still alive."""
+        self._is_running = self._has_running_instances()
+        return self._is_running
+
     def launch_instances(
         self,
         profile: Profile,
@@ -127,7 +132,12 @@ class LaunchController:
         """Worker thread for launching instances."""
         selected_players = profile.selected_players
         with log_context(phase="launch"):
-            logger.info("Launch worker started for players %s", selected_players)
+            display_players = (
+                [player + 1 for player in selected_players]
+                if isinstance(selected_players, (list, tuple, set))
+                else selected_players
+            )
+            logger.info("Launch worker started for players %s", display_players)
             try:
                 if profile.enable_kwin_script:
                     logger.info("Starting KDE script setup")
@@ -201,7 +211,7 @@ class LaunchController:
                 self._instance_service.launch_instance(
                     profile, instance_num, use_gamescope_override=use_gamescope_override
                 )
-                logger.info("Instance launched successfully")
+                logger.info("Instance %s launched successfully", instance_num + 1)
                 self._is_running = True
                 if on_complete:
                     on_complete()
@@ -220,7 +230,7 @@ class LaunchController:
             try:
                 self._instance_service.terminate_instance(instance_num)
             except Exception:
-                logger.exception("Error terminating instance")
+                logger.exception("Error terminating instance %s", instance_num + 1)
             finally:
                 # Stopping one instance at a time has to clear the running state
                 # as well, so the button of the footer follows what is open.

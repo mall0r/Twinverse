@@ -239,12 +239,14 @@ class MainWindow(Adw.ApplicationWindow):
         self._update_session_summary()
 
     def show_idle_state(self):
-        """Restore participation controls after all active instances end."""
+        """Restore layout and participation controls after all active instances end."""
         self._session_state = "idle"
         self.update_launch_button_action(False)
         self._hide_spinner()
         self.layout_settings_page.set_sensitive(True)
         self.layout_settings_page.set_running_state(False)
+        self.layout_settings_page.set_number_of_instances_sensitive(True)
+        self.layout_settings_page.set_screen_settings_sensitive(True)
         self.layout_settings_page.set_checkboxes_sensitive(True)
         self._update_session_summary()
 

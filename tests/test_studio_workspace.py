@@ -179,6 +179,14 @@ def test_running_locks_placement_but_keeps_player_navigation(window):
     assert page.layout_preview._slots[1].button.is_sensitive()
     assert window.launch_label.get_label() == "End session"
 
+    window.show_idle_state()
+    assert page.screen_mode_row.is_sensitive()
+    assert page.placement_mode_row.is_sensitive()
+    assert page.add_player_button.is_sensitive()
+    assert all(btn.is_sensitive() for btn in page._roster_remove_buttons)
+    assert page.layout_preview._allow_reposition
+    assert page.layout_preview.assign_player(0, 1)
+
 
 def test_individual_action_targets_the_inspected_player(window):
     """An individual action must not accidentally operate on the full session."""

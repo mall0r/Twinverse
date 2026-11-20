@@ -6,6 +6,7 @@ from typing import Optional
 from gi.repository import Adw, GLib, Gtk
 
 from src.core import Utils
+from src.core.logging import log_context
 from src.gui.controllers import (
     LaunchController,
     SettingsController,
@@ -61,6 +62,13 @@ class MainPresenter:
         player_num = getattr(row, "_player_num", None)
         return player_num if isinstance(player_num, int) else fallback_index
 
+    @staticmethod
+    def _row_is_active(row) -> bool:
+        if getattr(row, "_is_running", False):
+            return True
+        get_state = getattr(row, "get_instance_state", None)
+        return callable(get_state) and get_state() in (INSTANCE_STARTING, INSTANCE_RUNNING, INSTANCE_STOPPING)
+
     def _get_player_row(self, instance_num: int):
         layout_page = self.window.get_layout_page()
         for index, row in enumerate(layout_page.player_rows):
@@ -96,6 +104,16 @@ class MainPresenter:
             # The recovery confirmed that the process is alive, so these are
             # running instances and the button can offer to stop them.
             self._set_instance_state(record.instance, INSTANCE_RUNNING)
+            if record.instance in self._instance_service.processes:
+                self._owned_instances.add(record.instance)
+                self._ensure_instance_watch()
+
+    def _begin_instance_stop(self, instance_num: int) -> None:
+        """Mark an instance as intentionally stopping so the watcher never flags it as a crash."""
+        self._starting_instances.discard(instance_num)
+        self._owned_instances.discard(instance_num)
+        self._forget_progress(instance_num)
+        self._set_instance_state(instance_num, INSTANCE_STOPPING)
 
     def _watch_instance_start(self, instance_num: int):
         """Tell the user that the Steam client is starting, and follow it."""
@@ -122,14 +140,19 @@ class MainPresenter:
         service = self._instance_service
 
         for instance_num in list(self._starting_instances):
+            if self._instance_states.get(instance_num) == INSTANCE_STOPPING:
+                self._starting_instances.discard(instance_num)
+                continue
             process = service.processes.get(instance_num)
             if process is None:
                 self._starting_instances.discard(instance_num)
                 continue
-            if process.poll() is not None:
+            exit_code = process.poll()
+            if exit_code is not None:
                 self._starting_instances.discard(instance_num)
+                self._owned_instances.discard(instance_num)
                 self._forget_progress(instance_num)
-                self._report_instance_stopped(instance_num)
+                self._report_instance_stopped(instance_num, exit_code=exit_code)
                 continue
 
             status = service.client_status(instance_num)
@@ -140,7 +163,8 @@ class MainPresenter:
                 self._starting_instances.discard(instance_num)
                 self._forget_progress(instance_num)
                 self._set_instance_detail(instance_num, "")
-                logger.info("The Steam client of instance %s started", instance_num + 1)
+                with log_context(instance=instance_num + 1):
+                    logger.info("The Steam client of instance %s started", instance_num + 1)
                 self._verify_instance(instance_num)
                 self._set_instance_state(instance_num, INSTANCE_RUNNING)
                 self.window.show_toast(f"Steam started for instance {instance_num + 1}")
@@ -162,13 +186,26 @@ class MainPresenter:
             process = service.processes.get(instance_num)
             if process is None:
                 self._owned_instances.discard(instance_num)
+                self._starting_instances.discard(instance_num)
+                self._forget_progress(instance_num)
+                if self._instance_states.get(instance_num) != INSTANCE_IDLE:
+                    self._set_instance_state(instance_num, INSTANCE_IDLE)
+                    self._verify_instance(instance_num)
+                    self._update_number_of_instances_sensitivity()
                 continue
-            if process.poll() is None:
+            # An instance that is being stopped intentionally (by the user or
+            # after a reported failure) may exit with SIGTERM/SIGKILL before
+            # the stop worker clears ``service.processes``; never flag it as an
+            # unexpected crash or race the worker's cleanup.
+            if self._instance_states.get(instance_num) == INSTANCE_STOPPING:
+                continue
+            exit_code = process.poll()
+            if exit_code is None:
                 continue
             self._owned_instances.discard(instance_num)
             self._starting_instances.discard(instance_num)
             self._forget_progress(instance_num)
-            self._report_instance_stopped(instance_num)
+            self._report_instance_stopped(instance_num, exit_code=exit_code)
 
         self._minimize_when_all_open()
         return True
@@ -227,7 +264,8 @@ class MainPresenter:
     def _report_instance_failure(self, instance_num: int, reason: str):
         """Tell the user that the Steam client of an instance gave up."""
         message = f"The Steam client of instance {instance_num + 1} failed: {reason}"
-        logger.warning("%s", message)
+        with log_context(instance=instance_num + 1):
+            logger.warning("%s", message)
         self.window.show_toast(message, level=ERROR)
         # The reason stays on the row, because the toast is gone in seconds.
         self._set_instance_detail(instance_num, reason)
@@ -237,19 +275,36 @@ class MainPresenter:
 
     def _stop_failed_instance(self, instance_num: int):
         """Stop the leftover of an instance whose Steam client never came up."""
+        self._starting_instances.discard(instance_num)
         self._set_instance_state(instance_num, INSTANCE_STOPPING)
         self._launch_controller.terminate_single_instance(instance_num)
 
-    def _report_instance_stopped(self, instance_num: int):
-        """Tell the user that an instance stopped on its own."""
-        reason = self._instance_service.client_status(instance_num).failure
-        message = f"Instance {instance_num + 1} stopped unexpectedly"
-        if reason:
-            message = f"The Steam client of instance {instance_num + 1} failed: {reason}"
-        logger.warning("%s", message)
-        self.window.show_toast(message, level=ERROR)
-        self._instance_service.finish_instance_log(instance_num)
-        self._set_instance_state(instance_num, INSTANCE_IDLE)
+    def _report_instance_stopped(self, instance_num: int, exit_code: Optional[int] = None):
+        """Handle an instance that exited on its own or was closed manually."""
+        with log_context(instance=instance_num + 1):
+            reason = self._instance_service.client_status(instance_num).failure
+            if reason:
+                message = f"The Steam client of instance {instance_num + 1} failed: {reason}"
+                logger.warning("%s (exit_code=%s)", message, exit_code)
+                self.window.show_toast(message, level=ERROR)
+                self._set_instance_detail(instance_num, reason)
+            elif exit_code == 0:
+                message = f"Instance {instance_num + 1} stopped"
+                logger.info("%s (exit_code=0)", message)
+                self.window.show_toast(message)
+                self._set_instance_detail(instance_num, "")
+            else:
+                message = f"Instance {instance_num + 1} stopped unexpectedly"
+                logger.warning("%s (exit_code=%s)", message, exit_code)
+                self.window.show_toast(message, level=ERROR)
+                self._set_instance_detail(instance_num, "")
+
+            self._instance_service.cleanup_stopped_instance(instance_num, exit_code=exit_code)
+            self._instance_service.processes.pop(instance_num, None)
+            self._launch_controller.sync_running_state()
+            self._set_instance_state(instance_num, INSTANCE_IDLE)
+            self._verify_instance(instance_num)
+            self._update_number_of_instances_sensitivity()
 
     def on_launch_clicked(self):
         """Handle launch button clicked."""
@@ -330,13 +385,18 @@ class MainPresenter:
 
         state = player_row.get_instance_state()
 
-        if state in (INSTANCE_STARTING, INSTANCE_RUNNING, INSTANCE_STOPPING):
+        if state == INSTANCE_STOPPING:
+            return
+
+        if state in (INSTANCE_STARTING, INSTANCE_RUNNING):
             # An instance that is starting can be cancelled, and one that is
             # running is stopped. Both end with the death of the instance.
             if state == INSTANCE_STARTING:
-                logger.info(f"Cancelling the start of instance {instance_num}")
+                logger.info("Cancelling the start of instance %s", instance_num + 1)
                 self.window.show_toast(f"Cancelled the start of instance {instance_num + 1}")
-            self._set_instance_state(instance_num, INSTANCE_STOPPING)
+            else:
+                logger.info("Stop requested for instance %s", instance_num + 1)
+            self._begin_instance_stop(instance_num)
             self._launch_controller.terminate_single_instance(
                 instance_num, on_complete=lambda: GLib.idle_add(self._on_single_instance_stopped, instance_num)
             )
@@ -345,13 +405,13 @@ class MainPresenter:
             if layout_error:
                 self.window.show_error(layout_error)
                 return
-            logger.info(f"Launch requested for instance {instance_num} (no verification required).")
+            logger.info("Launch requested for instance %s (no verification required).", instance_num + 1)
 
             self._save_current_settings()
 
             self._set_instance_state(instance_num, INSTANCE_STARTING)
 
-            logger.info(f"Initiating launch of instance {instance_num}...")
+            logger.info("Initiating launch of instance %s...", instance_num + 1)
 
             if profile.enable_kwin_script:
                 logger.info("Starting KDE script setup...")
@@ -375,7 +435,7 @@ class MainPresenter:
             self._save_current_settings()
             self._instance_service.open_terminal(self._settings_controller.get_profile(), instance_num)
         except Exception as e:
-            logger.exception(f"Failed to open terminal for instance {instance_num}: {e}")
+            logger.exception("Failed to open terminal for instance %s: %s", instance_num + 1, e)
             ErrorDialog(prefs_window, "Error", ErrorHandler.format_error(e)).present()
 
     def on_preferences_clicked(self):
@@ -415,6 +475,12 @@ class MainPresenter:
         # The settings of this session are kept before the app goes away.
         self._save_current_settings()
 
+        for instance_num in list(self._instance_states):
+            if self._instance_states.get(instance_num) != INSTANCE_IDLE:
+                self._begin_instance_stop(instance_num)
+        self._starting_instances.clear()
+        self._owned_instances.clear()
+
         self._launch_controller.stop_instances(on_complete=lambda: GLib.idle_add(self._app.quit))
 
     def on_devices_refresh_requested(self):
@@ -450,7 +516,7 @@ class MainPresenter:
             self._bulk_operation_in_progress = False
             return
 
-        logger.info(f"Selected players for launch: {selected_players}")
+        logger.info("Selected players for launch: %s", [player + 1 for player in selected_players])
 
         # Every selected instance is starting, even the ones the launch has
         # not reached yet. The footer must not offer to stop while the launch
@@ -482,16 +548,20 @@ class MainPresenter:
 
     def _on_stop_requested(self):
         """Handle stop request."""
+        logger.info("Stop all instances requested by user.")
         for instance_num in list(self._instance_states):
-            self._set_instance_state(instance_num, INSTANCE_STOPPING)
+            if self._instance_states.get(instance_num) != INSTANCE_IDLE:
+                self._begin_instance_stop(instance_num)
+        self._starting_instances.clear()
+        self._owned_instances.clear()
 
         self._bulk_operation_in_progress = True
 
-        self._launch_controller.stop_instances(on_complete=self._on_stop_complete)
+        self._launch_controller.stop_instances(on_complete=lambda: GLib.idle_add(self._on_stop_complete))
 
     def _on_launch_progress(self, instance_num: int):
         """Handle launch progress update."""
-        logger.info(f"Launched instance {instance_num}")
+        logger.info("Launched instance %s", instance_num + 1)
         # The progress arrives on the launch worker thread, and the widgets
         # can only be touched from the main thread.
         GLib.idle_add(self._watch_instance_start, instance_num)
@@ -504,26 +574,28 @@ class MainPresenter:
 
     def _on_launch_error(self, error: Exception):
         """Handle launch error."""
-        logger.error(f"Launch error: {error}")
-        logger.exception("Exception details:")
+        logger.error("Launch error: %s", error)
         error_msg = ErrorHandler.format_error(error)
         GLib.idle_add(self.window.show_error, error_msg)
         GLib.idle_add(self._restore_after_failed_launch)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
         GLib.idle_add(self._clear_bulk_operation_flag)
 
-    def _on_stop_complete(self):
-        """Handle stop complete."""
+    def _on_stop_complete(self) -> bool:
+        """Handle stop complete on the main thread."""
+        self._starting_instances.clear()
+        self._owned_instances.clear()
         for instance_num in list(self._instance_states):
             self._forget_progress(instance_num)
             self._set_instance_detail(instance_num, "")
             self._set_instance_state(instance_num, INSTANCE_IDLE)
         self.window.show_toast("All instances stopped")
-        GLib.idle_add(self._sync_launch_button_action)
-        GLib.idle_add(self._run_all_verifications)
-        GLib.idle_add(self._update_launch_button_sensitivity)
-        GLib.idle_add(self._update_number_of_instances_sensitivity)
-        GLib.idle_add(self._clear_bulk_operation_flag)
+        self._sync_launch_button_action()
+        self._run_all_verifications()
+        self._update_launch_button_sensitivity()
+        self._update_number_of_instances_sensitivity()
+        self._clear_bulk_operation_flag()
+        return False
 
     def _on_single_instance_launched(self, instance_num: int):
         """Handle single instance launched."""
@@ -546,7 +618,7 @@ class MainPresenter:
 
     def _on_single_instance_error(self, instance_num: int, error: Exception):
         """Handle single instance error."""
-        logger.error(f"Error in instance {instance_num}: {error}")
+        logger.error("Error in instance %s: %s", instance_num + 1, error)
         error_msg = ErrorHandler.format_error(error)
         self._set_instance_state(instance_num, INSTANCE_IDLE)
         self.window.show_error(error_msg)
@@ -604,7 +676,7 @@ class MainPresenter:
         if hasattr(self._settings_controller.get_profile(), key):
             setattr(self._settings_controller.get_profile(), key, value)
             self._settings_controller.save_profile()
-            logger.info(f"Preference '{key}' updated to: {value}")
+            logger.info("Preference '%s' updated to: %s", key, value)
         else:
             self._settings_controller.update_preference(key, value)
 
@@ -668,7 +740,7 @@ class MainPresenter:
         """Update the sensitivity of the party add/remove controls."""
         layout_page = self.window.get_layout_page()
 
-        is_any_running = any(getattr(player_row, "_is_running", False) for player_row in layout_page.player_rows)
+        is_any_running = any(self._row_is_active(player_row) for player_row in layout_page.player_rows)
 
         layout_page.set_number_of_instances_sensitive(not is_any_running)
         layout_page.set_screen_settings_sensitive(not is_any_running)

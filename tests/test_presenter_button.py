@@ -340,6 +340,78 @@ def test_an_instance_that_stops_on_its_own_is_shown_as_an_error():
     assert call.kwargs["level"] == ERROR
 
 
+def test_manual_or_clean_steam_exit_unlocks_session_layout():
+    """Closing Steam manually or after install restores layout editing and verification."""
+    presenter = _presenter()
+    process = _running_process()
+    presenter._instance_service.processes[0] = process
+    presenter._instance_service.is_client_up.return_value = True
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    page = presenter.window.get_layout_page()
+    assert page.player_rows[0].get_instance_state() == INSTANCE_RUNNING
+
+    # Steam exits cleanly on its own or after the user closes the Steam window.
+    process.poll.return_value = 0
+    presenter.window.show_toast.reset_mock()
+    presenter._watch_instances()
+
+    assert page.player_rows[0].get_instance_state() == INSTANCE_IDLE
+    assert _footer_label(presenter) == "Play"
+    assert 0 not in presenter._instance_service.processes
+    presenter._instance_service.cleanup_stopped_instance.assert_called_once_with(0, exit_code=0)
+    presenter._launch_controller.sync_running_state.assert_called_once()
+    page.set_number_of_instances_sensitive.assert_called_with(True)
+    page.set_screen_settings_sensitive.assert_called_with(True)
+    page.set_checkboxes_sensitive.assert_called_with(True)
+    presenter.window.update_launch_button_sensitivity.assert_called_with(True)
+    assert presenter._verification_controller.verify_instance.call_count == 2
+    presenter.window.show_toast.assert_called_once_with("Instance 1 stopped")
+
+
+def test_clean_exit_during_install_does_not_double_report_and_unlocks_ui():
+    """Exiting during startup reports once, cleans up tracking, and re-enables controls."""
+    presenter = _presenter()
+    process = _running_process()
+    presenter._instance_service.processes[0] = process
+    presenter._watch_instance_start(0)
+    presenter.window.show_toast.reset_mock()
+
+    process.poll.return_value = 0
+    presenter._watch_instances()
+
+    page = presenter.window.get_layout_page()
+    assert page.player_rows[0].get_instance_state() == INSTANCE_IDLE
+    assert _footer_label(presenter) == "Play"
+    presenter.window.show_toast.assert_called_once_with("Instance 1 stopped")
+    page.set_number_of_instances_sensitive.assert_called_with(True)
+    page.set_screen_settings_sensitive.assert_called_with(True)
+    presenter._verification_controller.verify_instance.assert_called_once_with(0)
+
+
+def test_failed_instance_returns_to_idle_when_stop_clears_process():
+    """Once a failed instance's leftover is terminated, it does not stay stuck in stopping."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(failure="fatal IO error 110")
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    page = presenter.window.get_layout_page()
+    assert page.player_rows[0].get_instance_state() == INSTANCE_STOPPING
+
+    # Async termination finishes and removes the process entry.
+    presenter._instance_service.processes.clear()
+    presenter._watch_instances()
+
+    assert page.player_rows[0].get_instance_state() == INSTANCE_IDLE
+    assert _footer_label(presenter) == "Play"
+    page.set_number_of_instances_sensitive.assert_called_with(True)
+    page.set_screen_settings_sensitive.assert_called_with(True)
+
+
 def test_the_row_shows_the_update_of_the_client():
     """A client that updates itself shows how far it went."""
     presenter = _presenter()
@@ -460,3 +532,101 @@ def test_the_console_line_clears_once_the_client_is_running():
     presenter._watch_instances()
     assert row.get_status_detail() == ""
     assert presenter._instance_service.client_status.call_count == calls_at_running
+
+
+def test_stopping_single_instance_never_shows_unexpected_stop_toast():
+    """User-initiated Stop must never emit an 'unexpectedly' error when SIGTERM exits the process."""
+    presenter = _presenter()
+    process = _running_process()
+    presenter._instance_service.processes[0] = process
+    presenter._instance_service.is_client_up.return_value = True
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+    presenter.window.show_toast.reset_mock()
+
+    presenter.on_instance_launch_requested(0)
+
+    # Simulate SIGTERM exiting the process before the stop worker clears service.processes.
+    process.poll.return_value = 143
+    presenter._watch_instances()
+
+    presenter.window.show_toast.assert_not_called()
+    presenter._instance_service.cleanup_stopped_instance.assert_not_called()
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_STOPPING
+
+    presenter._on_single_instance_stopped(0)
+    presenter.window.show_toast.assert_called_once_with("Instance 1 stopped")
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_IDLE
+
+
+def test_end_session_never_shows_unexpected_stop_toast_and_uses_idle_add(monkeypatch):
+    """End Session must ignore SIGTERM exits during shutdown and dispatch completion on the main thread."""
+    presenter = _presenter()
+    p0 = _running_process()
+    p1 = _running_process()
+    presenter._instance_service.processes = {0: p0, 1: p1}
+    presenter._instance_service.is_client_up.return_value = True
+    presenter._watch_instance_start(0)
+    presenter._watch_instance_start(1)
+    presenter._watch_instances()
+    presenter.window.show_toast.reset_mock()
+
+    idle_calls = []
+    monkeypatch.setattr("src.gui.presenters.main_presenter.GLib.idle_add", lambda fn, *a: idle_calls.append((fn, a)))
+
+    presenter._on_stop_requested()
+
+    p0.poll.return_value = 143
+    p1.poll.return_value = -15
+    presenter._watch_instances()
+
+    presenter.window.show_toast.assert_not_called()
+    presenter._instance_service.cleanup_stopped_instance.assert_not_called()
+
+    # The stop worker callback must schedule _on_stop_complete via GLib.idle_add.
+    on_complete = presenter._launch_controller.stop_instances.call_args.kwargs["on_complete"]
+    on_complete()
+    assert idle_calls == [(presenter._on_stop_complete, ())]
+
+    presenter._on_stop_complete()
+    presenter.window.show_toast.assert_called_once_with("All instances stopped")
+    rows = presenter.window.get_layout_page().player_rows
+    assert rows[0].get_instance_state() == INSTANCE_IDLE
+    assert rows[1].get_instance_state() == INSTANCE_IDLE
+
+
+def test_failed_instance_sigterm_during_stop_does_not_show_unexpected_stop_toast():
+    """Stopping a failed instance must not trigger a second 'stopped unexpectedly' error toast."""
+    presenter = _presenter()
+    process = _running_process()
+    presenter._instance_service.processes[0] = process
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(failure="fatal IO error 110")
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+    presenter.window.show_toast.reset_mock()
+
+    process.poll.return_value = 143
+    presenter._watch_instances()
+
+    presenter.window.show_toast.assert_not_called()
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_STOPPING
+
+    presenter._instance_service.processes.clear()
+    presenter._watch_instances()
+    presenter.window.show_toast.assert_not_called()
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_IDLE
+
+
+def test_clicking_stop_while_stopping_does_not_spawn_duplicate_worker():
+    """Repeated clicks while an instance is stopping are ignored."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = True
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    presenter.on_instance_launch_requested(0)
+    presenter.on_instance_launch_requested(0)
+
+    assert presenter._launch_controller.terminate_single_instance.call_count == 1
