@@ -229,7 +229,7 @@ def test_slot_shows_controller_icon_in_top_right_when_controller_selected(page, 
     caption = first_slot.controller_icon.get_parent()
     assert caption.has_css_class("slot-caption")
     assert caption.get_last_child() is first_slot.controller_icon
-    assert first_slot.controller_icon.get_icon_name() == "gamepad-symbolic"
+    assert first_slot.controller_icon.get_icon_name() == "twinverse-gamepad-symbolic"
     assert not first_slot.controller_icon.get_visible()
     assert not second_slot.controller_icon.get_visible()
 

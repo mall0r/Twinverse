@@ -16,7 +16,7 @@ main (int argc, char **argv)
     "horizontal-three-square-symbolic", "vertical-three-square-symbolic",
     "gamepad-symbolic", "mouse-wireless-symbolic", "panel-left-symbolic",
     "panel-right-symbolic", "twinverse-add-symbolic", "twinverse-audio-symbolic",
-    "twinverse-close-symbolic", "twinverse-menu-symbolic", "twinverse-refresh-symbolic",
+    "twinverse-close-symbolic", "twinverse-gamepad-symbolic", "twinverse-menu-symbolic", "twinverse-refresh-symbolic",
     "twinverse-play-symbolic", "twinverse-stop-symbolic", "twinverse-check-symbolic",
     "twinverse-download-symbolic", "twinverse-dot-symbolic", "twinverse-display-symbolic",
     "twinverse-network-symbolic", "twinverse-terminal-symbolic", "twinverse-trash-symbolic",

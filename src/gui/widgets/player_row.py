@@ -222,7 +222,7 @@ class PlayerRow(Gtk.Box):
         self.refresh_controllers_button.update_property([Gtk.AccessibleProperty.LABEL], ["Refresh controllers"])
         self.refresh_controllers_button.connect("clicked", self._on_refresh_joysticks_clicked)
 
-        controls = self._create_section("Controls", "gamepad-symbolic", action=self.refresh_controllers_button)
+        controls = self._create_section("Controls", "twinverse-gamepad-symbolic", action=self.refresh_controllers_button)
         joysticks = self._devices_info["joystick"]
         self.joystick_row = self._create_dropdown(["None"] + [device["name"] for device in joysticks])
         controller_field = self._create_field("_Controller", self.joystick_row)
@@ -577,7 +577,7 @@ class PlayerRow(Gtk.Box):
         self._status_box.set_tooltip_text(detail or self.get_status_text())
 
     def _set_combo_selection(self, combo_row, device_list, device_id):
-        """Restore an ID, retaining unavailable assignments until explicitly changed."""
+        """Restore a connected device selection, or fall back to the default option."""
         if not device_id:
             combo_row.set_selected(0)
             return
@@ -588,11 +588,7 @@ class PlayerRow(Gtk.Box):
             ):
                 combo_row.set_selected(index + 1)
                 return
-        # Work on our own list snapshot, never the device manager's collection.
-        name = f"Unavailable · {device_id}"
-        device_list.append({"id": device_id, "name": name})
-        combo_row.get_model().append(name)
-        combo_row.set_selected(len(device_list))
+        combo_row.set_selected(0)
 
     def _get_combo_device_id(self, combo_row, device_list):
         selected_idx = combo_row.get_selected()

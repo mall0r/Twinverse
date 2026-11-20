@@ -915,7 +915,7 @@ class LayoutPreview(Gtk.Box):
         mouse_icon.set_visible(False)
         caption.append(mouse_icon)
 
-        controller_icon = Gtk.Image.new_from_icon_name("gamepad-symbolic")
+        controller_icon = Gtk.Image.new_from_icon_name("twinverse-gamepad-symbolic")
         controller_icon.set_pixel_size(icon_size)
         controller_icon.set_valign(Gtk.Align.CENTER)
         controller_icon.set_tooltip_text("Controller assigned")

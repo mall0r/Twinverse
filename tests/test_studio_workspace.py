@@ -653,3 +653,67 @@ def test_all_studio_icons_are_bundled_symbolic_assets(window):
         uri = paintable.get_file().get_uri() if paintable.get_file() else ""
         assert uri.startswith("resource:///io/github/mall0r/Twinverse/icons/"), f"{name}: {uri}"
         assert paintable.is_symbolic(), f"{name} must be symbolic ({uri})"
+
+
+def test_opening_player_setup_in_light_mode_does_not_shift_session_layout(window):
+    """Toggling Player Setup in light mode must not change header or stage dimensions."""
+    page = window.get_layout_page()
+    style = Adw.StyleManager.get_default()
+    previous_scheme = style.get_color_scheme()
+    try:
+        style.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
+        page.inspector_split.set_show_sidebar(False)
+        closed_toggle = (
+            window.inspector_toggle.measure(Gtk.Orientation.HORIZONTAL, -1)[:2],
+            window.inspector_toggle.measure(Gtk.Orientation.VERTICAL, -1)[:2],
+        )
+        closed_header = page.stage_header.measure(Gtk.Orientation.VERTICAL, -1)[:2]
+
+        page.inspector_split.set_show_sidebar(True)
+        open_toggle = (
+            window.inspector_toggle.measure(Gtk.Orientation.HORIZONTAL, -1)[:2],
+            window.inspector_toggle.measure(Gtk.Orientation.VERTICAL, -1)[:2],
+        )
+        open_header = page.stage_header.measure(Gtk.Orientation.VERTICAL, -1)[:2]
+
+        assert open_toggle == closed_toggle
+        assert open_header == closed_header
+    finally:
+        style.set_color_scheme(previous_scheme)
+
+
+def test_disconnected_controllers_are_omitted_from_ui_and_canvas(window):
+    """Unplugged controllers must not appear as Unavailable entries or show a canvas badge."""
+    page = window.get_layout_page()
+    displays = [{"name": "HDMI-A-1", "width": 1920, "height": 1080}]
+    profile = Profile(
+        num_players=2,
+        PLAYERS=[
+            PlayerInstanceConfig(PHYSICAL_DEVICE_ID="/dev/input/by-id/usb-disconnected-event-joystick"),
+            PlayerInstanceConfig(),
+        ],
+    )
+    page.load_data(profile, {"displays": displays, "joystick": [], "audio": []}, {0: True, 1: True})
+    row = page.player_rows[0]
+    model = row.joystick_row.get_model()
+    labels = [model.get_string(i) for i in range(model.get_n_items())]
+    assert labels == ["None"]
+    assert row.joystick_row.get_selected() == 0
+    assert not row.has_controller_selected()
+    assert row.get_config().physical_device_id is None
+    assert not page.layout_preview._slots[0].controller_icon.get_visible()
+
+    # Connecting and selecting a controller shows the badge; unplugging clears it cleanly.
+    connected = [{"id": "/dev/input/by-id/usb-pad-event-joystick", "name": "Xbox Pad"}]
+    page.update_devices_info({"displays": displays, "joystick": connected, "audio": []})
+    row.joystick_row.set_selected(1)
+    assert row.has_controller_selected()
+    assert page.layout_preview._slots[0].controller_icon.get_visible()
+
+    page.update_devices_info({"displays": displays, "joystick": [], "audio": []})
+    model = row.joystick_row.get_model()
+    labels = [model.get_string(i) for i in range(model.get_n_items())]
+    assert labels == ["None"]
+    assert row.joystick_row.get_selected() == 0
+    assert not row.has_controller_selected()
+    assert not page.layout_preview._slots[0].controller_icon.get_visible()
