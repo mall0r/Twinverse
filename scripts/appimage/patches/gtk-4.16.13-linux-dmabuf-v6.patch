@@ -1,0 +1,40 @@
+Fix the crash of GTK 4.16 on compositors that expose linux-dmabuf v6.
+
+The linux-dmabuf-unstable-v1 protocol deprecates the main_device event in
+version 6: a compositor no longer sends it, and the client is expected to use
+the tranche that carries the sampling flag instead. GDK 4.16 binds the
+version that the compositor advertises, but its feedback handler still
+allocates the pending format set from main_device, so the first
+tranche_done event dereferences a NULL pointer and the application dies with
+a SIGSEGV while Gtk.init() opens the display.
+
+GTK 4.20 fixed this upstream by never binding above version 5, which keeps
+the v5 semantics where main_device is always sent. This patch backports that
+one-line change, so the bundled GTK behaves like a current one.
+
+Upstream fix: gdk/wayland/gdkdisplay-wayland.c, bind with
+MIN (version, LINUX_DMABUF_VERSION) where LINUX_DMABUF_VERSION is 5.
+
+--- a/gdk/wayland/gdkdisplay-wayland.c
++++ b/gdk/wayland/gdkdisplay-wayland.c
+@@ -96,6 +96,10 @@
+ 
+ #define MIN_SYSTEM_BELL_DELAY_MS 20
+ 
++/* The linux-dmabuf v6 feedback no longer sends main_device, and this GDK only
++ * implements the v5 semantics, so bind no higher than v5. */
++#define LINUX_DMABUF_VERSION     5
++
+ #define GTK_SHELL1_VERSION       5
+ #define OUTPUT_VERSION_WITH_DONE 2
+ #define NO_XDG_OUTPUT_DONE_SINCE_VERSION 3
+@@ -370,7 +374,8 @@
+       struct zwp_linux_dmabuf_feedback_v1 *feedback;
+ 
+       display_wayland->linux_dmabuf =
+-        wl_registry_bind (display_wayland->wl_registry, id, &zwp_linux_dmabuf_v1_interface, version);
++        wl_registry_bind (display_wayland->wl_registry, id, &zwp_linux_dmabuf_v1_interface,
++                          MIN (version, LINUX_DMABUF_VERSION));
+       feedback = zwp_linux_dmabuf_v1_get_default_feedback (display_wayland->linux_dmabuf);
+       display_wayland->dmabuf_formats_info = dmabuf_formats_info_new (GDK_DISPLAY (display_wayland),
+                                                                       "default",

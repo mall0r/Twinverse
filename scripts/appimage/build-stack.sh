@@ -5,6 +5,11 @@ mkdir -p /tmp/gnome-build
 cd /tmp/gnome-build
 # CI has four cores; compiling serially there would exceed the job timeout.
 JOBS=${JOBS:-$(nproc)}
+# Backports that the pinned versions still need. The builder image copies this
+# directory next to the script. A backport is named
+# <package>-<version>[-<description>].patch and is applied right after the
+# source is unpacked.
+PATCHES_DIR=${PATCHES_DIR:-"$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/patches"}
 build() {
     local name=$1 version=$2
     shift 2
@@ -12,6 +17,12 @@ build() {
         "https://download.gnome.org/sources/$name/${version%.*}/$name-$version.tar.xz" \
         -o "$name.tar.xz"
     tar -xf "$name.tar.xz"
+    local patch_file
+    for patch_file in "$PATCHES_DIR/$name-$version"*.patch; do
+        [ -f "$patch_file" ] || continue
+        echo "Applying $(basename "$patch_file")"
+        patch --batch --no-backup-if-mismatch -p1 -d "$name-$version" < "$patch_file"
+    done
     meson setup "$name-$version/build" "$name-$version" \
         --prefix="$PREFIX" --libdir=lib --buildtype=release --wrap-mode=nofallback "$@"
     ninja -C "$name-$version/build" -j"$JOBS"
