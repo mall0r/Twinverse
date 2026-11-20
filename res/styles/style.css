@@ -1,6 +1,6 @@
 /* Session Layout. No styles from the former preferences-page UI are retained. */
 @define-color layout_accent #8bbcff;
-@define-color layout_accent_light #245c9f;
+@define-color layout_accent_light #1a56a8;
 @define-color studio_ink #10233d;
 @define-color studio_bg #1b1b1b;
 @define-color studio_surface #242424;
@@ -10,14 +10,18 @@
 @define-color studio_fg #eeeeee;
 @define-color studio_secondary #c3c3c3;
 @define-color studio_muted #a3a3a3;
-@define-color studio_bg_light #f6f6f6;
+@define-color studio_bg_light #ededed;
 @define-color studio_surface_light #ffffff;
-@define-color studio_canvas_light #e9e9e9;
-@define-color studio_control_light #f0f0f0;
-@define-color studio_border_light #d4d4d4;
-@define-color studio_fg_light #292929;
-@define-color studio_secondary_light #525252;
-@define-color studio_muted_light #686868;
+@define-color studio_canvas_light #e2e2e2;
+@define-color studio_control_light #f5f5f5;
+@define-color studio_border_light #b4b4b4;
+@define-color studio_control_border_light #8c8c8c;
+@define-color studio_fg_light #141414;
+@define-color studio_secondary_light #333333;
+@define-color studio_muted_light #4f4f4f;
+@define-color studio_success_light #166534;
+@define-color studio_warning_light #92400e;
+@define-color studio_danger_light #b91c1c;
 
 .twinverse-studio {
     background: @studio_bg;
@@ -89,18 +93,19 @@
     outline-offset: 2px;
 }
 .light .panel-toggle {
-    color: @studio_muted_light;
+    color: @studio_secondary_light;
 }
 .light .panel-toggle:hover {
-    background: alpha(@studio_fg_light, 0.06);
+    background: alpha(@studio_fg_light, 0.08);
     color: @studio_fg_light;
 }
 .light .panel-toggle:checked {
-    background: #e2e2e2;
+    background: #d6d6d6;
+    border: 1px solid @studio_control_border_light;
     color: @studio_fg_light;
 }
 .light .panel-toggle:not(:disabled):active {
-    background: alpha(@studio_fg_light, 0.14);
+    background: alpha(@studio_fg_light, 0.15);
     color: @studio_fg_light;
 }
 .light .panel-toggle:focus-visible {
@@ -138,14 +143,21 @@
 }
 .light .studio-launch.launch-button {
     background: @layout_accent_light;
-    color: white;
+    color: #ffffff;
 }
 .light .studio-launch.launch-button:hover {
-    background: #1b4a83;
+    background: #134285;
 }
 .studio-launch.stop-button {
     background: #f0a291;
     color: #3e201c;
+}
+.light .studio-launch.stop-button {
+    background: @studio_danger_light;
+    color: #ffffff;
+}
+.light .studio-launch.stop-button:hover {
+    background: #991b1b;
 }
 .studio-launch:not(:disabled):active {
     transform: scale(0.98);
@@ -156,8 +168,9 @@
     color: @studio_muted;
 }
 .light .studio-launch:disabled {
-    background: #e2e2e2;
-    color: #7a7a7a;
+    background: #d8d8d8;
+    color: #525252;
+    border: 1px solid @studio_border_light;
 }
 .party-sidebar {
     background: @studio_bg;
@@ -204,15 +217,15 @@
     transform: scale(0.985);
 }
 .light .party-player:hover {
-    background: alpha(@studio_fg_light, 0.06);
+    background: alpha(@studio_fg_light, 0.07);
 }
 .light .party-player:selected {
-    background: #e2e2e2;
-    border-color: #bed2ee;
+    background: #dde6f2;
+    border-color: #7ea6d8;
     color: @studio_fg_light;
 }
 .light .party-player:active {
-    background: alpha(@studio_fg_light, 0.12);
+    background: alpha(@studio_fg_light, 0.13);
 }
 .party-avatar {
     font-size: 14px;
@@ -238,9 +251,17 @@
 .party-running .party-player-status {
     color: #86d9a2;
 }
+.light .party-running .party-player-status {
+    color: @studio_success_light;
+    font-weight: 600;
+}
 .party-excluded .party-avatar,
 .party-excluded .party-player-name {
     opacity: 0.5;
+}
+.light .party-excluded .party-avatar,
+.light .party-excluded .party-player-name {
+    opacity: 0.58;
 }
 .player-checkbox check {
     min-height: 14px;
@@ -256,10 +277,14 @@
     transform: scale(0.88);
     filter: brightness(0.9);
 }
+.light .player-checkbox check {
+    background: @studio_surface_light;
+    border: 1px solid #767676;
+}
 .light .player-checkbox check:checked {
     background: @layout_accent_light;
     border-color: @layout_accent_light;
-    color: white;
+    color: #ffffff;
 }
 
 .party-remove-button {
@@ -281,6 +306,14 @@
 }
 .light .party-remove-button {
     color: @studio_muted_light;
+}
+.light .party-remove-button:hover {
+    background: alpha(@studio_danger_light, 0.12);
+    color: @studio_danger_light;
+}
+.light .party-remove-button:not(:disabled):active {
+    background: alpha(@studio_danger_light, 0.22);
+    color: @studio_danger_light;
 }
 .party-remove-button:disabled {
     opacity: 0.3;
@@ -307,15 +340,16 @@
     opacity: 0.45;
 }
 .light .party-add-button {
-    background: @studio_control_light;
-    border-color: @studio_border_light;
+    background: @studio_surface_light;
+    border-color: @studio_control_border_light;
     color: @studio_fg_light;
 }
 .light .party-add-button:hover {
-    background: #e2e2e2;
+    background: #e6e6e6;
+    border-color: #6b6b6b;
 }
 .light .party-add-button:not(:disabled):active {
-    background: #d5d5d5;
+    background: #d6d6d6;
 }
 .party-session-status {
     padding-top: 2px;
@@ -329,6 +363,13 @@
 .session-indicator.session-starting,
 .session-indicator.session-stopping {
     color: #edc586;
+}
+.light .session-indicator.session-starting,
+.light .session-indicator.session-stopping {
+    color: @studio_warning_light;
+}
+.light .session-indicator.session-running {
+    color: @studio_success_light;
 }
 .session-status-title {
     font-size: 12px;
@@ -380,6 +421,7 @@
 .light .stage-surface {
     background: @studio_surface_light;
     border-color: @studio_border_light;
+    box-shadow: 0 1px 3px alpha(black, 0.06);
 }
 .canvas-kicker,
 .canvas-display-count {
@@ -407,7 +449,7 @@
     -gtk-icon-size: 22px;
 }
 .light .canvas-monitor-icon {
-    color: @studio_muted_light;
+    color: @studio_secondary_light;
 }
 .canvas-monitor-title {
     font-size: 12px;
@@ -432,9 +474,9 @@
     letter-spacing: 1px;
 }
 .light .canvas-monitor-badge {
-    color: @studio_muted_light;
-    background: @studio_control_light;
-    border-color: @studio_border_light;
+    color: @studio_secondary_light;
+    background: #f0f0f0;
+    border-color: #a6a6a6;
 }
 .canvas-monitor-grid {
     padding: 7px;
@@ -443,8 +485,8 @@
     border-radius: 17px;
 }
 .light .canvas-monitor-grid {
-    background: @studio_canvas_light;
-    border-color: @studio_border_light;
+    background: #d8d8d8;
+    border-color: #9e9e9e;
 }
 .slot-button {
     padding: 0;
@@ -462,12 +504,20 @@
     transform: scale(0.985);
     filter: brightness(0.94);
 }
+.light .slot-button:hover {
+    filter: brightness(0.95);
+}
+.light .slot-button:not(:disabled):active {
+    transform: scale(0.985);
+    filter: brightness(0.90);
+}
 .slot-button.slot-active {
     border: 2px solid @layout_accent;
     box-shadow: inset 0 0 0 3px alpha(@layout_accent, 0.06);
 }
 .light .slot-button.slot-active {
-    border-color: @layout_accent_light;
+    border: 2px solid @layout_accent_light;
+    box-shadow: inset 0 0 0 2px alpha(@layout_accent_light, 0.16);
 }
 .slot-content {
     padding: 15px;
@@ -481,8 +531,18 @@
     letter-spacing: 1.5px;
     opacity: 0.7;
 }
-.slot-controller-icon {
+.light .slot-space {
+    opacity: 0.88;
+}
+.slot-input-icon,
+.slot-controller-icon,
+.slot-mouse-icon {
     opacity: 0.85;
+}
+.light .slot-input-icon,
+.light .slot-controller-icon,
+.light .slot-mouse-icon {
+    opacity: 0.92;
 }
 .slot-number {
     font-size: 39px;
@@ -498,12 +558,27 @@
     font-size: 10px;
     opacity: 0.75;
 }
+.light .slot-status {
+    opacity: 0.92;
+}
 .slot-status-dot {
     opacity: 0.7;
+}
+.light .slot-status-dot {
+    opacity: 0.9;
+}
+.slot-status-dot.slot-status-ready {
+    opacity: 0.95;
+}
+.light .slot-status-dot.slot-status-ready {
+    opacity: 1;
 }
 .slot-geometry {
     font-size: 9px;
     opacity: 0.55;
+}
+.light .slot-geometry {
+    opacity: 0.82;
 }
 .slot-compact .slot-button {
     min-height: 88px;
@@ -526,7 +601,7 @@
 }
 .light .slot-drop-target .slot-button {
     outline-color: @layout_accent_light;
-    box-shadow: inset 0 0 0 4px alpha(@layout_accent_light, 0.12);
+    box-shadow: inset 0 0 0 4px alpha(@layout_accent_light, 0.14);
 }
 .player-dragging {
     opacity: 0.5;
@@ -547,23 +622,33 @@
 .slot-button.player-color-6 .slot-number, .party-avatar.player-color-6 { color: #e4a0ce; }
 .slot-button.player-color-7 .slot-number, .party-avatar.player-color-7 { color: #92d5b5; }
 .slot-button.slot-active { border-color: @layout_accent; }
-.light .slot-button { background: @studio_control_light; color: @studio_fg_light; border-color: @studio_border_light; }
-.light .slot-button.player-color-0 { background: #e0ecfc; color: #284e7a; border-color: #bed2ee; }
-.light .slot-button.player-color-1 { background: #ddedef; color: #305358; border-color: #c0d9db; }
-.light .slot-button.player-color-2 { background: #e9e3f3; color: #514063; border-color: #d6c8e8; }
-.light .slot-button.player-color-3 { background: #f1e4d9; color: #664b39; border-color: #dfc9b5; }
-.light .slot-button.player-color-4 { background: #dfe9f6; color: #3a516d; border-color: #c3d3e7; }
-.light .slot-button.player-color-5 { background: #f1ecd7; color: #635b34; border-color: #ded5b3; }
-.light .slot-button.player-color-6 { background: #f0dfeb; color: #69455f; border-color: #dec0d3; }
-.light .slot-button.player-color-7 { background: #ddefe3; color: #355b46; border-color: #bfdbc9; }
-.light .slot-number, .light .party-avatar { color: @layout_accent_light; }
-.light .slot-button.player-color-1 .slot-number, .light .party-avatar.player-color-1 { color: #387d80; }
-.light .slot-button.player-color-2 .slot-number, .light .party-avatar.player-color-2 { color: #80659c; }
-.light .slot-button.player-color-3 .slot-number, .light .party-avatar.player-color-3 { color: #9b7055; }
-.light .slot-button.player-color-4 .slot-number, .light .party-avatar.player-color-4 { color: #4d739e; }
-.light .slot-button.player-color-5 .slot-number, .light .party-avatar.player-color-5 { color: #8d7b35; }
-.light .slot-button.player-color-6 .slot-number, .light .party-avatar.player-color-6 { color: #9c5b87; }
-.light .slot-button.player-color-7 .slot-number, .light .party-avatar.player-color-7 { color: #427d59; }
+.light .slot-button { background: @studio_control_light; color: @studio_fg_light; border-color: @studio_control_border_light; }
+.light .slot-button.player-color-0 { background: #dcebff; color: #0f2e59; border-color: #6b9fe0; }
+.light .slot-button.player-color-1 { background: #d7f0ee; color: #0e3a38; border-color: #5aa8a4; }
+.light .slot-button.player-color-2 { background: #ebe1fa; color: #2e1954; border-color: #9b7cd4; }
+.light .slot-button.player-color-3 { background: #fae3d7; color: #4d200e; border-color: #d68863; }
+.light .slot-button.player-color-4 { background: #e0e7fb; color: #192859; border-color: #7690db; }
+.light .slot-button.player-color-5 { background: #f7ecc8; color: #423107; border-color: #c7a23c; }
+.light .slot-button.player-color-6 { background: #f8dfed; color: #4d1434; border-color: #cf78a9; }
+.light .slot-button.player-color-7 { background: #d9f2e2; color: #0f3b22; border-color: #5eab7c; }
+.light .slot-number { color: #174ea6; }
+.light .slot-button.player-color-0 .slot-number { color: #174ea6; }
+.light .slot-button.player-color-1 .slot-number { color: #0f615d; }
+.light .slot-button.player-color-2 .slot-number { color: #5b2da3; }
+.light .slot-button.player-color-3 .slot-number { color: #9a3b14; }
+.light .slot-button.player-color-4 .slot-number { color: #2c499e; }
+.light .slot-button.player-color-5 .slot-number { color: #7a5908; }
+.light .slot-button.player-color-6 .slot-number { color: #962363; }
+.light .slot-button.player-color-7 .slot-number { color: #166639; }
+.light .party-avatar { background: #d6e6fc; color: #174ea6; border: 1px solid #9ec0ec; }
+.light .party-avatar.player-color-0 { background: #d6e6fc; color: #174ea6; border-color: #9ec0ec; }
+.light .party-avatar.player-color-1 { background: #d0ecea; color: #0f615d; border-color: #8cc4c0; }
+.light .party-avatar.player-color-2 { background: #e5d8f8; color: #5b2da3; border-color: #b79ce0; }
+.light .party-avatar.player-color-3 { background: #f7dacb; color: #9a3b14; border-color: #e0a689; }
+.light .party-avatar.player-color-4 { background: #d9e2fa; color: #2c499e; border-color: #9cb0e6; }
+.light .party-avatar.player-color-5 { background: #f4e6b8; color: #7a5908; border-color: #d6ba68; }
+.light .party-avatar.player-color-6 { background: #f5d5e7; color: #962363; border-color: #dc9bbf; }
+.light .party-avatar.player-color-7 { background: #d0eedb; color: #166639; border-color: #8cc7a2; }
 .light .slot-button.slot-active { border-color: @layout_accent_light; }
 .canvas-empty {
     color: @studio_muted;
@@ -578,7 +663,7 @@
     color: #e2be85;
 }
 .light .canvas-warning {
-    color: #826126;
+    color: @studio_warning_light;
 }
 .layout-dock {
     padding: 0 2px;
@@ -590,7 +675,7 @@
     color: @studio_muted;
 }
 .light .dock-label {
-    color: @studio_muted_light;
+    color: @studio_secondary_light;
 }
 .dock-select > button {
     background: @studio_control;
@@ -608,11 +693,15 @@
 }
 .light .dock-select > button {
     background: @studio_surface_light;
-    border-color: @studio_border_light;
+    border-color: @studio_control_border_light;
     color: @studio_fg_light;
 }
+.light .dock-select > button:hover {
+    background: #f0f0f0;
+    border-color: #6b6b6b;
+}
 .light .dock-select > button:not(:disabled):active {
-    background: #e2e2e2;
+    background: #e0e0e0;
 }
 .player-panel {
     background: @studio_bg;
@@ -643,13 +732,50 @@
     font-size: 19px;
     font-weight: 700;
 }
-.light .inspector-avatar {
-    background: #e0ecfc;
-}
 .inspector-title {
     font-size: 21px;
     font-weight: 750;
     letter-spacing: -0.5px;
+}
+.inspector-edit-name-button {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    border-radius: 6px;
+    color: @studio_muted;
+    -gtk-icon-size: 13px;
+}
+.inspector-edit-name-button:hover {
+    background: alpha(@studio_fg, 0.08);
+    color: @studio_fg;
+}
+.inspector-edit-name-button:not(:disabled):active {
+    background: alpha(@studio_fg, 0.16);
+    color: @studio_fg;
+    transform: scale(0.9);
+}
+.light .inspector-edit-name-button {
+    color: @studio_muted_light;
+}
+.light .inspector-edit-name-button:hover {
+    background: alpha(@studio_fg_light, 0.08);
+    color: @studio_fg_light;
+}
+.light .inspector-edit-name-button:not(:disabled):active {
+    background: alpha(@studio_fg_light, 0.16);
+    color: @studio_fg_light;
+}
+.inspector-name-entry {
+    font-size: 16px;
+    font-weight: 700;
+    min-height: 30px;
+    padding: 2px 8px;
+}
+.inspector-name-entry:focus-within {
+    border-color: @layout_accent;
+}
+.light .inspector-name-entry:focus-within {
+    border-color: @layout_accent_light;
 }
 .inspector-status {
     font-size: 11px;
@@ -667,10 +793,10 @@
     color: #ddbd89;
 }
 .light .inspector-ready, .light .inspector-running {
-    color: #487644;
+    color: @studio_success_light;
 }
 .light .inspector-unverified, .light .inspector-starting, .light .inspector-stopping {
-    color: #8b6727;
+    color: @studio_warning_light;
 }
 .inspector-help {
     font-size: 11px;
@@ -705,22 +831,40 @@
 .light .inspector-action {
     background: @studio_control_light;
     color: @studio_fg_light;
-    border-color: @studio_border_light;
+    border-color: @studio_control_border_light;
 }
-.light .inspector-action:not(.destructive-action):hover {
-    background: #e2e2e2;
+.light .inspector-action:not(.destructive-action):not(.suggested-action):hover {
+    background: #e5e5e5;
+    border-color: #6b6b6b;
+}
+.light .inspector-action.suggested-action {
+    background: @layout_accent_light;
+    color: #ffffff;
+    border-color: #144589;
+}
+.light .inspector-action.suggested-action:hover {
+    background: #134285;
 }
 .inspector-action.destructive-action {
     background: #4b342d;
     color: #efb19e;
     border-color: #6d4b3e;
 }
+.light .inspector-action.destructive-action {
+    background: #fde8e8;
+    color: #991b1b;
+    border-color: #d97777;
+}
+.light .inspector-action.destructive-action:hover {
+    background: #fbd5d5;
+    border-color: #c53030;
+}
 .inspector-section-icon {
     color: @studio_muted;
     -gtk-icon-size: 15px;
 }
 .light .inspector-section-icon {
-    color: @studio_muted_light;
+    color: @studio_secondary_light;
 }
 .inspector-section-title {
     font-size: 12px;
@@ -760,6 +904,7 @@
 }
 .light .inspector-field-label {
     color: @studio_secondary_light;
+    font-weight: 600;
 }
 .inspector-dropdown > button,
 .inspector-entry,
@@ -782,15 +927,34 @@
 .light .inspector-entry,
 .light .inspector-env-key,
 .light .inspector-env-value {
-    background: @studio_control_light;
-    border-color: @studio_border_light;
+    background: @studio_surface_light;
+    border-color: @studio_control_border_light;
     color: @studio_fg_light;
+}
+.light .inspector-dropdown > button:hover {
+    background: @studio_control_light;
+    border-color: #6b6b6b;
 }
 .light .inspector-dropdown > button:not(:disabled):active {
     background: #e2e2e2;
 }
+.light .inspector-entry:focus-within,
+.light .inspector-env-key:focus-within,
+.light .inspector-env-value:focus-within {
+    border-color: @layout_accent_light;
+}
 .inspector-switch:checked {
     background: @layout_accent_light;
+}
+.light .inspector-switch,
+.light .settings-toggle switch {
+    background: #c2c2c2;
+    border: 1px solid #8a8a8a;
+}
+.light .inspector-switch:checked,
+.light .settings-toggle switch:checked {
+    background: @layout_accent_light;
+    border-color: @layout_accent_light;
 }
 .inspector-switch:active slider,
 .settings-toggle switch:active slider {
@@ -809,7 +973,7 @@
     border-radius: 10px;
 }
 .light .inspector-env-row {
-    background: @studio_surface_light;
+    background: @studio_control_light;
     border-color: @studio_border_light;
 }
 .inspector-env-key,
@@ -828,22 +992,30 @@
     transform: scale(0.97);
 }
 .light .inspector-env-add {
-    background: @studio_control_light;
-    border-color: @studio_border_light;
+    background: @studio_surface_light;
+    border-color: @studio_control_border_light;
     color: @studio_fg_light;
 }
+.light .inspector-env-add:hover {
+    background: #e8e8e8;
+    border-color: #6b6b6b;
+}
 .light .inspector-env-add:not(:disabled):active {
-    background: #e2e2e2;
+    background: #dadada;
 }
 .inspector-env-remove,
 .reset-action {
     color: @error_color;
 }
+.light .inspector-env-remove,
+.light .reset-action {
+    color: @studio_danger_light;
+}
 .twinverse-studio separator {
     background: alpha(@studio_fg, 0.08);
 }
 .light.twinverse-studio separator {
-    background: alpha(@studio_fg_light, 0.08);
+    background: alpha(@studio_fg_light, 0.14);
 }
 .toast-card {
     min-width: 260px;
@@ -858,8 +1030,8 @@
 .light .toast-card {
     background: @studio_surface_light;
     color: @studio_fg_light;
-    border: 1px solid @studio_border_light;
-    box-shadow: 0 10px 28px alpha(black, 0.12), 0 2px 6px alpha(black, 0.06);
+    border: 1px solid #9e9e9e;
+    box-shadow: 0 10px 28px alpha(black, 0.16), 0 2px 6px alpha(black, 0.08);
 }
 .toast-badge {
     min-width: 32px;
@@ -868,7 +1040,7 @@
     background: alpha(@layout_accent, 0.14);
 }
 .light .toast-badge {
-    background: alpha(@layout_accent_light, 0.12);
+    background: alpha(@layout_accent_light, 0.14);
 }
 .toast-icon {
     -gtk-icon-size: 15px;
@@ -926,7 +1098,7 @@
     border-color: alpha(@layout_accent, 0.28);
 }
 .light .toast-card.toast-info {
-    border-color: alpha(@layout_accent_light, 0.3);
+    border-color: alpha(@layout_accent_light, 0.42);
 }
 .toast-card.toast-busy {
     border-color: alpha(#ddbd89, 0.32);
@@ -939,14 +1111,14 @@
     color: #ddbd89;
 }
 .light .toast-card.toast-busy {
-    border-color: alpha(#8b6727, 0.3);
+    border-color: alpha(@studio_warning_light, 0.42);
 }
 .light .toast-card.toast-busy .toast-badge {
-    background: alpha(#8b6727, 0.12);
+    background: alpha(@studio_warning_light, 0.14);
 }
 .light .toast-card.toast-busy .toast-icon,
 .light .toast-card.toast-busy .toast-title {
-    color: #8b6727;
+    color: @studio_warning_light;
 }
 .toast-card.toast-error {
     border-color: alpha(@error_color, 0.55);
@@ -959,10 +1131,14 @@
     color: @error_color;
 }
 .light .toast-card.toast-error {
-    border-color: alpha(@error_color, 0.45);
+    border-color: alpha(@studio_danger_light, 0.48);
 }
 .light .toast-card.toast-error .toast-badge {
-    background: alpha(@error_color, 0.12);
+    background: alpha(@studio_danger_light, 0.13);
+}
+.light .toast-card.toast-error .toast-icon,
+.light .toast-card.toast-error .toast-title {
+    color: @studio_danger_light;
 }
 .uniform-button { min-width: 96px; border-radius: 9px; }
 
@@ -1004,7 +1180,10 @@
     border-color: @studio_border_light;
 }
 .light .settings-navigation button {
-    color: @studio_muted_light;
+    color: @studio_secondary_light;
+}
+.light .settings-navigation button:hover {
+    color: @studio_fg_light;
 }
 .light .settings-navigation button:checked {
     border-bottom-color: @layout_accent_light;
@@ -1034,6 +1213,7 @@
 .light .settings-section {
     background: @studio_surface_light;
     border-color: @studio_border_light;
+    box-shadow: 0 1px 2px alpha(black, 0.05);
 }
 .settings-toggle switch:checked {
     background: @layout_accent_light;
@@ -1043,7 +1223,7 @@
     border-bottom: 1px solid alpha(@studio_fg, 0.08);
 }
 .light .settings-player {
-    border-color: alpha(@studio_fg_light, 0.08);
+    border-color: alpha(@studio_fg_light, 0.12);
 }
 .settings-player .numeric {
     color: @layout_accent;
@@ -1052,6 +1232,7 @@
 }
 .light .settings-player .numeric {
     color: @layout_accent_light;
+    background: alpha(@layout_accent_light, 0.14);
 }
 .settings-player button {
     border-radius: 8px;
@@ -1061,6 +1242,9 @@
 }
 .settings-danger {
     color: @error_color;
+}
+.light .settings-danger {
+    color: @studio_danger_light;
 }
 
 /* Compact per-monitor tiling controls. */
@@ -1096,17 +1280,18 @@
     outline-offset: 2px;
 }
 .light .tiling-option {
-    border-color: @studio_border_light;
-    background: @studio_control_light;
+    border-color: @studio_control_border_light;
+    background: @studio_surface_light;
     color: @studio_secondary_light;
 }
 .light .tiling-option:hover {
-    background: @studio_canvas_light;
+    background: #e8e8e8;
+    border-color: #6b6b6b;
     color: @studio_fg_light;
 }
 .light .tiling-option:checked {
     border-color: @layout_accent_light;
-    background: alpha(@layout_accent_light, 0.12);
+    background: alpha(@layout_accent_light, 0.14);
     color: @layout_accent_light;
 }
 .light .tiling-option:focus-visible {

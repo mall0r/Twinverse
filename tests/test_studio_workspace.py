@@ -520,6 +520,54 @@ def test_surface_tokens_are_neutral_in_both_themes():
             assert color.green == pytest.approx(color.blue)
 
 
+def test_light_theme_tokens_and_player_cards_meet_wcag_aa_contrast():
+    """Light mode text, semantic statuses, controls and all 8 player cards meet WCAG AA contrast."""
+    stylesheet = (Path(__file__).resolve().parents[1] / "res/styles/style.css").read_text()
+    tokens = dict(re.findall(r"@define-color\s+([\w-]+)\s+(#[0-9a-fA-F]{6});", stylesheet))
+
+    def luminance(hex_color: str) -> float:
+        rgb = [int(hex_color[i : i + 2], 16) / 255.0 for i in (1, 3, 5)]
+        linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    def contrast(first: str, second: str) -> float:
+        l1, l2 = luminance(first), luminance(second)
+        return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
+
+    for fg_key in ("studio_fg_light", "studio_secondary_light", "studio_muted_light", "layout_accent_light"):
+        for bg_key in ("studio_bg_light", "studio_surface_light", "studio_canvas_light"):
+            assert contrast(tokens[fg_key], tokens[bg_key]) >= 4.5, f"{fg_key} on {bg_key}"
+
+    for semantic_key in ("studio_success_light", "studio_warning_light", "studio_danger_light"):
+        assert contrast(tokens[semantic_key], tokens["studio_surface_light"]) >= 4.5, semantic_key
+        assert contrast(tokens[semantic_key], tokens["studio_bg_light"]) >= 4.5, semantic_key
+
+    assert contrast(tokens["studio_control_border_light"], tokens["studio_surface_light"]) >= 3.0
+
+    for index in range(8):
+        card_match = re.search(
+            rf"\.light \.slot-button\.player-color-{index}\s*\{{[^}}]*background:\s*(#[0-9a-fA-F]{{6}});[^}}]*(?<!-)color:\s*(#[0-9a-fA-F]{{6}});",
+            stylesheet,
+        )
+        assert card_match is not None, f"Missing light slot-button player-color-{index}"
+        card_bg, card_fg = card_match.groups()
+        assert contrast(card_fg, card_bg) >= 7.0, f"player-color-{index} slot text"
+
+        num_match = re.search(
+            rf"\.light \.slot-button\.player-color-{index}\s+\.slot-number\s*\{{[^}}]*(?<!-)color:\s*(#[0-9a-fA-F]{{6}});",
+            stylesheet,
+        )
+        assert num_match is not None, f"Missing light slot-number player-color-{index}"
+        assert contrast(num_match.group(1), card_bg) >= 4.5, f"player-color-{index} slot number"
+
+        avatar_match = re.search(
+            rf"\.light \.party-avatar\.player-color-{index}\s*\{{[^}}]*background:\s*(#[0-9a-fA-F]{{6}});[^}}]*(?<!-)color:\s*(#[0-9a-fA-F]{{6}});",
+            stylesheet,
+        )
+        assert avatar_match is not None, f"Missing light party-avatar player-color-{index}"
+        assert contrast(avatar_match.group(2), avatar_match.group(1)) >= 4.5, f"player-color-{index} avatar"
+
+
 def test_studio_stylesheet_parses():
     """Validate native GTK CSS rather than assuming browser-CSS compatibility."""
     errors = []
