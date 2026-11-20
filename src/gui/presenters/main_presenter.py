@@ -89,6 +89,7 @@ class MainPresenter:
         """Tell the user that the Steam client is starting, and follow it."""
         self._owned_instances.add(instance_num)
         self._starting_instances.add(instance_num)
+        self._set_instance_detail(instance_num, "")
         self._set_instance_state(instance_num, INSTANCE_STARTING)
         # The client may take a long time when it updates itself, so the
         # message says that something is still working.
@@ -102,7 +103,7 @@ class MainPresenter:
         """Start the timer that follows the instances, only once."""
         if self._instance_watch_id:
             return
-        self._instance_watch_id = GLib.timeout_add_seconds(3, self._watch_instances)
+        self._instance_watch_id = GLib.timeout_add_seconds(1, self._watch_instances)
 
     def _watch_instances(self) -> bool:
         """Follow the instances that are starting and notice the ones that stop."""
@@ -115,6 +116,7 @@ class MainPresenter:
                 continue
             if process.poll() is not None:
                 self._starting_instances.discard(instance_num)
+                self._forget_progress(instance_num)
                 self._report_instance_stopped(instance_num)
                 continue
 
@@ -125,7 +127,9 @@ class MainPresenter:
             if service.is_client_up(instance_num):
                 self._starting_instances.discard(instance_num)
                 self._forget_progress(instance_num)
+                self._set_instance_detail(instance_num, "")
                 logger.info("The Steam client of instance %s started", instance_num + 1)
+                self._verify_instance(instance_num)
                 self._set_instance_state(instance_num, INSTANCE_RUNNING)
                 self.window.show_toast(f"Steam started for instance {instance_num + 1}")
                 continue
@@ -136,11 +140,10 @@ class MainPresenter:
                 self._report_instance_failure(instance_num, status.failure)
                 continue
 
-            # The client may take a long time when it updates itself. The row
-            # tells the user that it is still working, and what it is doing,
-            # so the wait does not look like a hang, and the bar of the row
-            # shows how far the update went.
-            self._set_instance_detail(instance_num, status.progress)
+            # Keep the last Steam console line visible between quiet intervals
+            # (such as long package extractions) instead of blanking the line.
+            if status.progress:
+                self._set_instance_detail(instance_num, status.progress)
             self._report_progress(instance_num, status.progress, status.percent)
 
         for instance_num in list(self._owned_instances):
@@ -152,6 +155,7 @@ class MainPresenter:
                 continue
             self._owned_instances.discard(instance_num)
             self._starting_instances.discard(instance_num)
+            self._forget_progress(instance_num)
             self._report_instance_stopped(instance_num)
 
         self._minimize_when_all_open()
@@ -498,6 +502,8 @@ class MainPresenter:
     def _on_stop_complete(self):
         """Handle stop complete."""
         for instance_num in list(self._instance_states):
+            self._forget_progress(instance_num)
+            self._set_instance_detail(instance_num, "")
             self._set_instance_state(instance_num, INSTANCE_IDLE)
         self.window.show_toast("All instances stopped")
         GLib.idle_add(self._sync_launch_button_action)
@@ -516,6 +522,8 @@ class MainPresenter:
         """Handle single instance stopped."""
         self._starting_instances.discard(instance_num)
         self._owned_instances.discard(instance_num)
+        self._forget_progress(instance_num)
+        self._set_instance_detail(instance_num, "")
         self._set_instance_state(instance_num, INSTANCE_IDLE)
         self.window.show_toast(f"Instance {instance_num + 1} stopped")
 

@@ -416,3 +416,47 @@ def test_the_bar_goes_away_when_the_client_is_up():
 
     row = presenter.window.get_layout_page().player_rows[0]
     assert row.update is None
+
+
+def test_the_console_line_persists_across_quiet_ticks():
+    """A tick with no new Steam console output must not blank out the previous line."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.side_effect = [
+        ClientUpdate(progress="Extracting package..."),
+        ClientUpdate(progress=None),
+    ]
+    presenter._watch_instance_start(0)
+
+    presenter._watch_instances()
+    presenter._watch_instances()
+
+    row = presenter.window.get_layout_page().player_rows[0]
+    assert row.get_status_detail() == "Extracting package..."
+
+
+def test_the_console_line_clears_once_the_client_is_running():
+    """Once the Steam client is running, the startup console line disappears and stops polling."""
+    presenter = _presenter()
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = False
+    presenter._instance_service.client_status.return_value = ClientUpdate(progress="Extracting package...")
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    row = presenter.window.get_layout_page().player_rows[0]
+    assert row.get_status_detail() == "Extracting package..."
+
+    presenter._instance_service.is_client_up.return_value = True
+    presenter._instance_service.client_status.return_value = ClientUpdate(progress="Loaded game list")
+    presenter._watch_instances()
+
+    assert row.get_instance_state() == INSTANCE_RUNNING
+    assert row.get_status_detail() == ""
+    presenter._verification_controller.verify_instance.assert_called_once_with(0)
+
+    calls_at_running = presenter._instance_service.client_status.call_count
+    presenter._watch_instances()
+    assert row.get_status_detail() == ""
+    assert presenter._instance_service.client_status.call_count == calls_at_running

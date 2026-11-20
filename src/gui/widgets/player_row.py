@@ -3,14 +3,13 @@
 # flake8: noqa: E402
 
 import os
-import weakref
 from typing import Optional
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import GLib, GObject, Gtk, Pango
+from gi.repository import GObject, Gtk, Pango
 
 from src.gui.widgets.env_variable_row import EnvVariableRow
 from src.models import PlayerInstanceConfig
@@ -20,8 +19,6 @@ INSTANCE_IDLE = "idle"
 INSTANCE_STARTING = "starting"
 INSTANCE_RUNNING = "running"
 INSTANCE_STOPPING = "stopping"
-
-PULSE_INTERVAL_MS = 100
 
 
 class PlayerRow(Gtk.Box):
@@ -56,12 +53,9 @@ class PlayerRow(Gtk.Box):
         self._status_detail = ""
         self._update_progress: Optional[tuple[str, Optional[int]]] = None
         self._env_rows: list[EnvVariableRow] = []
-        self._pulse_id = 0
         self._build_ui()
         self._update_button_state()
         self._update_status_icon()
-        self.connect("unmap", lambda *_args: self._stop_pulsing())
-        self.connect("map", self._on_mapped)
 
     def _build_ui(self):
         self.checkbox = Gtk.CheckButton(active=True)
@@ -115,18 +109,18 @@ class PlayerRow(Gtk.Box):
         identity.append(titles)
         header.append(identity)
 
-        self.status_detail_label = self._help_label("")
+        self.status_detail_label = Gtk.Label(
+            label="",
+            xalign=0,
+            wrap=False,
+            single_line_mode=True,
+            ellipsize=Pango.EllipsizeMode.END,
+            hexpand=True,
+            visible=False,
+        )
         self.status_detail_label.add_css_class("inspector-detail")
+        self.status_detail_label.add_css_class("inspector-console-log")
         header.append(self.status_detail_label)
-
-        self.update_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8, visible=False)
-        self.update_box.add_css_class("inspector-progress")
-        self.update_bar = Gtk.ProgressBar(hexpand=True, valign=Gtk.Align.CENTER)
-        self.update_percent = Gtk.Label()
-        self.update_percent.add_css_class("inspector-progress-percent")
-        self.update_box.append(self.update_bar)
-        self.update_box.append(self.update_percent)
-        header.append(self.update_box)
 
         self.launch_button = Gtk.Button(label="Install Steam")
         self.launch_button.set_size_request(-1, 40)
@@ -452,65 +446,22 @@ class PlayerRow(Gtk.Box):
         return "Ready" if self._is_verified else "Not installed"
 
     def set_update_progress(self, detail: str, percent: Optional[int] = None):
-        """Show known progress, or pulse while Steam has no percentage."""
+        """Record Steam update progress for the status text and observers."""
         percent = None if percent is None else max(0, min(100, percent))
         progress = (detail or "", percent)
         changed = self._update_progress != progress
         self._update_progress = progress
-        self.update_box.set_tooltip_text(progress[0])
-        self.update_box.set_visible(True)
-        self.update_percent.set_visible(percent is not None)
-        if percent is None:
-            self.update_percent.set_text("")
-            self._start_pulsing()
-        else:
-            self._stop_pulsing()
-            self.update_bar.set_fraction(percent / 100)
-            self.update_percent.set_text(f"{percent}%")
         self._update_status_icon()
         if changed:
             self.emit("status-changed")
 
     def clear_update_progress(self):
-        """Hide progress and release its timer when the update finishes."""
+        """Clear Steam update progress when the update finishes."""
         changed = self._update_progress is not None
         self._update_progress = None
-        self._stop_pulsing()
-        self.update_box.set_visible(False)
-        self.update_bar.set_fraction(0)
-        self.update_percent.set_text("")
         self._update_status_icon()
         if changed:
             self.emit("status-changed")
-
-    def _on_mapped(self, *_args):
-        if self._update_progress is not None and self._update_progress[1] is None:
-            self._start_pulsing()
-
-    def _start_pulsing(self):
-        if self._pulse_id:
-            return
-        # A timeout must not keep a discarded inspector alive indefinitely.
-        row_ref = weakref.ref(self)
-
-        def pulse():
-            row = row_ref()
-            return row._pulse() if row is not None else GLib.SOURCE_REMOVE
-
-        self.update_bar.pulse()
-        self._pulse_id = GLib.timeout_add(PULSE_INTERVAL_MS, pulse)
-
-    def _stop_pulsing(self):
-        if self._pulse_id:
-            GLib.source_remove(self._pulse_id)
-            self._pulse_id = 0
-
-    def _pulse(self) -> bool:
-        if self._update_progress is None or self._update_progress[1] is not None:
-            self._pulse_id = 0
-            return GLib.SOURCE_REMOVE
-        self.update_bar.pulse()
-        return GLib.SOURCE_CONTINUE
 
     def set_verification_status(self, is_verified: bool):
         """Update installation readiness and notify roster status observers."""
@@ -561,8 +512,9 @@ class PlayerRow(Gtk.Box):
             icon if self._is_verified or self._is_running else "software-update-available-symbolic"
         )
         self.status_label.set_text(self.get_status_text())
-        detail = (self._update_progress[0] if self._update_progress is not None else "") or self._status_detail
+        detail = self._status_detail or (self._update_progress[0] if self._update_progress is not None else "")
         self.status_detail_label.set_text(detail)
+        self.status_detail_label.set_tooltip_text(detail)
         self.status_detail_label.set_visible(bool(detail))
         self._status_box.set_tooltip_text(detail or self.get_status_text())
 

@@ -571,6 +571,13 @@
 .light .inspector-help {
     color: @studio_muted_light;
 }
+.inspector-console-log {
+    font-size: 11px;
+    color: @studio_muted;
+}
+.light .inspector-console-log {
+    color: @studio_muted_light;
+}
 .inspector-action {
     background: @studio_control;
     color: @studio_fg;

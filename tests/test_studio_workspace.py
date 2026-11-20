@@ -449,3 +449,28 @@ def test_studio_stylesheet_parses():
     provider.connect("parsing-error", lambda _p, _s, error: errors.append(str(error)))
     provider.load_from_path(str(Path(__file__).resolve().parents[1] / "res/styles/style.css"))
     assert errors == []
+
+
+def test_player_console_log_is_single_line_above_action_button(window):
+    """Steam console output is shown in a single-line log strip directly above the button."""
+    from gi.repository import Pango
+
+    row = window.get_layout_page().player_rows[0]
+    label = row.status_detail_label
+
+    assert not hasattr(row, "update_bar")
+    assert label.get_next_sibling() is row.launch_button
+    assert label.get_single_line_mode() is True
+    assert label.get_wrap() is False
+    assert label.get_ellipsize() == Pango.EllipsizeMode.END
+    assert not label.get_visible()
+
+    row.set_update_progress("Downloading update (100 of 500 KB)...", 20)
+    row.set_status_detail("Extracting package...")
+    assert label.get_visible()
+    assert label.get_text() == "Extracting package..."
+    assert label.get_tooltip_text() == "Extracting package..."
+
+    row.clear_update_progress()
+    row.set_status_detail("")
+    assert not label.get_visible()
