@@ -274,3 +274,78 @@ def test_a_valid_guest_address_is_kept(value):
     """A configured address is handed to the host setup unchanged."""
     profile = Profile(PLAYERS=[PlayerInstanceConfig(GUEST_IP=value), PlayerInstanceConfig()])
     assert InstanceService._configured_guest_address(profile, 0) == value
+
+
+def _run_with_resolv_conf(tmp_path, resolv_conf, application):
+    """Run the network setup with a stand-in for /etc/resolv.conf."""
+    ip = tmp_path / "ip"
+    ip.write_text("#!/bin/sh\nexit 1\n")
+    ip.chmod(0o755)
+    _write_recording_pasta(tmp_path, tmp_path / "pasta-args")
+    command = network_command(["bwrap", "--ro-bind", "/", "/", "--", *application])
+    return subprocess.run(
+        command,
+        env={
+            **os.environ,
+            "XDG_RUNTIME_DIR": str(tmp_path),
+            "TWINVERSE_RESOLV_CONF": str(resolv_conf),
+            "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        },
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+
+
+def test_network_setup_replaces_a_regular_resolv_conf(tmp_path):
+    """A plain resolv.conf is replaced inside the sandbox and left alone on the host."""
+    if not _unprivileged_namespaces_available():
+        pytest.skip("Unprivileged namespaces unavailable")
+    resolv_conf = tmp_path / "resolv.conf"
+    resolv_conf.write_text("nameserver 192.0.2.1\n")
+    result = _run_with_resolv_conf(tmp_path, resolv_conf, ["cat", str(resolv_conf)])
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "nameserver 169.254.1.1\n"
+    assert resolv_conf.read_text() == "nameserver 192.0.2.1\n"
+
+
+def test_network_setup_follows_a_symlinked_resolv_conf(tmp_path):
+    """bwrap cannot mount over a symlink, so the file it points to is replaced."""
+    if not _unprivileged_namespaces_available():
+        pytest.skip("Unprivileged namespaces unavailable")
+    (tmp_path / "etc").mkdir()
+    (tmp_path / "run").mkdir()
+    stub = tmp_path / "run" / "stub-resolv.conf"
+    stub.write_text("nameserver 127.0.0.53\n")
+    resolv_conf = tmp_path / "etc" / "resolv.conf"
+    # The same relative link that systemd-resolved installs.
+    resolv_conf.symlink_to("../run/stub-resolv.conf")
+    result = _run_with_resolv_conf(tmp_path, resolv_conf, ["cat", str(resolv_conf)])
+    assert result.returncode == 0, result.stderr
+    assert "symlink" not in result.stderr
+    assert result.stdout == "nameserver 169.254.1.1\n"
+    assert stub.read_text() == "nameserver 127.0.0.53\n"
+    assert resolv_conf.is_symlink()
+
+
+def test_network_setup_starts_with_a_dangling_resolv_conf(tmp_path):
+    """A link to a missing file keeps the host DNS instead of failing the launch."""
+    if not _unprivileged_namespaces_available():
+        pytest.skip("Unprivileged namespaces unavailable")
+    resolv_conf = tmp_path / "resolv.conf"
+    resolv_conf.symlink_to(tmp_path / "missing" / "resolv.conf")
+    result = _run_with_resolv_conf(tmp_path, resolv_conf, ["echo", "started"])
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "started\n"
+    assert "points to a missing file" in result.stderr
+
+
+def test_pasta_does_not_watch_the_namespace_directory(tmp_path):
+    """SELinux denies pasta the /proc/PID/ns directory, so the setup stops it instead."""
+    if not _unprivileged_namespaces_available():
+        pytest.skip("Unprivileged namespaces unavailable")
+    resolv_conf = tmp_path / "resolv.conf"
+    resolv_conf.write_text("nameserver 192.0.2.1\n")
+    result = _run_with_resolv_conf(tmp_path, resolv_conf, ["true"])
+    assert result.returncode == 0, result.stderr
+    assert "--no-netns-quit" in (tmp_path / "pasta-args").read_text().splitlines()

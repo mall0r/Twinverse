@@ -141,9 +141,26 @@ trap 'exit 130' INT
 mkfifo "$state/start"
 exec 4<>"$state/start"
 printf 'nameserver 169.254.1.1\n' > "$state/resolv.conf"
+# bwrap refuses to mount over a symlink, and /etc/resolv.conf is one on hosts
+# that use systemd-resolved (Fedora, Bazzite, Ubuntu), netconfig (openSUSE)
+# and others. Mounting over the file it points to replaces it all the same,
+# and only inside the mount namespace of the sandbox.
+resolv_conf=${TWINVERSE_RESOLV_CONF:-/etc/resolv.conf}
+resolv_args=(--ro-bind "$state/resolv.conf" "$resolv_conf")
+if [ -L "$resolv_conf" ]; then
+    resolv_target=$(readlink -f -- "$resolv_conf" 2>/dev/null || true)
+    if [ -n "$resolv_target" ] && [ -f "$resolv_target" ]; then
+        resolv_args=(--ro-bind "$state/resolv.conf" "$resolv_target")
+    else
+        # A dangling link cannot be mounted over at all. The instance still
+        # starts, with the DNS configuration of the host.
+        echo "Twinverse: $resolv_conf points to a missing file; keeping the host DNS configuration" >&2
+        resolv_args=()
+    fi
+fi
 : > "$state/info"
 bwrap "${options[@]}" --unshare-user --unshare-net \
-    --ro-bind "$state/resolv.conf" /etc/resolv.conf \
+    ${resolv_args[@]+"${resolv_args[@]}"} \
     --info-fd 3 --block-fd 4 -- "$@" 3>"$state/info" &
 sandbox=$!
 for ((i=0; i<200; i++)); do
@@ -169,7 +186,11 @@ if [ -n "$guest_address" ]; then
 else
     echo 'Twinverse: no free guest address; sharing the host address' >&2
 fi
-pasta --foreground --config-net --pid "$state/pasta.pid" \
+# pasta normally watches the directory of --netns to quit with the namespace,
+# but the SELinux policy of passt (Fedora, Bazzite) denies it access to
+# /proc/PID/ns of an unconfined process, and pasta exits at once. The cleanup
+# above and the process group of the instance already stop it.
+pasta --foreground --config-net --no-netns-quit --pid "$state/pasta.pid" \
     --userns "/proc/$namespace/ns/user" --netns "/proc/$namespace/ns/net" \
     --dns-forward 169.254.1.1 ${pasta_address_args[@]+"${pasta_address_args[@]}"} \
     -t auto -u auto -T none -U none &
