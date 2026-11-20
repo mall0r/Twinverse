@@ -1,3 +1,9 @@
+<p align="right">
+  <a href="https://mall0r.github.io/Twinverse/#cli-debugging"><img src="https://img.shields.io/badge/Docs-GitHub%20Pages-1f6feb.svg?logo=githubpages&logoColor=white" alt="Interactive Documentation"/></a>
+  <a href="DEBUGGING.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
+  <a href="DEBUGGING.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
+</p>
+
 # Debugging and logs
 
 Twinverse writes developer logs for diagnosing launch failures and crashes. The

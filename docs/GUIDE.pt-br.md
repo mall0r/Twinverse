@@ -1,170 +1,179 @@
 <p align="right">
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
+  <a href="https://mall0r.github.io/Twinverse/?lang=pt"><img src="https://img.shields.io/badge/Docs-GitHub%20Pages-1f6feb.svg?logo=githubpages&logoColor=white" alt="Documentação Interativa"/></a>
+  <a href="GUIDE.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
+  <a href="GUIDE.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
 </p>
 
-# Guia do Twinverse
+# Guia Passo a Passo do Twinverse
 
-Bem-vindo ao guia do Twinverse! Este documento irá guiá-lo pelo processo de configuração e uso do aplicativo Twinverse.
+> [!TIP]
+> Prefere uma versão interativa com busca instantânea, tema claro/escuro e zoom nas imagens? Acesse o [**Site de Documentação do Twinverse**](https://mall0r.github.io/Twinverse/?lang=pt).
 
-### Problemas de conexão
+Bem-vindo ao guia do Twinverse! Siga os cinco passos abaixo para montar seu grupo, configurar o layout dos monitores, atribuir controles e saídas de áudio, entrar no Steam e iniciar uma sessão multi-instância.
 
-Se o Steam Link ou jogos apresentarem problemas de conexão causados por várias instâncias usando as mesmas portas, instale o `pasta` no sistema (geralmente pelo pacote `passt`) e reabra as instâncias. O Twinverse o detecta automaticamente e isola a rede de cada instância mantendo o acesso à internet, sem executar como root. Isso também vale para a versão Flatpak: o `pasta` precisa estar disponível no `PATH` do host.
-
-Cada instância também recebe um endereço IPv4 livre na sub-rede do host. Isso importa quando o servidor do jogo roda na mesma máquina dos clientes: sem um endereço distinto, o guest e o servidor compartilham o endereço do host e o Steam pode encaminhar a conexão por um relay, aumentando a latência. O Twinverse escolhe um endereço livre automaticamente e nunca usa o endereço do host. Se precisar de um endereço fixo, preencha o campo "Guest IP" da instância; deixe-o vazio para manter a escolha automática. Use endereços livres na sua rede e mantenha-os diferentes entre as instâncias.
-
-Sem o `pasta`, a rede funciona como antes, compartilhando a rede do host entre as instâncias.
-
-## 1. Número de Instâncias
-
-Primeiro, você precisa decidir quantas instâncias do Steam deseja executar. O Twinverse suporta até 8 instâncias no total.
-
-- **Tela Dividida (Splitscreen):** Você pode executar no máximo 4 instâncias por monitor.
-- **Tela Cheia (Fullscreen):** Cada instância é executada em um monitor separado.
-
-Use **Party size**, na lateral esquerda, para definir a quantidade e marque os jogadores que vão participar. O botão **Launch session** fica no rodapé dessa lateral. Os controles de abrir e fechar os painéis ficam junto ao menu do aplicativo, à esquerda do cabeçalho.
-
-![Studio de sessões](../share/screenshots/twinverse-session-dark.png)
-
-## 2. Modo de Tela
-
-> [!NOTE]
-> Para que o auto-tiling das janelas funcione bem, é recomendado usar KDE Plasma 6.0+.
-> Em outras DE, será necessário mover as janelas você mesmo, todo o resto deve funcionar bem.
-
-Escolha um molde pelos seis ícones de layout abaixo do título de cada monitor. A escolha é independente por monitor:
-
-- **Fullscreen:** um espaço ocupando o monitor inteiro.
-- **Columns / Rows:** dois espaços, lado a lado ou empilhados.
-- **Main left / Main top:** três espaços, com uma área principal maior à esquerda ou no topo.
-- **Grid:** quatro espaços iguais.
-
-Você pode combinar moldes: por exemplo, dois jogadores em colunas no Monitor 1 e um jogador em tela cheia no Monitor 2. O canvas mostra os espaços exatos; ao passar o ponteiro sobre um ícone, aparecem seu nome e sua capacidade. Monitores ainda não utilizados também têm seu próprio seletor.
-
-Espaços vazios ficam disponíveis para arrastar jogadores ou escolher pelo Player Setup. Se os moldes não comportarem todos os participantes, os excedentes aparecem em **Players without a space**. O início da sessão fica bloqueado até você escolher um molde maior ou desmarcar esses jogadores.
-
-Os moldes e as posições são salvos por conector de monitor. Eles determinam as dimensões e a taxa de atualização do Gamescope e o posicionamento das janelas no KWin. Perfis existentes mantêm a disposição anterior até você escolher um molde.
-
-#### Posicionamento das Instâncias
-
-Por padrão, as instâncias ocupam o layout em ordem numérica. Você pode mudar a posição de um jogador de duas formas:
-
-- **Arrastar e soltar:** arraste o jogador da lateral ou de um espaço do canvas até outro espaço, inclusive em outro monitor. Mantenha o ponteiro próximo à borda superior ou inferior do canvas para rolar uma disposição com vários monitores.
-- **Player Setup:** selecione o jogador e escolha **Monitor / space** na seção **Display position**. A lista de destinos corresponde aos espaços mostrados no canvas.
-
-Espaços ocupados trocam seus jogadores, sem duplicar ou perder participantes. A primeira alteração ativa **Custom** em **Placement** automaticamente. Escolha **Automatic** para restaurar a ordem numérica sem alterar os moldes dos monitores. O arraste e a seleção ficam sincronizados e são bloqueados enquanto alguma instância inicia, está em execução ou encerra. A ordem salva é usada nas dimensões do Gamescope e no posicionamento do KWin.
-
-O posicionamento é aplicado no próximo lançamento. Ao reduzir o número de instâncias, as posições salvas ficam ocultas e voltam se você aumentar a quantidade novamente.
-
-## 3. Configuração da Instância
+## Pré-requisitos
 
 > [!IMPORTANT]
-> Para usar o Twinverse, é necessário adicionar seu usuário ao grupo `input` para permitir que o programa gerencie os dispositivos de entrada.
+> Adicione seu usuário ao grupo `input` para que o Twinverse consiga gerenciar controles e criar joysticks virtuais automáticos e, em seguida, **reinicie o computador**:
 >
 > ```bash
-> sudo usermod -aG input $USER
-> ```
-> no Bazzite:
-> ```bash
+> # Maioria das distribuições Linux
+> sudo usermod -aG input "$USER"
+>
+> # Bazzite
 > ujust add-user-to-input-group
 > ```
-> **Reinicie o sistema para que as alterações entrem em vigor.**
 
-Para cada instância, você pode configurar as seguintes opções:
+Certifique-se de ter os pacotes nativos `steam`, `gamescope`, `bubblewrap` (`bwrap`) e `pactl` instalados no host. Instalar `pasta` (pacote `passt`) é altamente recomendado para isolamento de rede por instância.
 
-- **Controle (Gamepad):** Atribuir um controle específico à instância.
-- **Grab Mouse:** Dedicar o mouse a uma única instância. Por enquanto, apenas uma instância por vez pode usar o mouse e o teclado.
-- **Dispositivo de Áudio:** Selecionar um dispositivo de saída de áudio específico para a instância.
-- **Variável de Ambiente (Environment Variables):** Definir variáveis de ambiente específicas para a instância.
+## Visão Geral do Studio
 
-<img alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />
+![Anatomia do Twinverse Studio](assets/img/anatomy-studio.png)
 
-## 4. Iniciando uma Instância
+1. **Cabeçalho e Menu:** Alterna os painéis laterais, alterna tema Claro/Escuro, abre **Preferences** (`Ctrl+,`) ou atualiza dispositivos (`F5`).
+2. **Lista de Jogadores (Party):** Adicione até 8 jogadores, marque quem participa, acompanhe o status (`Ready` / `Not installed` / `Running`) ou arraste jogadores para os espaços.
+3. **Status da Sessão e Botão Iniciar:** Exibe a prontidão geral e o botão **Launch session** / **End session** (`Ctrl+Enter`).
+4. **Posicionamento e Seletor de Moldes:** Alterna entre `Automatic` e `Custom` e permite escolher um molde visual independente para cada monitor.
+5. **Espaços Interativos de Jogadores:** Pré-visualização proporcional de cada monitor com nome, indicador de status e ícones de controle/mouse.
+6. **Inspetor Player Setup:** Permite renomear o jogador, instalar/iniciar/parar a instância individualmente e configurar controle, `Grab mouse`, saída de áudio, `Guest IP` e variáveis de ambiente.
 
-Após configurar uma instância, clique no botão **"Start"** ao lado dela para iniciar uma instância Steam no modo desktop. Na primeira vez, o Cliente Steam será baixado e instalado automaticamente — esse processo pode levar alguns minutos.
+---
 
-Você deve fazer login no modo desktop. Após logar e configurar seu Cliente Steam basta encerrar a instância.
+## 1. Monte o Grupo (1–8 Jogadores)
 
-o Botão **"Play"**, executa todas as instâncias marcadas e com um check, ele vai executar todas com o gamescope e vai redimensionar cada uma.
-Se você estiver usando KDE Plasma, tambem vai move-las automaticamente para dividir a tela idealmente pra seu monitor principal, ou move-las entre seu monitores caso tenha selecionado fullscreen.
+Na barra lateral esquerda **Party**:
 
-Apenas instâncias que já possuem o Steam instalado podem ser iniciadas com o **"Play"**. Você pode verificar isso pelo ícone de check <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/check-icon.svg" /> na instância. Se o ícone for um <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/alert-icon.svg" />, instale o Steam clicando no botão **"Install"** daquela instância.
+- Clique em **+ Add player** para adicionar até **8 jogadores** (`home_1`–`home_8`).
+- Use a **caixa de seleção** de cada jogador para incluí-lo ou deixá-lo de fora da próxima sessão sem perder suas configurações.
+- Clique em **×** para ocultar um jogador da lista preservando suas configurações e pasta home em disco (clicar em **+ Add player** depois restaura o menor slot livre).
+- Selecione qualquer jogador para abrir o **Player Setup** e clique no nome para renomeá-lo (até 32 caracteres; `Enter` confirma, `Esc` cancela).
 
-<img alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/instance-config.png" />
+![Lista de Jogadores](assets/img/step-1-party-roster.png)
 
-## 5. Desabilitar Download Prévio de Sombreadores (Opicional)
+---
 
-Para meconomizar espaço em disco, desabilite o download prévio de sombreadores no Steam. Tambem recomendo fazer isso caso tenha qualquer problema com o Download de Shaders Pre-Caching.
+## 2. Configure os Moldes e o Posicionamento
 
-Para fazer isso, vá em `Configurações > Downloads` e desabilita a opção `Ativar download prévio de sombreadores`.
+> [!NOTE]
+> O posicionamento automático (auto-tiling) em tela dividida e múltiplos monitores requer **KDE Plasma 6.0+**. Em outros ambientes de desktop, o Twinverse continua dimensionando cada janela do Gamescope com precisão; basta posicionar as janelas manualmente.
 
-<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/disable-shader-pre_caching.png" />
+Abaixo do título de cada monitor em **Session Layout**, escolha um dos seis moldes independentes (salvos por conector, como `DP-1` ou `HDMI-A-1`):
 
-## 6. Jogar
+- **Fullscreen (1 espaço):** Um espaço ocupando o monitor inteiro.
+- **Columns (2 espaços):** Divisão vertical lado a lado.
+- **Rows (2 espaços):** Divisão horizontal empilhada.
+- **Main left (3 espaços):** Espaço principal à esquerda + dois empilhados à direita.
+- **Main top (3 espaços):** Espaço principal largo no topo + dois lado a lado abaixo.
+- **Grid (4 espaços):** Quatro quadrantes iguais (2×2).
 
-Quando todas as suas instâncias estiverem configuradas e em execução, você pode começar a jogar! Cada instância terá seus próprios dispositivos de entrada e áudio dedicados, permitindo que você jogue com seus amigos ou familiares no mesmo computador.
+Você pode combinar moldes diferentes entre monitores (por exemplo, `Main left` no Monitor 1 e `Columns` no Monitor 2).
 
-Divirta-se em sua sessão de jogos!
+![Múltiplos Monitores Mistos](assets/img/step-2-tiling-multi-monitor.png)
 
+### Arrastar-e-Soltar e Proteção de Excedentes
 
-# Dicas
+- **Arrastar e soltar:** Arraste qualquer bloco no canvas (ou uma linha da lista Party) para um espaço vazio ou ocupado—inclusive em outro monitor. Espaços ocupados trocam de jogador suavemente. Segure perto das bordas superior/inferior para rolar automaticamente.
+- **Automatic vs. Custom:** O primeiro arraste manual muda **Placement** para **Custom**. Escolha **Automatic** para restaurar a ordem numérica mantendo os moldes escolhidos.
+- **Players without a space:** Se os moldes tiverem menos espaços do que jogadores marcados, os excedentes aparecem em **Players without a space** e o início da sessão fica bloqueado até você escolher um molde maior, arrastá-los para um espaço livre ou desmarcá-los.
 
-## 1. Suporte a Multiplas GPUs
+![Aviso de Jogadores Sem Espaço](assets/img/overflow-unassigned.png)
 
-O Twinverse funciona com jogos em diferentes GPUs.
+---
 
-Adicione a seguinte linha aos argumentos do Steam do seu jogo:
+## 3. Configure Cada Jogador (Player Setup)
+
+Selecione cada jogador para configurar seu hardware no painel direito **Player Setup** (alterne a qualquer momento com `F9` ou `Alt+2`):
+
+- **Controller:** Menu pesquisável com os controles conectados (`/dev/input/by-id/*-event-joystick`). Pressione `F5` (ou clique em atualizar) após conectar novos controles. Deixe em `None` para que o Twinverse crie automaticamente um `"Virtual Joystick by Twinverse"` ao iniciar a sessão.
+- **Grab mouse:** Passa `--force-grab-cursor` ao Gamescope. Apenas um jogador por vez pode capturar mouse e teclado; ativar em um desativa nos demais.
+- **Audio output:** Lista pesquisável de saídas PipeWire/PulseAudio (`Default` ou `PULSE_SINK` dedicado).
+- **Guest IP:** IPv4/CIDR fixo opcional ao usar `pasta`. Deixe vazio (`Automatic`) para escolha automática de um IPv4 livre na LAN.
+- **Environment variables:** Expanda e clique em **Add variable** para injetar variáveis de ambiente individuais no `bwrap` (ex.: `PROTON_ENABLE_WAYLAND=1`, `MANGOHUD=1`).
+
+![Inspetor Player Setup](assets/img/step-3-player-setup.png)
+
+---
+
+## 4. Instale o Steam e Faça Login (Primeira Vez por Jogador)
+
+Slots novos aparecem como `Not installed`. Inicialize o Steam uma vez por jogador:
+
+1. Selecione um jogador não verificado e clique em **Install Steam** no Player Setup. O Steam abre diretamente no Bubblewrap (sem Gamescope) para facilitar o login em modo desktop.
+2. Aguarde o Steam preparar a pasta home isolada e entre na conta Steam desse jogador. Os jogos já instalados em `~/.local/share/Steam/steamapps/common/` aparecem automaticamente.
+3. **(Recomendado)** No Steam, vá em `Configurações > Downloads` e desative **Ativar download prévio de sombreadores** para economizar espaço em disco e evitar downloads duplicados.
+4. Feche a janela do Steam. O Twinverse verifica a instalação automaticamente e muda o status para `Ready`.
+
+![Botão Install Steam](assets/img/step-4-install-steam.png)
+
+![Desativar Download Prévio de Sombreadores](assets/img/disable-shader-pre-caching.png)
+
+> [!TIP]
+> Você pode clicar em **Start player** a qualquer momento em um jogador `Ready` para abrir aquela instância individual em modo desktop sem Gamescope.
+
+---
+
+## 5. Inicie a Sessão e Jogue
+
+Quando todos os jogadores marcados estiverem `Ready` e alocados no layout, clique em **Launch session** (ou pressione `Ctrl+Enter`).
+
+- O Twinverse prepara o script de layout do KWin e coloca os painéis do KDE em `dodgewindows` (no KDE Plasma 6.0+).
+- Os jogadores iniciam sequencialmente (intervalo de 5 segundos) enquanto o Twinverse acompanha atualizações do Steam e o carregamento do `steamwebhelper`.
+- Quando todos estiverem prontos, o Twinverse se minimiza automaticamente. Volte quando quiser para encerrar um jogador individual (**Stop player**) ou clique em **End session** para encerrar tudo com segurança e restaurar os painéis do KDE.
+
+![Sessão Ativa](assets/img/step-5-live-session.png)
+
+---
+
+## Funcionalidades e Dicas
+
+### Rede por Instância (`pasta`)
+
+Se o Steam Link ou jogos multiplayer tiverem problemas de conexão, conflitos de porta ou relays lentos do Steam (especialmente ao rodar um servidor dedicado no mesmo PC), instale o `pasta` (geralmente pacote `passt`) no host—inclusive ao usar o Twinverse via Flatpak—e reinicie a sessão.
+
+O Twinverse detecta o `pasta` automaticamente e atribui a cada instância um namespace de rede sem root com um endereço IPv4 livre na LAN. Preencha **Guest IP** no Player Setup apenas se precisar de um endereço fixo; use IPs livres e diferentes entre si. Sem o `pasta`, o Twinverse continua usando a rede compartilhada do host.
+
+### Preferências e Dados das Instâncias (`Ctrl+,`)
+
+- **Aba Engine:** Alterna **Use Gamescope** (desativado entra em Direct Steam mode), **Steam Deck tag** (`--mangoapp` + `-steamdeck` + limitador de FPS), **Gamescope WSI** (`ENABLE_GAMESCOPE_WSI`) ou **Reset all settings** (mantém as pastas home em disco).
+- **Aba Instance data:** Abre a pasta home de cada jogador (`home_1`–`home_8`), inicia um **terminal dentro da sandbox** (`bwrap` + `pasta` + `PULSE_SINK`) do jogador ou executa **Reset player** permanentemente.
+
+![Preferências Dados das Instâncias](assets/img/preferences-instance-data.png)
+
+### Suporte a Múltiplas GPUs
+
+Para rodar um jogo em uma GPU secundária, adicione `DRI_PRIME` às **Opções de Inicialização do jogo no Steam** dentro da instância Steam do jogador:
 
 ```bash
-DRI_PRIME=1
+DRI_PRIME=1 %command%
+# Ou force a seleção:
+DRI_PRIME=1! %command%
 ```
-
-Ou force com:
-
-```bash
-DRI_PRIME=1!
-```
-
-Você pode ajustar os numeros de acordo com a configuração do seu sistema.
 
 > [!WARNING]
->
-> Isso deve ser adicionado diretamente no argumento do jogo na instância Steam que deseja usar a GPU, não adicione isso ao `Enviroments Variables`.
+> Adicione isso nas **Opções de Inicialização do jogo no Steam**, e não nas `Environment variables` do Player Setup, para que o Gamescope continue na GPU principal.
 
-## 2. Diretorios Home
+### Steam Input
 
-Você pode excluir ou gerenciar os arquivos o diretorio home de cada instância, acessando `Preferences` -> `Instances`.
+O Steam Input entra em conflito com o isolamento de controles por sandbox, então o Twinverse o desativa automaticamente uma única vez por conta logada no `localconfig.vdf` isolado. Alterações posteriores são preservadas e o seu Steam principal fora do Twinverse nunca é alterado.
 
-<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />
+### Atalhos de Teclado
 
-### 3. Steam Input
+**Twinverse Studio:**
+- `Ctrl + Enter` — Iniciar sessão / Encerrar sessão
+- `Ctrl + ,` — Abrir Preferências
+- `F9` ou `Alt + 2` — Abrir/fechar painel Player Setup
+- `F5` — Atualizar controles e dispositivos de áudio
+- `Enter` / `Esc` — Confirmar / cancelar renomeação do jogador
 
-O Steam Input não é compatível com as instâncias, então o Twinverse desativa dentro de cada instância: na primeira inicialização que já encontra uma conta logada, ele desliga o botão de controle e todos os jogos da biblioteca da instância. Em uma instância nova isso acontece na inicialização logo após você fazer login.
+**Gamescope:**
+- `Super + F` — Alternar tela cheia
+- `Super + N` — Alternar filtragem por vizinho mais próximo
+- `Super + U` — Alternar upscaling FSR
+- `Super + Y` — Alternar upscaling NIS
+- `Super + I` / `Super + O` — Aumentar / diminuir nitidez FSR
+- `Super + S` — Capturar tela
+- `Super + G` — Alternar captura do teclado
 
-Isso acontece apenas uma vez por instância. Qualquer coisa que você alterar depois é mantida, e o seu próprio Steam fora do Twinverse nunca é alterado.
+### Depuração e Logs
 
-### 4. Atalhos de teclado do Gamescope:
-```
-Super + F       Alternar tela cheia
-```
-```
-Super + N       Alternar filtragem por vizinho mais próximo
-```
-```
-Super + U       Alternar e aumentar a escala FSR
-```
-```
-Super + Y       Alternar e aumentar a escala NIS
-```
-```
-Super + I       Aumentar a nitidez FSR em 1
-```
-```
-Super + O       Diminuir a nitidez FSR em 1
-```
-```
-Super + S       Tirar uma captura de tela
-```
-```
-Super + G       Alternar captura de tela com o teclado
-```
+Execute `twinverse --diagnostics` para um relatório completo do ambiente ou consulte [DEBUGGING.pt-br.md](DEBUGGING.pt-br.md) para flags CLI, caminhos de logs e variáveis de ambiente.

@@ -1,17 +1,19 @@
 <p align="right">
-  <a href="https://github.com/mall0r/Twinverse/blob/main/README.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/README.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
+  <a href="https://mall0r.github.io/Twinverse/?lang=pt"><img src="https://img.shields.io/badge/Docs-GitHub%20Pages-1f6feb.svg?logo=githubpages&logoColor=white" alt="Documentação Interativa"/></a>
+  <a href="../README.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
+  <a href="README.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Twinverse Logo" width="176" height="176">
+  <img src="../share/icons/hicolor/scalable/apps/io.github.mall0r.Twinverse.svg" alt="Logo do Twinverse" width="160" height="160">
 </p>
 
 <p align="center">
-  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.1.4-blue.svg" alt="Version"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="License"/></a>
-  <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK Version"/></a>
-  <a href="https://gnome.pages.gitlab.gnome.org/libadwaita/"><img src="https://img.shields.io/badge/libadwaita-1.0+-purple.svg" alt="libadwaita Version"/></a>
+  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.1.4-blue.svg" alt="Versão"/></a>
+  <a href="https://mall0r.github.io/Twinverse/?lang=pt"><img src="https://img.shields.io/badge/Documenta%C3%A7%C3%A3o-Online-84b4fa.svg" alt="Documentação"/></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="Licença"/></a>
+  <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK"/></a>
+  <a href="https://gnome.pages.gitlab.gnome.org/libadwaita/"><img src="https://img.shields.io/badge/libadwaita-1.0+-purple.svg" alt="libadwaita"/></a>
 </p>
 
 <p align="center">
@@ -23,37 +25,32 @@
 
 # O que é o Twinverse?
 
-O **Twinverse** é uma ferramenta para Linux/SteamOS que permite criar e gerenciar múltiplas instâncias do `Steam Big Picture` simultaneamente. Isso possibilita que vários jogadores aproveitem sua biblioteca de jogos em um único computador, seja em tela dividida ou cada um com sua própria tela, além de saída de áudio e dispositivos de entrada dedicados.
+O **Twinverse** é um aplicativo open-source para Linux e SteamOS que permite criar e gerenciar até **8 instâncias isoladas do `Steam Big Picture`** simultaneamente. Vários jogadores podem aproveitar suas bibliotecas de jogos em um único computador—em tela dividida ou em múltiplos monitores—com controles, saídas de áudio, diretórios home e endereços IPv4 privados na LAN dedicados.
+
+> [!TIP]
+> **Documentação Interativa Completa:** Acesse o [**Site de Documentação do Twinverse**](https://mall0r.github.io/Twinverse/?lang=pt) (Português BR & English) para ver o guia passo a passo ilustrado, diagramas de layout, todas as funcionalidades, atalhos e solução de problemas.
 
 <p align="center">
-  <img alt="Novo studio de sessões do Twinverse" src="../share/screenshots/twinverse-session-dark.png" />
+  <img alt="Studio de sessões do Twinverse" src="../share/screenshots/twinverse-session-dark.png" />
 </p>
 
 > [!WARNING]
-> Este projeto não apoia a pirataria; todos os jogadores devem possuir o jogo em suas bibliotecas Steam para poderem jogá-lo
+> Este projeto não apoia a pirataria; todos os jogadores devem possuir (ou ter acesso legítimo ao) jogo em suas bibliotecas Steam para poderem jogá-lo.
 
 ## ✨ Principais Funcionalidades
 
 > [!NOTE]
-> Mouse/Teclado só podem ser atribuídos a uma instância por vez
+> Mouse e teclado (`Grab mouse`) só podem ser atribuídos a uma instância por vez.
 
-O Twinverse foi projetado para ser uma solução flexível para jogar em tela dividida no Linux. Aqui estão algumas de suas principais funcionalidades:
-
-1.  **Múltiplas Instâncias:** Execute várias instâncias do Cliente Steam simultaneamente
-
-2.  **Atribuição de Dispositivos:** Atribua mouse, teclado e controle específicos para cada instância dos jogos
-
-3.  **Canais de Áudio Dedicados:** Direcione o áudio de cada instância para um dispositivo de saída de áudio separado
-
-4.  **Diretório Home Dedicado:** O Twinverse permite que você tenha um diretório home dedicado para cada instância, possibilitando a personalização individual de configurações e arquivos
-
-5.  **Pasta de Jogos Compartilhada:** Compartilha o diretório de jogos steam entre várias instâncias, para que não seja necessário baixar o jogo novamente para cada instância, economizando espaço em disco.
-
-6.  **Use Qualquer Proton:** Twinverse permite que você use qualquer versão do Proton para executar seus jogos, incluindo protons personalizados como o [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)
-
-7.  **Jogue o Que Quiser** A instâncias não precisam se limitar a jogar o mesmo jogo; cada instância pode jogar o jogo que quiser
-
-8.  **Modos de tela flexíveis:** Escolha entre tela dividida (até 4 instâncias por monitor) ou tela cheia (1 instância por monitor)
+1. **Até 8 Instâncias Isoladas:** Execute múltiplos clientes Steam simultaneamente com nomes editáveis, controle de participação por jogador e recuperação automática de sessão em caso de fechamento inesperado.
+2. **Moldes por Monitor e Arrastar-e-Soltar:** Escolha entre 6 moldes visuais independentes por monitor (`Fullscreen`, `Columns`, `Rows`, `Main left`, `Main top`, `Grid` — até 4 jogadores por monitor), combine moldes entre telas e arraste jogadores diretamente entre os espaços.
+3. **Isolamento Real de Entrada:** Mascara `/dev/input` em cada sandbox para que cada jogador enxergue apenas seu próprio controle (ou um `"Virtual Joystick by Twinverse"` criado automaticamente), além da desativação única do Steam Input por conta.
+4. **Canais de Áudio Dedicados:** Direcione o áudio de cada instância para sua própria saída PipeWire/PulseAudio (`PULSE_SINK`) com isolamento de captura PipeWire por instância.
+5. **Rede Isolada sem Root (`pasta`):** Atribui automaticamente um endereço IPv4 livre na LAN por instância (ou um `Guest IP` fixo opcional), evitando conflitos de porta e relays do Steam em partidas locais.
+6. **Diretórios Home Dedicados e Terminal na Sandbox:** Cada jogador possui uma pasta `home_1`–`home_8` isolada com atalhos para abrir a pasta, abrir um terminal interativo dentro da sandbox do jogador ou zerar o slot.
+7. **Pasta de Jogos Compartilhada e Qualquer Proton:** Monta `steamapps/common/` do host (com sincronização automática de manifestos `.acf`) e `compatibilitytools.d/` (incluindo [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)), evitando downloads duplicados.
+8. **Jogue Jogos Diferentes ao Mesmo Tempo:** Cada instância é totalmente independente—os jogadores não precisam jogar o mesmo jogo.
+9. **Auto-Tiling no KDE Plasma 6 / KWin:** Posicionamento automático sem bordas via resolvedor D-Bus (`TWINVERSE_KWIN_INSTANCE`) e ocultação automática dos painéis do Plasma, que são restaurados ao encerrar a sessão.
 
 ---
 
@@ -63,116 +60,101 @@ O Twinverse foi projetado para ser uma solução flexível para jogar em tela di
 
 ## 📦 Requisitos
 
-Para usar o Twinverse sem problemas, certifique-se de que os seguintes requisitos sejam atendidos:
+É necessário ter instalados os pacotes **nativos** da sua distribuição: `steam`, `gamescope`, `bubblewrap` (`bwrap`) e `pactl` (`pipewire-pulse` ou `pulseaudio-utils`).
 
-É necessário ter instalados os pacotes `gamescope` e `steam` *nativos* de sua distro.
+- **Altamente recomendado (`pasta` / `passt`):** Ativa o isolamento de rede sem root por instância com endereços IPv4 distintos na LAN. Instale no `PATH` do host, inclusive ao usar o Twinverse via Flatpak. Consulte a [seção de Rede](https://mall0r.github.io/Twinverse/?lang=pt#feature-networking) ou o [Guia](GUIDE.pt-br.md#rede-por-instância-pasta).
+- **Grupo `input` obrigatório:** Adicione seu usuário ao grupo `input` e reinicie o computador para permitir o gerenciamento de controles e joysticks virtuais:
 
-**Opcional:** `pasta` (geralmente fornecido pelo pacote `passt`) ativa automaticamente o isolamento de rede por instância com acesso à internet, sem executar o Twinverse como root. Instale-o no sistema host, inclusive ao usar o Twinverse via Flatpak. Cada instância recebe um endereço IPv4 livre na sub-rede do host, então um cliente e um servidor dedicado na mesma máquina deixam de compartilhar o endereço e o Steam pode conectar diretamente em vez de usar um relay. O endereço pode ser definido por instância no campo "Guest IP"; deixe-o vazio para escolher automaticamente. Se `pasta` estiver ausente, o Twinverse continua compartilhando a rede do host. Consulte o [guia de problemas de conexão](GUIDE.pt-br.md#problemas-de-conexão).
+```bash
+# Maioria das distribuições Linux
+sudo usermod -aG input "$USER"
 
-Para que o Gamescope funcione corretamente, de acordo com sua GPU, será necessário:
+# Bazzite
+ujust add-user-to-input-group
+```
 
-  - **AMD:** Mesa 20.3 ou mais recente
-  - **Intel:** Mesa 21.2 ou mais recente
-  - **NVIDIA:** Drivers proprietários 515.43.04 ou mais recente, ou drivers NVIDIA de Módulo de Kernel Aberto (NVIDIA Open Kernel Module)
+Para o Gamescope funcionar corretamente, conforme sua GPU:
+
+- **AMD:** Mesa 20.3 ou mais recente
+- **Intel:** Mesa 21.2 ou mais recente
+- **NVIDIA:** Drivers proprietários 515.43.04 ou mais recente, ou NVIDIA Open Kernel Module
 
 > [!NOTE]
-> *SteamOS* (AMD) e *Bazzite* geralmente têm todas as dependências incluídas por padrão.
+> *SteamOS* (AMD) e *Bazzite* já incluem Steam, Gamescope, Bubblewrap e PipeWire por padrão.
 
 ## 📦 Instalação
 
-### Flatpak
+### Flatpak (Recomendado)
 
-A maneira recomendada de instalar o Twinverse é via Flatpak, que oferece um ambiente em sandbox e atualizações mais fáceis.
+1. Baixe o arquivo `Twinverse-*.flatpak` mais recente em [**Releases**](https://github.com/mall0r/Twinverse/releases).
+2. Configure o repositório Flathub (se ainda não tiver) e instale:
 
-<!--**Opção 1: Instalar do Flathub (Em Breve)**
-Assim que o Twinverse estiver disponível no Flathub, você poderá instalá-lo usando os seguintes comandos:
 ```bash
 flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user flathub io.github.mall0r.Twinverse
-```-->
-
-**Instalar de um arquivo .flatpak**
-1. **Baixe o último arquivo .flatpak:**
-   Acesse a página de [**Releases**](https://github.com/mall0r/Twinverse/releases) e baixe o último arquivo `.flatpak`.
-
-2. **Instale o Flatpak:**
-   Em alguns sistemas, pode ser necessário configurar primeiro o remote do Flathub para que o Flatpak consiga baixar os runtimes e as dependências necessários:
-
-   ```bash
-   flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-   ```
-
-   Você pode instalar o Flatpak com o seguinte comando:
-   ```bash
-   flatpak install --user Twinverse-*.flatpak
-   ```
+flatpak install --user Twinverse-*.flatpak
+```
 
 ### AppImage
 
 > [!NOTE]
-> Garanta que tenha instalado o pacote `bubblewrap`.
+> Garanta que o pacote `bubblewrap` esteja instalado no sistema host.
 
-Alternativamente, você pode usar a versão AppImage. Este arquivo único funciona na maioria das distribuições Linux modernas sem a necessidade de instalação no sistema.
+1. Baixe o arquivo `Twinverse-*.AppImage` mais recente em [**Releases**](https://github.com/mall0r/Twinverse/releases).
+2. Torne-o executável e inicie:
 
-1.  **Baixe o AppImage mais recente:**
-    Acesse a página de [**Releases**](https://github.com/mall0r/Twinverse/releases) e baixe o arquivo `.AppImage` mais recente.
+```bash
+chmod +x Twinverse-*.AppImage
+./Twinverse-*.AppImage
+```
 
-2.  **Torne-o Executável:**
-    Após o download, clique com o botão direito no arquivo, vá para "Propriedades" e marque a caixa "Permitir a execução do arquivo como programa". Alternativamente, você pode usar o terminal:
-    ```bash
-    chmod +x Twinverse-*.AppImage
-    ```
-
-3.  **Execute o Aplicativo:**
-    Execute o appimage e aproveite. É isso!
-
-#### Integração de AppImage (Opcional)
-
-Para uma melhor integração com o sistema (por exemplo, adicionar uma entrada no menu de aplicativos), você pode usar uma ferramenta como o **[Gear Lever](https://github.com/mijorus/gearlever)** para gerenciar seu AppImage.
+Para integração ao menu de aplicativos e atualizações fáceis, recomendamos usar o **[Gear Lever](https://github.com/mijorus/gearlever)**.
 
 ### Executando a Partir do Código-Fonte
 
-O script `run.sh` oferece uma maneira rápida de configurar um ambiente local e executar o aplicativo. Ele criará automaticamente um ambiente virtual e instalará as dependências necessárias.
-
 ```bash
-# Clone o repositório
 git clone https://github.com/mall0r/Twinverse.git
 cd Twinverse
-
-# Execute o script de execução
 ./run.sh
 ```
 
-## 📖 Como Usar?
+## 📖 Documentação e Guias
 
-Acesse nosso [Guide](https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt-br.md) para mais informações sobre como usar o Twinverse. Se algo falhar, consulte [Depuração e logs](https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.pt-br.md) para saber onde ficam os logs e como usar o relatório `--diagnostics`.
+- **Documentação Interativa (PT-BR / EN):** [https://mall0r.github.io/Twinverse/?lang=pt](https://mall0r.github.io/Twinverse/?lang=pt)
+- **Guia Passo a Passo (Markdown):** [docs/GUIDE.pt-br.md](GUIDE.pt-br.md) | [docs/GUIDE.md](GUIDE.md)
+- **Depuração e Logs:** [docs/DEBUGGING.pt-br.md](DEBUGGING.pt-br.md) | [docs/DEBUGGING.md](DEBUGGING.md)
 
 ---
 
 ## ⚙️ Como Funciona
 
-O Twinverse utiliza **Gamescope** (cria o ambiente de jogo e gerencia a composição) e o **Bubblewrap** (bwrap - ferramenta para a construção de ambientes sandbox), para isolar cada instância do Cliente Steam. O `bwrap` nesse projeto, é utilizado com uma camada extra de isolamento somada ao gamescope, fornecendo um isolamento mais robusto e permitindo um controle granular sobre o que deve ou não ser exposto ou mascarado dentro do contêiner, permitindo ignorar dispositivos desnecessários para aquela sessão ou recriar um diretório *home* dedicado por instância. Isso permite que cada Steam seja executado em seu próprio ambiente estereo e independente. Assim, a instância não pode interferir com sua área de trabalho e sua área de trabalho não pode interferir com ela.
+O Twinverse monta dinamicamente uma pilha de isolamento sem root para cada jogador:
 
-A linha de comando final é montada dinamicamente com base nas configurações do usuário, seguindo uma estrutura de encapsulamento onde o **Gamescope** é a camada mais externa, que executa o **`bwrap`**, o qual, por sua vez, inicia o **Steam**.
+```text
+[pasta (netns opcional)] -> bwrap (sandbox) -> gamescope (compositor) -> Steam Big Picture
+```
+
+1. **`pasta`** (quando instalado) cria um namespace de rede isolado com um endereço IPv4 livre na rede local.
+2. **`bwrap` (Bubblewrap)** monta um diretório `home_N` dedicado, mascara `/dev/input` expondo apenas o controle do jogador, compartilha `steamapps/common/` e `compatibilitytools.d/`, e injeta `PULSE_SINK` e variáveis de ambiente personalizadas.
+3. **`gamescope`** renderiza o Steam Big Picture exatamente na resolução e taxa de atualização do espaço escolhido, gerencia a captura exclusiva de mouse e trabalha em conjunto com o resolvedor D-Bus do KWin no KDE Plasma 6.0+ para posicionamento automático sem bordas.
 
 ---
 
 ## 🛠️ Para Desenvolvedores
 
-Se você deseja contribuir com o Twinverse, por favor consulte o [CONTRIBUTING](../CONTRIBUTING.md) para obter instruções detalhadas sobre como começar, fluxos de trabalho de desenvolvimento e padrões de código.
+Se deseja contribuir com o Twinverse, consulte [CONTRIBUTING.md](../CONTRIBUTING.md) para instruções de ambiente, fluxo de trabalho e padrões de código.
 
 ---
 
 ## 📜 Licença
 
-Este projeto está licenciado sob a **Licença Pública Geral GNU v3.0 (GPL-3.0)**. Para mais detalhes, consulte o [LICENSE](../LICENSE).
+Este projeto está licenciado sob a **Licença Pública Geral GNU v3.0 (GPL-3.0-or-later)**. Veja [LICENSE](../LICENSE) para detalhes.
 
 > [!NOTE]
 > ## Aviso Legal
 >
-> O Twinverse é um projeto independente de código aberto e não é afiliado, endossado por, ou de qualquer forma oficialmente conectado à Valve Corporation ou ao Steam.
+> O Twinverse é um projeto independente de código aberto e não é afiliado, endossado ou oficialmente conectado à Valve Corporation ou ao Steam.
 >
-> Esta ferramenta atua como uma camada de orquestração que aproveita tecnologias de sandboxing para executar múltiplas instâncias isoladas do cliente oficial do Steam. O Twinverse **não modifica, aplica patches, faz engenharia reversa ou altera** quaisquer arquivos do Steam ou seu funcionamento normal. Todas as instâncias do Steam iniciadas por esta ferramenta são as versões oficiais e não modificadas fornecidas pela Valve.
+> Esta ferramenta atua como uma camada de orquestração que aproveita tecnologias de sandboxing para executar múltiplas instâncias isoladas do cliente oficial do Steam. O Twinverse **não modifica, aplica patches, faz engenharia reversa ou altera** quaisquer arquivos do Steam ou seu funcionamento normal. Todas as instâncias iniciadas por esta ferramenta são as versões oficiais e não modificadas fornecidas pela Valve.
 >
 > Os usuários são os únicos responsáveis por cumprir os termos do Acordo de Assinante do Steam.
 
@@ -182,6 +164,6 @@ Este projeto está licenciado sob a **Licença Pública Geral GNU v3.0 (GPL-3.0)
 
 Este projeto foi inspirado pelo trabalho de:
 
--   [NaviVani-dev](https://github.com/NaviVani-dev) e seu script [dualscope.sh](https://gist.github.com/NaviVani-dev/9a8a704a31313fd5ed5fa68babf7bc3a).
--   [Tau5](https://github.com/Tau5) e seu projeto [Co-op-on-Linux](https://github.com/Tau5/Co-op-on-Linux).
--   [wunnr](https://github.com/wunnr) e seu projeto [Partydeck](https://github.com/wunnr/partydeck) (Recomendo usa-lo caso você esteja procurando uma abordagem mais próxima ao [Nucleus Co-op](https://github.com/SplitScreen-Me/splitscreenme-nucleus)).
+- [NaviVani-dev](https://github.com/NaviVani-dev) e seu script [dualscope.sh](https://gist.github.com/NaviVani-dev/9a8a704a31313fd5ed5fa68babf7bc3a).
+- [Tau5](https://github.com/Tau5) e seu projeto [Co-op-on-Linux](https://github.com/Tau5/Co-op-on-Linux).
+- [wunnr](https://github.com/wunnr) e seu projeto [Partydeck](https://github.com/wunnr/partydeck) (recomendado caso você procure uma abordagem mais próxima ao [Nucleus Co-op](https://github.com/SplitScreen-Me/splitscreenme-nucleus)).

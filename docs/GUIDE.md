@@ -1,169 +1,179 @@
 <p align="right">
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
-  <a href="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
+  <a href="https://mall0r.github.io/Twinverse/"><img src="https://img.shields.io/badge/Docs-GitHub%20Pages-1f6feb.svg?logo=githubpages&logoColor=white" alt="Interactive Documentation"/></a>
+  <a href="GUIDE.md"><img src="https://img.shields.io/badge/en-US-darkblue.svg" alt="English"/></a>
+  <a href="GUIDE.pt-br.md"><img src="https://img.shields.io/badge/pt-BR-darkgreen.svg" alt="Portuguese"/></a>
 </p>
 
-# Twinverse Guide
+# Twinverse Step-by-Step Guide
 
-Welcome to the Twinverse guide! This document will walk you through the process of setting up and using the Twinverse application to run multiple Steam instances.
+> [!TIP]
+> Prefer a searchable, interactive version with dark/light theme and click-to-zoom screenshots? Open the [**Twinverse Documentation Site**](https://mall0r.github.io/Twinverse/).
 
-### Connection problems
+Welcome to the Twinverse guide! Follow the five steps below to configure players, arrange monitor layouts, bind controllers and audio devices, sign into Steam, and launch a live multi-instance session.
 
-If Steam Link or games have connection problems caused by multiple instances using the same ports, install `pasta` on your system (usually the `passt` package) and relaunch the instances. Twinverse detects it automatically and isolates each instance's network while providing internet access, without running as root. This also applies to the Flatpak version: `pasta` must be available on the host's `PATH`.
-
-Each instance also receives its own free IPv4 address in the host's subnet. This matters when the game server runs on the same machine as the clients: without a distinct address, the guest and the server share the host address, and Steam may route the connection through a relay, adding latency. Twinverse picks an unused address automatically and never uses the host address. If you need a fixed address, fill in the "Guest IP" field of the instance; leave it empty to keep the automatic choice. Use addresses that are free on your network, and keep them different between instances.
-
-Without `pasta`, networking works as before, sharing the host network between instances.
-
-## 1. Number of Instances
-
-First, you need to decide how many Steam instances you want to run. Twinverse supports up to 8 instances total.
-
-- **Splitscreen:** You can run a maximum of 4 instances per monitor.
-- **Fullscreen:** Each instance runs on its own monitor.
-
-Use **Party size** in the left sidebar to set the desired amount, then check the players who should join. **Launch session** is at the bottom of that sidebar. The panel visibility buttons are beside the application menu on the left of the header.
-
-![Session Layout](../share/screenshots/twinverse-session-dark.png)
-
-## 2. Screen Mode
-
-> [!NOTE]
-> For window auto-tiling to work properly, it is recommended to use KDE Plasma 6.0+.
-> In other DEs, you will need to move the windows yourself, everything else should work fine.
-
-Choose a template using the six miniature layout icons beneath each monitor heading. Each monitor has its own selection:
-
-- **Fullscreen:** one space covering the monitor.
-- **Columns / Rows:** two spaces, side by side or stacked.
-- **Main left / Main top:** three spaces, with a larger main area on the left or top.
-- **Grid:** four equal spaces.
-
-You can mix templates: for example, two players in columns on Monitor 1 and one fullscreen player on Monitor 2. The canvas previews the exact spaces; hovering an icon shows its name and capacity. Unused monitors also have their own selector.
-
-Empty spaces remain available for dragging or selection in Player Setup. If the templates cannot fit every participating player, the extra players appear under **Players without a space**, and launching is blocked until you choose a larger template or exclude those players.
-
-Templates and player assignments are saved per monitor connector. They determine Gamescope dimensions and refresh rates as well as KWin window positioning; existing profiles keep their previous arrangement until you choose a template.
-
-#### Instance Placement
-
-By default, instances fill the layout in numerical order. Change a player's position in either of two ways:
-
-- **Drag and drop:** drag the player from the party sidebar or a canvas space onto another space, including one on another monitor. Hold near the top or bottom edge of the canvas to scroll through a long monitor layout.
-- **Player Setup:** select the player and choose **Monitor / space** under **Display position**. The destination list corresponds to the spaces shown on the canvas.
-
-Occupied spaces swap players, keeping each participating player assigned exactly once. The first move switches **Placement** to **Custom** automatically. Choose **Automatic** to restore numerical order without changing the monitor templates. Dragging and selection stay synchronized and are locked while any instance is starting, running or stopping. The saved order drives both Gamescope dimensions and KWin positioning.
-
-Placement is applied on the next launch. Reducing the number of instances keeps the saved positions hidden, so they come back if you increase the count again.
-
-## 3. Instance Configuration
+## Prerequisites
 
 > [!IMPORTANT]
-> To use Twinverse, it's necessary to add your user to the `input` group to allow the program to manage input devices.
+> Add your user to the `input` group so Twinverse can access controllers and create automatic virtual joysticks, then **reboot your computer**:
+>
 > ```bash
-> sudo usermod -aG input $USER
-> ```
-> in the Bazzite:
-> ```bash
+> # Most Linux distributions
+> sudo usermod -aG input "$USER"
+>
+> # Bazzite
 > ujust add-user-to-input-group
 > ```
-> **Restart the system for the changes to take effect.**
 
-For each instance, you can configure the following options:
+Make sure native `steam`, `gamescope`, `bubblewrap` (`bwrap`), and `pactl` are installed on the host. Installing `pasta` (`passt` package) is strongly recommended for per-instance network isolation.
 
-- **Gamepad:** Assign a specific controller to the instance.
-- **Grab Mouse:** Dedicate the mouse to a single instance. For now, only one instance at a time can use the mouse and keyboard.
-- **Audio Device:** Select a specific audio output device for the instance.
-- **Environment Variables:** Define specific environment variables for the instance.
+## Studio Overview
 
-<img alt="player-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/player-config.png" />
+![Twinverse Studio Anatomy](assets/img/anatomy-studio.png)
 
-## 4. Starting an Instance
+1. **Header Bar & Menu:** Toggle left/right panels, switch Dark/Light theme, open **Preferences** (`Ctrl+,`), or refresh devices (`F5`).
+2. **Party Roster:** Add up to 8 players, toggle participation checkboxes, view readiness (`Ready` / `Not installed` / `Running`), or drag players onto spaces.
+3. **Session Status & Launch Bar:** Shows live readiness and the **Launch session** / **End session** button (`Ctrl+Enter`).
+4. **Placement & Tiling Picker:** Switch between `Automatic` and `Custom` placement and pick a tiling template independently for each monitor.
+5. **Interactive Player Spaces:** True-aspect monitor preview displaying player names, status dots, controller icons, and mouse-grab indicators.
+6. **Player Setup Inspector:** Edit player names, install/start/stop individual instances, assign controller, `Grab mouse`, audio output, `Guest IP`, and environment variables.
 
-After setting up an instance, click the **"Start"** button next to it to launch a Steam instance in desktop mode. The first time, the Steam Client will be downloaded and installed automatically — this process may take a few minutes.
+---
 
-You must log in to desktop mode. After logging in and configuring your Steam Client, simply close the instance.
+## 1. Build Your Party (1–8 Players)
 
-The **"Play"** button runs all selected instances, and with a checkmark, it will run them all with the gamescope and resize each one.
+In the left-hand **Party** sidebar:
 
-If you are using KDE Plasma, it will also automatically move them to ideally split the screen for your main monitor, or move them between your monitors if you have selected fullscreen.
+- Click **+ Add player** to add up to **8 players** (`home_1`–`home_8`).
+- Use the **checkbox** next to each player to include or exclude them from the next session without deleting their settings.
+- Click **×** to hide a player from the list while preserving their saved configuration and home folder (clicking **+ Add player** restores the lowest unused slot).
+- Select any player to inspect them in **Player Setup** and click their name to rename them (up to 32 characters; `Enter` confirms, `Esc` cancels).
 
-Only instances that already have Steam installed can be started with **"Play"**. You can verify this by the check icon <img width="16" height="16" alt="check-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/check-icon.svg" /> on the instance. If the icon is an <img width="16" height="16" alt="alert-icon" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/res/icons/alert-icon.svg" />, install Steam by clicking the **"Install"** button on that instance.
+![Party Roster](assets/img/step-1-party-roster.png)
 
-<img alt="instance-config" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/instance-config.png" />
+---
 
-## 5. Disable Shader Pre-Caching (Optional)
+## 2. Configure Monitor Tiling & Placement
 
-To save disk space, disable shader pre-caching on Steam. I also recommend doing this if you have any problems with pre-caching downloads.
+> [!NOTE]
+> Automatic splitscreen and multi-monitor window tiling requires **KDE Plasma 6.0+**. On other desktop environments, Twinverse still sizes every Gamescope window accurately; simply position the windows manually.
 
-To do this, go to `Settings > Downloads` and disable the `Enable shader pre-caching` option.
+Beneath every monitor heading in **Session Layout**, choose one of six independent tiling templates (saved per display connector such as `DP-1` or `HDMI-A-1`):
 
-<img width="850" height="722" alt="disable-shader-pre_caching" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/disable-shader-pre_caching.png" />
+- **Fullscreen (1 space):** One full-monitor space.
+- **Columns (2 spaces):** Side-by-side vertical split.
+- **Rows (2 spaces):** Top-and-bottom horizontal split.
+- **Main left (3 spaces):** Tall main space on the left + two stacked spaces on the right.
+- **Main top (3 spaces):** Wide main space on top + two side-by-side spaces below.
+- **Grid (4 spaces):** Four equal 2×2 quadrants.
 
-## 6. Play
+You can mix templates across monitors (for example, `Main left` on Monitor 1 and `Columns` on Monitor 2).
 
-When all your instances are configured and running, you can start playing! Each instance will have its own dedicated input and audio devices, allowing you to play with your friends or family on the same computer.
+![Mixed Multi-Monitor Tiling](assets/img/step-2-tiling-multi-monitor.png)
 
-Enjoy your gaming session!
+### Drag-and-Drop Placement & Overflow Protection
 
-# Tips
+- **Drag & drop:** Drag any player tile on the canvas (or any row from the Party Roster) onto another empty or occupied space—even on a different monitor. Occupied spaces swap players smoothly. Hold near the top or bottom edge to auto-scroll tall multi-monitor layouts.
+- **Automatic vs. Custom:** Your first manual drag switches **Placement** to **Custom**. Select **Automatic** to restore numerical order without changing your monitor templates.
+- **Players without a space:** If your templates have fewer spaces than checked players, extra players appear under **Players without a space**, and launching is blocked until you choose a larger template, drag them into an empty space, or exclude them.
 
-## 1. Multi-GPU Support
+![Overflow Unassigned Players](assets/img/overflow-unassigned.png)
 
-Twinverse works with games on different GPUs.
+---
 
-Add the following line to your game's Steam launch arguments:
+## 3. Configure Each Player (Player Setup)
+
+Select each player to configure their dedicated hardware in the right-hand **Player Setup** panel (toggle anytime with `F9` or `Alt+2`):
+
+- **Controller:** Searchable dropdown of connected gamepads (`/dev/input/by-id/*-event-joystick`). Press `F5` (or click Refresh) after plugging in new controllers. Leave as `None` to let Twinverse create an automatic `"Virtual Joystick by Twinverse"` during launch.
+- **Grab mouse:** Passes `--force-grab-cursor` to Gamescope. Only one player at a time can grab the mouse and keyboard; enabling it disables it on other players.
+- **Audio output:** Searchable list of PipeWire/PulseAudio sinks (`Default` or dedicated `PULSE_SINK`).
+- **Guest IP:** Optional fixed IPv4/CIDR when using `pasta`. Leave empty (`Automatic`) to auto-assign a free LAN IPv4.
+- **Environment variables:** Expand and click **Add variable** to set per-player `bwrap` environment variables (e.g., `PROTON_ENABLE_WAYLAND=1`, `MANGOHUD=1`).
+
+![Player Setup Inspector](assets/img/step-3-player-setup.png)
+
+---
+
+## 4. Install Steam & Sign In (First Time Per Player)
+
+New slots start as `Not installed`. Initialize Steam once per player:
+
+1. Select an unverified player and click **Install Steam** in Player Setup. Steam opens directly inside Bubblewrap (without Gamescope) for easy desktop login.
+2. Wait for Steam to initialize the isolated home folder, then sign into that player's Steam account. Host games from `~/.local/share/Steam/steamapps/common/` appear automatically.
+3. **(Recommended)** In Steam, go to `Settings > Downloads` and disable **Enable Shader Pre-Caching** to save disk space and prevent duplicate shader downloads across instances.
+4. Close the Steam window. Twinverse verifies the slot and changes its status to `Ready`.
+
+![Install Steam Action](assets/img/step-4-install-steam.png)
+
+![Disable Shader Pre-Caching](assets/img/disable-shader-pre-caching.png)
+
+> [!TIP]
+> You can click **Start player** anytime on a `Ready` player to open that single Steam instance in desktop mode without Gamescope.
+
+---
+
+## 5. Launch Session & Play
+
+Once all participating players show `Ready` and fit inside your monitor layout, click **Launch session** (or press `Ctrl+Enter`).
+
+- Twinverse prepares KWin tiling and sets KDE panels to `dodgewindows` (on KDE Plasma 6.0+).
+- Players start sequentially (5-second stagger) while Twinverse tracks Steam updates and `steamwebhelper` readiness.
+- When all players are live, Twinverse minimizes automatically. Return anytime to stop an individual player (**Stop player**) or click **End session** to shut everything down cleanly and restore KDE panels.
+
+![Live Session](assets/img/step-5-live-session.png)
+
+---
+
+## Features & Tips
+
+### Per-Instance Networking (`pasta`)
+
+If Steam Link or multiplayer games experience port conflicts or slow Steam relays (especially when hosting a game server on the same PC), install `pasta` (usually the `passt` package) on your host—including when using Twinverse via Flatpak—and relaunch.
+
+Twinverse detects `pasta` automatically and gives each instance its own rootless network namespace and free LAN IPv4 address. Set **Guest IP** in Player Setup only if you need a fixed address; keep addresses distinct and unused on your LAN. Without `pasta`, Twinverse transparently falls back to shared host networking.
+
+### Preferences & Instance Data (`Ctrl+,`)
+
+- **Engine tab:** Toggle **Use Gamescope** (off switches to Direct Steam mode), **Steam Deck tag** (`--mangoapp` + `-steamdeck` + FPS limiter), **Gamescope WSI** (`ENABLE_GAMESCOPE_WSI`), or **Reset all settings** (keeps disk homes).
+- **Instance data tab:** Open any player's home folder (`home_1`–`home_8`), launch an interactive **sandboxed terminal** inside that player's `bwrap` + `pasta` + `PULSE_SINK` container, or permanently **Reset player**.
+
+![Preferences Instance Data](assets/img/preferences-instance-data.png)
+
+### Multi-GPU Support
+
+To run a game on a secondary GPU, add `DRI_PRIME` to the **game's Steam Launch Options** inside that player's Steam client:
 
 ```bash
-DRI_PRIME=1
+DRI_PRIME=1 %command%
+# Or force selection:
+DRI_PRIME=1! %command%
 ```
-
-Or force it with:
-
-```bash
-DRI_PRIME=1!
-```
-
-You can adjust the numbers according to your system configuration.
 
 > [!WARNING]
->
-> This must be added directly to the game's launch arguments in the Steam instance where you want to use the GPU. Do not add this to the `Environment Variables`.
+> Add this to the **game's Steam Launch Options**, not Twinverse's Player Setup `Environment variables`, so Gamescope remains on the display-connected GPU.
 
-## 2. Home Directories
+### Steam Input
 
-You can delete or manage the files in the home directory of each instance by accessing `Preferences` -> `Instances`.
+Steam Input conflicts with per-sandbox controller isolation, so Twinverse automatically disables it once per logged-in account inside each isolated `localconfig.vdf`. Any changes you make afterwards are kept, and your host Steam outside Twinverse is never touched.
 
-<img alt="preferences-instances" src="https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/preferences-instances.png" />
+### Keyboard Shortcuts
 
-## 3. Steam Input
+**Twinverse Studio:**
+- `Ctrl + Enter` — Launch session / End session
+- `Ctrl + ,` — Open Preferences
+- `F9` or `Alt + 2` — Toggle Player Setup panel
+- `F5` — Refresh controllers and audio devices
+- `Enter` / `Esc` — Commit / cancel inline player rename
 
-Steam Input is not compatible with instances, so Twinverse turns it off inside each instance: on the first launch that already finds a logged-in account, it disables the controller toggle and every game of the instance library. On a brand-new instance this happens on the launch right after you log in.
+**Gamescope:**
+- `Super + F` — Toggle fullscreen
+- `Super + N` — Toggle nearest-neighbor filtering
+- `Super + U` — Toggle FSR upscaling
+- `Super + Y` — Toggle NIS upscaling
+- `Super + I` / `Super + O` — Increase / decrease FSR sharpness
+- `Super + S` — Take screenshot
+- `Super + G` — Toggle keyboard grab
 
-It runs only once per instance. Anything you change afterwards is kept, and your own Steam client outside Twinverse is never touched.
+### Debugging & Logs
 
-## 4. Gamescope Keyboard shortcuts:
-```
-Super + F      Toggle fullscreen
-```
-```
-Super + N      Toggle nearest neighbour filtering
-```
-```
-Super + U      Toggle FSR upscaling
-```
-```
-Super + Y      Toggle NIS upscaling
-```
-```
-Super + I      Increase FSR sharpness by 1
-```
-```
-Super + O      Decrease FSR sharpness by 1
-```
-```
-Super + S      Take a screenshot
-```
-```
-Super + G      Toggle keyboard grab
-```
+Run `twinverse --diagnostics` for a full environment summary, or see [DEBUGGING.md](DEBUGGING.md) for CLI flags, log locations, and environment variables.
