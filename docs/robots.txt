@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mall0r.github.io/Twinverse/sitemap.xml

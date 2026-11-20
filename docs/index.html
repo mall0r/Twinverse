@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Twinverse Documentation — Multi-Instance Steam Splitscreen &amp; Multi-Monitor Guide</title>
+  <meta name="description" content="Complete step-by-step documentation for Twinverse: run up to 8 isolated Steam instances on Linux &amp; SteamOS in splitscreen or multi-monitor setups.">
+  <meta name="theme-color" content="#141414">
+  <link rel="canonical" href="https://mall0r.github.io/Twinverse/">
+  <link rel="icon" type="image/svg+xml" href="./assets/img/twinverse-logo.svg">
+
+  <!-- Open Graph / Social Cards -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Twinverse Documentation">
+  <meta property="og:title" content="Twinverse Documentation — Multi-Instance Steam Splitscreen for Linux">
+  <meta property="og:description" content="Step-by-step guides and complete feature reference for running up to 8 isolated Steam Big Picture instances on Linux and SteamOS.">
+  <meta property="og:url" content="https://mall0r.github.io/Twinverse/">
+  <meta property="og:image" content="https://mall0r.github.io/Twinverse/assets/img/hero-studio-dark.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Twinverse Documentation">
+  <meta name="twitter:description" content="Run up to 8 isolated Steam instances simultaneously on Linux &amp; SteamOS with Gamescope, Bubblewrap, and pasta.">
+  <meta name="twitter:image" content="https://mall0r.github.io/Twinverse/assets/img/hero-studio-dark.png">
+
+  <link rel="stylesheet" href="./assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">
+    <span data-lang-block="en">Skip to main content</span>
+    <span data-lang-block="pt">Ir para o conteúdo principal</span>
+  </a>
+
+  <!-- Top Navigation Bar -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <button id="mobile-menu-btn" class="icon-btn mobile-menu-btn" type="button" aria-label="Toggle navigation menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <a class="brand" href="#overview">
+          <img src="./assets/img/twinverse-logo.svg" alt="Twinverse logo" width="30" height="30">
+          <span>Twinverse</span>
+        </a>
+        <span class="version-pill">v1.1.4</span>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="search-trigger" class="search-trigger" type="button" aria-label="Search documentation">
+          <span class="search-trigger-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="7"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span id="search-trigger-label" class="search-trigger-label">Search docs…</span>
+          </span>
+          <kbd>Ctrl K</kbd>
+        </button>
+
+        <button id="lang-toggle" class="lang-switch" type="button" aria-label="Switch documentation language">PT-BR</button>
+
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle light / dark theme">
+          <svg id="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+          </svg>
+          <svg id="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display: none;">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"></path>
+          </svg>
+        </button>
+
+        <a class="nav-github-link" href="https://github.com/mall0r/Twinverse" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"></path>
+          </svg>
+          <span class="nav-github-label">GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+  <div class="docs-shell">
+    <!-- Left Navigation Sidebar -->
+    <aside id="sidebar" class="sidebar" aria-label="Documentation navigation">
+      <div class="sidebar-group">
+        <p class="sidebar-heading">
+          <span data-lang-block="en">Getting Started</span>
+          <span data-lang-block="pt">Primeiros Passos</span>
+        </p>
+        <ul class="sidebar-list">
+          <li><a href="#overview"><span data-lang-block="en">Overview</span><span data-lang-block="pt">Visão Geral</span></a></li>
+          <li><a href="#requirements"><span data-lang-block="en">Requirements &amp; Setup</span><span data-lang-block="pt">Requisitos e Preparação</span></a></li>
+          <li><a href="#installation"><span data-lang-block="en">Installation</span><span data-lang-block="pt">Instalação</span></a></li>
+          <li><a href="#workspace-anatomy"><span data-lang-block="en">Interface Anatomy</span><span data-lang-block="pt">Anatomia da Interface</span></a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <p class="sidebar-heading">
+          <span data-lang-block="en">Step-by-Step Guide</span>
+          <span data-lang-block="pt">Guia Passo a Passo</span>
+        </p>
+        <ul class="sidebar-list">
+          <li><a href="#step-by-step"><span data-lang-block="en">Walkthrough Overview</span><span data-lang-block="pt">Resumo do Fluxo</span></a></li>
+          <li><a href="#step-1-party"><span data-lang-block="en">1. Build Your Party</span><span data-lang-block="pt">1. Monte o Grupo</span></a></li>
+          <li><a href="#step-2-layout"><span data-lang-block="en">2. Configure Layout</span><span data-lang-block="pt">2. Configure o Layout</span></a></li>
+          <li><a href="#step-3-player-setup"><span data-lang-block="en">3. Player Setup</span><span data-lang-block="pt">3. Configurar Jogadores</span></a></li>
+          <li><a href="#step-4-install-steam"><span data-lang-block="en">4. Install &amp; Sign In</span><span data-lang-block="pt">4. Instalar e Logar</span></a></li>
+          <li><a href="#step-5-launch"><span data-lang-block="en">5. Launch &amp; Play</span><span data-lang-block="pt">5. Iniciar e Jogar</span></a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <p class="sidebar-heading">
+          <span data-lang-block="en">All Features</span>
+          <span data-lang-block="pt">Todas as Funcionalidades</span>
+        </p>
+        <ul class="sidebar-list">
+          <li><a href="#feature-preferences"><span data-lang-block="en">Preferences &amp; Data</span><span data-lang-block="pt">Preferências e Dados</span></a></li>
+          <li><a href="#feature-library-proton"><span data-lang-block="en">Shared Library &amp; Proton</span><span data-lang-block="pt">Biblioteca e Proton</span></a></li>
+          <li><a href="#feature-networking"><span data-lang-block="en">Per-Instance Network</span><span data-lang-block="pt">Rede por Instância</span></a></li>
+          <li><a href="#feature-input"><span data-lang-block="en">Input Isolation</span><span data-lang-block="pt">Isolamento de Entrada</span></a></li>
+          <li><a href="#feature-kwin-kde"><span data-lang-block="en">KDE / KWin Auto-Tiling</span><span data-lang-block="pt">Auto-Tiling KDE / KWin</span></a></li>
+          <li><a href="#feature-overlay-pipewire"><span data-lang-block="en">Overlay, Audio &amp; FPS</span><span data-lang-block="pt">Overlay, Áudio e FPS</span></a></li>
+          <li><a href="#feature-multi-gpu"><span data-lang-block="en">Multi-GPU &amp; CPU Affinity</span><span data-lang-block="pt">Multi-GPU e Afinidade CPU</span></a></li>
+          <li><a href="#feature-shortcuts"><span data-lang-block="en">Keyboard Shortcuts</span><span data-lang-block="pt">Atalhos de Teclado</span></a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <p class="sidebar-heading">
+          <span data-lang-block="en">Reference</span>
+          <span data-lang-block="pt">Referência</span>
+        </p>
+        <ul class="sidebar-list">
+          <li><a href="#architecture"><span data-lang-block="en">Architecture &amp; Paths</span><span data-lang-block="pt">Arquitetura e Caminhos</span></a></li>
+          <li><a href="#cli-debugging"><span data-lang-block="en">CLI, Logs &amp; Troubleshooting</span><span data-lang-block="pt">CLI, Logs e Solução</span></a></li>
+          <li><a href="#credits-license"><span data-lang-block="en">Credits &amp; License</span><span data-lang-block="pt">Créditos e Licença</span></a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Documentation Content -->
+    <main id="main-content" class="content">
+
+      <!-- SECTION 1: OVERVIEW -->
+      <section id="overview" class="doc-section hero">
+        <p class="eyebrow">
+          <span data-lang-block="en">Linux &amp; SteamOS Multi-Instance Gaming</span>
+          <span data-lang-block="pt">Multi-Instância Steam para Linux e SteamOS</span>
+        </p>
+        <h1>
+          <span data-lang-block="en">Twinverse Documentation</span>
+          <span data-lang-block="pt">Documentação do Twinverse</span>
+        </h1>
+        <p class="hero-lead">
+          <span data-lang-block="en">Run up to <strong>8 isolated Steam Big Picture instances</strong> simultaneously on a single Linux or SteamOS computer. Play in splitscreen or across multiple monitors with dedicated controllers, audio outputs, home folders, and private LAN IPv4 addresses—without duplicating a single gigabyte of game files.</span>
+          <span data-lang-block="pt">Execute até <strong>8 instâncias isoladas do Steam Big Picture</strong> simultaneamente em um único computador com Linux ou SteamOS. Jogue em tela dividida ou em múltiplos monitores com controles, saídas de áudio, pastas home e endereços IPv4 dedicados—sem duplicar um único gigabyte de jogos.</span>
+        </p>
+
+        <div class="hero-badges">
+          <span class="badge badge-accent">v1.1.4</span>
+          <span class="badge">GTK4 &amp; libadwaita</span>
+          <span class="badge">Gamescope + Bubblewrap + pasta</span>
+          <span class="badge">
+            <span data-lang-block="en">Up to 8 Players</span>
+            <span data-lang-block="pt">Até 8 Jogadores</span>
+          </span>
+          <span class="badge">GPL-3.0</span>
+        </div>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#step-by-step">
+            <span data-lang-block="en">Start Step-by-Step Guide</span>
+            <span data-lang-block="pt">Começar Guia Passo a Passo</span>
+          </a>
+          <a class="btn btn-secondary" href="https://github.com/mall0r/Twinverse/releases" target="_blank" rel="noopener noreferrer">
+            <span data-lang-block="en">Download Latest Release</span>
+            <span data-lang-block="pt">Baixar Última Versão</span>
+          </a>
+          <a class="btn btn-secondary" href="#all-features">
+            <span data-lang-block="en">Explore All Features</span>
+            <span data-lang-block="pt">Ver Todas as Funcionalidades</span>
+          </a>
+        </div>
+
+        <h2 style="display: none;">
+          <span data-lang-block="en">Overview</span>
+          <span data-lang-block="pt">Visão Geral</span>
+        </h2>
+
+        <div class="tabs">
+          <div class="tab-list" role="tablist">
+            <button class="tab-btn" role="tab" aria-selected="true" data-tab="theme-dark">
+              <span data-lang-block="en">Dark Studio</span>
+              <span data-lang-block="pt">Tema Escuro</span>
+            </button>
+            <button class="tab-btn" role="tab" aria-selected="false" data-tab="theme-light">
+              <span data-lang-block="en">Light Studio</span>
+              <span data-lang-block="pt">Tema Claro</span>
+            </button>
+          </div>
+
+          <div class="tab-panel" data-panel="theme-dark">
+            <figure class="figure">
+              <div class="figure-img-wrap">
+                <img src="./assets/img/hero-studio-dark.png" alt="Twinverse Session Studio in Dark Mode">
+              </div>
+              <figcaption>
+                <span data-lang-block="en"><strong>Twinverse Session Studio (Dark Mode)</strong> — Three-pane workspace with the Party Roster on the left, live monitor tiling canvas in the center, and Player Setup inspector on the right.</span>
+                <span data-lang-block="pt"><strong>Twinverse Session Studio (Modo Escuro)</strong> — Área de trabalho em três painéis com a lista de jogadores (Party) à esquerda, pré-visualização interativa de monitores ao centro e o inspetor Player Setup à direita.</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="tab-panel" data-panel="theme-light" hidden>
+            <figure class="figure">
+              <div class="figure-img-wrap">
+                <img src="./assets/img/studio-light-mode.png" alt="Twinverse Session Studio in Light Mode" loading="lazy">
+              </div>
+              <figcaption>
+                <span data-lang-block="en"><strong>Twinverse Session Studio (Light Mode)</strong> — Switch themes anytime with the header button. Theme preference is persisted across restarts.</span>
+                <span data-lang-block="pt"><strong>Twinverse Session Studio (Modo Claro)</strong> — Alterne o tema a qualquer momento pelo botão no cabeçalho. A preferência é salva automaticamente.</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <div class="feature-card">
+            <div class="feature-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="12" y1="3" x2="12" y2="17"></line><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </div>
+            <h3>
+              <span data-lang-block="en">Per-Monitor Tiling &amp; Drag-and-Drop</span>
+              <span data-lang-block="pt">Moldes por Monitor e Arrastar-e-Soltar</span>
+            </h3>
+            <p>
+              <span data-lang-block="en">Choose from 6 tiling templates per monitor (1 to 4 spaces each), mix templates across displays, and drag players directly between spaces.</span>
+              <span data-lang-block="pt">Escolha entre 6 moldes por monitor (1 a 4 espaços cada), combine moldes entre monitores e arraste jogadores diretamente entre os espaços.</span>
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M6 12h4M8 10v4"></path><circle cx="15.5" cy="11" r="1"></circle><circle cx="17.5" cy="13" r="1"></circle></svg>
+            </div>
+            <h3>
+              <span data-lang-block="en">True Input &amp; Audio Isolation</span>
+              <span data-lang-block="pt">Isolamento Real de Entrada e Áudio</span>
+            </h3>
+            <p>
+              <span data-lang-block="en">Each sandbox sees only its assigned controller (or an automatic virtual joystick) and routes sound to its own PipeWire/PulseAudio sink.</span>
+              <span data-lang-block="pt">Cada sandbox enxerga apenas o controle atribuído (ou um joystick virtual automático) e envia o som para sua própria saída PipeWire/PulseAudio.</span>
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <h3>
+              <span data-lang-block="en">Shared Game Library &amp; Any Proton</span>
+              <span data-lang-block="pt">Biblioteca Compartilhada e Qualquer Proton</span>
+            </h3>
+            <p>
+              <span data-lang-block="en">All players share your host <code>steamapps/common/</code> and <code>compatibilitytools.d/</code> (ProtonGE, etc.) while keeping independent saves and Steam accounts.</span>
+              <span data-lang-block="pt">Todos os jogadores compartilham <code>steamapps/common/</code> e <code>compatibilitytools.d/</code> (ProtonGE, etc.), mantendo saves e contas Steam independentes.</span>
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
+            <h3>
+              <span data-lang-block="en">Rootless Per-Instance Networking</span>
+              <span data-lang-block="pt">Rede Isolada sem Root</span>
+            </h3>
+            <p>
+              <span data-lang-block="en">With <code>pasta</code> installed, every instance gets its own free LAN IPv4 address so local co-op and dedicated servers connect directly without relays.</span>
+              <span data-lang-block="pt">Com o <code>pasta</code> instalado, cada instância recebe um IPv4 livre na rede local, evitando conflitos de porta e relays em partidas locais.</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <p class="callout-title">
+            <span data-lang-block="en">Fair Play &amp; Legal Notice</span>
+            <span data-lang-block="pt">Aviso Legal e Uso Legítimo</span>
+          </p>
+          <p>
+            <span data-lang-block="en">Twinverse does <strong>not</strong> support piracy and never modifies or patches Steam. Every player must sign into an official Steam account that legitimately owns (or has authorized access to) the games being played.</span>
+            <span data-lang-block="pt">O Twinverse <strong>não</strong> apoia pirataria e nunca modifica ou aplica patches no Steam. Cada jogador deve entrar em uma conta oficial do Steam que possua legitimamente (ou tenha acesso autorizado aos) jogos executados.</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- SECTION 2: REQUIREMENTS -->
+      <section id="requirements" class="doc-section">
+        <p class="eyebrow">
+          <span data-lang-block="en">Before You Begin</span>
+          <span data-lang-block="pt">Antes de Começar</span>
+        </p>
+        <h2>
+          <span data-lang-block="en">System Requirements &amp; Preparation</span>
+          <span data-lang-block="pt">Requisitos do Sistema e Preparação</span>
+        </h2>
+
+        <p>
+          <span data-lang-block="en">Twinverse orchestrates native Linux sandboxing and display tools already available on your host system—even when Twinverse itself runs inside Flatpak (via <code>flatpak-spawn --host</code>).</span>
+          <span data-lang-block="pt">O Twinverse orquestra ferramentas nativas de sandboxing e vídeo instaladas no seu sistema host—mesmo quando o próprio Twinverse é executado via Flatpak (usando <code>flatpak-spawn --host</code>).</span>
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><span data-lang-block="en">Component</span><span data-lang-block="pt">Componente</span></th>
+                <th><span data-lang-block="en">Status</span><span data-lang-block="pt">Status</span></th>
+                <th><span data-lang-block="en">Purpose &amp; Notes</span><span data-lang-block="pt">Função e Observações</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>steam</code></td>
+                <td><strong><span data-lang-block="en">Required (Host)</span><span data-lang-block="pt">Obrigatório (Host)</span></strong></td>
+                <td><span data-lang-block="en">Native distribution package (not Flatpak Steam). Provides the Steam runtime and shared <code>~/.local/share/Steam/steamapps/common/</code> library.</span><span data-lang-block="pt">Pacote nativo da distribuição (não o Steam Flatpak). Fornece o runtime e a pasta compartilhada <code>~/.local/share/Steam/steamapps/common/</code>.</span></td>
+              </tr>
+              <tr>
+                <td><code>gamescope</code></td>
+                <td><strong><span data-lang-block="en">Required (Host)</span><span data-lang-block="pt">Obrigatório (Host)</span></strong></td>
+                <td><span data-lang-block="en">Native package. Micro-compositor that isolates resolution, refresh rate, cursor grabbing, and upscaling per player.</span><span data-lang-block="pt">Pacote nativo. Micro-compositor que isola resolução, taxa de atualização, captura de mouse e upscaling por jogador.</span></td>
+              </tr>
+              <tr>
+                <td><code>bwrap</code> (<code>bubblewrap</code>)</td>
+                <td><strong><span data-lang-block="en">Required (Host)</span><span data-lang-block="pt">Obrigatório (Host)</span></strong></td>
+                <td><span data-lang-block="en">Creates isolated per-player home directories and masks <code>/dev/input</code> so controllers never leak between players.</span><span data-lang-block="pt">Cria diretórios home isolados por jogador e mascara <code>/dev/input</code> para que controles nunca vazem entre instâncias.</span></td>
+              </tr>
+              <tr>
+                <td><code>pactl</code></td>
+                <td><strong><span data-lang-block="en">Required (Host)</span><span data-lang-block="pt">Obrigatório (Host)</span></strong></td>
+                <td><span data-lang-block="en">Provided by <code>pipewire-pulse</code> or <code>pulseaudio-utils</code>. Used to enumerate and assign dedicated audio output sinks.</span><span data-lang-block="pt">Fornecido por <code>pipewire-pulse</code> ou <code>pulseaudio-utils</code>. Usado para listar e atribuir saídas de áudio dedicadas.</span></td>
+              </tr>
+              <tr>
+                <td><code>pasta</code> (<code>passt</code>)</td>
+                <td><span data-lang-block="en">Strongly Recommended</span><span data-lang-block="pt">Altamente Recomendado</span></td>
+                <td><span data-lang-block="en">Enables automatic rootless per-instance network namespaces with distinct LAN IPv4 addresses. Must be installed on the host <code>PATH</code> (including for Flatpak users).</span><span data-lang-block="pt">Ativa isolamento de rede sem root por instância com endereços IPv4 distintos na LAN. Deve estar no <code>PATH</code> do host (inclusive para quem usa Flatpak).</span></td>
+              </tr>
+              <tr>
+                <td><code>mangoapp</code></td>
+                <td><span data-lang-block="en">Optional</span><span data-lang-block="pt">Opcional</span></td>
+                <td><span data-lang-block="en">Used when <strong>Steam Deck tag</strong> is enabled in Preferences to provide performance overlay and Gamescope FPS limiter integration.</span><span data-lang-block="pt">Usado quando a opção <strong>Steam Deck tag</strong> está ativa nas Preferências para overlay de desempenho e limitador de FPS do Gamescope.</span></td>
+              </tr>
+              <tr>
+                <td>KDE Plasma 6.0+</td>
+                <td><span data-lang-block="en">Recommended DE</span><span data-lang-block="pt">DE Recomendado</span></td>
+                <td><span data-lang-block="en">Enables automatic KWin splitscreen &amp; multi-monitor window tiling and panel dodging. On GNOME, Sway, Hyprland, or other DEs, everything works except automatic window placement (position windows manually).</span><span data-lang-block="pt">Ativa posicionamento automático via KWin em tela dividida e múltiplos monitores, além do modo dodge dos painéis. Em GNOME, Sway, Hyprland ou outros DEs, tudo funciona exceto o auto-tiling (posicione as janelas manualmente).</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>
+          <span data-lang-block="en">GPU Driver Requirements (Gamescope)</span>
+          <span data-lang-block="pt">Requisitos de Driver de GPU (Gamescope)</span>
+        </h3>
+        <ul>
+          <li><strong>AMD:</strong> <span data-lang-block="en">Mesa 20.3 or newer</span><span data-lang-block="pt">Mesa 20.3 ou mais recente</span></li>
+          <li><strong>Intel:</strong> <span data-lang-block="en">Mesa 21.2 or newer</span><span data-lang-block="pt">Mesa 21.2 ou mais recente</span></li>
+          <li><strong>NVIDIA:</strong> <span data-lang-block="en">Proprietary drivers 515.43.04+ or NVIDIA Open Kernel Module drivers</span><span data-lang-block="pt">Drivers proprietários 515.43.04+ ou drivers NVIDIA Open Kernel Module</span></li>
+        </ul>
+
+        <div class="callout callout-note">
+          <p class="callout-title">
+            <span data-lang-block="en">SteamOS &amp; Bazzite</span>
+            <span data-lang-block="pt">SteamOS e Bazzite</span>
+          </p>
+          <p>
+            <span data-lang-block="en"><strong>SteamOS</strong> (AMD) and <strong>Bazzite</strong> ship with Steam, Gamescope, Bubblewrap, and PipeWire pre-installed out of the box.</span>
+            <span data-lang-block="pt"><strong>SteamOS</strong> (AMD) e <strong>Bazzite</strong> já vêm com Steam, Gamescope, Bubblewrap e PipeWire pré-instalados por padrão.</span>
+          </p>
+        </div>
+
+        <div class="callout callout-important">
+          <p class="callout-title">
+            <span data-lang-block="en">Mandatory Permission: Add Your User to the <code>input</code> Group</span>
+            <span data-lang-block="pt">Permissão Obrigatória: Adicione seu Usuário ao Grupo <code>input</code></span>
+          </p>
+          <p>
+            <span data-lang-block="en">Twinverse needs read access to <code>/dev/input</code> and <code>/dev/uinput</code> to detect controllers and create automatic virtual joysticks. Run the appropriate command below and <strong>reboot your computer</strong>:</span>
+            <span data-lang-block="pt">O Twinverse precisa de acesso a <code>/dev/input</code> e <code>/dev/uinput</code> para detectar controles e criar joysticks virtuais automáticos. Execute o comando correspondente abaixo e <strong>reinicie o computador</strong>:</span>
+          </p>
+<pre><code># Most Linux distributions (Arch, Fedora, Ubuntu, Debian, openSUSE, SteamOS)
+sudo usermod -aG input "$USER"
+
+# Bazzite (immutable Fedora Atomic)
+ujust add-user-to-input-group</code></pre>
+        </div>
+      </section>
+
+      <!-- SECTION 3: INSTALLATION -->
+      <section id="installation" class="doc-section">
+        <p class="eyebrow">
+          <span data-lang-block="en">Download &amp; Install</span>
+          <span data-lang-block="pt">Download e Instalação</span>
+        </p>
+        <h2>
+          <span data-lang-block="en">Installation</span>
+          <span data-lang-block="pt">Instalação</span>
+        </h2>
+
+        <p>
+          <span data-lang-block="en">Choose your preferred installation method. Official <code>.flatpak</code> bundles and <code>.AppImage</code> binaries are published on the <a href="https://github.com/mall0r/Twinverse/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a> page.</span>
+          <span data-lang-block="pt">Escolha o método de instalação de sua preferência. Os pacotes oficiais <code>.flatpak</code> e binários <code>.AppImage</code> são publicados na página de <a href="https://github.com/mall0r/Twinverse/releases" target="_blank" rel="noopener noreferrer">Releases no GitHub</a>.</span>
+        </p>
+
+        <div class="tabs">
+          <div class="tab-list" role="tablist">
+            <button class="tab-btn" role="tab" aria-selected="true" data-tab="install-flatpak">
+              <span data-lang-block="en">Flatpak (Recommended)</span>
+              <span data-lang-block="pt">Flatpak (Recomendado)</span>
+            </button>
+            <button class="tab-btn" role="tab" aria-selected="false" data-tab="install-appimage">AppImage</button>
+            <button class="tab-btn" role="tab" aria-selected="false" data-tab="install-source">
+              <span data-lang-block="en">From Source</span>
+              <span data-lang-block="pt">Código-Fonte</span>
+            </button>
+          </div>
+
+          <div class="tab-panel" data-panel="install-flatpak">
+            <p>
+              <span data-lang-block="en">Flatpak provides clean GTK4/libadwaita runtime isolation, automatic desktop menu integration, and sandboxed configuration storage while delegating <code>steam</code>, <code>gamescope</code>, <code>bwrap</code>, and <code>pasta</code> to the host.</span>
+              <span data-lang-block="pt">O Flatpak oferece isolamento limpo de runtime GTK4/libadwaita, integração automática ao menu de aplicativos e armazenamento organizado enquanto delega <code>steam</code>, <code>gamescope</code>, <code>bwrap</code> e <code>pasta</code> para o host.</span>
+            </p>
+            <ol>
+              <li>
+                <span data-lang-block="en">Download the latest <code>Twinverse-*.flatpak</code> from <a href="https://github.com/mall0r/Twinverse/releases" target="_blank" rel="noopener noreferrer">Releases</a>.</span>
+                <span data-lang-block="pt">Baixe o arquivo <code>Twinverse-*.flatpak</code> mais recente em <a href="https://github.com/mall0r/Twinverse/releases" target="_blank" rel="noopener noreferrer">Releases</a>.</span>
+              </li>
+              <li>
+                <span data-lang-block="en">Add the Flathub remote (needed so Flatpak can fetch the GNOME runtime) and install the bundle:</span>
+                <span data-lang-block="pt">Adicione o repositório Flathub (necessário para o Flatpak baixar o runtime GNOME) e instale o pacote:</span>
+              </li>
+            </ol>
+<pre><code>flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install --user Twinverse-*.flatpak
+
+# Launch from terminal (or open Twinverse from your application menu)
+flatpak run io.github.mall0r.Twinverse</code></pre>
+          </div>
+
+          <div class="tab-panel" data-panel="install-appimage" hidden>
+            <p>
+              <span data-lang-block="en">A single portable executable with embedded zsync delta-update metadata (compatible with AppImageUpdate and <a href="https://github.com/mijorus/gearlever" target="_blank" rel="noopener noreferrer">Gear Lever</a>). Make sure <code>bubblewrap</code> is installed on your host.</span>
+              <span data-lang-block="pt">Um único executável portátil com metadados zsync para atualizações incrementais (compatível com AppImageUpdate e <a href="https://github.com/mijorus/gearlever" target="_blank" rel="noopener noreferrer">Gear Lever</a>). Garanta que o pacote <code>bubblewrap</code> esteja instalado no host.</span>
+            </p>
+<pre><code># Make executable and run
+chmod +x Twinverse-*.AppImage
+./Twinverse-*.AppImage</code></pre>
+            <div class="callout callout-tip">
+              <p class="callout-title">
+                <span data-lang-block="en">Desktop Integration Tip</span>
+                <span data-lang-block="pt">Dica de Integração ao Sistema</span>
+              </p>
+              <p>
+                <span data-lang-block="en">Use <a href="https://github.com/mijorus/gearlever" target="_blank" rel="noopener noreferrer">Gear Lever</a> to add Twinverse to your application launcher and manage updates automatically.</span>
+                <span data-lang-block="pt">Use o <a href="https://github.com/mijorus/gearlever" target="_blank" rel="noopener noreferrer">Gear Lever</a> para integrar o Twinverse ao menu do sistema e gerenciar atualizações automaticamente.</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="tab-panel" data-panel="install-source" hidden>
+            <p>
+              <span data-lang-block="en">Running from source requires Python 3.12+, GTK4, libadwaita, and PyGObject on the system. The bundled <code>run.sh</code> script sets up a local virtual environment automatically.</span>
+              <span data-lang-block="pt">Executar a partir do código-fonte requer Python 3.12+, GTK4, libadwaita e PyGObject no sistema. O script <code>run.sh</code> cria e configura o ambiente virtual automaticamente.</span>
+            </p>
+<pre><code>git clone https://github.com/mall0r/Twinverse.git
+cd Twinverse
+./run.sh</code></pre>
+            <p>
+              <span data-lang-block="en">Developers can also use <code>make dev</code>, <code>make test</code>, <code>make check</code>, <code>make build-appimage</code>, and <code>make build-flatpak</code>. See <code>CONTRIBUTING.md</code> for full development guidelines.</span>
+              <span data-lang-block="pt">Desenvolvedores também podem usar <code>make dev</code>, <code>make test</code>, <code>make check</code>, <code>make build-appimage</code> e <code>make build-flatpak</code>. Consulte <code>CONTRIBUTING.md</code> para mais detalhes.</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: WORKSPACE ANATOMY -->
+      <section id="workspace-anatomy" class="doc-section">
+        <p class="eyebrow">
+          <span data-lang-block="en">Know the Studio</span>
+          <span data-lang-block="pt">Conheça o Studio</span>
+        </p>
+        <h2>
+          <span data-lang-block="en">Interface Anatomy</span>
+          <span data-lang-block="pt">Anatomia da Interface</span>
+        </h2>
+
+        <p>
+          <span data-lang-block="en">Twinverse uses a clean three-pane GTK4/libadwaita studio layout designed to keep party selection, visual monitor tiling, and per-player hardware configuration visible at once. On screens narrower than <code>1120sp</code>, the right-hand <strong>Player Setup</strong> pane collapses cleanly into a slide-over drawer (toggle anytime with <kbd>F9</kbd> or <kbd>Alt+2</kbd>).</span>
+          <span data-lang-block="pt">O Twinverse usa uma interface GTK4/libadwaita em três painéis pensada para manter a lista de jogadores, o mapa visual de monitores e a configuração de hardware por jogador visíveis ao mesmo tempo. Em telas menores que <code>1120sp</code>, o painel direito <strong>Player Setup</strong> se recolhe automaticamente em uma gaveta lateral (alterne a qualquer momento com <kbd>F9</kbd> ou <kbd>Alt+2</kbd>).</span>
+        </p>
+
+        <figure class="figure">
+          <div class="figure-img-wrap">
+            <img src="./assets/img/anatomy-studio.png" alt="Annotated anatomy of Twinverse Session Studio showing 6 numbered regions" loading="lazy">
+          </div>
+          <figcaption>
+            <span data-lang-block="en"><strong>Session Studio Anatomy</strong> — Click the image to zoom in. Each numbered badge matches a core area explained below.</span>
+            <span data-lang-block="pt"><strong>Anatomia do Session Studio</strong> — Clique na imagem para ampliar. Cada número corresponde a uma área descrita abaixo.</span>
+          </figcaption>
+        </figure>
+
+        <div class="anatomy-legend">
+          <div class="legend-item">
+            <span class="legend-num">1</span>
+            <div>
+              <h4><span data-lang-block="en">Header Bar, Theme &amp; App Menu</span><span data-lang-block="pt">Cabeçalho, Tema e Menu</span></h4>
+              <p><span data-lang-block="en">Left side toggles the Party Roster and Player Setup panes, plus the app menu (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>About</strong>). Right side switches Dark/Light theme.</span><span data-lang-block="pt">À esquerda ficam os botões dos painéis laterais e o menu do app (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>About</strong>). À direita fica o botão de tema Claro/Escuro.</span></p>
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <span class="legend-num">2</span>
+            <div>
+              <h4><span data-lang-block="en">Party Roster (1–8 Players)</span><span data-lang-block="pt">Lista de Jogadores (Party, 1–8)</span></h4>
+              <p><span data-lang-block="en">Add players with <code>+ Add player</code>, include/exclude players with checkboxes, inspect Steam readiness badges (<code>Ready</code> / <code>Not installed</code> / <code>Running</code>), click a row to inspect, or drag rows straight onto a monitor space.</span><span data-lang-block="pt">Adicione jogadores com <code>+ Add player</code>, marque/desmarque participantes, acompanhe o status do Steam (<code>Ready</code> / <code>Not installed</code> / <code>Running</code>), clique para configurar ou arraste diretamente para um espaço de monitor.</span></p>
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <span class="legend-num">3</span>
+            <div>
+              <h4><span data-lang-block="en">Session Status &amp; Launch Bar</span><span data-lang-block="pt">Status da Sessão e Botão Iniciar</span></h4>
+              <p><span data-lang-block="en">Shows live readiness (<code>Ready to launch</code>, <code>Setup needed</code>, <code>You're live</code>) and the primary <strong>Launch session</strong> / <strong>End session</strong> button (<kbd>Ctrl+Enter</kbd>).</span><span data-lang-block="pt">Exibe o estado geral (<code>Ready to launch</code>, <code>Setup needed</code>, <code>You're live</code>) e o botão principal <strong>Launch session</strong> / <strong>End session</strong> (<kbd>Ctrl+Enter</kbd>).</span></p>
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <span class="legend-num">4</span>
+            <div>
+              <h4><span data-lang-block="en">Placement &amp; Per-Monitor Tiling Picker</span><span data-lang-block="pt">Posicionamento e Seletor de Moldes</span></h4>
+              <p><span data-lang-block="en">Switch between <code>Automatic</code> and <code>Custom</code> placement at the top, and pick one of 6 visual tiling templates independently for every connected display.</span><span data-lang-block="pt">Alterne entre posicionamento <code>Automatic</code> e <code>Custom</code> no topo e escolha um dos 6 moldes visuais de divisão independentemente para cada monitor conectado.</span></p>
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <span class="legend-num">5</span>
+            <div>
+              <h4><span data-lang-block="en">Interactive Player Spaces</span><span data-lang-block="pt">Espaços Interativos de Jogadores</span></h4>
+              <p><span data-lang-block="en">True-aspect preview of each Gamescope region showing player name, index, readiness dot, controller and mouse-grab icons. Click to select or drag-and-drop to swap or move across monitors.</span><span data-lang-block="pt">Pré-visualização em proporção real de cada região do Gamescope com nome, índice, status e ícones de controle/mouse. Clique para selecionar ou arraste para trocar e mover entre monitores.</span></p>
+            </div>
+          </div>
+
+          <div class="legend-item">
+            <span class="legend-num">6</span>
+            <div>
+              <h4><span data-lang-block="en">Player Setup Inspector</span><span data-lang-block="pt">Inspetor Player Setup</span></h4>
+              <p><span data-lang-block="en">Inline name editor, single-instance action button (<code>Install Steam</code> / <code>Start player</code> / <code>Stop player</code>), Controller &amp; Grab mouse, Audio sink, Guest IP, and per-player Environment variables.</span><span data-lang-block="pt">Edição de nome inline, ação individual (<code>Install Steam</code> / <code>Start player</code> / <code>Stop player</code>), Controle e Grab mouse, saída de Áudio, Guest IP e Variáveis de ambiente por jogador.</span></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5: STEP-BY-STEP GUIDE -->
+      <section id="step-by-step" class="doc-section">
+        <p class="eyebrow">
+          <span data-lang-block="en">From Zero to Splitscreen</span>
+          <span data-lang-block="pt">Do Zero à Tela Dividida</span>
+        </p>
+        <h2>
+          <span data-lang-block="en">Step-by-Step Guide</span>
+          <span data-lang-block="pt">Guia Passo a Passo</span>
+        </h2>
+
+        <p>
+          <span data-lang-block="en">Follow these five steps the first time you set up Twinverse. Once your players are signed into Steam, future gaming nights take a single click on <strong>Launch session</strong>.</span>
+          <span data-lang-block="pt">Siga estes cinco passos na primeira vez em que configurar o Twinverse. Depois que os jogadores fizerem login no Steam, as próximas sessões exigem apenas um clique em <strong>Launch session</strong>.</span>
+        </p>
+
+        <!-- STEP 1 -->
+        <article id="step-1-party" class="step-block" data-toc-sub>
+          <div class="step-header">
+            <span class="step-number">1</span>
+            <h3>
+              <span data-lang-block="en">Build Your Party (1 to 8 Players)</span>
+              <span data-lang-block="pt">Monte o Grupo (1 a 8 Jogadores)</span>
+            </h3>
+          </div>
+
+          <p>
+            <span data-lang-block="en">Start in the left-hand <strong>Party</strong> sidebar:</span>
+            <span data-lang-block="pt">Comece pela barra lateral esquerda <strong>Party</strong>:</span>
+          </p>
+          <ul>
+            <li>
+              <span data-lang-block="en">Click <strong>+ Add player</strong> to add up to 8 players (<code>home_1</code> through <code>home_8</code>). Each slot keeps its own Steam account, saves, and hardware bindings.</span>
+              <span data-lang-block="pt">Clique em <strong>+ Add player</strong> para adicionar até 8 jogadores (<code>home_1</code> a <code>home_8</code>). Cada slot mantém sua própria conta Steam, saves e dispositivos.</span>
+            </li>
+            <li>
+              <span data-lang-block="en">Use the <strong>checkbox</strong> next to each player to include or temporarily sit them out of the next session without losing any configuration. Excluded players dim out and free up their screen space.</span>
+              <span data-lang-block="pt">Use a <strong>caixa de seleção</strong> ao lado de cada jogador para incluí-lo ou deixá-lo de fora da próxima sessão sem perder configurações. Jogadores desmarcados ficam esmaecidos e liberam espaço na tela.</span>
+            </li>
+            <li>
+              <span data-lang-block="en">Click the <strong>×</strong> button on a player row to hide them from the roster. Their saved settings and disk home stay intact—clicking <strong>+ Add player</strong> later restores the lowest unused slot automatically.</span>
+              <span data-lang-block="pt">Clique no botão <strong>×</strong> em uma linha para remover o jogador da lista. As configurações e a pasta home permanecem intactas—clicar em <strong>+ Add player</strong> depois restaura automaticamente o menor slot livre.</span>
+            </li>
+            <li>
+              <span data-lang-block="en">Click any player row to open their profile in <strong>Player Setup</strong>, where you can also click their name to rename them (up to 32 characters; <kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels).</span>
+              <span data-lang-block="pt">Clique em qualquer jogador para abrir seu perfil no <strong>Player Setup</strong>, onde também é possível clicar no nome para renomeá-lo (até 32 caracteres; <kbd>Enter</kbd> confirma, <kbd>Esc</kbd> cancela).</span>
+            </li>
+          </ul>
+
+          <figure class="figure">
+            <div class="figure-img-wrap">
+              <img src="./assets/img/step-1-party-roster.png" alt="Party Roster showing 3 players with Ready and Not installed statuses" loading="lazy">
+            </div>
+            <figcaption>
+              <span data-lang-block="en"><strong>Step 1 — Party Roster:</strong> Three players added. <em>Alex</em> and <em>Sam</em> are <code>Ready</code>, while <em>Jordan</em> shows <code>Not installed</code>, causing the footer status to indicate <code>Setup needed</code> until Steam is initialized for Jordan.</span>
+              <span data-lang-block="pt"><strong>Passo 1 — Party Roster:</strong> Três jogadores adicionados. <em>Alex</em> e <em>Sam</em> estão <code>Ready</code>, enquanto <em>Jordan</em> mostra <code>Not installed</code>, fazendo o rodapé exibir <code>Setup needed</code> até o Steam ser inicializado para Jordan.</span>
+            </figcaption>
+          </figure>
+        </article>
+
+        <!-- STEP 2 -->
+        <article id="step-2-layout" class="step-block" data-toc-sub>
+          <div class="step-header">
+            <span class="step-number">2</span>
+            <h3>
+              <span data-lang-block="en">Choose Monitor Tiling &amp; Arrange Player Spaces</span>
+              <span data-lang-block="pt">Escolha os Moldes de Monitor e Posicione os Jogadores</span>
+            </h3>
+          </div>
+
+          <p>
+            <span data-lang-block="en">Beneath every detected monitor header in <strong>Session Layout</strong>, Twinverse displays six miniature tiling template buttons. Each monitor has its own independent template (saved per connector name such as <code>DP-1</code> or <code>HDMI-A-1</code>) and automatically uses that display's native resolution and refresh rate:</span>
+            <span data-lang-block="pt">Abaixo do cabeçalho de cada monitor detectado no <strong>Session Layout</strong>, o Twinverse exibe seis botões de moldes visuais. Cada monitor tem sua escolha independente (salva por conector, como <code>DP-1</code> ou <code>HDMI-A-1</code>) e utiliza automaticamente a resolução e taxa de atualização nativas da tela:</span>
+          </p>
+
+          <div class="templates-grid">
+            <div class="template-card">
+              <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
+                <rect x="6" y="6" width="148" height="88" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <text x="80" y="55" text-anchor="middle" fill="#84b4fa" font-size="16" font-weight="700">1</text>
+              </svg>
+              <h4>Fullscreen <span class="template-cap">1 space</span></h4>
+              <p><span data-lang-block="en">One full-monitor space. Ideal for dedicated multi-monitor setups.</span><span data-lang-block="pt">Um espaço ocupando o monitor inteiro. Ideal para múltiplos monitores.</span></p>
+            </div>
+
+            <div class="template-card">
+              <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
+                <rect x="6" y="6" width="71" height="88" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="83" y="6" width="71" height="88" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <text x="41" y="55" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">1</text>
+                <text x="119" y="55" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">2</text>
+              </svg>
+              <h4>Columns <span class="template-cap">2 spaces</span></h4>
+              <p><span data-lang-block="en">Side-by-side vertical split. Great for ultrawide and 16:9 co-op.</span><span data-lang-block="pt">Divisão vertical lado a lado. Ótima para monitores ultrawide e 16:9.</span></p>
+            </div>
+
+            <div class="template-card">
+              <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
+                <rect x="6" y="6" width="148" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="6" y="53" width="148" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <text x="80" y="32" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">1</text>
+                <text x="80" y="79" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">2</text>
+              </svg>
+              <h4>Rows <span class="template-cap">2 spaces</span></h4>
+              <p><span data-lang-block="en">Top-and-bottom horizontal split for wider field of view.</span><span data-lang-block="pt">Divisão horizontal empilhada para maior campo de visão lateral.</span></p>
+            </div>
+
+            <div class="template-card">
+              <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
+                <rect x="6" y="6" width="71" height="88" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="83" y="6" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="83" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <text x="41" y="55" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">1</text>
+                <text x="119" y="32" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">2</text>
+                <text x="119" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">3</text>
+              </svg>
+              <h4>Main left <span class="template-cap">3 spaces</span></h4>
+              <p><span data-lang-block="en">Tall main space on the left + two stacked spaces on the right.</span><span data-lang-block="pt">Espaço principal à esquerda + dois espaços empilhados à direita.</span></p>
+            </div>
+
+            <div class="template-card">
+              <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
+                <rect x="6" y="6" width="148" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="6" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="83" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <text x="80" y="32" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">1</text>
+                <text x="41" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">2</text>
+                <text x="119" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">3</text>
+              </svg>
+              <h4>Main top <span class="template-cap">3 spaces</span></h4>
+              <p><span data-lang-block="en">Wide main space on top + two side-by-side spaces below.</span><span data-lang-block="pt">Espaço principal largo no topo + dois espaços lado a lado abaixo.</span></p>
+            </div>
+
+            <div class="template-card">
+              <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
+                <rect x="6" y="6" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="83" y="6" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="6" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <rect x="83" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
+                <text x="41" y="32" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">1</text>
+                <text x="119" y="32" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">2</text>
+                <text x="41" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">3</text>
+                <text x="119" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">4</text>
+              </svg>
+              <h4>Grid <span class="template-cap">4 spaces</span></h4>
+              <p><span data-lang-block="en">Classic 2×2 four-player splitscreen quadrants on one monitor.</span><span data-lang-block="pt">Clássica tela dividida em grade 2×2 para quatro jogadores em um monitor.</span></p>
+            </div>
+          </div>
+
+          <h4>
+            <span data-lang-block="en">Drag-and-Drop Placement &amp; Overflow Protection</span>
+            <span data-lang-block="pt">Posicionamento por Arrastar-e-Soltar e Proteção de Excedentes</span>
+          </h4>
+          <ul>
+            <li>
+              <span data-lang-block="en"><strong>Drag &amp; drop anywhere:</strong> Grab a player tile on the canvas (or a player row in the Party Roster) and drop it onto any empty or occupied space—even on a different monitor. Occupied spaces swap smoothly with animated card motion, and holding near the top/bottom canvas edge auto-scrolls tall multi-monitor setups.</span>
+              <span data-lang-block="pt"><strong>Arraste para qualquer lugar:</strong> Pegue um bloco no canvas (ou uma linha da lista Party) e solte sobre qualquer espaço vazio ou ocupado—inclusive em outro monitor. Espaços ocupados trocam suavemente com animação, e segurar perto das bordas superior/inferior faz rolagem automática.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Automatic vs. Custom placement:</strong> The first manual drag automatically switches <strong>Placement</strong> to <code>Custom</code>. Switch back to <code>Automatic</code> anytime to reset to sequential order while keeping your chosen monitor templates.</span>
+              <span data-lang-block="pt"><strong>Posicionamento Automatic vs. Custom:</strong> O primeiro arraste manual muda <strong>Placement</strong> automaticamente para <code>Custom</code>. Volte para <code>Automatic</code> a qualquer momento para restaurar a ordem sequencial sem perder os moldes escolhidos.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Players without a space:</strong> If your selected templates have fewer total spaces than active players, extra players appear in a warning tray below the monitors and launching is safely blocked until you pick a larger template, drag them into an empty space, or uncheck them.</span>
+              <span data-lang-block="pt"><strong>Jogadores sem espaço:</strong> Se os moldes escolhidos tiverem menos espaços do que jogadores ativos, os excedentes aparecem em uma bandeja de aviso abaixo dos monitores e o início da sessão fica bloqueado até que você escolha um molde maior, arraste-os para um espaço livre ou os desmarque.</span>
+            </li>
+          </ul>
+
+          <div class="tabs">
+            <div class="tab-list" role="tablist">
+              <button class="tab-btn" role="tab" aria-selected="true" data-tab="layout-multi">
+                <span data-lang-block="en">Multi-Monitor Mixed</span>
+                <span data-lang-block="pt">Múltiplos Monitores Mistos</span>
+              </button>
+              <button class="tab-btn" role="tab" aria-selected="false" data-tab="layout-grid">
+                <span data-lang-block="en">4-Player Grid</span>
+                <span data-lang-block="pt">Grade 4 Jogadores</span>
+              </button>
+              <button class="tab-btn" role="tab" aria-selected="false" data-tab="layout-overflow">
+                <span data-lang-block="en">Overflow Warning</span>
+                <span data-lang-block="pt">Aviso de Excedente</span>
+              </button>
+            </div>
+
+            <div class="tab-panel" data-panel="layout-multi">
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/step-2-tiling-multi-monitor.png" alt="Two monitors using mixed Main left and Columns templates with Custom placement" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>Mixed Multi-Monitor Layout:</strong> <code>DP-1</code> (2560×1440) uses <em>Main left</em> (with an intentional Empty space) while <code>HDMI-A-1</code> (1920×1080) uses <em>Columns</em>, with <code>Custom</code> placement active.</span>
+                  <span data-lang-block="pt"><strong>Layout Misto em Múltiplos Monitores:</strong> <code>DP-1</code> (2560×1440) usa <em>Main left</em> (com um espaço vazio proposital) enquanto <code>HDMI-A-1</code> (1920×1080) usa <em>Columns</em>, com posicionamento <code>Custom</code> ativo.</span>
+                </figcaption>
+              </figure>
+            </div>
+
+            <div class="tab-panel" data-panel="layout-grid" hidden>
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/step-2b-four-player-grid.png" alt="4-player 2x2 Grid splitscreen on a single 1920x1080 monitor" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>4-Player Grid:</strong> Four players tiled in equal quadrants on a single monitor, each displaying its assigned gamepad or mouse-grab icon directly on the card.</span>
+                  <span data-lang-block="pt"><strong>Grade para 4 Jogadores:</strong> Quatro jogadores divididos em quadrantes iguais em um único monitor, exibindo os ícones de controle e captura de mouse diretamente em cada espaço.</span>
+                </figcaption>
+              </figure>
+            </div>
+
+            <div class="tab-panel" data-panel="layout-overflow" hidden>
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/overflow-unassigned.png" alt="Players without a space warning tray when 3 players do not fit in a 2-space Columns template" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>Overflow Protection:</strong> Three players active on a 2-space <em>Columns</em> layout. Jordan appears under <code>Players without a space</code> and can be dragged directly into a slot once a 3- or 4-space template is picked.</span>
+                  <span data-lang-block="pt"><strong>Proteção contra Excedentes:</strong> Três jogadores ativos em um molde <em>Columns</em> de 2 espaços. Jordan aparece em <code>Players without a space</code> e pode ser arrastado diretamente após escolher um molde maior.</span>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </article>
+
+        <!-- STEP 3 -->
+        <article id="step-3-player-setup" class="step-block" data-toc-sub>
+          <div class="step-header">
+            <span class="step-number">3</span>
+            <h3>
+              <span data-lang-block="en">Configure Controls, Audio, Network &amp; Environment</span>
+              <span data-lang-block="pt">Configure Controles, Áudio, Rede e Variáveis</span>
+            </h3>
+          </div>
+
+          <p>
+            <span data-lang-block="en">Select each player (from the Party Roster or by clicking their space on the canvas) to configure their hardware in the right-hand <strong>Player Setup</strong> inspector:</span>
+            <span data-lang-block="pt">Selecione cada jogador (na lista Party ou clicando no espaço no canvas) para configurar o hardware no painel direito <strong>Player Setup</strong>:</span>
+          </p>
+
+          <ul>
+            <li>
+              <strong>Controls — Controller:</strong>
+              <span data-lang-block="en">Searchable dropdown listing every connected joystick (<code>/dev/input/by-id/*-event-joystick</code>). Click the refresh icon (or press <kbd>F5</kbd>) if you plug in a controller after opening Twinverse. Leave as <code>None</code> to let Twinverse create an automatic virtual gamepad during launch so Steam Big Picture still responds cleanly.</span>
+              <span data-lang-block="pt">Menu pesquisável com todos os controles conectados (<code>/dev/input/by-id/*-event-joystick</code>). Clique no ícone de atualizar (ou pressione <kbd>F5</kbd>) se conectar um controle depois de abrir o app. Deixe em <code>None</code> para que o Twinverse crie um controle virtual automático na inicialização.</span>
+            </li>
+            <li>
+              <strong>Controls — Grab mouse:</strong>
+              <span data-lang-block="en">Passes <code>--force-grab-cursor</code> to Gamescope for that player. Because mouse and keyboard can only belong to one Gamescope session at a time, turning this on automatically turns it off for all other players and displays a mouse badge on the player's space.</span>
+              <span data-lang-block="pt">Passa <code>--force-grab-cursor</code> ao Gamescope desse jogador. Como mouse e teclado só podem pertencer a uma instância por vez, ativar esta opção desativa automaticamente nos demais jogadores e exibe o ícone de mouse no espaço.</span>
+            </li>
+            <li>
+              <strong>Audio — Output device:</strong>
+              <span data-lang-block="en">Searchable list of all PipeWire/PulseAudio sinks (headsets, HDMI/DisplayPort speakers, USB DACs). Choose <code>Default</code> to follow your system output or bind a dedicated sink per player (<code>PULSE_SINK</code>).</span>
+              <span data-lang-block="pt">Lista pesquisável de todas as saídas PipeWire/PulseAudio (headsets, áudio HDMI/DisplayPort, DACs USB). Escolha <code>Default</code> para seguir a saída do sistema ou vincule um dispositivo dedicado por jogador (<code>PULSE_SINK</code>).</span>
+            </li>
+            <li>
+              <strong>Network — Guest IP:</strong>
+              <span data-lang-block="en">Optional fixed IPv4 (or CIDR, e.g., <code>192.168.1.240</code>) used when <code>pasta</code> is installed. Leave blank (<code>Automatic</code>) to let Twinverse safely pick an unused LAN IPv4 automatically.</span>
+              <span data-lang-block="pt">IPv4 fixo opcional (ou CIDR, ex.: <code>192.168.1.240</code>) usado quando o <code>pasta</code> está instalado. Deixe em branco (<code>Automatic</code>) para o Twinverse escolher automaticamente um IPv4 livre na sua rede local.</span>
+            </li>
+            <li>
+              <strong>Environment variables:</strong>
+              <span data-lang-block="en">Expand this section and click <strong>Add variable</strong> to inject custom key/value pairs directly into the player's <code>bwrap</code> sandbox (e.g., <code>PROTON_ENABLE_WAYLAND=1</code>, <code>MANGOHUD=1</code>). Values are passed verbatim and override global defaults.</span>
+              <span data-lang-block="pt">Expanda esta seção e clique em <strong>Add variable</strong> para injetar pares chave/valor diretamente na sandbox <code>bwrap</code> do jogador (ex.: <code>PROTON_ENABLE_WAYLAND=1</code>, <code>MANGOHUD=1</code>). Os valores são preservados literalmente e sobrescrevem padrões globais.</span>
+            </li>
+          </ul>
+
+          <figure class="figure">
+            <div class="figure-img-wrap">
+              <img src="./assets/img/step-3-player-setup.png" alt="Player Setup inspector showing Audio sink, Guest IP, and custom Environment variables" loading="lazy">
+            </div>
+            <figcaption>
+              <span data-lang-block="en"><strong>Step 3 — Player Setup Inspector:</strong> Configuring dedicated audio output, optional fixed <code>Guest IP</code>, and per-player environment variables such as <code>PROTON_ENABLE_WAYLAND</code> and <code>MANGOHUD</code>.</span>
+              <span data-lang-block="pt"><strong>Passo 3 — Inspetor Player Setup:</strong> Configurando saída de áudio dedicada, <code>Guest IP</code> fixo opcional e variáveis de ambiente individuais como <code>PROTON_ENABLE_WAYLAND</code> e <code>MANGOHUD</code>.</span>
+            </figcaption>
+          </figure>
+        </article>
+
+        <!-- STEP 4 -->
+        <article id="step-4-install-steam" class="step-block" data-toc-sub>
+          <div class="step-header">
+            <span class="step-number">4</span>
+            <h3>
+              <span data-lang-block="en">Install Steam &amp; Sign In (First Time Per Player)</span>
+              <span data-lang-block="pt">Instale o Steam e Faça Login (Primeira Vez por Jogador)</span>
+            </h3>
+          </div>
+
+          <p>
+            <span data-lang-block="en">Every brand-new player slot starts with a clean isolated home directory and shows <code>Not installed</code>. Before launching a full Gamescope session, initialize Steam once per player:</span>
+            <span data-lang-block="pt">Cada novo slot começa com uma pasta home isolada limpa e exibe <code>Not installed</code>. Antes de iniciar uma sessão completa com Gamescope, inicialize o Steam uma vez por jogador:</span>
+          </p>
+
+          <ol>
+            <li>
+              <span data-lang-block="en">Select a player marked <code>Not installed</code> and click <strong>Install Steam</strong> in Player Setup. Twinverse launches Steam directly inside Bubblewrap (without Gamescope) so you can see the desktop login window clearly.</span>
+              <span data-lang-block="pt">Selecione um jogador marcado como <code>Not installed</code> e clique em <strong>Install Steam</strong> no Player Setup. O Twinverse abre o Steam diretamente dentro do Bubblewrap (sem Gamescope) para facilitar o login em modo desktop.</span>
+            </li>
+            <li>
+              <span data-lang-block="en">Wait a minute for Steam to download its client runtime into that player's isolated home, then <strong>sign in</strong> to that player's Steam account. (Your installed games from the host library appear automatically—no re-downloading!)</span>
+              <span data-lang-block="pt">Aguarde o Steam baixar o runtime do cliente na home isolada do jogador e <strong>faça login</strong> na conta Steam desse jogador. (Os jogos já instalados no host aparecem automaticamente—sem baixar de novo!)</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Recommended:</strong> Inside Steam, open <code>Settings → Downloads</code> and disable <strong>Enable Shader Pre-Caching</strong> to save disk space and avoid duplicate shader download queues across instances.</span>
+              <span data-lang-block="pt"><strong>Recomendado:</strong> Dentro do Steam, abra <code>Configurações → Downloads</code> e desative <strong>Ativar download prévio de sombreadores</strong> para economizar espaço em disco e evitar filas duplicadas entre instâncias.</span>
+            </li>
+            <li>
+              <span data-lang-block="en">Close that Steam window. Twinverse automatically verifies the installation, switches the player's badge to <code>Ready</code>, and enables <strong>Launch session</strong>. (Later, you can always click <strong>Start player</strong> to open a single player in desktop mode for account or Steam settings changes.)</span>
+              <span data-lang-block="pt">Feche essa janela do Steam. O Twinverse verifica a instalação automaticamente, muda o status para <code>Ready</code> e libera o botão <strong>Launch session</strong>. (Depois, você pode usar <strong>Start player</strong> a qualquer momento para abrir um único jogador em modo desktop e ajustar configurações.)</span>
+            </li>
+          </ol>
+
+          <div class="tabs">
+            <div class="tab-list" role="tablist">
+              <button class="tab-btn" role="tab" aria-selected="true" data-tab="install-btn-shot">
+                <span data-lang-block="en">Install Steam Action</span>
+                <span data-lang-block="pt">Botão Install Steam</span>
+              </button>
+              <button class="tab-btn" role="tab" aria-selected="false" data-tab="shader-shot">
+                <span data-lang-block="en">Disable Shader Pre-Caching</span>
+                <span data-lang-block="pt">Desativar Shader Pre-Caching</span>
+              </button>
+            </div>
+
+            <div class="tab-panel" data-panel="install-btn-shot">
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/step-4-install-steam.png" alt="Selecting an unverified player shows the Install Steam button" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>First-Time Initialization:</strong> Selecting an unverified player displays the highlighted <code>Install Steam</code> button in Player Setup.</span>
+                  <span data-lang-block="pt"><strong>Inicialização Inicial:</strong> Ao selecionar um jogador ainda não verificado, o botão <code>Install Steam</code> fica em destaque no Player Setup.</span>
+                </figcaption>
+              </figure>
+            </div>
+
+            <div class="tab-panel" data-panel="shader-shot" hidden>
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/disable-shader-pre-caching.png" alt="Steam Settings Downloads showing Shader Pre-Caching toggle" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>Save Disk Space:</strong> Disabling <em>Shader Pre-Caching</em> under <code>Steam → Settings → Downloads</code> avoids redundant cache downloads in each player home.</span>
+                  <span data-lang-block="pt"><strong>Economize Espaço em Disco:</strong> Desativar o <em>Download Prévio de Sombreadores</em> em <code>Steam → Configurações → Downloads</code> evita downloads redundantes em cada instância.</span>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </article>
+
+        <!-- STEP 5 -->
+        <article id="step-5-launch" class="step-block" data-toc-sub>
+          <div class="step-header">
+            <span class="step-number">5</span>
+            <h3>
+              <span data-lang-block="en">Launch Your Session &amp; Play</span>
+              <span data-lang-block="pt">Inicie a Sessão e Jogue</span>
+            </h3>
+          </div>
+
+          <p>
+            <span data-lang-block="en">Once every checked player is <code>Ready</code> and assigned a valid space, click <strong>Launch session</strong> (or press <kbd>Ctrl+Enter</kbd>). Here is what Twinverse orchestrates behind the scenes:</span>
+            <span data-lang-block="pt">Assim que todos os jogadores marcados estiverem <code>Ready</code> e alocados em espaços válidos, clique em <strong>Launch session</strong> (ou pressione <kbd>Ctrl+Enter</kbd>). Veja o que o Twinverse orquestra automaticamente:</span>
+          </p>
+
+          <ol>
+            <li>
+              <span data-lang-block="en"><strong>KWin &amp; KDE Panel Prep (KDE Plasma):</strong> Registers the KWin layout script and temporarily sets KDE panels to <code>dodgewindows</code> so games get the full screen cleanly.</span>
+              <span data-lang-block="pt"><strong>Preparação KWin e Painéis (KDE Plasma):</strong> Registra o script de layout do KWin e coloca os painéis do KDE temporariamente em <code>dodgewindows</code> para que os jogos ocupem toda a tela.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Staggered Startup:</strong> Starts each Steam Big Picture instance sequentially (5-second stagger) inside its own <code>pasta → bwrap → gamescope</code> stack while live-tracking Steam update progress and <code>steamwebhelper</code> readiness—even long Steam client updates won't time out prematurely.</span>
+              <span data-lang-block="pt"><strong>Inicialização Escalonada:</strong> Inicia cada instância do Steam Big Picture sequencialmente (intervalo de 5s) dentro da pilha <code>pasta → bwrap → gamescope</code>, acompanhando atualizações do Steam e o carregamento do <code>steamwebhelper</code> em tempo real—sem timeout artificial.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Auto-Minimize &amp; Live Control:</strong> Once every instance is live, Twinverse minimizes itself out of the way (and sends desktop notifications if it's in the background). You can return to Twinverse anytime to stop a single player with <strong>Stop player</strong> or cleanly end the entire session with <strong>End session</strong> (which restores KDE panels and terminates lingering child/Wine processes safely).</span>
+              <span data-lang-block="pt"><strong>Minimização Automática e Controle ao Vivo:</strong> Quando todas as instâncias estiverem prontas, o Twinverse se minimiza automaticamente (enviando notificações se estiver em segundo plano). Volte ao app quando quiser para encerrar um jogador individual (<strong>Stop player</strong>) ou encerrar toda a sessão com <strong>End session</strong> (restaurando os painéis do KDE e encerrando processos filhos/Wine com segurança).</span>
+            </li>
+          </ol>
+
+          <figure class="figure">
+            <div class="figure-img-wrap">
+              <img src="./assets/img/step-5-live-session.png" alt="Live Twinverse session with both players running, End session button, and toast notice" loading="lazy">
+            </div>
+            <figcaption>
+              <span data-lang-block="en"><strong>Step 5 — Live Session:</strong> Both players show <code>Running</code>, the footer displays <code>You're live</code> with a red <code>End session</code> action, Player Setup offers <code>Stop player</code>, and a non-intrusive toast confirms launch.</span>
+              <span data-lang-block="pt"><strong>Passo 5 — Sessão Ativa:</strong> Ambos os jogadores exibem <code>Running</code>, o rodapé mostra <code>You're live</code> com o botão vermelho <code>End session</code>, o Player Setup oferece <code>Stop player</code> e o toast flutuante confirma a inicialização.</span>
+            </figcaption>
+          </figure>
+
+          <div class="callout callout-tip">
+            <p class="callout-title">
+              <span data-lang-block="en">Crash Recovery Built-In</span>
+              <span data-lang-block="pt">Recuperação Automática de Sessão</span>
+            </p>
+            <p>
+              <span data-lang-block="en">Twinverse records active instance PIDs in <code>$XDG_STATE_HOME/twinverse/instances.json</code>. If the UI is ever closed unexpectedly while players are still playing, reopening Twinverse automatically reattaches to surviving instances so you can still manage or cleanly stop them.</span>
+              <span data-lang-block="pt">O Twinverse registra os PIDs ativos em <code>$XDG_STATE_HOME/twinverse/instances.json</code>. Se a interface fechar inesperadamente enquanto o pessoal ainda está jogando, basta reabrir o Twinverse para reconectar automaticamente às instâncias vivas e continuar gerenciando ou encerrando-as normalmente.</span>
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <!-- SECTION 6: ALL FEATURES -->
+      <section id="all-features" class="doc-section">
+        <p class="eyebrow">
+          <span data-lang-block="en">Complete Feature Reference</span>
+          <span data-lang-block="pt">Referência Completa de Funcionalidades</span>
+        </p>
+        <h2>
+          <span data-lang-block="en">All Features in Detail</span>
+          <span data-lang-block="pt">Todas as Funcionalidades em Detalhe</span>
+        </h2>
+
+        <!-- Feature 1: Preferences & Instance Data -->
+        <div id="feature-preferences" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Preferences Window &amp; Instance Data Tools</span>
+            <span data-lang-block="pt">Janela de Preferências e Ferramentas de Instância</span>
+          </h3>
+
+          <p>
+            <span data-lang-block="en">Open <strong>Preferences</strong> from the header menu or by pressing <kbd>Ctrl+,</kbd>. It is organized into two tabs: <strong>Engine</strong> and <strong>Instance data</strong>.</span>
+            <span data-lang-block="pt">Abra as <strong>Preferências</strong> pelo menu do cabeçalho ou pressionando <kbd>Ctrl+,</kbd>. Ela é dividida em duas abas: <strong>Engine</strong> e <strong>Instance data</strong>.</span>
+          </p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><span data-lang-block="en">Setting</span><span data-lang-block="pt">Opção</span></th>
+                  <th><span data-lang-block="en">Default</span><span data-lang-block="pt">Padrão</span></th>
+                  <th><span data-lang-block="en">What It Does</span><span data-lang-block="pt">O Que Faz</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Use Gamescope</strong></td>
+                  <td><code>On</code></td>
+                  <td>
+                    <span data-lang-block="en">Runs each player inside a dedicated Gamescope compositor sized to its canvas space. Turning this off switches the center pane to <strong>Direct Steam mode</strong>, launching Steam directly inside Bubblewrap (handy for debugging or systems without Gamescope).</span>
+                    <span data-lang-block="pt">Executa cada jogador dentro de um compositor Gamescope dimensionado ao espaço do canvas. Desativar alterna o painel central para <strong>Direct Steam mode</strong>, abrindo o Steam diretamente no Bubblewrap (útil para depuração ou sistemas sem Gamescope).</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Steam Deck tag</strong></td>
+                  <td><code>On</code></td>
+                  <td>
+                    <span data-lang-block="en">Passes <code>-steamdeck</code> to Steam and enables <code>--mangoapp</code> with an isolated per-instance <code>mangoapp.conf</code>, unlocking SteamOS performance overlays and the Gamescope FPS limiter menu.</span>
+                    <span data-lang-block="pt">Passa <code>-steamdeck</code> ao Steam e ativa <code>--mangoapp</code> com um <code>mangoapp.conf</code> isolado por instância, habilitando overlays de desempenho e o limitador de FPS do Gamescope.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Gamescope WSI</strong></td>
+                  <td><code>On</code> (Wayland)</td>
+                  <td>
+                    <span data-lang-block="en">Controls the <code>ENABLE_GAMESCOPE_WSI</code> environment variable (<code>1</code> when enabled, <code>0</code> when disabled). Disabling it can resolve Vulkan swapchain glitches on certain GPUs or drivers.</span>
+                    <span data-lang-block="pt">Controla a variável <code>ENABLE_GAMESCOPE_WSI</code> (<code>1</code> ativo, <code>0</code> desativado). Desativar pode resolver problemas de swapchain Vulkan em certas GPUs ou drivers.</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Reset all settings</strong></td>
+                  <td>—</td>
+                  <td>
+                    <span data-lang-block="en">Restores all Twinverse preferences and player bindings to defaults while preserving your Steam login folders on disk.</span>
+                    <span data-lang-block="pt">Restaura todas as preferências e vínculos do Twinverse ao padrão, preservando as pastas de login do Steam em disco.</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>
+            <span data-lang-block="en">The <strong>Instance data</strong> tab lists every player's isolated home directory (<code>home_1</code> through <code>home_8</code>) with three quick actions per slot:</span>
+            <span data-lang-block="pt">A aba <strong>Instance data</strong> lista o diretório home isolado de cada jogador (<code>home_1</code> a <code>home_8</code>) com três ações rápidas por slot:</span>
+          </p>
+          <ul>
+            <li>
+              <strong><span data-lang-block="en">Open home folder:</span><span data-lang-block="pt">Abrir pasta home:</span></strong>
+              <span data-lang-block="en">Opens the player's isolated directory in your file manager (<code>xdg-open</code>) to inspect saves, configs, or Proton prefixes.</span>
+              <span data-lang-block="pt">Abre o diretório isolado do jogador no gerenciador de arquivos (<code>xdg-open</code>) para acessar saves, configs ou prefixos Proton.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Open sandboxed terminal:</span><span data-lang-block="pt">Abrir terminal na sandbox:</span></strong>
+              <span data-lang-block="en">Launches an interactive <code>bash -i</code> shell inside that player's exact <code>bwrap</code> + <code>pasta</code> + <code>PULSE_SINK</code> environment using your host terminal (auto-detects <code>konsole</code>, <code>gnome-terminal</code>, <code>kgx</code>, <code>xfce4-terminal</code>, <code>mate-terminal</code>, <code>kitty</code>, <code>alacritty</code>, <code>foot</code>, <code>x-terminal-emulator</code>, or <code>xterm</code>).</span>
+              <span data-lang-block="pt">Abre um shell <code>bash -i</code> interativo exatamente dentro do ambiente <code>bwrap</code> + <code>pasta</code> + <code>PULSE_SINK</code> daquele jogador usando o terminal do host (detecta automaticamente <code>konsole</code>, <code>gnome-terminal</code>, <code>kgx</code>, <code>xfce4-terminal</code>, <code>mate-terminal</code>, <code>kitty</code>, <code>alacritty</code>, <code>foot</code>, <code>x-terminal-emulator</code> ou <code>xterm</code>).</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Reset player:</span><span data-lang-block="pt">Redefinir jogador:</span></strong>
+              <span data-lang-block="en">Permanently deletes that player's <code>home_N</code> directory and resets their configuration (with a confirmation dialog).</span>
+              <span data-lang-block="pt">Remove permanentemente a pasta <code>home_N</code> daquele jogador e limpa sua configuração (com confirmação prévia).</span>
+            </li>
+          </ul>
+
+          <div class="tabs">
+            <div class="tab-list" role="tablist">
+              <button class="tab-btn" role="tab" aria-selected="true" data-tab="pref-engine-dark">
+                <span data-lang-block="en">Engine (Dark)</span>
+                <span data-lang-block="pt">Engine (Escuro)</span>
+              </button>
+              <button class="tab-btn" role="tab" aria-selected="false" data-tab="pref-engine-light">
+                <span data-lang-block="en">Engine (Light)</span>
+                <span data-lang-block="pt">Engine (Claro)</span>
+              </button>
+              <button class="tab-btn" role="tab" aria-selected="false" data-tab="pref-data">
+                <span data-lang-block="en">Instance Data</span>
+                <span data-lang-block="pt">Dados das Instâncias</span>
+              </button>
+              <button class="tab-btn" role="tab" aria-selected="false" data-tab="pref-direct">
+                <span data-lang-block="en">Direct Steam Mode</span>
+                <span data-lang-block="pt">Modo Steam Direto</span>
+              </button>
+            </div>
+
+            <div class="tab-panel" data-panel="pref-engine-dark">
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/preferences-engine-dark.png" alt="Preferences Engine tab in dark mode" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>Preferences → Engine (Dark):</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI, or reset all profile settings.</span>
+                  <span data-lang-block="pt"><strong>Preferências → Engine (Escuro):</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI ou redefina as configurações do perfil.</span>
+                </figcaption>
+              </figure>
+            </div>
+
+            <div class="tab-panel" data-panel="pref-engine-light" hidden>
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/preferences-engine-light.png" alt="Preferences Engine tab in light mode" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>Preferences → Engine (Light):</strong> Light mode parity across all dialogs and preference sheets.</span>
+                  <span data-lang-block="pt"><strong>Preferências → Engine (Claro):</strong> Consistência total do modo claro em todas as janelas e diálogos.</span>
+                </figcaption>
+              </figure>
+            </div>
+
+            <div class="tab-panel" data-panel="pref-data" hidden>
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/preferences-instance-data.png" alt="Preferences Instance data tab with folder, terminal, and reset buttons" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>Preferences → Instance data:</strong> Browse each player's isolated home, launch a sandboxed shell inside their container, or cleanly wipe a slot.</span>
+                  <span data-lang-block="pt"><strong>Preferências → Instance data:</strong> Abra a pasta isolada de cada jogador, inicie um terminal dentro da sandbox ou zere um slot com segurança.</span>
+                </figcaption>
+              </figure>
+            </div>
+
+            <div class="tab-panel" data-panel="pref-direct" hidden>
+              <figure class="figure">
+                <div class="figure-img-wrap">
+                  <img src="./assets/img/direct-steam-mode.png" alt="Direct Steam mode displayed when Use Gamescope is turned off" loading="lazy">
+                </div>
+                <figcaption>
+                  <span data-lang-block="en"><strong>Direct Steam Mode:</strong> When <em>Use Gamescope</em> is disabled, the studio explains that monitor tiling is bypassed and provides a one-click shortcut back to Preferences.</span>
+                  <span data-lang-block="pt"><strong>Direct Steam Mode:</strong> Quando <em>Use Gamescope</em> está desativado, o studio informa que o auto-tiling está desabilitado e oferece um atalho direto para as Preferências.</span>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 2: Shared Library & Proton -->
+        <div id="feature-library-proton" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Shared Game Library, Different Games &amp; Custom Proton</span>
+            <span data-lang-block="pt">Biblioteca Compartilhada, Jogos Diferentes e Proton Personalizado</span>
+          </h3>
+          <ul>
+            <li>
+              <strong><span data-lang-block="en">Zero game duplication:</span><span data-lang-block="pt">Zero duplicação de jogos:</span></strong>
+              <span data-lang-block="en">Twinverse bind-mounts your host <code>~/.local/share/Steam/steamapps/common/</code> into every instance and synchronizes <code>appmanifest_*.acf</code> files automatically, so every player sees already-installed titles instantly.</span>
+              <span data-lang-block="pt">O Twinverse monta <code>~/.local/share/Steam/steamapps/common/</code> do host em todas as instâncias e sincroniza os arquivos <code>appmanifest_*.acf</code> automaticamente, exibindo os jogos instalados de imediato.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Any Proton version:</span><span data-lang-block="pt">Qualquer versão do Proton:</span></strong>
+              <span data-lang-block="en"><code>~/.local/share/Steam/compatibilitytools.d/</code> is shared across all sandboxes, so custom runners like <a href="https://github.com/GloriousEggroll/proton-ge-custom" target="_blank" rel="noopener noreferrer">GE-Proton</a> installed once on the host work for every player.</span>
+              <span data-lang-block="pt">A pasta <code>~/.local/share/Steam/compatibilitytools.d/</code> é compartilhada entre todas as sandboxes, então versões customizadas como o <a href="https://github.com/GloriousEggroll/proton-ge-custom" target="_blank" rel="noopener noreferrer">GE-Proton</a> funcionam para todos os jogadores.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Play different games simultaneously:</span><span data-lang-block="pt">Jogue jogos diferentes ao mesmo tempo:</span></strong>
+              <span data-lang-block="en">Instances are completely independent—Player 1 can play a co-op title while Player 2 plays an entirely different game on another monitor or splitscreen space.</span>
+              <span data-lang-block="pt">As instâncias são totalmente independentes—o Jogador 1 pode jogar um título enquanto o Jogador 2 joga outro completamente diferente em outro monitor ou espaço da tela.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Feature 3: Per-Instance Networking -->
+        <div id="feature-networking" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Rootless Per-Instance Networking (<code>pasta</code>)</span>
+            <span data-lang-block="pt">Rede Isolada por Instância sem Root (<code>pasta</code>)</span>
+          </h3>
+          <p>
+            <span data-lang-block="en">When multiple Steam clients share the same IP address and port space, games and Steam Link can suffer port collisions or get forced through high-latency Steam relays—especially when hosting a LAN/dedicated server on the same PC.</span>
+            <span data-lang-block="pt">Quando vários clientes Steam compartilham o mesmo endereço IP e portas, jogos e o Steam Link podem sofrer conflitos de porta ou cair em relays do Steam com latência maior—especialmente ao hospedar um servidor local ou dedicado no mesmo PC.</span>
+          </p>
+          <ul>
+            <li>
+              <span data-lang-block="en"><strong>Automatic detection:</strong> Simply install the <code>passt</code> package (providing the <code>pasta</code> binary) on your host. Twinverse detects it automatically—even from Flatpak.</span>
+              <span data-lang-block="pt"><strong>Detecção automática:</strong> Basta instalar o pacote <code>passt</code> (que fornece o binário <code>pasta</code>) no host. O Twinverse o detecta automaticamente—inclusive no Flatpak.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Automatic free LAN IPv4:</strong> When <strong>Guest IP</strong> is blank, Twinverse inspects your host's subnet and picks an unused IPv4 address (never reusing the host's own IP or another active player's IP).</span>
+              <span data-lang-block="pt"><strong>IPv4 livre automático na LAN:</strong> Com <strong>Guest IP</strong> em branco, o Twinverse analisa a sub-rede do host e escolhe automaticamente um IPv4 livre (nunca repetindo o IP do host nem de outro jogador).</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Fixed Guest IP:</strong> Set a specific IPv4 or CIDR in Player Setup if your firewall rules or LAN server expect a static address per player.</span>
+              <span data-lang-block="pt"><strong>Guest IP fixo:</strong> Defina um IPv4 ou CIDR específico no Player Setup se regras de firewall ou um servidor local exigirem endereço estático por jogador.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Graceful fallback &amp; DNS resilience:</strong> Twinverse resolves symlinked <code>/etc/resolv.conf</code> targets cleanly for SELinux/systemd-resolved systems. If <code>pasta</code> is not installed, Twinverse transparently falls back to shared host networking.</span>
+              <span data-lang-block="pt"><strong>Fallback transparente e DNS resiliente:</strong> O Twinverse resolve symlinks de <code>/etc/resolv.conf</code> corretamente em sistemas com SELinux/systemd-resolved. Se o <code>pasta</code> não estiver instalado, o app usa a rede compartilhada do host automaticamente.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Feature 4: Input Isolation & Steam Input -->
+        <div id="feature-input" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Hardware Input Isolation, Virtual Joysticks &amp; Steam Input</span>
+            <span data-lang-block="pt">Isolamento de Entrada, Joysticks Virtuais e Steam Input</span>
+          </h3>
+          <ul>
+            <li>
+              <strong><span data-lang-block="en">Empty <code>/dev/input</code> sandbox:</span><span data-lang-block="pt"><code>/dev/input</code> vazio por sandbox:</span></strong>
+              <span data-lang-block="en">Bubblewrap mounts an empty <code>tmpfs</code> over <code>/dev/input</code> and selectively bind-mounts only the player's assigned <code>/dev/input/eventX</code> (plus a read-only <code>/dev/uinput</code>), guaranteeing zero cross-talk between gamepads.</span>
+              <span data-lang-block="pt">O Bubblewrap monta um <code>tmpfs</code> vazio sobre <code>/dev/input</code> e expõe seletivamente apenas o <code>/dev/input/eventX</code> atribuído ao jogador (mais <code>/dev/uinput</code> somente leitura), garantindo zero interferência entre controles.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Automatic Virtual Joystick:</span><span data-lang-block="pt">Joystick Virtual Automático:</span></strong>
+              <span data-lang-block="en">If a player has no physical controller selected (or their saved controller is disconnected), Twinverse creates a temporary <code>"Virtual Joystick by Twinverse"</code> via <code>evdev.UInput</code> during session launch and cleans it up on stop. Disconnected controllers never clutter the UI.</span>
+              <span data-lang-block="pt">Se um jogador não tiver controle físico selecionado (ou se o controle salvo estiver desconectado), o Twinverse cria um <code>"Virtual Joystick by Twinverse"</code> temporário via <code>evdev.UInput</code> durante a sessão e o remove ao encerrar. Controles desconectados não poluem a interface.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">One-time Steam Input Disabler:</span><span data-lang-block="pt">Desativação única do Steam Input:</span></strong>
+              <span data-lang-block="en">Because Steam Input's virtual hidraw layer conflicts with per-sandbox controller isolation, Twinverse automatically disables Steam Input once per logged-in account inside each isolated <code>localconfig.vdf</code> (recorded in <code>steam_input_disabled.json</code>). Any changes you make afterwards are preserved, and your host Steam outside Twinverse is never modified.</span>
+              <span data-lang-block="pt">Como o Steam Input entra em conflito com o isolamento de controles por sandbox, o Twinverse desativa o Steam Input automaticamente uma única vez por conta logada no <code>localconfig.vdf</code> isolado (registrado em <code>steam_input_disabled.json</code>). Alterações posteriores são mantidas e o seu Steam principal no host nunca é tocado.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Feature 5: KDE / KWin Auto-Tiling -->
+        <div id="feature-kwin-kde" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">KDE Plasma &amp; KWin Auto-Tiling Integration</span>
+            <span data-lang-block="pt">Integração de Auto-Tiling com KDE Plasma e KWin</span>
+          </h3>
+          <p>
+            <span data-lang-block="en">On KDE Plasma 6.0+, Twinverse provides hands-free window management that survives game launches, restarts, and resolution switches:</span>
+            <span data-lang-block="pt">No KDE Plasma 6.0+, o Twinverse gerencia as janelas automaticamente mesmo quando jogos reiniciam ou trocam de resolução:</span>
+          </p>
+          <ul>
+            <li>
+              <span data-lang-block="en"><strong>D-Bus Instance Resolver:</strong> Twinverse exposes <code>io.github.mall0r.Twinverse.Layout.ResolveInstance</code> on the session D-Bus. When a Gamescope window appears, the dynamic KWin script queries Twinverse, which inspects <code>/proc/&lt;pid&gt;/environ</code> for <code>TWINVERSE_KWIN_INSTANCE</code> so each player always lands in their exact reserved rectangle.</span>
+              <span data-lang-block="pt"><strong>Resolvedor D-Bus de Instâncias:</strong> O Twinverse expõe <code>io.github.mall0r.Twinverse.Layout.ResolveInstance</code> no D-Bus da sessão. Quando uma janela do Gamescope surge, o script KWin consulta o Twinverse, que lê <code>TWINVERSE_KWIN_INSTANCE</code> em <code>/proc/&lt;pid&gt;/environ</code> para posicionar cada jogador exatamente no seu retângulo reservado.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Borderless &amp; Keep-Above:</strong> Automatically tiles Gamescope windows with exact pixel geometry, removes borders, and sets <code>keepAbove</code> when appropriate.</span>
+              <span data-lang-block="pt"><strong>Sem bordas e sempre visível:</strong> Posiciona as janelas Gamescope com geometria exata em pixels, remove decorações e aplica <code>keepAbove</code> conforme necessário.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Automatic Panel Dodging:</strong> Saves your current Plasma panel hiding policies before launch, sets panels to <code>dodgewindows</code> during gameplay, and restores your exact original panel settings as soon as the session ends.</span>
+              <span data-lang-block="pt"><strong>Ocultação Automática de Painéis:</strong> Salva a configuração atual dos painéis do Plasma antes de iniciar, define-os como <code>dodgewindows</code> durante o jogo e restaura o comportamento original assim que a sessão termina.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Feature 6: Overlay Focus, PipeWire Capture & FPS Limiter -->
+        <div id="feature-overlay-pipewire" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Overlay Focus Fix, PipeWire Isolation &amp; Gamescope FPS Limiter</span>
+            <span data-lang-block="pt">Correção de Foco do Overlay, Isolamento PipeWire e Limitador de FPS</span>
+          </h3>
+          <ul>
+            <li>
+              <strong><span data-lang-block="en">Controller SHM Startup Gate:</span><span data-lang-block="pt">Sincronização de Controle no Startup:</span></strong>
+              <span data-lang-block="en">Uses a lightweight <code>BASH_ENV</code> gate (<code>/tmp/twinverse-webhelper/gate.sh</code>) to prevent race conditions when multiple <code>steamwebhelper</code> processes initialize controller shared memory simultaneously.</span>
+              <span data-lang-block="pt">Usa um gate leve via <code>BASH_ENV</code> (<code>/tmp/twinverse-webhelper/gate.sh</code>) para evitar condições de corrida quando múltiplos processos <code>steamwebhelper</code> inicializam a memória compartilhada de controles ao mesmo tempo.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Small-Window Overlay Focus Helper:</span><span data-lang-block="pt">Assistente de Foco do Overlay:</span></strong>
+              <span data-lang-block="en">Runs <code>overlay_focus.py</code> on each Gamescope X11 display to fix a known Steam Big Picture quirk where overlays in splitscreen windows narrower than 1200px lose focus.</span>
+              <span data-lang-block="pt">Executa <code>overlay_focus.py</code> em cada display X11 do Gamescope para corrigir um problema do Steam Big Picture onde overlays em janelas divididas menores que 1200px perdem foco.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">PipeWire Capture Isolation:</span><span data-lang-block="pt">Isolamento de Captura PipeWire:</span></strong>
+              <span data-lang-block="en">Generates a per-instance <code>90-twinverse-gamescope.conf</code> PipeWire rule so Steam/Gamescope audio streams stay cleanly separated per player.</span>
+              <span data-lang-block="pt">Gera uma regra PipeWire <code>90-twinverse-gamescope.conf</code> por instância para manter os fluxos de áudio do Steam/Gamescope separados entre jogadores.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Proton Gamescope FPS Limiter:</span><span data-lang-block="pt">Limitador de FPS do Gamescope no Proton:</span></strong>
+              <span data-lang-block="en">Automatically wires <code>PRESSURE_VESSEL_FILESYSTEMS_RO</code> and the Gamescope limiter file inside the container so in-game FPS limiting works seamlessly across Proton games.</span>
+              <span data-lang-block="pt">Configura automaticamente <code>PRESSURE_VESSEL_FILESYSTEMS_RO</code> e o arquivo de limite do Gamescope dentro do contêiner para que o limitador de FPS funcione perfeitamente em jogos Proton.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Feature 7: Multi-GPU & CPU Affinity -->
+        <div id="feature-multi-gpu" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Multi-GPU Gaming &amp; CPU Affinity Helper</span>
+            <span data-lang-block="pt">Suporte a Múltiplas GPUs e Afinidade de CPU</span>
+          </h3>
+          <p>
+            <span data-lang-block="en">If your machine has more than one GPU (for example, an integrated GPU plus a discrete GPU, or dual discrete GPUs), you can assign individual games to a specific GPU directly inside that player's Steam game <strong>Launch Options</strong>:</span>
+            <span data-lang-block="pt">Se o seu computador possui mais de uma GPU (por exemplo, GPU integrada + dedicada ou duas GPUs dedicadas), você pode direcionar jogos específicos para outra GPU diretamente nas <strong>Opções de Inicialização</strong> do jogo dentro da instância Steam daquele jogador:</span>
+          </p>
+<pre><code># Use secondary GPU (adjust index for your hardware)
+DRI_PRIME=1 %command%
+
+# Or force selection with trailing exclamation mark
+DRI_PRIME=1! %command%</code></pre>
+
+          <div class="callout callout-warning">
+            <p class="callout-title">
+              <span data-lang-block="en">Where to Place <code>DRI_PRIME</code></span>
+              <span data-lang-block="pt">Onde Colocar o <code>DRI_PRIME</code></span>
+            </p>
+            <p>
+              <span data-lang-block="en">Add <code>DRI_PRIME=1 %command%</code> in the <strong>game's Steam Launch Options</strong> inside that player's Steam client—<strong>not</strong> in Twinverse's Player Setup Environment Variables, so Gamescope itself stays on the display-driving GPU.</span>
+              <span data-lang-block="pt">Adicione <code>DRI_PRIME=1 %command%</code> nas <strong>Opções de Inicialização do jogo no Steam</strong> daquela instância—<strong>não</strong> nas Variáveis de Ambiente do Player Setup, para que o Gamescope continue na GPU conectada ao monitor.</span>
+            </p>
+          </div>
+
+          <h4>
+            <span data-lang-block="en">Optional CPU Core Affinity Script</span>
+            <span data-lang-block="pt">Script Opcional de Afinidade de Núcleos de CPU</span>
+          </h4>
+          <p>
+            <span data-lang-block="en">On multi-CCD CPUs (such as Ryzen 9) or high-core-count processors running heavy splitscreen games, you can pin each game process and its parent Gamescope compositor to separate CPU core sets using the bundled helper script:</span>
+            <span data-lang-block="pt">Em CPUs multi-CCD (como Ryzen 9) ou processadores com muitos núcleos rodando jogos pesados em tela dividida, você pode fixar cada jogo e seu compositor Gamescope em conjuntos distintos de núcleos com o script incluso:</span>
+          </p>
+<pre><code>./scripts/apply-game-gamescope-affinity.sh &lt;game_process_name&gt;</code></pre>
+        </div>
+
+        <!-- Feature 8: Keyboard Shortcuts -->
+        <div id="feature-shortcuts" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Keyboard Shortcuts</span>
+            <span data-lang-block="pt">Atalhos de Teclado</span>
+          </h3>
+
+          <div class="card-grid-2">
+            <div>
+              <h4>
+                <span data-lang-block="en">Twinverse Studio Shortcuts</span>
+                <span data-lang-block="pt">Atalhos do Twinverse Studio</span>
+              </h4>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th><span data-lang-block="en">Shortcut</span><span data-lang-block="pt">Atalho</span></th>
+                      <th><span data-lang-block="en">Action</span><span data-lang-block="pt">Ação</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td><span data-lang-block="en">Launch session / End session</span><span data-lang-block="pt">Iniciar sessão / Encerrar sessão</span></td></tr>
+                    <tr><td><kbd>Ctrl</kbd> + <kbd>,</kbd></td><td><span data-lang-block="en">Open Preferences</span><span data-lang-block="pt">Abrir Preferências</span></td></tr>
+                    <tr><td><kbd>F9</kbd> / <kbd>Alt</kbd>+<kbd>2</kbd></td><td><span data-lang-block="en">Toggle Player Setup panel</span><span data-lang-block="pt">Abrir/fechar painel Player Setup</span></td></tr>
+                    <tr><td><kbd>F5</kbd></td><td><span data-lang-block="en">Refresh controllers &amp; audio devices</span><span data-lang-block="pt">Atualizar controles e dispositivos de áudio</span></td></tr>
+                    <tr><td><kbd>Enter</kbd> / <kbd>Esc</kbd></td><td><span data-lang-block="en">Commit / cancel inline player rename</span><span data-lang-block="pt">Confirmar / cancelar renomeação do jogador</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h4>
+                <span data-lang-block="en">Gamescope In-Session Shortcuts</span>
+                <span data-lang-block="pt">Atalhos do Gamescope em Sessão</span>
+              </h4>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th><span data-lang-block="en">Shortcut</span><span data-lang-block="pt">Atalho</span></th>
+                      <th><span data-lang-block="en">Action</span><span data-lang-block="pt">Ação</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><kbd>Super</kbd> + <kbd>F</kbd></td><td><span data-lang-block="en">Toggle fullscreen</span><span data-lang-block="pt">Alternar tela cheia</span></td></tr>
+                    <tr><td><kbd>Super</kbd> + <kbd>N</kbd></td><td><span data-lang-block="en">Toggle nearest-neighbor filter</span><span data-lang-block="pt">Alternar filtro vizinho mais próximo</span></td></tr>
+                    <tr><td><kbd>Super</kbd> + <kbd>U</kbd></td><td><span data-lang-block="en">Toggle FSR upscaling</span><span data-lang-block="pt">Alternar upscaling FSR</span></td></tr>
+                    <tr><td><kbd>Super</kbd> + <kbd>Y</kbd></td><td><span data-lang-block="en">Toggle NIS upscaling</span><span data-lang-block="pt">Alternar upscaling NIS</span></td></tr>
+                    <tr><td><kbd>Super</kbd> + <kbd>I</kbd> / <kbd>O</kbd></td><td><span data-lang-block="en">Increase / decrease FSR sharpness</span><span data-lang-block="pt">Aumentar / diminuir nitidez FSR</span></td></tr>
+                    <tr><td><kbd>Super</kbd> + <kbd>S</kbd></td><td><span data-lang-block="en">Take Gamescope screenshot</span><span data-lang-block="pt">Capturar tela no Gamescope</span></td></tr>
+                    <tr><td><kbd>Super</kbd> + <kbd>G</kbd></td><td><span data-lang-block="en">Toggle keyboard grab</span><span data-lang-block="pt">Alternar captura do teclado</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 7: ARCHITECTURE & XDG PATHS -->
+      <section id="architecture" class="doc-section">
+        <p class="eyebrow">
+          <span data-lang-block="en">Under the Hood</span>
+          <span data-lang-block="pt">Por Baixo dos Panos</span>
+        </p>
+        <h2>
+          <span data-lang-block="en">Architecture &amp; File Locations</span>
+          <span data-lang-block="pt">Arquitetura e Diretórios</span>
+        </h2>
+
+        <p>
+          <span data-lang-block="en">Each launched player runs inside a dynamically assembled nested stack where every isolation layer has a clear responsibility—without requiring root privileges or modifying any Steam binaries:</span>
+          <span data-lang-block="pt">Cada jogador iniciado roda dentro de uma pilha encapsulada montada dinamicamente, onde cada camada de isolamento tem uma responsabilidade clara—sem exigir privilégios root e sem modificar binários do Steam:</span>
+        </p>
+
+        <div class="arch-card">
+          <svg viewBox="0 0 820 270" role="img" aria-label="Twinverse nested sandboxing architecture diagram">
+            <!-- Outer pasta layer -->
+            <rect x="12" y="14" width="796" height="242" rx="14" fill="rgba(134, 217, 162, 0.08)" stroke="#86d9a2" stroke-width="2" stroke-dasharray="6 4"></rect>
+            <text x="28" y="38" fill="#86d9a2" font-size="13" font-weight="700" font-family="system-ui, sans-serif">1. pasta (Optional Rootless Network Namespace) — Dedicated LAN IPv4 &amp; isolated ports</text>
+
+            <!-- bwrap layer -->
+            <rect x="30" y="52" width="760" height="186" rx="12" fill="rgba(132, 180, 250, 0.1)" stroke="#84b4fa" stroke-width="2"></rect>
+            <text x="46" y="76" fill="#84b4fa" font-size="13" font-weight="700" font-family="system-ui, sans-serif">2. bwrap (Bubblewrap Sandbox) — Isolated home_N, empty /dev/input + 1 eventX, shared steamapps/common &amp; Proton, PULSE_SINK</text>
+
+            <!-- gamescope layer -->
+            <rect x="48" y="92" width="724" height="128" rx="10" fill="rgba(192, 168, 240, 0.1)" stroke="#c0a8f0" stroke-width="2"></rect>
+            <text x="64" y="116" fill="#c0a8f0" font-size="13" font-weight="700" font-family="system-ui, sans-serif">3. gamescope (Micro-Compositor) — Exact tile W×H &amp; Hz, --force-grab-cursor, --mangoapp, TWINVERSE_KWIN_INSTANCE</text>
+
+            <!-- Inner boxes -->
+            <rect x="66" y="132" width="330" height="72" rx="8" fill="rgba(237, 197, 134, 0.12)" stroke="#edc586" stroke-width="1.8"></rect>
+            <text x="82" y="156" fill="#edc586" font-size="13" font-weight="700" font-family="system-ui, sans-serif">4. Steam Big Picture (-gamepadui -steamos3)</text>
+            <text x="82" y="176" fill="#939aa6" font-size="11.5" font-family="system-ui, sans-serif">• Official unmodified Steam client + Proton</text>
+            <text x="82" y="193" fill="#939aa6" font-size="11.5" font-family="system-ui, sans-serif">• Gamescope FPS limiter + SHM startup gate</text>
+
+            <rect x="414" y="132" width="340" height="72" rx="8" fill="rgba(132, 180, 250, 0.12)" stroke="#84b4fa" stroke-width="1.5"></rect>
+            <text x="430" y="156" fill="#84b4fa" font-size="13" font-weight="700" font-family="system-ui, sans-serif">Companion Services (Host / Per-Instance)</text>
+            <text x="430" y="176" fill="#939aa6" font-size="11.5" font-family="system-ui, sans-serif">• KWin D-Bus Layout Resolver &amp; panel dodging</text>
+            <text x="430" y="193" fill="#939aa6" font-size="11.5" font-family="system-ui, sans-serif">• overlay_focus.py • PipeWire rules • UInput joystick</text>
+          </svg>
+        </div>
+
+        <h3>
+          <span data-lang-block="en">XDG Base Directory Locations</span>
+          <span data-lang-block="pt">Diretórios XDG Base Directory</span>
+        </h3>
+        <p>
+          <span data-lang-block="en">Twinverse strictly follows the XDG Base Directory Specification for both native/AppImage and Flatpak installations:</span>
+          <span data-lang-block="pt">O Twinverse segue rigorosamente a especificação XDG Base Directory tanto em execuções nativas/AppImage quanto em Flatpak:</span>
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><span data-lang-block="en">Data Type</span><span data-lang-block="pt">Tipo de Dado</span></th>
+                <th><span data-lang-block="en">Native / AppImage / Source</span><span data-lang-block="pt">Nativo / AppImage / Fonte</span></th>
+                <th>Flatpak (<code>io.github.mall0r.Twinverse</code>)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span data-lang-block="en">Player Homes (<code>home_1..8</code>)</span><span data-lang-block="pt">Pastas Home (<code>home_1..8</code>)</span></td>
+                <td><code>~/.local/share/twinverse/</code></td>
+                <td><code>~/.var/app/io.github.mall0r.Twinverse/data/twinverse/</code></td>
+              </tr>
+              <tr>
+                <td><span data-lang-block="en">Configuration &amp; Profiles</span><span data-lang-block="pt">Configuração e Perfis</span></td>
+                <td><code>~/.config/twinverse/</code></td>
+                <td><code>~/.var/app/io.github.mall0r.Twinverse/config/twinverse/</code></td>
+              </tr>
+              <tr>
+                <td><span data-lang-block="en">Cache &amp; Temporary Helpers</span><span data-lang-block="pt">Cache e Auxiliares</span></td>
+                <td><code>~/.cache/twinverse/</code></td>
+                <td><code>~/.var/app/io.github.mall0r.Twinverse/cache/twinverse/</code></td>
+              </tr>
+              <tr>
+                <td><span data-lang-block="en">Logs &amp; Live Session Registry</span><span data-lang-block="pt">Logs e Registro de Sessão</span></td>
+                <td><code>~/.local/state/twinverse/logs/</code></td>
+                <td><code>~/.var/app/io.github.mall0r.Twinverse/.local/state/twinverse/logs/</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SECTION 8: CLI, DEBUGGING & TROUBLESHOOTING -->
+      <section id="cli-debugging" class="doc-section">
+        <p class="eyebrow">
+          <span data-lang-block="en">Diagnostics &amp; Support</span>
+          <span data-lang-block="pt">Diagnóstico e Suporte</span>
+        </p>
+        <h2>
+          <span data-lang-block="en">CLI Flags, Logging &amp; Troubleshooting</span>
+          <span data-lang-block="pt">CLI, Logs e Solução de Problemas</span>
+        </h2>
+
+        <p>
+          <span data-lang-block="en">Twinverse writes structured, disposable developer logs (owner-only <code>0700</code>/<code>0600</code> permissions) with automatic rotation, per-instance log files, crash handlers (<code>crash.log</code> / <code>crash.log.1</code>), and secret redaction. Unknown arguments are passed through to GTK.</span>
+          <span data-lang-block="pt">O Twinverse grava logs estruturados e descartáveis (permissões restritas ao dono <code>0700</code>/<code>0600</code>) com rotação automática, arquivos individuais por instância, captura de falhas (<code>crash.log</code> / <code>crash.log.1</code>) e mascaramento de segredos. Argumentos desconhecidos são repassados ao GTK.</span>
+        </p>
+
+        <div id="cli-flags" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Command-Line Flags</span>
+            <span data-lang-block="pt">Flags de Linha de Comando (CLI)</span>
+          </h3>
+<pre><code># Run with full debug output on console and log files
+twinverse --debug
+
+# Print a shareable system &amp; log diagnostic summary (without launching the UI)
+twinverse --diagnostics
+
+# Clear all stored logs cleanly
+twinverse --clear-logs
+
+# Flatpak equivalents (replace twinverse with flatpak run io.github.mall0r.Twinverse)
+flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Flag</th>
+                  <th><span data-lang-block="en">Description</span><span data-lang-block="pt">Descrição</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>--debug</code></td><td><span data-lang-block="en">Sets both console and file logging to <code>DEBUG</code>.</span><span data-lang-block="pt">Define logs de console e arquivo para <code>DEBUG</code>.</span></td></tr>
+                <tr><td><code>--quiet</code></td><td><span data-lang-block="en">Shows only warnings and errors on console while keeping file logs at <code>DEBUG</code>.</span><span data-lang-block="pt">Exibe apenas avisos e erros no console mantendo o arquivo em <code>DEBUG</code>.</span></td></tr>
+                <tr><td><code>--log-level LEVEL</code></td><td><span data-lang-block="en">Sets console log level (<code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, <code>CRITICAL</code>).</span><span data-lang-block="pt">Define o nível de log no console (<code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>, <code>CRITICAL</code>).</span></td></tr>
+                <tr><td><code>--log-dir DIR</code></td><td><span data-lang-block="en">Overrides the default <code>XDG_STATE_HOME/twinverse/logs</code> directory.</span><span data-lang-block="pt">Substitui o diretório padrão <code>XDG_STATE_HOME/twinverse/logs</code>.</span></td></tr>
+                <tr><td><code>--log-format {text,json}</code></td><td><span data-lang-block="en">Selects human-readable text or JSON Lines output format.</span><span data-lang-block="pt">Escolhe formato de texto legível ou JSON Lines.</span></td></tr>
+                <tr><td><code>--json</code></td><td><span data-lang-block="en">Shorthand for <code>--log-format json</code> (also outputs JSON for <code>--diagnostics</code>).</span><span data-lang-block="pt">Atalho para <code>--log-format json</code> (também formata <code>--diagnostics</code> em JSON).</span></td></tr>
+                <tr><td><code>--diagnostics</code></td><td><span data-lang-block="en">Prints environment, tool versions, Flatpak/host checks, and recent log info without opening the GUI.</span><span data-lang-block="pt">Imprime resumo de ambiente, versões de ferramentas, checagens host/Flatpak e logs sem abrir a interface.</span></td></tr>
+                <tr><td><code>--clear-logs</code></td><td><span data-lang-block="en">Deletes all log files under the log directory and exits.</span><span data-lang-block="pt">Apaga todos os arquivos de log no diretório de logs e encerra.</span></td></tr>
+                <tr><td><code>--version</code></td><td><span data-lang-block="en">Prints the installed Twinverse version and exits.</span><span data-lang-block="pt">Exibe a versão instalada do Twinverse e encerra.</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="log-env-vars" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Logging Environment Variables</span>
+            <span data-lang-block="pt">Variáveis de Ambiente de Log</span>
+          </h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><span data-lang-block="en">Variable</span><span data-lang-block="pt">Variável</span></th>
+                  <th><span data-lang-block="en">Default</span><span data-lang-block="pt">Padrão</span></th>
+                  <th><span data-lang-block="en">Purpose</span><span data-lang-block="pt">Finalidade</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>TWINVERSE_DEBUG</code></td><td><code>0</code></td><td><span data-lang-block="en">Enable debug level (<code>1</code>/<code>true</code>).</span><span data-lang-block="pt">Ativa modo debug (<code>1</code>/<code>true</code>).</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_LEVEL</code></td><td><code>INFO</code></td><td><span data-lang-block="en">Console log verbosity level.</span><span data-lang-block="pt">Nível de verbosidade no console.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_FILE_LEVEL</code></td><td><code>DEBUG</code></td><td><span data-lang-block="en">File log verbosity level.</span><span data-lang-block="pt">Nível de verbosidade no arquivo.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_DIR</code></td><td>XDG state</td><td><span data-lang-block="en">Custom log output directory.</span><span data-lang-block="pt">Diretório personalizado de logs.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_FORMAT</code></td><td><code>text</code></td><td><span data-lang-block="en">Output format: <code>text</code> or <code>json</code>.</span><span data-lang-block="pt">Formato: <code>text</code> ou <code>json</code>.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_CONSOLE</code></td><td><code>1</code></td><td><span data-lang-block="en">Toggle console logging output.</span><span data-lang-block="pt">Ativa/desativa saída de log no console.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_MAX_BYTES</code></td><td><code>2097152</code> (2 MiB)</td><td><span data-lang-block="en">Max size per rotated main log file.</span><span data-lang-block="pt">Tamanho máximo por arquivo do log principal.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_BACKUPS</code></td><td><code>5</code></td><td><span data-lang-block="en">Number of rotated <code>twinverse.log.*</code> backups.</span><span data-lang-block="pt">Número de backups rotacionados de <code>twinverse.log</code>.</span></td></tr>
+                <tr><td><code>TWINVERSE_INSTANCE_LOG_MAX_BYTES</code></td><td><code>104857600</code> (100 MiB)</td><td><span data-lang-block="en">Maximum size per individual instance log.</span><span data-lang-block="pt">Tamanho máximo por log individual de instância.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_KEEP_INSTANCES</code></td><td><code>5</code></td><td><span data-lang-block="en">Newest log files kept per instance slot.</span><span data-lang-block="pt">Arquivos mais recentes mantidos por instância.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_KEEP_HELPERS</code></td><td><code>2</code></td><td><span data-lang-block="en">Newest helper log files kept per run.</span><span data-lang-block="pt">Logs de auxiliares mantidos por execução.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_MAX_AGE_DAYS</code></td><td><code>14</code></td><td><span data-lang-block="en">Maximum retention age in days.</span><span data-lang-block="pt">Tempo máximo de retenção em dias.</span></td></tr>
+                <tr><td><code>TWINVERSE_LOG_MAX_TOTAL_MB</code></td><td><code>256</code></td><td><span data-lang-block="en">Total directory cap (oldest files pruned first).</span><span data-lang-block="pt">Limite total do diretório em MiB.</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            <span data-lang-block="en">For a deeper look at log directory structure, redaction rules, and attaching reports to GitHub Issues, read <a href="https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.md" target="_blank" rel="noopener noreferrer">DEBUGGING.md</a>.</span>
+            <span data-lang-block="pt">Para mais detalhes sobre a árvore de diretórios, regras de redação e envio de relatórios em issues no GitHub, consulte <a href="https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.pt-br.md" target="_blank" rel="noopener noreferrer">DEBUGGING.pt-br.md</a>.</span>
+          </p>
+        </div>
+
+        <div id="troubleshooting" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Troubleshooting FAQ</span>
+            <span data-lang-block="pt">Solução de Problemas (FAQ)</span>
+          </h3>
+
+          <details class="troubleshoot" open>
+            <summary>
+              <span data-lang-block="en">Controllers do not appear or do not respond in-game</span>
+              <span data-lang-block="pt">Controles não aparecem ou não respondem dentro do jogo</span>
+            </summary>
+            <div class="troubleshoot-body">
+              <p>
+                <span data-lang-block="en">1) Verify your user belongs to the <code>input</code> group (<code>groups</code> should list <code>input</code>). If you just ran <code>usermod -aG input "$USER"</code> or <code>ujust add-user-to-input-group</code>, a full reboot is required. 2) Press <kbd>F5</kbd> in Twinverse after plugging in USB/Bluetooth controllers. 3) Make sure Steam Input was not re-enabled inside that player's Steam settings if the game sees duplicate or missing inputs.</span>
+                <span data-lang-block="pt">1) Confirme se seu usuário faz parte do grupo <code>input</code> (o comando <code>groups</code> deve listar <code>input</code>). Após rodar <code>usermod -aG input "$USER"</code> ou <code>ujust add-user-to-input-group</code>, é obrigatório reiniciar o PC. 2) Pressione <kbd>F5</kbd> no Twinverse após conectar controles USB/Bluetooth. 3) Verifique se o Steam Input não foi reativado manualmente nas configurações Steam daquela instância.</span>
+              </p>
+            </div>
+          </details>
+
+          <details class="troubleshoot">
+            <summary>
+              <span data-lang-block="en">Multiplayer connection errors, port conflicts, or high-latency Steam relays</span>
+              <span data-lang-block="pt">Erros de conexão multiplayer, conflito de portas ou relay lento do Steam</span>
+            </summary>
+            <div class="troubleshoot-body">
+              <p>
+                <span data-lang-block="en">Install the <code>passt</code> package (which provides <code>pasta</code>) on your host system—even when running Twinverse via Flatpak—and relaunch the session. Each player automatically receives a distinct free IPv4 address on your LAN. If you manually configured <strong>Guest IP</strong>, ensure every player has a different unused address inside your subnet.</span>
+                <span data-lang-block="pt">Instale o pacote <code>passt</code> (que fornece o <code>pasta</code>) no sistema host—mesmo usando o Twinverse via Flatpak—e reinicie a sessão. Cada jogador receberá automaticamente um IPv4 livre distinto na LAN. Se definiu um <strong>Guest IP</strong> manual, garanta que não há conflito com outro dispositivo ou jogador na rede.</span>
+              </p>
+            </div>
+          </details>
+
+          <details class="troubleshoot">
+            <summary>
+              <span data-lang-block="en">Windows do not auto-tile on my desktop environment</span>
+              <span data-lang-block="pt">As janelas não se posicionam automaticamente no meu ambiente de desktop</span>
+            </summary>
+            <div class="troubleshoot-body">
+              <p>
+                <span data-lang-block="en">Automatic splitscreen and multi-monitor tiling uses KWin scripting and requires <strong>KDE Plasma 6.0+</strong>. On GNOME, Cinnamon, XFCE, Sway, or Hyprland, Twinverse still sizes every Gamescope window accurately to your chosen template—simply tile or drag the windows into place (or use your compositor's window rules).</span>
+                <span data-lang-block="pt">O posicionamento automático utiliza scripts do KWin e requer <strong>KDE Plasma 6.0+</strong>. No GNOME, Cinnamon, XFCE, Sway ou Hyprland, o Twinverse continua dimensionando cada janela do Gamescope com exatidão—basta posicionar as janelas manualmente (ou criar regras no seu compositor).</span>
+              </p>
+            </div>
+          </details>
+
+          <details class="troubleshoot">
+            <summary>
+              <span data-lang-block="en">Steam fails to start or closes immediately inside Gamescope</span>
+              <span data-lang-block="pt">O Steam falha ao abrir ou fecha imediatamente dentro do Gamescope</span>
+            </summary>
+            <div class="troubleshoot-body">
+              <p>
+                <span data-lang-block="en">1) Confirm native <code>steam</code>, <code>gamescope</code>, and <code>bwrap</code> are installed on your host by running <code>twinverse --diagnostics</code>. 2) Try toggling <strong>Gamescope WSI</strong> off in <strong>Preferences → Engine</strong> if you are on NVIDIA or hybrid GPUs. 3) Try opening the player via <strong>Start player</strong> (without Gamescope) or inspect the latest log under <code>~/.local/state/twinverse/logs/instances/latest.log</code>.</span>
+                <span data-lang-block="pt">1) Confirme que os pacotes nativos <code>steam</code>, <code>gamescope</code> e <code>bwrap</code> estão instalados no host executando <code>twinverse --diagnostics</code>. 2) Experimente desativar <strong>Gamescope WSI</strong> em <strong>Preferências → Engine</strong> em GPUs NVIDIA ou híbridas. 3) Teste abrir o jogador com <strong>Start player</strong> (sem Gamescope) ou consulte <code>~/.local/state/twinverse/logs/instances/latest.log</code>.</span>
+              </p>
+            </div>
+          </details>
+
+          <details class="troubleshoot">
+            <summary>
+              <span data-lang-block="en">AppImage window rendering glitch on Wayland</span>
+              <span data-lang-block="pt">Problema visual na janela do AppImage no Wayland</span>
+            </summary>
+            <div class="troubleshoot-body">
+              <p>
+                <span data-lang-block="en">If the AppImage fails to initialize GTK4 on a specific Wayland compositor, test launching with the X11 backend or switch to the Flatpak package:</span>
+                <span data-lang-block="pt">Se o AppImage tiver problema ao inicializar o GTK4 em algum compositor Wayland específico, teste iniciar com o backend X11 ou utilize o pacote Flatpak:</span>
+              </p>
+<pre><code>GDK_BACKEND=x11 ./Twinverse-*.AppImage</code></pre>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- SECTION 9: CREDITS & LICENSE -->
+      <section id="credits-license" class="doc-section">
+        <p class="eyebrow">
+          <span data-lang-block="en">Open Source Community</span>
+          <span data-lang-block="pt">Comunidade Open Source</span>
+        </p>
+        <h2>
+          <span data-lang-block="en">Credits, Contributing &amp; License</span>
+          <span data-lang-block="pt">Créditos, Contribuição e Licença</span>
+        </h2>
+
+        <p>
+          <span data-lang-block="en">Twinverse is created by <strong>Mallor</strong> and released under the <a href="https://github.com/mall0r/Twinverse/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">GNU General Public License v3.0 (GPL-3.0-or-later)</a>. Contributions, bug reports, and pull requests are welcome—check <a href="https://github.com/mall0r/Twinverse/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> to get started.</span>
+          <span data-lang-block="pt">O Twinverse é criado por <strong>Mallor</strong> e distribuído sob a licença <a href="https://github.com/mall0r/Twinverse/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">GNU General Public License v3.0 (GPL-3.0-or-later)</a>. Contribuições, relatos de bugs e pull requests são muito bem-vindos—consulte <a href="https://github.com/mall0r/Twinverse/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> para começar.</span>
+        </p>
+
+        <h3>
+          <span data-lang-block="en">Inspirations &amp; Acknowledgments</span>
+          <span data-lang-block="pt">Inspirações e Agradecimentos</span>
+        </h3>
+        <ul>
+          <li><a href="https://github.com/NaviVani-dev" target="_blank" rel="noopener noreferrer">NaviVani-dev</a> — <a href="https://gist.github.com/NaviVani-dev/9a8a704a31313fd5ed5fa68babf7bc3a" target="_blank" rel="noopener noreferrer">dualscope.sh</a></li>
+          <li><a href="https://github.com/Tau5" target="_blank" rel="noopener noreferrer">Tau5</a> — <a href="https://github.com/Tau5/Co-op-on-Linux" target="_blank" rel="noopener noreferrer">Co-op-on-Linux</a></li>
+          <li><a href="https://github.com/wunnr" target="_blank" rel="noopener noreferrer">wunnr</a> — <a href="https://github.com/wunnr/partydeck" target="_blank" rel="noopener noreferrer">Partydeck</a> <span data-lang-block="en">(recommended if you want a Nucleus Co-op–style approach on Linux)</span><span data-lang-block="pt">(recomendado se você procura uma abordagem mais próxima ao Nucleus Co-op no Linux)</span></li>
+        </ul>
+
+        <div class="callout callout-note">
+          <p class="callout-title">
+            <span data-lang-block="en">Legal Disclaimer</span>
+            <span data-lang-block="pt">Aviso Legal</span>
+          </p>
+          <p>
+            <span data-lang-block="en">Twinverse is an independent open-source project and is not affiliated with, endorsed by, or officially connected to Valve Corporation or Steam. All Steam instances launched by Twinverse are official, unmodified clients provided by Valve. Users are solely responsible for complying with the Steam Subscriber Agreement.</span>
+            <span data-lang-block="pt">O Twinverse é um projeto independente de código aberto e não é afiliado, endossado ou oficialmente conectado à Valve Corporation ou ao Steam. Todas as instâncias iniciadas pelo Twinverse são clientes oficiais e não modificados fornecidos pela Valve. Os usuários são os únicos responsáveis por cumprir o Acordo de Assinante do Steam.</span>
+          </p>
+        </div>
+
+        <footer class="site-footer">
+          <div class="footer-links">
+            <a href="https://github.com/mall0r/Twinverse" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+            <a href="https://github.com/mall0r/Twinverse/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+            <a href="https://github.com/mall0r/Twinverse/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+            <a href="https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.md" target="_blank" rel="noopener noreferrer">DEBUGGING.md</a>
+            <a href="https://ko-fi.com/mall0r" target="_blank" rel="noopener noreferrer">Support on Ko-fi</a>
+          </div>
+          <p>
+            <span data-lang-block="en">Twinverse v1.1.4 · GPL-3.0-or-later · Hosted on GitHub Pages</span>
+            <span data-lang-block="pt">Twinverse v1.1.4 · GPL-3.0-or-later · Hospedado no GitHub Pages</span>
+          </p>
+        </footer>
+      </section>
+    </main>
+
+    <!-- Right On-This-Page TOC -->
+    <aside class="toc" aria-label="On this page">
+      <p id="toc-title" class="toc-title">On this page</p>
+      <ul id="toc-list" class="toc-list"></ul>
+    </aside>
+  </div>
+
+  <!-- Search Modal -->
+  <div id="search-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Search documentation">
+    <div class="search-dialog">
+      <div class="search-input-row">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input id="search-input" type="search" placeholder="Search guides, features, shortcuts, CLI flags…" autocomplete="off">
+        <kbd>Esc</kbd>
+      </div>
+      <div id="search-results" class="search-results"></div>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" class="lightbox-overlay" role="dialog" aria-modal="true" aria-label="Enlarged screenshot">
+    <button id="lightbox-close" class="lightbox-close" type="button" aria-label="Close image preview">&times;</button>
+    <div class="lightbox-frame">
+      <img id="lightbox-img" src="" alt="">
+      <p id="lightbox-caption" class="lightbox-caption"></p>
+    </div>
+  </div>
+
+  <script src="./assets/js/app.js" defer></script>
+</body>
+</html>

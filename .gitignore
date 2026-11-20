@@ -86,4 +86,5 @@ relatorio_*
 *.appimage
 *.flatpak
 *.txt
+!docs/robots.txt
 *.gresource

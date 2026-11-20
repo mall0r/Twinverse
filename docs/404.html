@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page Not Found — Twinverse Documentation</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root {
+      --bg: #141414;
+      --surface: #1e1e1e;
+      --border: #333333;
+      --fg: #f0f0f0;
+      --muted: #a6a6a6;
+      --accent: #84b4fa;
+      --accent-ink: #0f172a;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f4f4;
+        --surface: #ffffff;
+        --border: #d4d4d4;
+        --fg: #141414;
+        --muted: #525252;
+        --accent: #174ea6;
+        --accent-ink: #ffffff;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif;
+    }
+    .card {
+      max-width: 480px;
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 36px 32px;
+      text-align: center;
+    }
+    .code {
+      font-size: 56px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      color: var(--accent);
+      margin: 0 0 8px;
+      line-height: 1;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 10px;
+    }
+    p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 0 0 24px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      transition: filter 120ms ease;
+    }
+    a.primary {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    a.secondary {
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+    a:hover { filter: brightness(1.08); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <p class="code">404</p>
+    <h1>Page not found / Página não encontrada</h1>
+    <p>
+      The page you requested does not exist on Twinverse Documentation.<br>
+      A página solicitada não existe na documentação do Twinverse.
+    </p>
+    <div class="actions">
+      <a class="primary" id="home-link" href="https://mall0r.github.io/Twinverse/">Open Documentation</a>
+      <a class="secondary" href="https://github.com/mall0r/Twinverse">GitHub Repository</a>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var link = document.getElementById("home-link");
+      if (window.location.hostname.endsWith("github.io")) {
+        var seg = window.location.pathname.split("/").filter(Boolean)[0];
+        if (seg) {
+          link.href = "/" + seg + "/";
+        }
+      } else {
+        link.href = "/";
+      }
+    })();
+  </script>
+</body>
+</html>
