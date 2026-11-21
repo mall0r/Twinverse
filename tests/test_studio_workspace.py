@@ -25,7 +25,7 @@ from src.models import PlayerInstanceConfig, Profile  # noqa: E402
 @pytest.fixture(scope="module")
 def application(tmp_path_factory):
     """Compile current resources and use real GTK without starting any Steam clients."""
-    if not Gtk.init_check():
+    if not Gtk.init_check() or Gdk.Display.get_default() is None:
         pytest.skip("A GTK display is required")
     compiler = shutil.which("glib-compile-resources")
     if compiler is None:
@@ -637,7 +637,11 @@ def test_spinners_use_studio_spinner_and_survive_hiding_player_setup(window):
 
 def test_all_studio_icons_are_bundled_symbolic_assets(window):
     """Every symbolic icon referenced in src/gui resolves from Twinverse's GResource bundle."""
-    theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
+    display_theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
+    assert "/io/github/mall0r/Twinverse/icons" in display_theme.get_resource_path()
+    theme = Gtk.IconTheme.new()
+    theme.set_search_path([])
+    theme.set_resource_path(["/io/github/mall0r/Twinverse/icons"])
     gui_root = Path(__file__).resolve().parents[1] / "src/gui"
     pattern = re.compile(r'"([a-z0-9-]+-symbolic)"')
     icon_names = {
@@ -652,7 +656,7 @@ def test_all_studio_icons_are_bundled_symbolic_assets(window):
         paintable = theme.lookup_icon(name, None, 16, 1, Gtk.TextDirection.LTR, 0)
         uri = paintable.get_file().get_uri() if paintable.get_file() else ""
         assert uri.startswith("resource:///io/github/mall0r/Twinverse/icons/"), f"{name}: {uri}"
-        assert paintable.is_symbolic(), f"{name} must be symbolic ({uri})"
+        assert uri.endswith("-symbolic.svg"), f"{name} must resolve to a symbolic SVG ({uri})"
 
 
 def test_opening_player_setup_in_light_mode_does_not_shift_session_layout(window):

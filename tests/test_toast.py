@@ -5,8 +5,9 @@ from unittest.mock import Mock
 import gi
 import pytest
 
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import GLib, Gtk  # noqa: E402
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 from src.gui.notifications import BUSY, ERROR, INFO  # noqa: E402
 from src.gui.widgets.toast import LEVEL_CLASSES, TOAST_ICONS, ToastOverlay  # noqa: E402
@@ -69,7 +70,7 @@ def test_dismiss_hides_the_toast_immediately():
 
 def test_toast_icon_is_centered_inside_badge():
     """The toast icon sits centered inside its 32x32 badge without shifting the badge."""
-    if not Gtk.init_check():
+    if not Gtk.init_check() or Gdk.Display.get_default() is None:
         pytest.skip("A GTK display is required")
 
     win = Gtk.Window()
@@ -90,7 +91,7 @@ def test_toast_icon_is_centered_inside_badge():
         context = GLib.MainContext.default()
         for _ in range(30):
             while context.pending():
-                context.iteration(False)
+                super(GLib.MainContext, context).iteration(False)
 
         ok_badge, badge_rect = overlay._badge.compute_bounds(overlay._card)
         ok_icon, icon_rect = overlay._icon.compute_bounds(overlay._badge)

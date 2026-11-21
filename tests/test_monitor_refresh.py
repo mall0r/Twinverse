@@ -1,7 +1,6 @@
 """Verify current monitor frequencies follow the instance layout."""
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -175,11 +174,11 @@ def test_refresh_is_read_again_for_new_launch(manager):
         ("kwin_gamescope_horizontal.js", "gamescopeSplitscreen", "splitscreen", 6),
     ],
 )
-def test_kwin_placement_matches_refresh_assignment(manager, script, function, mode, players, monkeypatch, tmp_path):
+def test_kwin_placement_matches_refresh_assignment(
+    manager, script, function, mode, players, monkeypatch, tmp_path, node_executable
+):
     """Execute placement scripts with a KWin monitor order opposite to the layout."""
-    node = shutil.which("node")
-    if not node:
-        pytest.skip("Node.js is needed to execute the KWin placement scripts")
+    node = node_executable
     profile = Profile(mode=mode, num_players=players, player_configs=[PlayerInstanceConfig() for _ in range(players)])
     if "horizontal" in script:
         profile.splitscreen.orientation = "horizontal"

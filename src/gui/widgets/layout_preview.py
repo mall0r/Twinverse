@@ -45,10 +45,7 @@ class _MonitorLayout(Gtk.LayoutManager):
         minimum_width = max(1, child.measure(Gtk.Orientation.HORIZONTAL, -1)[0])
         if fitted_width >= minimum_width:
             fitted_min_height = child.measure(Gtk.Orientation.VERTICAL, fitted_width)[0]
-            if (
-                fitted_height >= fitted_min_height
-                and abs((fitted_width / fitted_height) - ratio) <= ratio * 0.005
-            ):
+            if fitted_height >= fitted_min_height and abs((fitted_width / fitted_height) - ratio) <= ratio * 0.005:
                 offset_x = (width - fitted_width) // 2
                 offset_y = (height - fitted_height) // 2
                 transform = (

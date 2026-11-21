@@ -1,7 +1,6 @@
 """Exercise actual launch sizing and generated KWin JavaScript for mixed layouts."""
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -94,7 +93,7 @@ def test_settings_preserve_and_validate(mixed):
     assert not profile.monitor_layouts
 
 
-def test_generated_kwin_mixed_geometry_and_reload(mixed, monkeypatch, tmp_path):
+def test_generated_kwin_mixed_geometry_and_reload(mixed, monkeypatch, tmp_path, node_executable):
     """Execute mixed KWin placements and reload when assignments change."""
     profile, _, displays = mixed
     kde = KdeManager.__new__(KdeManager)
@@ -119,9 +118,7 @@ def test_generated_kwin_mixed_geometry_and_reload(mixed, monkeypatch, tmp_path):
     profile.monitor_layouts["A"].players = [0, 1]
     kde.start_kwin_script(profile)
     assert kde._kwin_script_signature != signature
-    node = shutil.which("node")
-    if node is None:
-        pytest.skip("Node.js required to execute KWin JavaScript")
+    node = node_executable
     screens = [{"name": d["name"], "geometry": {k: d[k] for k in ("x", "y", "width", "height")}} for d in displays]
     harness = """
 const clients = Array.from({length: 4}, (_, i) => ({resourceClass: 'gamescope', pid: 100+i}));

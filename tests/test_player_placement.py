@@ -31,7 +31,7 @@ def devices():
 @pytest.fixture
 def page(devices):
     """Use real GTK controllers and widgets without launching Steam or touching user files."""
-    if not Gtk.init_check():
+    if not Gtk.init_check() or Gdk.Display.get_default() is None:
         pytest.skip("A GTK display is required")
     Adw.init()
     result = LayoutSettingsPage()

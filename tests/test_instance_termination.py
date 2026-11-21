@@ -315,9 +315,17 @@ def test_flatpak_termination_script_escalates_to_sigkill_for_stubborn_setsid_des
             proc.wait(timeout=5)
 
 
+def _bwrap_available(*args: str) -> bool:
+    """Return whether bwrap can create the requested sandbox namespaces."""
+    if shutil.which("bwrap") is None:
+        return False
+    probe = subprocess.run(["bwrap", *args, "--", "true"], capture_output=True, timeout=10)
+    return probe.returncode == 0
+
+
 @pytest.mark.skipif(
-    not Path("/bin/bash").exists() or shutil.which("bwrap") is None,
-    reason="bash and bwrap are needed for the host shell",
+    not Path("/bin/bash").exists() or not _bwrap_available("--dev-bind", "/", "/"),
+    reason="bash and a working bwrap sandbox are needed for the host shell",
 )
 def test_the_host_shell_reports_the_process_group_of_the_instance():
     """The instance leads its own group, so it can be stopped as a whole."""
@@ -346,8 +354,13 @@ def test_the_host_shell_reports_the_process_group_of_the_instance():
 
         assert reported.isdigit(), f"the host shell reported '{reported}'"
 
-        listing = subprocess.run(["ps", "-eo", "pid,pgid,cmd"], capture_output=True, text=True).stdout
-        groups = {line.split()[1] for line in listing.splitlines() if "sleep 30" in line and "bwrap" not in line}
+        groups = set()
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and reported not in groups:
+            listing = subprocess.run(["ps", "-eo", "pid,pgid,cmd"], capture_output=True, text=True).stdout
+            groups = {line.split()[1] for line in listing.splitlines() if "sleep 30" in line and "bwrap" not in line}
+            if reported not in groups:
+                time.sleep(0.1)
         assert reported in groups, "the reported group does not match the group of the instance"
     finally:
         cleanup_groups = {process.pid}
@@ -363,8 +376,10 @@ def test_the_host_shell_reports_the_process_group_of_the_instance():
 
 
 @pytest.mark.skipif(
-    not Path("/bin/bash").exists() or shutil.which("bwrap") is None or shutil.which("pasta") is None,
-    reason="bash, bwrap and pasta are needed for the network setup",
+    not Path("/bin/bash").exists()
+    or shutil.which("pasta") is None
+    or not _bwrap_available("--unshare-user", "--unshare-net", "--ro-bind", "/", "/"),
+    reason="bash, pasta and unprivileged bwrap namespaces are needed for the network setup",
 )
 def test_the_network_setup_lets_the_application_stop_itself(tmp_path):
     """Stopping an instance must not kill the application with SIGKILL."""

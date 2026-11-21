@@ -8,9 +8,10 @@ from unittest.mock import Mock
 import gi
 import pytest
 
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk
 
 from src.core.config import Config
 from src.core.tiling import TEMPLATES
@@ -42,7 +43,7 @@ def drain():
 
 @pytest.fixture
 def workspace(displays):
-    if not Gtk.init_check():
+    if not Gtk.init_check() or Gdk.Display.get_default() is None:
         pytest.skip("A native GTK display is required")
     Adw.init()
     windows = []

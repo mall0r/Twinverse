@@ -5,9 +5,10 @@
 import gi
 import pytest
 
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk
 
 from src.core.tiling import TEMPLATES, MonitorPlan, TilingPlan
 from src.gui.widgets.layout_preview import LayoutPreview
@@ -16,7 +17,7 @@ from src.gui.widgets.layout_preview import LayoutPreview
 @pytest.fixture
 def preview():
     """Create native controls without launching any game clients."""
-    if not Gtk.init_check():
+    if not Gtk.init_check() or Gdk.Display.get_default() is None:
         pytest.skip("A GTK display is required")
     Adw.init()
     return LayoutPreview()

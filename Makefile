@@ -99,6 +99,10 @@ dev:
 	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip
 	@echo "Installing project dependencies..."
 	@. .venv/bin/activate && $(PYTHON) -m pip install -e ".[test]"
+	@. .venv/bin/activate && if ! node --version >/dev/null 2>&1; then \
+		echo "Installing working Node.js runtime into .venv..."; \
+		nodeenv -p --node=lts --prebuilt; \
+	fi
 	@echo "Installing pre-commit hooks..."
 	@. .venv/bin/activate && $(PYTHON) scripts/install_hooks.py
 	$(call print_success,"Development environment set up successfully!")

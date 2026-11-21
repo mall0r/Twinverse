@@ -3,6 +3,7 @@
 import os
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -20,7 +21,11 @@ def _fake_program(directory: Path, name: str) -> Path:
     """Build a program that answers to the given process name."""
     path = directory / name
     if not path.exists():
-        path.symlink_to("/bin/sleep")
+        interpreter = Path(sys.executable).resolve()
+        path.write_text(
+            f"#!{interpreter}\nimport sys, time\ntime.sleep(float(sys.argv[1]) if len(sys.argv) > 1 else 60)\n"
+        )
+        path.chmod(0o755)
     return path
 
 

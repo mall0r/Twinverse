@@ -5,10 +5,11 @@
 import gi
 import pytest
 
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, Gdk, Gtk
 
 from src.core.config import Config
 from src.core.layout import LayoutCalculator
@@ -20,7 +21,7 @@ from src.models import PlayerInstanceConfig, Profile
 @pytest.fixture
 def page():
     """Build real controls when a display is available, including an Xvfb display."""
-    if not Gtk.init_check():
+    if not Gtk.init_check() or Gdk.Display.get_default() is None:
         pytest.skip("A GTK display is required; run these tests under xvfb-run on headless systems")
     Adw.init()
     return LayoutSettingsPage()

@@ -250,11 +250,11 @@ function remove(window) {
 )
 @pytest.mark.parametrize("selection", [[0, 1], [1, 3], [0, 1, 2, 3, 4, 5]])
 @pytest.mark.parametrize("custom", [False, True])
-def test_layout_survives_reorder_recreation_and_late_identity(kde, mode, orientation, selection, custom):
+def test_layout_survives_reorder_recreation_and_late_identity(
+    kde, mode, orientation, selection, custom, node_executable
+):
     """Execute actual scripts through out-of-order arrivals, disappearance and recreation."""
-    node = shutil.which("node")
-    if not node:
-        pytest.skip("Node.js is needed to execute KWin scripts")
+    node = node_executable
     profile = Profile(mode=mode, num_players=max(selection) + 1, selected_players=selection)
     profile.splitscreen.orientation = orientation
     if custom:
