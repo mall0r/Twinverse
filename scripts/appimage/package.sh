@@ -16,7 +16,8 @@ glib-compile-resources --target="$work/res/twinverse.gresource" \
     --sourcedir=res res/twinverse.gresources.xml
 # A window-only smoke test misses icons that stay white in light mode. Test
 # the exact GTK stack and resources being packaged, with real pixel output.
-cc scripts/appimage/check-appearance.c -o "$work/check-appearance" $(pkg-config --cflags --libs gtk4)
+rustc --edition=2021 -O scripts/appimage/check-appearance.rs -o "$work/check-appearance" \
+    $(pkg-config --libs gtk4)
 xvfb-run -a env GDK_BACKEND=x11 "$work/check-appearance" "$work/res/twinverse.gresource"
 # One directory exposes every ELF for dependency and GLIBC auditing. A nested
 # PyInstaller --onefile archive hides libraries from linuxdeploy and scanners.
