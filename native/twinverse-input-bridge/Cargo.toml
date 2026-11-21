@@ -1,0 +1,12 @@
+[package]
+name = "twinverse-input-bridge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "twinverse-input-bridge"
+path = "src/main.rs"
+
+[dependencies]
+twinverse-uinput-proto = { path = "../twinverse-uinput-proto" }

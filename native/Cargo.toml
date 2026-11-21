@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "twinverse-uinput-proto",
+    "twinverse-uinput-interposer",
+    "twinverse-udev-shim",
+    "twinverse-input-bridge",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
