@@ -683,6 +683,9 @@ class MainPresenter:
         if key == "use_gamescope":
             self.window.get_layout_page().set_gamescope_enabled(bool(value))
 
+        if key == "isolate_network":
+            self.window.get_layout_page().set_network_isolation_enabled(bool(value))
+
         if key == "player_configs":
             profile = self._settings_controller.get_profile()
             devices_info = self._settings_controller.get_devices_info()

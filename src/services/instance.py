@@ -307,7 +307,7 @@ class InstanceService:
             logger.info("Preparing instance %s", instance_num + 1)
 
             base_command, instance_env = self._prepare_instance_launch(profile, instance_num)
-            guest_address = self._configured_guest_address(profile, instance_num)
+            guest_address = self._configured_guest_address(profile, instance_num) if profile.isolate_network else None
             instance_log = InstanceLog.create(
                 instance_num,
                 command=base_command,
@@ -338,6 +338,7 @@ class InstanceService:
                         instance_env,
                         log=instance_log,
                         guest_address=guest_address,
+                        isolate_network=profile.isolate_network,
                     )
                 else:
                     logger.info("Launching instance %s natively", instance_num + 1)
@@ -347,6 +348,7 @@ class InstanceService:
                         instance_env,
                         log=instance_log,
                         guest_address=guest_address,
+                        isolate_network=profile.isolate_network,
                     )
 
                 self.pids[instance_num] = process.pid
@@ -374,6 +376,7 @@ class InstanceService:
         instance_env: dict,
         log: Optional[InstanceLog] = None,
         guest_address: Optional[str] = None,
+        isolate_network: bool = True,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance within a Flatpak environment."""
         if log is None:
@@ -390,11 +393,10 @@ class InstanceService:
         ]
         env_prefix = "; ".join(env_prefix_parts) + "; " if env_prefix_parts else ""
         escaped_command = shlex.join(base_command)
-        network_launch = shlex.join(network_command(base_command, guest_address, instance_num))
         # The instance writes straight to its log file, the same way the native
         # launch does. A pipe would break as soon as the application dies and
         # would stop the output of an instance that outlives it.
-        redirect = f">> {shlex.quote(str(log.path))} 2>&1" if log.path is not None else ""
+        redirect = f" >> {shlex.quote(str(log.path))} 2>&1" if log.path is not None else ""
         # The shell reports the process group it leads, so the instance can be
         # stopped as a group on the host.
         #
@@ -403,11 +405,16 @@ class InstanceService:
         # application inside the sandbox: it never has to ask the host about
         # the processes of the instance.
         watcher = SteamClientProbe(instance_num).watcher_script()
-        inner_script = (
-            f"echo $$; {watcher} "
-            f"if command -v pasta >/dev/null 2>&1; then exec {network_launch}; "
-            f"else exec {escaped_command}; fi{redirect}"
-        )
+        if isolate_network:
+            network_launch = shlex.join(network_command(base_command, guest_address, instance_num))
+            inner_script = (
+                f"echo $$; {watcher} "
+                f"if command -v pasta >/dev/null 2>&1; then exec {network_launch}; "
+                f"else exec {escaped_command}; fi{redirect}"
+            )
+        else:
+            logger.info("Instance %s: network isolation disabled; sharing host network", instance_num + 1)
+            inner_script = f"echo $$; {watcher} exec {escaped_command}{redirect}"
         # The instance leads its own process group, so it can be signalled as
         # a whole and its children go down with it.
         bash_path = shutil.which("bash") or "/bin/bash"
@@ -501,6 +508,7 @@ class InstanceService:
         instance_env: dict,
         log: Optional[InstanceLog] = None,
         guest_address: Optional[str] = None,
+        isolate_network: bool = True,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance natively."""
         if log is None:
@@ -528,8 +536,11 @@ class InstanceService:
             logger.error("Instance %s: %s", instance_num + 1, error_msg)
             raise DependencyError(error_msg)
 
-        if shutil.which("pasta"):
-            base_command = network_command(base_command, guest_address, instance_num)
+        if isolate_network:
+            if shutil.which("pasta"):
+                base_command = network_command(base_command, guest_address, instance_num)
+        else:
+            logger.info("Instance %s: network isolation disabled; sharing host network", instance_num + 1)
 
         try:
             # The output goes straight to the instance log, so a chatty Steam
@@ -664,11 +675,28 @@ class InstanceService:
                 cwd=Path.home(),
                 max_bytes=_instance_log_limit(),
             )
+            guest_address = (
+                self._configured_guest_address(active_profile, instance_num) if active_profile.isolate_network else None
+            )
             logger.info("Opening a terminal for instance %s: %s", instance_num + 1, shlex.join(command))
             if Utils.is_flatpak():
-                self._launch_in_flatpak(instance_num, command, instance_env, log=instance_log)
+                self._launch_in_flatpak(
+                    instance_num,
+                    command,
+                    instance_env,
+                    log=instance_log,
+                    guest_address=guest_address,
+                    isolate_network=active_profile.isolate_network,
+                )
             else:
-                self._launch_natively(instance_num, command, instance_env, log=instance_log)
+                self._launch_natively(
+                    instance_num,
+                    command,
+                    instance_env,
+                    log=instance_log,
+                    guest_address=guest_address,
+                    isolate_network=active_profile.isolate_network,
+                )
 
     @staticmethod
     def _read_proc_info(pid_str: str) -> Optional[tuple[int, int, int, str, int]]:

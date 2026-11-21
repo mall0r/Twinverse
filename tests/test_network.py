@@ -349,3 +349,81 @@ def test_pasta_does_not_watch_the_namespace_directory(tmp_path):
     result = _run_with_resolv_conf(tmp_path, resolv_conf, ["true"])
     assert result.returncode == 0, result.stderr
     assert "--no-netns-quit" in (tmp_path / "pasta-args").read_text().splitlines()
+
+
+def test_native_network_isolation_can_be_disabled(monkeypatch):
+    """Disabling network isolation skips pasta even when it is installed on the host."""
+    service = InstanceService.__new__(InstanceService)
+    service.logger = Mock()
+    process = Mock(pid=123)
+    process.poll.return_value = None
+    spawn = Mock(return_value=process)
+    monkeypatch.setattr("src.services.instance.shutil.which", lambda _name: True)
+    monkeypatch.setattr("subprocess.Popen", spawn)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    command = ["bwrap", "--dev-bind", "/", "/", "--", "printf", "%s", "shared host"]
+    service._launch_natively(1, command, {}, isolate_network=False)
+    assert spawn.call_args.args[0] == command
+
+
+def test_flatpak_network_isolation_can_be_disabled(monkeypatch, tmp_path):
+    """Disabling network isolation in Flatpak bypasses pasta even when present on the host."""
+    service = InstanceService.__new__(InstanceService)
+    service.logger = Mock()
+    process = Mock(pid=123)
+    process.poll.return_value = None
+    process.stdout.readline.return_value = b"123\n"
+    spawn = Mock(return_value=process)
+    monkeypatch.setattr(Utils, "flatpak_spawn_host", spawn)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path / "logs")
+    value = "spaces ' $(not-a-command); 2"
+    printf = shutil.which("printf")
+    pasta = tmp_path / "pasta"
+    pasta.write_text("#!/bin/sh\nexit 0\n")
+    pasta.chmod(0o755)
+    network_spy = Mock(side_effect=AssertionError("network_command should not be called"))
+    monkeypatch.setattr("src.services.instance.network_command", network_spy)
+    service._launch_in_flatpak(1, [printf, "shared:%s", value], {}, isolate_network=False)
+    subprocess.check_output(
+        spawn.call_args.args[0], executable="/bin/bash", env={**os.environ, "PATH": str(tmp_path)}, text=True
+    )
+    log = next((tmp_path / "logs" / "instances").glob("instance-02-*.log")).read_text()
+    body = log.split("\n\n", 1)[1] if "\n\n" in log else ""
+    assert body.strip() == f"shared:{value}"
+    network_spy.assert_not_called()
+
+
+def test_profile_isolate_network_defaults_true_and_serializes():
+    """Network isolation defaults to enabled and round-trips through its profile alias."""
+    assert Profile().isolate_network is True
+    disabled = Profile(ISOLATE_NETWORK=False)
+    assert disabled.isolate_network is False
+    assert disabled.model_dump(by_alias=True)["ISOLATE_NETWORK"] is False
+
+
+@pytest.mark.parametrize("isolate", [True, False])
+def test_launch_single_instance_forwards_isolate_network(monkeypatch, tmp_path, isolate):
+    """Launching an instance forwards the profile's network isolation preference."""
+    service = InstanceService.__new__(InstanceService)
+    service.pids = {}
+    service.pgids = {}
+    service.processes = {}
+    service._instance_logs = {}
+    service._prepare_instance_launch = Mock(return_value=(["bwrap", "--", "steam"], {}))
+    service._record_instance = Mock()
+    native_launch = Mock(return_value=(Mock(pid=123), 123))
+    service._launch_natively = native_launch
+    monkeypatch.setattr(Utils, "is_flatpak", lambda: False)
+    monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path / "logs")
+    monkeypatch.setattr(Config, "cache_dir", lambda: tmp_path / "cache")
+
+    profile = Profile(
+        ISOLATE_NETWORK=isolate,
+        PLAYERS=[PlayerInstanceConfig(GUEST_IP="192.168.18.60"), PlayerInstanceConfig()],
+    )
+    service._launch_single_instance(profile, 0)
+
+    kwargs = native_launch.call_args.kwargs
+    assert kwargs["isolate_network"] is isolate
+    assert kwargs["guest_address"] == ("192.168.18.60" if isolate else None)

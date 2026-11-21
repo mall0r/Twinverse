@@ -260,8 +260,16 @@ def test_preferences_use_custom_native_fields_and_keep_callbacks(window, monkeyp
         assert isinstance(prefs, Adw.Window)
         assert not isinstance(prefs, Adw.PreferencesWindow)
         assert isinstance(prefs.gamescope_row, Gtk.Switch)
+        assert isinstance(prefs.network_isolation_row, Gtk.Switch)
+        assert prefs.network_isolation_row.get_active() is True
         prefs.gamescope_row.set_active(False)
         changed.assert_called_with("use_gamescope", False)
+        prefs.network_isolation_row.set_active(False)
+        changed.assert_called_with("isolate_network", False)
+        assert prefs._profile.isolate_network is False
+        prefs._on_reset_clicked(None)
+        assert prefs._profile.isolate_network is True
+        assert prefs.network_isolation_row.get_active() is True
         assert prefs._instance_list_box.get_row_at_index(0) is None
         (tmp_path / "0").mkdir()
         prefs._populate_player_list()
@@ -269,6 +277,22 @@ def test_preferences_use_custom_native_fields_and_keep_callbacks(window, monkeyp
         assert prefs._instance_list_box.get_row_at_index(1) is None
     finally:
         prefs.destroy()
+
+
+def test_disabling_network_isolation_disables_guest_ip_but_preserves_value(window):
+    """Turning off network isolation grays out Guest IP without discarding saved addresses."""
+    page = window.get_layout_page()
+    row = page.player_rows[0]
+    row.guest_ip_row.set_text("192.168.1.55")
+    assert row.guest_ip_row.get_sensitive() is True
+
+    page.set_network_isolation_enabled(False)
+    assert row.guest_ip_row.get_sensitive() is False
+    assert row.get_config().guest_ip == "192.168.1.55"
+
+    page.set_network_isolation_enabled(True)
+    assert row.guest_ip_row.get_sensitive() is True
+    assert row.get_config().guest_ip == "192.168.1.55"
 
 
 def test_roster_numbers_are_centered_in_fixed_size_badges(window):

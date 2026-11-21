@@ -124,6 +124,16 @@ class PreferencesWindow(Adw.Window):
         compatibility.append(steamdeck)
         compatibility.append(wsi)
         self._engine_page.append(compatibility)
+
+        network_isolation, self.network_isolation_row = self._create_toggle(
+            "Isolate network",
+            "Give each player an isolated network namespace with pasta. "
+            "Turn this off to share the host network for LAN discovery and local P2P.",
+            self._profile.isolate_network,
+            self._on_isolate_network_toggled,
+        )
+        self._engine_page.append(network_isolation)
+
         self._engine_page.append(Gtk.Box(vexpand=True))
         self._add_reset_button()
 
@@ -382,6 +392,7 @@ class PreferencesWindow(Adw.Window):
         self._profile.use_steamdeck_tag = default_profile.use_steamdeck_tag
         self._profile.use_gamescope = default_profile.use_gamescope
         self._profile.enable_gamescope_wsi = default_profile.enable_gamescope_wsi
+        self._profile.isolate_network = default_profile.isolate_network
         self._profile.num_players = default_profile.num_players
         self._profile.party_players = default_profile.party_players
         self._profile.mode = default_profile.mode
@@ -397,10 +408,12 @@ class PreferencesWindow(Adw.Window):
         self.steamdeck_row.set_active(self._profile.use_steamdeck_tag)
         self.gamescope_row.set_active(self._profile.use_gamescope)
         self.gamescope_wsi_row.set_active(self._profile.enable_gamescope_wsi)
+        self.network_isolation_row.set_active(self._profile.isolate_network)
 
         self._on_settings_changed("use_steamdeck_tag", self._profile.use_steamdeck_tag)
         self._on_settings_changed("use_gamescope", self._profile.use_gamescope)
         self._on_settings_changed("enable_gamescope_wsi", self._profile.enable_gamescope_wsi)
+        self._on_settings_changed("isolate_network", self._profile.isolate_network)
         self._on_settings_changed("player_configs", self._profile.player_configs)
 
     def _on_steamdeck_tag_toggled(self, switch_row, pspec):
@@ -420,3 +433,9 @@ class PreferencesWindow(Adw.Window):
         state = switch_row.get_active()
         self._profile.enable_gamescope_wsi = state
         self._on_settings_changed("enable_gamescope_wsi", state)
+
+    def _on_isolate_network_toggled(self, switch_row, pspec):
+        """Handle network isolation toggle."""
+        state = switch_row.get_active()
+        self._profile.isolate_network = state
+        self._on_settings_changed("isolate_network", state)

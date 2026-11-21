@@ -308,7 +308,8 @@ class PlayerRow(Gtk.Box):
         )
         self.guest_ip_row.connect("changed", self._on_setting_changed)
         guest_field = self._create_field("_Guest IP (optional)", self.guest_ip_row)
-        guest_field.append(self._help_label("Leave blank to choose a free LAN address."))
+        self._guest_ip_help = self._help_label("Leave blank to choose a free LAN address.")
+        guest_field.append(self._guest_ip_help)
         network_section.append(guest_field)
 
     def _create_section(self, title: str, icon_name: str, action: Optional[Gtk.Widget] = None):
@@ -554,6 +555,16 @@ class PlayerRow(Gtk.Box):
             ENV=self._collect_env_vars(),
             GUEST_IP=self.guest_ip_row.get_text().strip() or None,
         )
+
+    def set_network_isolation_enabled(self, enabled: bool):
+        """Enable or disable the Guest IP field to match the network isolation setting."""
+        self.guest_ip_row.set_sensitive(enabled)
+        if enabled:
+            self._guest_ip_help.set_text("Leave blank to choose a free LAN address.")
+        else:
+            self._guest_ip_help.set_text(
+                "Network isolation is disabled in Preferences. Instances share the host network."
+            )
 
     def set_running_state(self, is_running: bool):
         """Keep the legacy running flag and the instance state in sync."""

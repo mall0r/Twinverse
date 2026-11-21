@@ -47,6 +47,7 @@ class LayoutSettingsPage(Gtk.Box):
         self._active_player = 0
         self._screen_settings_sensitive = True
         self._gamescope_enabled = True
+        self._network_isolation_enabled = True
         self._preview_signature = None
         self._preview_geometry = None
         self._drag_scroll_id = 0
@@ -332,6 +333,7 @@ class LayoutSettingsPage(Gtk.Box):
         self.orientation_field.set_visible(is_split)
         self.orientation_row.set_visible(is_split)
         self.set_gamescope_enabled(profile.use_gamescope)
+        self.set_network_isolation_enabled(profile.isolate_network)
         if is_split and profile.splitscreen:
             self.orientation_row.set_selected(self.orientations.index(profile.splitscreen.orientation.capitalize()))
         self.rebuild_player_rows(party, devices_info)
@@ -354,6 +356,7 @@ class LayoutSettingsPage(Gtk.Box):
         """Build an inspector row and its paired roster entry for one instance ID."""
         player = PlayerRow(instance_num, devices_info)
         player.set_parent_page(self)
+        player.set_network_isolation_enabled(self._network_isolation_enabled)
         player.connect("settings-changed", self._on_setting_changed)
         player.connect("launch-clicked", lambda _w, number: self.emit("instance-launch-requested", number))
         player.connect("refresh-devices-requested", lambda *_: self.emit("devices-refresh-requested"))
@@ -784,6 +787,12 @@ class LayoutSettingsPage(Gtk.Box):
         self.displays_disabled_group.set_visible(not enabled)
         if not self._is_loading:
             self._sync_placement_controls()
+
+    def set_network_isolation_enabled(self, enabled):
+        """Reflect the global network isolation preference in every player's inspector."""
+        self._network_isolation_enabled = enabled
+        for row in self.player_rows:
+            row.set_network_isolation_enabled(enabled)
 
     def set_number_of_instances_sensitive(self, sensitive):
         """Lock party add and remove controls while instances are active."""
