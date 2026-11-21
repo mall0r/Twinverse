@@ -63,6 +63,16 @@
   </provides>
 
   <releases>
+    <release version="2.0.0-alpha.1" date="2026-11-20" type="development">
+      <description>
+        <p>Early alpha preview of Twinverse 2.0 featuring the redesigned three-pane Session Studio interface (Party Roster, Session Layout canvas, and collapsible Player Setup inspector).</p>
+        <p>Add per-monitor tiling templates (Fullscreen, Columns, Rows, Main Left, Main Top, and Grid) with native thumbnails, crisp 1:1 integer-pixel framing, and animated drag-and-drop player placement.</p>
+        <p>Add editable player names, direct player add/remove controls, bundled custom symbolic icons, redesigned floating toast notifications, and a WCAG AA/AAA light mode palette.</p>
+        <p>Give each isolated instance its own IPv4 address with pasta, track SteamRT3 steamwebhelper startup and termination safely across descendant sessions, and recover surviving instances across restarts.</p>
+        <p>Rewrite logging on the Python standard library under the XDG state directory with per-instance logs, retention limits, diagnostics, and crash logging.</p>
+        <p>Improve AppImage compatibility with KWin 6.8 (linux-dmabuf v5) and desktop theme, cursor, and font integration.</p>
+      </description>
+    </release>
     <release version="1.1.4" date="2026-10-15" type="stable">
       <description>
         <p>Add optional per-instance network isolation with pasta, keeping internet access and requiring no root.</p>
