@@ -376,47 +376,79 @@ def test_the_host_shell_reports_the_process_group_of_the_instance():
 
 
 @pytest.mark.skipif(
-    not Path("/bin/bash").exists()
-    or shutil.which("pasta") is None
-    or not _bwrap_available("--unshare-user", "--unshare-net", "--ro-bind", "/", "/"),
-    reason="bash, pasta and unprivileged bwrap namespaces are needed for the network setup",
+    not Path("/bin/bash").exists() or not _bwrap_available("--unshare-user", "--unshare-net", "--ro-bind", "/", "/"),
+    reason="bash and unprivileged bwrap namespaces are needed for the network setup",
 )
 def test_the_network_setup_lets_the_application_stop_itself(tmp_path):
     """Stopping an instance must not kill the application with SIGKILL."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    ip_stub = bin_dir / "ip"
+    ip_stub.write_text("#!/bin/sh\nexit 1\n")
+    ip_stub.chmod(0o755)
+    pasta_stub = bin_dir / "pasta"
+    pasta_stub.write_text(
+        "#!/bin/sh\n"
+        "pidfile=\n"
+        'while [ "$#" -gt 0 ]; do\n'
+        '  case "$1" in\n'
+        "    --pid) pidfile=$2; shift 2 ;;\n"
+        "    *) shift ;;\n"
+        "  esac\n"
+        "done\n"
+        'echo $$ > "$pidfile"\n'
+        "exec sleep 30\n"
+    )
+    pasta_stub.chmod(0o755)
+
+    resolv_conf = tmp_path / "resolv.conf"
+    resolv_conf.write_text("nameserver 192.0.2.1\n")
+    stderr_log = tmp_path / "stderr.log"
     log = tmp_path / "app.log"
     app = tmp_path / "app.sh"
     app.write_text("#!/bin/bash\n" f"trap 'echo TERM >> {log}; exit 0' TERM\n" f"echo started >> {log}\n" "sleep 30\n")
     app.chmod(0o755)
 
-    environment = {**os.environ, "XDG_RUNTIME_DIR": str(tmp_path)}
-    process = subprocess.Popen(
-        [
-            "bash",
-            "-c",
-            NETWORK_SETUP,
-            "twinverse-network",
-            "",
-            "0",
-            "bwrap",
-            "--dev-bind",
-            "/",
-            "/",
-            "--",
-            str(app),
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        env=environment,
-        start_new_session=True,
-    )
+    environment = {
+        **os.environ,
+        "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        "XDG_RUNTIME_DIR": str(tmp_path),
+        "TWINVERSE_RESOLV_CONF": str(resolv_conf),
+    }
+    with stderr_log.open("wb") as stderr_file:
+        process = subprocess.Popen(
+            [
+                "bash",
+                "-c",
+                NETWORK_SETUP,
+                "twinverse-network",
+                "",
+                "0",
+                "bwrap",
+                "--ro-bind",
+                "/",
+                "/",
+                "--bind",
+                str(tmp_path),
+                str(tmp_path),
+                "--",
+                str(app),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=stderr_file,
+            env=environment,
+            start_new_session=True,
+        )
     try:
         deadline = time.monotonic() + 20
-        while time.monotonic() < deadline and not log.exists():
+        while time.monotonic() < deadline and not log.exists() and process.poll() is None:
             time.sleep(0.1)
-        assert log.exists(), "the application did not start"
+        assert log.exists(), f"the application did not start (rc={process.poll()}): {stderr_log.read_text()}"
 
         os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-        time.sleep(2)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and "TERM" not in log.read_text():
+            time.sleep(0.1)
 
         assert "TERM" in log.read_text(), "the application was killed instead of asked to stop"
     finally:
