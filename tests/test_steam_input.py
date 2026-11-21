@@ -242,8 +242,8 @@ def test_account_without_known_games_still_gets_the_toggle(instance):
     assert document._find((ROOT, APPS_KEY, "1245620", PER_GAME)).value == "0"
 
 
-def test_instance_launch_applies_the_change_before_steam(monkeypatch, tmp_path):
-    """Check the launch preparation disables Steam Input once per Steam launch."""
+def test_instance_launch_applies_the_change_before_steam_when_virtual_uinput_unavailable(monkeypatch, tmp_path):
+    """Check the launch preparation disables Steam Input as fallback when native libs are absent."""
     order = []
     service = InstanceService.__new__(InstanceService)
     service.logger = Mock()
@@ -254,6 +254,7 @@ def test_instance_launch_applies_the_change_before_steam(monkeypatch, tmp_path):
     service._virtual_joystick_path = None
     home = tmp_path / "home_1"
     monkeypatch.setattr("src.services.instance.Config.get_steam_home_path", lambda i: home)
+    monkeypatch.setattr("src.services.instance.is_virtual_uinput_available", lambda: False)
     service._prepare_home = Mock()
     service._sync_app_manifests = Mock(side_effect=lambda *args: order.append("manifests"))
     service._validate_input_devices = Mock(return_value={})
@@ -268,6 +269,32 @@ def test_instance_launch_applies_the_change_before_steam(monkeypatch, tmp_path):
     # The manifests are refreshed first, so the library the change covers is current.
     assert order == ["manifests", "steam-input"]
     service.steam_input.disable_once.assert_called_once_with(0, home)
+
+
+def test_instance_launch_keeps_steam_input_enabled_when_virtual_uinput_available(monkeypatch, tmp_path):
+    """Leave Steam Input untouched when userspace virtual uinput libraries are available."""
+    service = InstanceService.__new__(InstanceService)
+    service.logger = Mock()
+    service.steam_input = Mock()
+    service.processes = {}
+    service.device_manager = Mock()
+    service._virtual_joystick_path = None
+    home = tmp_path / "home_1"
+    monkeypatch.setattr("src.services.instance.Config.get_steam_home_path", lambda i: home)
+    monkeypatch.setattr("src.services.instance.is_virtual_uinput_available", lambda: True)
+    service._prepare_home = Mock()
+    service._sync_app_manifests = Mock()
+    service._validate_input_devices = Mock(return_value={})
+    service._prepare_environment = Mock(return_value={})
+    builder = Mock()
+    builder.build_command.return_value = ["steam"]
+    builder.prepare_overlay_environment.return_value = {}
+    monkeypatch.setattr("src.services.cmd_builder.CommandBuilder", Mock(return_value=builder))
+
+    service._prepare_instance_launch(Profile(), 0)
+
+    service._sync_app_manifests.assert_called_once_with(home)
+    service.steam_input.disable_once.assert_not_called()
 
 
 def test_terminal_launch_leaves_the_account_config_alone(instance, monkeypatch):
