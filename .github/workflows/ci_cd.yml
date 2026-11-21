@@ -80,14 +80,22 @@ jobs:
 
           tag = os.environ['RELEASE_TAG']
           version = Path('version').read_text().strip()
-          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
-              raise SystemExit(f'Expected a stable release tag such as v1.1.0, got {tag!r}')
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?', tag):
+              raise SystemExit(
+                  f'Expected a release tag such as v1.2.0 or v1.2.0-beta.1, got {tag!r}'
+              )
           if tag != f'v{version}':
               raise SystemExit(f'Tag {tag!r} does not match version file {version!r}')
           root = ET.parse('share/metainfo/io.github.mall0r.Twinverse.metainfo.xml').getroot()
           release = root.find('releases/release')
           if release is None or release.get('version') != version:
               raise SystemExit('The latest AppStream release must match the version file')
+          expected_type = 'development' if '-' in version else 'stable'
+          actual_type = release.get('type', 'stable')
+          if actual_type != expected_type:
+              raise SystemExit(
+                  f'Expected AppStream release type={expected_type!r} for {version!r}, got {actual_type!r}'
+              )
           PY
 
       - name: Install Flatpak build tools
@@ -189,9 +197,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          release_args=(--verify-tag --generate-notes --title "$RELEASE_TAG")
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            release_args+=(--prerelease)
+          fi
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" \
-              --verify-tag --generate-notes --title "$RELEASE_TAG"
+            gh release create "$RELEASE_TAG" "${release_args[@]}" \
+              || gh release view "$RELEASE_TAG" >/dev/null 2>&1
           fi
           gh release upload "$RELEASE_TAG" dist/*.flatpak --clobber
 
@@ -215,8 +227,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          release_args=(--verify-tag --generate-notes --title "$RELEASE_TAG")
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            release_args+=(--prerelease)
+          fi
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" \
-              --verify-tag --generate-notes --title "$RELEASE_TAG"
+            gh release create "$RELEASE_TAG" "${release_args[@]}" \
+              || gh release view "$RELEASE_TAG" >/dev/null 2>&1
           fi
           gh release upload "$RELEASE_TAG" dist/*.AppImage dist/*.AppImage.zsync --clobber

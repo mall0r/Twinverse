@@ -20,7 +20,12 @@ def update_version_in_file(file_path, old_version, new_version):
     )
 
     if "README" in str(file_path):
-        updated_content = re.sub(r"Version-[0-9]+\.[0-9]+\.[0-9]+", f"Version-{new_version}", updated_content)
+        badge_version = new_version.replace("-", "--")
+        updated_content = re.sub(
+            r"Version-[0-9]+\.[0-9]+\.[0-9]+(?:--[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?",
+            f"Version-{badge_version}",
+            updated_content,
+        )
 
     if content != updated_content:
         with open(file_path, "w", encoding="utf-8") as f:
@@ -98,9 +103,9 @@ def main():
     new_version = sys.argv[1]
     force = len(sys.argv) == 3 and sys.argv[2] == "force"
 
-    version_pattern = r"^[0-9]+\.[0-9]+\.[0-9]+$"
+    version_pattern = r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$"
     if not re.match(version_pattern, new_version):
-        print(f"Error: Invalid version format. Use x.y.z format (e.g., 0.11.2)")  # noqa: F541
+        print("Error: Invalid version format. Use x.y.z or x.y.z-beta.1 format (e.g., 1.2.0-beta.1)")
         return 1
 
     if not set_new_version(new_version, force):

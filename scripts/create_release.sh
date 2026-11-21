@@ -182,9 +182,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! [[ $new_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+if ! [[ $new_version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$ ]]; then
     print_error "Invalid version format: $new_version"
-    print_error "Use format x.y.z (e.g., 0.11.2)"
+    print_error "Use format x.y.z or x.y.z-beta.1 (e.g., 1.2.0-beta.1)"
     exit 1
 fi
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd /project
 version=$(cat version)
-[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$ ]]
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 appdir="$work/AppDir"
