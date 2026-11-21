@@ -9,7 +9,7 @@ import signal
 import subprocess
 import threading
 from pathlib import Path
-from typing import BinaryIO, Optional
+from typing import IO, Any, BinaryIO, Optional
 
 from src.core import Config, Logger, Utils
 from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
@@ -43,8 +43,10 @@ class InstanceService:
     @staticmethod
     def _drain_process_pipes(process: subprocess.Popen, log_file: Optional[Path] = None) -> None:
         """Drain stdout and stderr on daemon threads so full pipes never block the instance."""
-        streams: list[io.IOBase] = [
-            stream for stream in (process.stdout, process.stderr) if isinstance(stream, io.IOBase)
+        streams: list[IO[Any]] = [
+            stream
+            for stream in (process.stdout, process.stderr)
+            if stream is not None and isinstance(stream, io.IOBase)
         ]
         if not streams:
             return
@@ -60,7 +62,7 @@ class InstanceService:
         lock = threading.Lock()
         remaining = [len(streams)]
 
-        def _drain(stream: io.IOBase) -> None:
+        def _drain(stream: IO[Any]) -> None:
             read_chunk = getattr(stream, "read1", stream.read)
             try:
                 while True:
