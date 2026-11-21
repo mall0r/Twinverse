@@ -31,6 +31,7 @@ from .kde_manager import KdeManager
 from .network import network_command
 from .steam_input import SteamInputDisabler
 from .steam_probe import ClientUpdate, SteamClientProbe
+from .virtual_uinput import is_virtual_uinput_available
 
 logger = logging.getLogger(__name__)
 
@@ -281,9 +282,10 @@ class InstanceService:
         self._prepare_home(home_path)
         if application_command is None:
             self._sync_app_manifests(home_path)
-            # Steam rewrites localconfig.vdf when it exits, so the change has to
-            # land before the client starts reading it.
-            self.steam_input.disable_once(instance_num, home_path)
+            if not is_virtual_uinput_available():
+                # Fallback when the native userspace /dev/uinput libraries are
+                # unavailable: disable Steam Input once before Steam reads it.
+                self.steam_input.disable_once(instance_num, home_path)
 
         device_info = self._validate_input_devices(profile, instance_num, instance_num + 1)
         instance_env = self._prepare_environment(profile, device_info, instance_num)
@@ -299,7 +301,23 @@ class InstanceService:
             self._virtual_joystick_path,
         )
         instance_env.update(cmd_builder.prepare_overlay_environment())
-        return cmd_builder.build_command(application_command), instance_env
+        command = cmd_builder.build_command(application_command)
+        bridge_cmds = getattr(self, "_pending_bridge_commands", None)
+        if bridge_cmds is None:
+            bridge_cmds = {}
+            self._pending_bridge_commands = bridge_cmds
+        if cmd_builder.input_bridge_command:
+            bridge_cmds[instance_num] = cmd_builder.input_bridge_command
+        else:
+            bridge_cmds.pop(instance_num, None)
+        return command, instance_env
+
+    def _pop_bridge_command(self, instance_num: int) -> Optional[list[str]]:
+        """Return and clear any prepared input bridge supervisor command for ``instance_num``."""
+        bridge_cmds = getattr(self, "_pending_bridge_commands", None)
+        if bridge_cmds is None:
+            return None
+        return bridge_cmds.pop(instance_num, None)
 
     def _launch_single_instance(self, profile: Profile, instance_num: int) -> None:
         """Launch a single steam instance."""
@@ -307,6 +325,7 @@ class InstanceService:
             logger.info("Preparing instance %s", instance_num + 1)
 
             base_command, instance_env = self._prepare_instance_launch(profile, instance_num)
+            bridge_command = self._pop_bridge_command(instance_num)
             guest_address = self._configured_guest_address(profile, instance_num) if profile.isolate_network else None
             instance_log = InstanceLog.create(
                 instance_num,
@@ -339,6 +358,7 @@ class InstanceService:
                         log=instance_log,
                         guest_address=guest_address,
                         isolate_network=profile.isolate_network,
+                        bridge_command=bridge_command,
                     )
                 else:
                     logger.info("Launching instance %s natively", instance_num + 1)
@@ -349,6 +369,7 @@ class InstanceService:
                         log=instance_log,
                         guest_address=guest_address,
                         isolate_network=profile.isolate_network,
+                        bridge_command=bridge_command,
                     )
 
                 self.pids[instance_num] = process.pid
@@ -377,6 +398,7 @@ class InstanceService:
         log: Optional[InstanceLog] = None,
         guest_address: Optional[str] = None,
         isolate_network: bool = True,
+        bridge_command: Optional[list[str]] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance within a Flatpak environment."""
         if log is None:
@@ -405,16 +427,17 @@ class InstanceService:
         # application inside the sandbox: it never has to ask the host about
         # the processes of the instance.
         watcher = SteamClientProbe(instance_num).watcher_script()
+        bridge_prefix = f"{shlex.join(bridge_command)} -- " if bridge_command else ""
         if isolate_network:
             network_launch = shlex.join(network_command(base_command, guest_address, instance_num))
             inner_script = (
                 f"echo $$; {watcher} "
-                f"if command -v pasta >/dev/null 2>&1; then exec {network_launch}; "
-                f"else exec {escaped_command}; fi{redirect}"
+                f"if command -v pasta >/dev/null 2>&1; then exec {bridge_prefix}{network_launch}; "
+                f"else exec {bridge_prefix}{escaped_command}; fi{redirect}"
             )
         else:
             logger.info("Instance %s: network isolation disabled; sharing host network", instance_num + 1)
-            inner_script = f"echo $$; {watcher} exec {escaped_command}{redirect}"
+            inner_script = f"echo $$; {watcher} exec {bridge_prefix}{escaped_command}{redirect}"
         # The instance leads its own process group, so it can be signalled as
         # a whole and its children go down with it.
         bash_path = shutil.which("bash") or "/bin/bash"
@@ -509,6 +532,7 @@ class InstanceService:
         log: Optional[InstanceLog] = None,
         guest_address: Optional[str] = None,
         isolate_network: bool = True,
+        bridge_command: Optional[list[str]] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance natively."""
         if log is None:
@@ -541,6 +565,9 @@ class InstanceService:
                 base_command = network_command(base_command, guest_address, instance_num)
         else:
             logger.info("Instance %s: network isolation disabled; sharing host network", instance_num + 1)
+
+        if bridge_command:
+            base_command = [*bridge_command, "--", *base_command]
 
         try:
             # The output goes straight to the instance log, so a chatty Steam
@@ -678,6 +705,7 @@ class InstanceService:
             guest_address = (
                 self._configured_guest_address(active_profile, instance_num) if active_profile.isolate_network else None
             )
+            bridge_command = self._pop_bridge_command(instance_num)
             logger.info("Opening a terminal for instance %s: %s", instance_num + 1, shlex.join(command))
             if Utils.is_flatpak():
                 self._launch_in_flatpak(
@@ -687,6 +715,7 @@ class InstanceService:
                     log=instance_log,
                     guest_address=guest_address,
                     isolate_network=active_profile.isolate_network,
+                    bridge_command=bridge_command,
                 )
             else:
                 self._launch_natively(
@@ -696,6 +725,7 @@ class InstanceService:
                     log=instance_log,
                     guest_address=guest_address,
                     isolate_network=active_profile.isolate_network,
+                    bridge_command=bridge_command,
                 )
 
     @staticmethod
@@ -1164,8 +1194,15 @@ class InstanceService:
         if audio_id and audio_id.strip():
             logger.info(f"Instance {instance_num_display}: Audio device ID '{audio_id}' assigned.")
 
+        joystick_device_id = (
+            player_config.physical_device_id.strip()
+            if player_config.physical_device_id and player_config.physical_device_id.strip()
+            else None
+        )
+
         return {
             "joystick_path_str_for_instance": joystick_path,
+            "joystick_device_id_for_instance": joystick_device_id,
             "audio_device_id_for_instance": (audio_id if audio_id and audio_id.strip() else None),
             "should_add_grab_flags": player_config.grab_input_devices,
         }

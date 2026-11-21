@@ -1,6 +1,7 @@
 """Builds the launch commands for Steam instances, with gamescope and bwrap sandboxing."""
 
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -9,6 +10,16 @@ from src.core.utils import Utils
 from src.models import Profile
 from src.services.device_manager import DeviceManager
 from src.services.kwin_layout import INSTANCE_ENV
+from src.services.virtual_uinput import (
+    ENV_HIDRAW_FILTER,
+    ENV_PHYSICAL_BRIDGE,
+    ENV_SOCKET_DIR,
+    ENV_VIRTUAL_UINPUT,
+    ENV_VIRTUAL_UINPUT_PRELOAD,
+    build_input_bridge_command,
+    find_hidraw_devices_to_mask,
+    stage_virtual_uinput,
+)
 from src.services.webhelper_sync import build_webhelper_mounts
 
 logger = logging.getLogger(__name__)
@@ -22,10 +33,17 @@ class CommandBuilder:
     # Gamescope creates this path at startup, so expand it in its child, not
     # while building the command. Proton's runtime otherwise hides the file
     # under /run/user, and the Vulkan layer silently disables FIFO enforcement.
+    # Userspace /dev/uinput LD_PRELOAD is also activated here so Gamescope
+    # itself is never preloaded while Steam and Proton inherit it.
     GAMESCOPE_RUNTIME_SETUP = r"""
 if [ -n "${GAMESCOPE_LIMITER_FILE:-}" ]; then
     export PRESSURE_VESSEL_FILESYSTEMS_RO=\
 "${PRESSURE_VESSEL_FILESYSTEMS_RO:+${PRESSURE_VESSEL_FILESYSTEMS_RO}:}${GAMESCOPE_LIMITER_FILE}"
+fi
+if [ -n "${TWINVERSE_VIRTUAL_UINPUT_PRELOAD:-}" ]; then
+    export TWINVERSE_VIRTUAL_UINPUT=1
+    export LD_PRELOAD="${TWINVERSE_VIRTUAL_UINPUT_PRELOAD}${LD_PRELOAD:+:${LD_PRELOAD}}"
+    unset TWINVERSE_VIRTUAL_UINPUT_PRELOAD
 fi
 exec "$@"
 """
@@ -62,6 +80,7 @@ exec "$@"
         self.instance_num = instance_num
         self.home_path = home_path
         self.virtual_joystick_path = virtual_joystick_path
+        self.input_bridge_command: Optional[List[str]] = None
 
     def build_command(self, application_command: Optional[List[str]] = None) -> List[str]:
         """
@@ -200,8 +219,13 @@ stream.rules = [
         This strategy uses the real user's home directory but mounts instance-specific
         Steam directories over the real ones to achieve isolation.
         """
+        self.input_bridge_command = None
         orig_home = Path.home()
         orig_local = orig_home / ".local"
+
+        # Stage native virtual uinput + hotplug bridge before device isolation so
+        # we know whether the physical controller will be bridged dynamically.
+        virtual_uinput = stage_virtual_uinput(self.home_path, orig_home)
 
         # fmt: off
         cmd = [
@@ -227,23 +251,45 @@ stream.rules = [
 
         cmd.extend(["--tmpfs", "/dev/input"])
 
-        joystick_path = self.device_info.get("joystick_path_str_for_instance")
-        if not joystick_path and self.virtual_joystick_path:
-            logger.info(
-                "Instance %s: assigning virtual joystick '%s'",
-                self.instance_num + 1,
-                self.virtual_joystick_path,
-            )
-            joystick_path = self.virtual_joystick_path
+        physical_joystick_path = self.device_info.get("joystick_path_str_for_instance")
+        physical_device_id = self.device_info.get("joystick_device_id_for_instance")
+        bridge_cmd = build_input_bridge_command(
+            virtual_uinput,
+            device_id=physical_device_id,
+            resolved_event=physical_joystick_path,
+        )
 
-        if joystick_path:
-            logger.info("Instance %s: exposing device '%s' to sandbox", self.instance_num + 1, joystick_path)
-            cmd.extend(["--dev-bind", joystick_path, joystick_path])
+        if bridge_cmd is not None:
+            # The host-side hotplug bridge exposes this physical controller as
+            # virtual /dev/input/event3000 and dynamically manages /dev/hidraw*
+            # visibility via tw_hidraw.allow across unplug/reconnect cycles.
+            self.input_bridge_command = bridge_cmd
+            logger.info(
+                "Instance %s: hotplug controller bridge enabled for '%s'",
+                self.instance_num + 1,
+                physical_device_id or physical_joystick_path,
+            )
+        else:
+            joystick_path = physical_joystick_path
+            if not joystick_path and self.virtual_joystick_path:
+                logger.info(
+                    "Instance %s: assigning virtual joystick '%s'",
+                    self.instance_num + 1,
+                    self.virtual_joystick_path,
+                )
+                joystick_path = self.virtual_joystick_path
+
+            if joystick_path:
+                logger.info("Instance %s: exposing device '%s' to sandbox", self.instance_num + 1, joystick_path)
+                cmd.extend(["--dev-bind", joystick_path, joystick_path])
+
+            for hidraw_path in find_hidraw_devices_to_mask(joystick_path):
+                cmd.extend(["--ro-bind", "/dev/null", hidraw_path])
 
         if Path("/dev/uinput").exists():
-            # The virtual joystick is created outside the sandbox, so the
-            # instance only needs to read it. Writing to it would let an
-            # instance create devices on the host and in the other instances.
+            # Keep /dev/uinput read-only so sandboxed apps never leak virtual
+            # input devices into the host kernel. Steam Input creates isolated
+            # per-sandbox virtual controllers via Twinverse's userspace uinput.
             cmd.extend(["--ro-bind", "/dev/uinput", "/dev/uinput"])
         if Path("/dev/input/mice").exists():
             cmd.extend(["--dev-bind", "/dev/input/mice", "/dev/input/mice"])
@@ -285,11 +331,12 @@ stream.rules = [
             )
         )
 
+        extra_env: Dict = {}
         try:
             extra_env = (
                 self.profile.get_env_for_instance(instance_idx) if hasattr(self.profile, "get_env_for_instance") else {}
-            )
-            for k, v in (extra_env or {}).items():
+            ) or {}
+            for k, v in extra_env.items():
                 if v is None:
                     v = ""
                 cmd.extend(["--setenv", str(k), str(v)])
@@ -297,6 +344,30 @@ stream.rules = [
                 logger.info("Instance %s: added %s --setenv entries to bwrap", self.instance_num + 1, len(extra_env))
         except Exception:
             logger.exception("Instance %s: failed to add --setenv entries", self.instance_num + 1)
+
+        if virtual_uinput is not None:
+            cmd.extend(["--setenv", ENV_SOCKET_DIR, str(virtual_uinput.socket_dir)])
+            if self.input_bridge_command is not None:
+                cmd.extend(["--setenv", ENV_PHYSICAL_BRIDGE, "1"])
+                cmd.extend(["--setenv", ENV_HIDRAW_FILTER, "1"])
+            if self.profile.use_gamescope:
+                # GAMESCOPE_RUNTIME_SETUP moves this into LD_PRELOAD after
+                # gamescope spawns its child so gamescope itself is untouched.
+                cmd.extend(["--setenv", ENV_VIRTUAL_UINPUT_PRELOAD, virtual_uinput.preload_value])
+            else:
+                cmd.extend(["--setenv", ENV_VIRTUAL_UINPUT, "1"])
+                existing_preload = extra_env.get("LD_PRELOAD") or os.environ.get("LD_PRELOAD")
+                preload = (
+                    f"{virtual_uinput.preload_value}:{existing_preload}"
+                    if existing_preload
+                    else virtual_uinput.preload_value
+                )
+                cmd.extend(["--setenv", "LD_PRELOAD", preload])
+            logger.info(
+                "Instance %s: enabled userspace /dev/uinput for Steam Input (socket dir: %s)",
+                self.instance_num + 1,
+                virtual_uinput.socket_dir,
+            )
 
         if self.profile.use_gamescope and self.profile.use_steamdeck_tag:
             # Gamescope, MangoApp and Steam share the sandbox home path.
