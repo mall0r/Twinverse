@@ -6,6 +6,13 @@ from typing import Optional
 from gi.repository import Adw, GLib, Gtk
 
 from src.core import Utils
+from src.core.i18n import (
+    LANGUAGE_PT_BR,
+    get_language,
+    normalize_language_preference,
+    set_language,
+    t,
+)
 from src.core.logging import log_context
 from src.gui.controllers import (
     LaunchController,
@@ -43,6 +50,8 @@ class MainPresenter:
         self._launch_controller = LaunchController(self._instance_service, self._kde_manager)
         self._verification_controller = VerificationController(self._steam_verifier)
         self._settings_controller = SettingsController(self._device_manager)
+
+        set_language(getattr(self._settings_controller.get_profile(), "language", "auto"))
 
         self.window = MainWindow(application, self)
 
@@ -124,7 +133,7 @@ class MainPresenter:
         # The client may take a long time when it updates itself, so the
         # message says that something is still working.
         self.window.show_toast(
-            f"Starting the Steam client of instance {instance_num + 1}… please wait",
+            t("presenter.starting_instance", num=instance_num + 1),
             level=BUSY,
         )
         self._ensure_instance_watch()
@@ -167,7 +176,7 @@ class MainPresenter:
                     logger.info("The Steam client of instance %s started", instance_num + 1)
                 self._verify_instance(instance_num)
                 self._set_instance_state(instance_num, INSTANCE_RUNNING)
-                self.window.show_toast(f"Steam started for instance {instance_num + 1}")
+                self.window.show_toast(t("presenter.started_instance", num=instance_num + 1))
                 continue
 
             if status.failure:
@@ -263,7 +272,7 @@ class MainPresenter:
 
     def _report_instance_failure(self, instance_num: int, reason: str):
         """Tell the user that the Steam client of an instance gave up."""
-        message = f"The Steam client of instance {instance_num + 1} failed: {reason}"
+        message = t("presenter.failed_instance", num=instance_num + 1, reason=reason)
         with log_context(instance=instance_num + 1):
             logger.warning("%s", message)
         self.window.show_toast(message, level=ERROR)
@@ -284,17 +293,17 @@ class MainPresenter:
         with log_context(instance=instance_num + 1):
             reason = self._instance_service.client_status(instance_num).failure
             if reason:
-                message = f"The Steam client of instance {instance_num + 1} failed: {reason}"
+                message = t("presenter.failed_instance", num=instance_num + 1, reason=reason)
                 logger.warning("%s (exit_code=%s)", message, exit_code)
                 self.window.show_toast(message, level=ERROR)
                 self._set_instance_detail(instance_num, reason)
             elif exit_code == 0:
-                message = f"Instance {instance_num + 1} stopped"
+                message = t("presenter.stopped_instance", num=instance_num + 1)
                 logger.info("%s (exit_code=0)", message)
                 self.window.show_toast(message)
                 self._set_instance_detail(instance_num, "")
             else:
-                message = f"Instance {instance_num + 1} stopped unexpectedly"
+                message = t("presenter.stopped_unexpectedly", num=instance_num + 1)
                 logger.warning("%s (exit_code=%s)", message, exit_code)
                 self.window.show_toast(message, level=ERROR)
                 self._set_instance_detail(instance_num, "")
@@ -340,6 +349,11 @@ class MainPresenter:
         self._save_timeout_id = 0
         self._settings_controller.save_profile()
         return False
+
+    def on_language_changed(self, language: str):
+        """Persist and apply a live UI language change from the main window menu."""
+        normalized = normalize_language_preference(language)
+        self._on_preference_changed("language", normalized)
 
     def on_settings_changed(self):
         """Handle settings changed in UI."""
@@ -393,7 +407,7 @@ class MainPresenter:
             # running is stopped. Both end with the death of the instance.
             if state == INSTANCE_STARTING:
                 logger.info("Cancelling the start of instance %s", instance_num + 1)
-                self.window.show_toast(f"Cancelled the start of instance {instance_num + 1}")
+                self.window.show_toast(t("presenter.cancelled_instance", num=instance_num + 1))
             else:
                 logger.info("Stop requested for instance %s", instance_num + 1)
             self._begin_instance_stop(instance_num)
@@ -436,7 +450,7 @@ class MainPresenter:
             self._instance_service.open_terminal(self._settings_controller.get_profile(), instance_num)
         except Exception as e:
             logger.exception("Failed to open terminal for instance %s: %s", instance_num + 1, e)
-            ErrorDialog(prefs_window, "Error", ErrorHandler.format_error(e)).present()
+            ErrorDialog(prefs_window, t("common.error"), ErrorHandler.format_error(e)).present()
 
     def on_preferences_clicked(self):
         """Handle preferences menu clicked."""
@@ -447,25 +461,32 @@ class MainPresenter:
 
     def on_about_clicked(self):
         """Handle about menu clicked."""
+        is_pt = get_language() == LANGUAGE_PT_BR
+        website = (
+            "https://github.com/mall0r/Twinverse/blob/main/docs/README.pt-br.md"
+            if is_pt
+            else "https://github.com/mall0r/Twinverse/blob/main/README.md"
+        )
+        support_url = (
+            "https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt-br.md"
+            if is_pt
+            else "https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md"
+        )
         about = Adw.AboutDialog(
             application_name="Twinverse",
             application_icon="io.github.mall0r.Twinverse",
             developer_name="Mallor (mall0r)",
             version=Utils.get_version(),
             developers=["Mallor"],
-            website="https://github.com/mall0r/Twinverse/blob/main/README.md",
+            website=website,
             issue_url="https://github.com/mall0r/Twinverse/issues",
             license_type=Gtk.License.GPL_3_0,
-            comments=(
-                "Twinverse is a tool for Linux/SteamOS that allows you to create and manage multiple "
-                "instances of gamescope and steam simultaneously. Twinverse uses Bubblewrap (bwrap), "
-                "a low-level Linux sandboxing tool, to isolate each Steam Client instance."
-            ),
-            support_url="https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md",
+            comments=t("about.comments"),
+            support_url=support_url,
         )
 
-        about.add_link("Contributing", "https://github.com/mall0r/Twinverse/blob/main/CONTRIBUTING.md")
-        about.add_link("Donate", "https://ko-fi.com/mallor")
+        about.add_link(t("about.contributing"), "https://github.com/mall0r/Twinverse/blob/main/CONTRIBUTING.md")
+        about.add_link(t("about.donate"), "https://ko-fi.com/mallor")
         about.present(parent=self.window)
 
     def on_close_requested(self):
@@ -512,7 +533,7 @@ class MainPresenter:
 
         if not selected_players:
             logger.warning("No instances selected to launch.")
-            self.window.show_error("No instances selected to launch.")
+            self.window.show_error(t("presenter.no_instances_selected"))
             self._bulk_operation_in_progress = False
             return
 
@@ -589,7 +610,7 @@ class MainPresenter:
             self._forget_progress(instance_num)
             self._set_instance_detail(instance_num, "")
             self._set_instance_state(instance_num, INSTANCE_IDLE)
-        self.window.show_toast("All instances stopped")
+        self.window.show_toast(t("presenter.all_stopped"))
         self._sync_launch_button_action()
         self._run_all_verifications()
         self._update_launch_button_sensitivity()
@@ -610,7 +631,7 @@ class MainPresenter:
         self._forget_progress(instance_num)
         self._set_instance_detail(instance_num, "")
         self._set_instance_state(instance_num, INSTANCE_IDLE)
-        self.window.show_toast(f"Instance {instance_num + 1} stopped")
+        self.window.show_toast(t("presenter.stopped_instance", num=instance_num + 1))
 
         GLib.idle_add(self._verify_instance, instance_num)
         GLib.idle_add(self._update_number_of_instances_sensitivity)
@@ -679,6 +700,12 @@ class MainPresenter:
             logger.info("Preference '%s' updated to: %s", key, value)
         else:
             self._settings_controller.update_preference(key, value)
+
+        if key == "language":
+            set_language(value)
+            sync_lang = getattr(self.window, "sync_language_action", None)
+            if callable(sync_lang):
+                sync_lang(value)
 
         if key == "use_gamescope":
             self.window.get_layout_page().set_gamescope_enabled(bool(value))

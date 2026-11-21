@@ -12,6 +12,7 @@ gi.require_version("Gtk", "4.0")
 
 from gi.repository import Gdk, GObject, Gtk, Pango
 
+from src.core.i18n import TRANSLATIONS, t
 from src.gui.widgets.env_variable_row import EnvVariableRow
 from src.gui.widgets.marquee_label import MarqueeLabel
 from src.gui.widgets.spinner import StudioSpinner
@@ -22,6 +23,8 @@ INSTANCE_IDLE = "idle"
 INSTANCE_STARTING = "starting"
 INSTANCE_RUNNING = "running"
 INSTANCE_STOPPING = "stopping"
+
+_DEFAULT_PLAYER_NAMES = frozenset({DEFAULT_PLAYER_NAME, *(cat["player.default_name"] for cat in TRANSLATIONS.values())})
 
 
 class _ControllerOptionRow(Gtk.Box):
@@ -82,13 +85,15 @@ class PlayerRow(Gtk.Box):
         self.add_css_class("inspector-player")
 
         self._player_num = player_num
-        self._player_name = DEFAULT_PLAYER_NAME
+        self._custom_name: Optional[str] = None
+        self._player_name = t("player.default_name")
         self._editing_name = False
         self._devices_info = {kind: list(devices_info.get(kind, [])) for kind in ("joystick", "audio")}
         self._parent_page = None
         self._is_loading = False
         self._is_verified = False
         self._is_running = False
+        self._network_isolation_enabled = True
         self._state = INSTANCE_IDLE
         self._status_detail = ""
         self._update_progress: Optional[tuple[str, Optional[int]]] = None
@@ -142,12 +147,12 @@ class PlayerRow(Gtk.Box):
         self.edit_name_button = Gtk.Button(icon_name="twinverse-edit-symbolic", valign=Gtk.Align.CENTER)
         self.edit_name_button.add_css_class("flat")
         self.edit_name_button.add_css_class("inspector-edit-name-button")
-        self.edit_name_button.set_tooltip_text("Edit player name")
-        self.edit_name_button.update_property([Gtk.AccessibleProperty.LABEL], ["Edit player name"])
+        self.edit_name_button.set_tooltip_text(t("player.edit_name_tooltip"))
+        self.edit_name_button.update_property([Gtk.AccessibleProperty.LABEL], [t("player.edit_name_tooltip")])
         self.edit_name_button.connect("clicked", lambda *_: self.start_name_edit())
         self._name_display_box.append(self.edit_name_button)
 
-        self.name_entry = Gtk.Entry(placeholder_text=DEFAULT_PLAYER_NAME, max_length=32, hexpand=True)
+        self.name_entry = Gtk.Entry(placeholder_text=t("player.default_name"), max_length=32, hexpand=True)
         self.name_entry.set_width_chars(1)
         self.name_entry.add_css_class("inspector-entry")
         self.name_entry.add_css_class("inspector-name-entry")
@@ -192,7 +197,7 @@ class PlayerRow(Gtk.Box):
         self.status_detail_label.add_css_class("inspector-console-log")
         header.append(self.status_detail_label)
 
-        self.launch_button = Gtk.Button(label="Install Steam")
+        self.launch_button = Gtk.Button(label=t("player.action.install"))
         self.launch_button.set_size_request(-1, 40)
         self.launch_button.add_css_class("inspector-action")
         self.launch_button.connect("clicked", self._on_launch_clicked)
@@ -201,20 +206,26 @@ class PlayerRow(Gtk.Box):
 
     def _sync_checkbox_accessibility(self):
         label = f"{self._player_name} {self._player_num + 1:02d}"
-        self.checkbox.set_tooltip_text(f"Include {label} in the session")
-        self.checkbox.update_property([Gtk.AccessibleProperty.LABEL], [f"Include {label}"])
+        self.checkbox.set_tooltip_text(t("player.include_tooltip", label=label))
+        self.checkbox.update_property([Gtk.AccessibleProperty.LABEL], [t("player.include_a11y", label=label)])
 
     def get_player_name(self) -> str:
-        """Return the display name for this player (defaults to 'Player')."""
+        """Return the display name for this player (defaults to localized 'Player')."""
         return self._player_name
 
     def set_player_name(self, name: Optional[str]):
         """Update the player's display name without reporting a configuration edit."""
-        normalized = (name or "").strip() or DEFAULT_PLAYER_NAME
+        cleaned = (name or "").strip()
+        if not cleaned or cleaned in _DEFAULT_PLAYER_NAMES:
+            self._custom_name = None
+            normalized = t("player.default_name")
+        else:
+            self._custom_name = cleaned
+            normalized = cleaned
         self._editing_name = False
         self._player_name = normalized
         self.title_label.set_label(normalized)
-        self.title_label.set_tooltip_text(normalized if normalized != DEFAULT_PLAYER_NAME else None)
+        self.title_label.set_tooltip_text(self._custom_name)
         self._name_stack.set_visible_child_name("display")
         self._sync_checkbox_accessibility()
 
@@ -231,11 +242,18 @@ class PlayerRow(Gtk.Box):
         if not self._editing_name:
             return
         self._editing_name = False
-        normalized = self.name_entry.get_text().strip() or DEFAULT_PLAYER_NAME
-        changed = normalized != self._player_name
+        cleaned = self.name_entry.get_text().strip()
+        if not cleaned or cleaned in _DEFAULT_PLAYER_NAMES:
+            new_custom = None
+            normalized = t("player.default_name")
+        else:
+            new_custom = cleaned
+            normalized = cleaned
+        changed = new_custom != self._custom_name or normalized != self._player_name
+        self._custom_name = new_custom
         self._player_name = normalized
         self.title_label.set_label(normalized)
-        self.title_label.set_tooltip_text(normalized if normalized != DEFAULT_PLAYER_NAME else None)
+        self.title_label.set_tooltip_text(self._custom_name)
         self._name_stack.set_visible_child_name("display")
         self._sync_checkbox_accessibility()
         if changed:
@@ -258,66 +276,73 @@ class PlayerRow(Gtk.Box):
         self.refresh_controllers_button = Gtk.Button(icon_name="twinverse-refresh-symbolic", valign=Gtk.Align.CENTER)
         self.refresh_controllers_button.add_css_class("flat")
         self.refresh_controllers_button.add_css_class("inspector-refresh-button")
-        self.refresh_controllers_button.set_tooltip_text("Refresh controllers")
-        self.refresh_controllers_button.update_property([Gtk.AccessibleProperty.LABEL], ["Refresh controllers"])
+        self.refresh_controllers_button.set_tooltip_text(t("player.refresh_controllers"))
+        self.refresh_controllers_button.update_property(
+            [Gtk.AccessibleProperty.LABEL], [t("player.refresh_controllers")]
+        )
         self.refresh_controllers_button.connect("clicked", self._on_refresh_joysticks_clicked)
 
-        controls = self._create_section(
-            "Controls", "twinverse-gamepad-symbolic", action=self.refresh_controllers_button
+        controls, self._controls_heading_label = self._create_section(
+            t("player.controls_section"), "twinverse-gamepad-symbolic", action=self.refresh_controllers_button
         )
         joysticks = self._devices_info["joystick"]
-        self.joystick_row = self._create_dropdown(["None"] + [device["name"] for device in joysticks])
-        self.joystick_row.set_list_factory(self._create_controller_list_factory(self.joystick_row))
-        controller_field = self._create_field("_Controller", self.joystick_row)
-        controller_field.set_tooltip_text(
-            "Assign a gamepad to this player. If controllers are missing after refreshing, "
-            "check that your user belongs to the input group; see the guide for details."
+        self.joystick_row = self._create_dropdown(
+            [t("player.controller_none")] + [device["name"] for device in joysticks]
         )
-        controls.append(controller_field)
+        self.joystick_row.set_list_factory(self._create_controller_list_factory(self.joystick_row))
+        self._controller_field, self._controller_label = self._create_field(
+            t("player.controller_label"), self.joystick_row
+        )
+        self._controller_field.set_tooltip_text(t("player.controller_tooltip"))
+        controls.append(self._controller_field)
 
         grab_line = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         grab_line.add_css_class("inspector-toggle")
         grab_labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
-        grab_label = Gtk.Label(label="_Grab mouse", use_underline=True, xalign=0)
-        grab_label.add_css_class("inspector-field-label")
-        grab_labels.append(grab_label)
-        grab_labels.append(self._help_label("Only one player can capture the mouse."))
+        self._grab_label = Gtk.Label(label=t("player.grab_mouse_label"), use_underline=True, xalign=0)
+        self._grab_label.add_css_class("inspector-field-label")
+        grab_labels.append(self._grab_label)
+        self._grab_help = self._help_label(t("player.grab_mouse_help"))
+        grab_labels.append(self._grab_help)
         grab_line.append(grab_labels)
         self.grab_input_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         self.grab_input_switch.add_css_class("inspector-switch")
-        grab_label.set_mnemonic_widget(self.grab_input_switch)
+        self._grab_label.set_mnemonic_widget(self.grab_input_switch)
         self.grab_input_switch.connect("notify::active", self._on_grab_input_toggled)
         grab_line.append(self.grab_input_switch)
         controls.append(grab_line)
 
         self._content.append(Gtk.Separator())
-        audio_section = self._create_section("Audio", "twinverse-audio-symbolic")
+        audio_section, self._audio_heading_label = self._create_section(
+            t("player.audio_section"), "twinverse-audio-symbolic"
+        )
         audio = self._devices_info["audio"]
-        self.audio_row = self._create_dropdown(["Default"] + [device["name"] for device in audio])
-        audio_section.append(self._create_field("_Output device", self.audio_row))
+        self.audio_row = self._create_dropdown([t("player.audio_default")] + [device["name"] for device in audio])
+        audio_field, self._audio_label = self._create_field(t("player.output_device_label"), self.audio_row)
+        audio_section.append(audio_field)
 
         self._content.append(Gtk.Separator())
-        network_section = self._create_section("Network", "twinverse-network-symbolic")
-        self.guest_ip_row = Gtk.Entry(placeholder_text="Automatic", hexpand=True)
+        network_section, self._network_heading_label = self._create_section(
+            t("player.network_section"), "twinverse-network-symbolic"
+        )
+        self.guest_ip_row = Gtk.Entry(placeholder_text=t("player.guest_ip_placeholder"), hexpand=True)
         self.guest_ip_row.set_width_chars(1)
         self.guest_ip_row.set_max_width_chars(24)
         self.guest_ip_row.add_css_class("inspector-entry")
-        self.guest_ip_row.set_tooltip_text(
-            "Optional IPv4 address for this instance on the LAN, for example 192.168.1.50. "
-            "Leave empty to select a free address automatically."
-        )
+        self.guest_ip_row.set_tooltip_text(t("player.guest_ip_tooltip"))
         self.guest_ip_row.connect("changed", self._on_setting_changed)
-        guest_field = self._create_field("_Guest IP (optional)", self.guest_ip_row)
-        self._guest_ip_help = self._help_label("Leave blank to choose a free LAN address.")
+        guest_field, self._guest_ip_label = self._create_field(t("player.guest_ip_label"), self.guest_ip_row)
+        self._guest_ip_help = self._help_label(t("player.guest_ip_help"))
         guest_field.append(self._guest_ip_help)
         network_section.append(guest_field)
 
     def _create_section(self, title: str, icon_name: str, action: Optional[Gtk.Widget] = None):
         section = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         section.add_css_class("inspector-section")
-        section.append(self._section_heading(title, icon_name, action=action))
+        heading, heading_label = self._section_heading(title, icon_name, action=action)
+        section.append(heading)
         self._content.append(section)
-        return section
+        return section, heading_label
 
     @staticmethod
     def _section_heading(title: str, icon_name: str, action: Optional[Gtk.Widget] = None):
@@ -331,7 +356,7 @@ class PlayerRow(Gtk.Box):
         heading.append(label)
         if action is not None:
             heading.append(action)
-        return heading
+        return heading, label
 
     @staticmethod
     def _help_label(text: str):
@@ -350,7 +375,7 @@ class PlayerRow(Gtk.Box):
         label.set_mnemonic_widget(mnemonic_widget if mnemonic_widget is not None else control)
         field.append(label)
         field.append(control)
-        return field
+        return field, label
 
     def _create_dropdown(self, labels: list[str], on_selected=None):
         dropdown = Gtk.DropDown(model=Gtk.StringList.new(labels), hexpand=True, enable_search=True)
@@ -420,21 +445,82 @@ class PlayerRow(Gtk.Box):
     def _create_env_section(self):
         self.env_expander = Gtk.Expander()
         self.env_expander.add_css_class("inspector-env-expander")
-        self.env_expander.set_label_widget(
-            self._section_heading("Environment variables", "twinverse-terminal-symbolic")
+        env_heading, self._env_heading_label = self._section_heading(
+            t("player.env_section"), "twinverse-terminal-symbolic"
         )
+        self.env_expander.set_label_widget(env_heading)
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         body.set_margin_top(12)
-        body.append(self._help_label("Override variables for this player. Values are kept exactly as entered."))
+        self._env_help = self._help_label(t("player.env_help"))
+        body.append(self._env_help)
         self._env_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         self._env_box.add_css_class("inspector-env-list")
         body.append(self._env_box)
-        add_button = Gtk.Button(label="Add variable", halign=Gtk.Align.START)
-        add_button.add_css_class("inspector-env-add")
-        add_button.connect("clicked", self._on_add_env_clicked)
-        body.append(add_button)
+        self._env_add_button = Gtk.Button(label=t("player.env_add"), halign=Gtk.Align.START)
+        self._env_add_button.add_css_class("inspector-env-add")
+        self._env_add_button.connect("clicked", self._on_add_env_clicked)
+        body.append(self._env_add_button)
         self.env_expander.set_child(body)
         self._content.append(self.env_expander)
+
+    def retranslate(self):
+        """Update all inspector text, placeholders, tooltips, and default options in place."""
+        was_loading = self._is_loading
+        self._is_loading = True
+        try:
+            if self._custom_name is None:
+                self._player_name = t("player.default_name")
+                self.title_label.set_label(self._player_name)
+                self.title_label.set_tooltip_text(None)
+            self.name_entry.set_placeholder_text(t("player.default_name"))
+            self.edit_name_button.set_tooltip_text(t("player.edit_name_tooltip"))
+            self.edit_name_button.update_property([Gtk.AccessibleProperty.LABEL], [t("player.edit_name_tooltip")])
+            self._sync_checkbox_accessibility()
+
+            self.refresh_controllers_button.set_tooltip_text(t("player.refresh_controllers"))
+            self.refresh_controllers_button.update_property(
+                [Gtk.AccessibleProperty.LABEL], [t("player.refresh_controllers")]
+            )
+            self._controls_heading_label.set_label(t("player.controls_section"))
+            self._controller_label.set_label(t("player.controller_label"))
+            self._controller_field.set_tooltip_text(t("player.controller_tooltip"))
+            self._grab_label.set_label(t("player.grab_mouse_label"))
+            self._grab_help.set_text(t("player.grab_mouse_help"))
+
+            self._audio_heading_label.set_label(t("player.audio_section"))
+            self._audio_label.set_label(t("player.output_device_label"))
+
+            self._network_heading_label.set_label(t("player.network_section"))
+            self.guest_ip_row.set_placeholder_text(t("player.guest_ip_placeholder"))
+            self.guest_ip_row.set_tooltip_text(t("player.guest_ip_tooltip"))
+            self._guest_ip_label.set_label(t("player.guest_ip_label"))
+            self.set_network_isolation_enabled(self._network_isolation_enabled)
+
+            self._env_heading_label.set_label(t("player.env_section"))
+            self._env_help.set_text(t("player.env_help"))
+            self._env_add_button.set_label(t("player.env_add"))
+            for env_row in self._env_rows:
+                env_row.retranslate()
+
+            for dropdown, default_label in (
+                (self.joystick_row, t("player.controller_none")),
+                (self.audio_row, t("player.audio_default")),
+            ):
+                model = dropdown.get_model()
+                if isinstance(model, Gtk.StringList) and model.get_n_items() >= 1:
+                    selected_idx = dropdown.get_selected()
+                    if model.get_string(0) != default_label:
+                        model.splice(0, 1, [default_label])
+                        if dropdown.get_selected() != selected_idx:
+                            dropdown.set_selected(selected_idx)
+                else:
+                    self.update_devices(self._devices_info)
+                    break
+
+            self._update_button_state()
+            self._update_status_icon()
+        finally:
+            self._is_loading = was_loading
 
     def _on_add_env_clicked(self, _button):
         self._add_env_row().key_entry.grab_focus()
@@ -517,8 +603,8 @@ class PlayerRow(Gtk.Box):
         try:
             self._devices_info = {kind: list(devices_info.get(kind, [])) for kind in ("joystick", "audio")}
             for dropdown, kind, default, device_id in (
-                (self.joystick_row, "joystick", "None", current_joystick),
-                (self.audio_row, "audio", "Default", current_audio),
+                (self.joystick_row, "joystick", t("player.controller_none"), current_joystick),
+                (self.audio_row, "audio", t("player.audio_default"), current_audio),
             ):
                 devices = self._devices_info[kind]
                 dropdown.set_model(Gtk.StringList.new([default] + [device["name"] for device in devices]))
@@ -548,7 +634,7 @@ class PlayerRow(Gtk.Box):
     def get_config(self) -> PlayerInstanceConfig:
         """Read settings; environment values are deliberately not stripped."""
         return PlayerInstanceConfig(
-            NAME=None if self._player_name == DEFAULT_PLAYER_NAME else self._player_name,
+            NAME=self._custom_name,
             PHYSICAL_DEVICE_ID=self._get_combo_device_id(self.joystick_row, self._devices_info["joystick"]),
             GRAB_INPUT_DEVICES=self.grab_input_switch.get_active(),
             AUDIO_DEVICE_ID=self._get_combo_device_id(self.audio_row, self._devices_info["audio"]),
@@ -558,13 +644,12 @@ class PlayerRow(Gtk.Box):
 
     def set_network_isolation_enabled(self, enabled: bool):
         """Enable or disable the Guest IP field to match the network isolation setting."""
+        self._network_isolation_enabled = bool(enabled)
         self.guest_ip_row.set_sensitive(enabled)
         if enabled:
-            self._guest_ip_help.set_text("Leave blank to choose a free LAN address.")
+            self._guest_ip_help.set_text(t("player.guest_ip_help"))
         else:
-            self._guest_ip_help.set_text(
-                "Network isolation is disabled in Preferences. Instances share the host network."
-            )
+            self._guest_ip_help.set_text(t("player.guest_ip_help_disabled"))
 
     def set_running_state(self, is_running: bool):
         """Keep the legacy running flag and the instance state in sync."""
@@ -599,15 +684,15 @@ class PlayerRow(Gtk.Box):
     def get_status_text(self) -> str:
         """Return a short, human-readable status suitable for the roster."""
         if self._state == INSTANCE_STOPPING:
-            return "Stopping…"
+            return t("status.stopping")
         if self._update_progress is not None:
             percent = self._update_progress[1]
-            return "Updating Steam…" if percent is None else f"Updating Steam · {percent}%"
+            return t("status.updating") if percent is None else t("status.updating_percent", percent=percent)
         if self._state == INSTANCE_STARTING:
-            return "Starting Steam…"
+            return t("status.starting")
         if self._state == INSTANCE_RUNNING:
-            return "Running"
-        return "Ready" if self._is_verified else "Not installed"
+            return t("status.running")
+        return t("status.ready") if self._is_verified else t("status.not_installed")
 
     def set_update_progress(self, detail: str, percent: Optional[int] = None):
         """Record Steam update progress for the status text and observers."""
@@ -640,15 +725,25 @@ class PlayerRow(Gtk.Box):
         self.launch_button.remove_css_class("suggested-action")
         self.launch_button.remove_css_class("destructive-action")
         if self._state == INSTANCE_RUNNING:
-            label, tooltip, style = "Stop player", "Stop this player's Steam client", "destructive-action"
+            label = t("player.action.stop")
+            tooltip = t("player.action.stop_tooltip")
+            style = "destructive-action"
         elif self._state == INSTANCE_STARTING:
-            label, tooltip, style = "Cancel startup", "Cancel this player's startup", None
+            label = t("player.action.cancel")
+            tooltip = t("player.action.cancel_tooltip")
+            style = None
         elif self._state == INSTANCE_STOPPING:
-            label, tooltip, style = "Stopping…", "Waiting for this player to stop", None
+            label = t("player.action.stopping")
+            tooltip = t("player.action.stopping_tooltip")
+            style = None
         elif self._is_verified:
-            label, tooltip, style = "Start player", "Start this player's Steam client", "suggested-action"
+            label = t("player.action.start")
+            tooltip = t("player.action.start_tooltip")
+            style = "suggested-action"
         else:
-            label, tooltip, style = "Install Steam", "Install and configure Steam for this player", "suggested-action"
+            label = t("player.action.install")
+            tooltip = t("player.action.install_tooltip")
+            style = "suggested-action"
         self.launch_button.set_label(label)
         self.launch_button.set_tooltip_text(tooltip)
         self.launch_button.set_sensitive(self._state != INSTANCE_STOPPING)

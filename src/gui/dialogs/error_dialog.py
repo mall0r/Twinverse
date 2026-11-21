@@ -2,6 +2,8 @@
 
 import gi
 
+from src.core.i18n import t
+
 from .base_dialog import BaseDialog
 
 gi.require_version("Gtk", "4.0")
@@ -14,5 +16,5 @@ class ErrorDialog(BaseDialog):
     def __init__(self, parent, title: str, message: str):
         """Initialize the error dialog."""
         super().__init__(parent, title, message)
-        self.add_response("ok", "OK")
+        self.add_response("ok", t("common.ok"))
         self.set_default_response("ok")

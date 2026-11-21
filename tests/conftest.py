@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from src.core.i18n import LANGUAGE_EN, set_language
 from src.core.logging import reset_logging
 
 
@@ -19,8 +20,10 @@ def isolated_xdg(monkeypatch, tmp_path):
     for variable in list(os.environ):
         if variable.startswith("TWINVERSE_"):
             monkeypatch.delenv(variable, raising=False)
+    set_language(LANGUAGE_EN)
     reset_logging()
     yield
+    set_language(LANGUAGE_EN)
     reset_logging()
 
 

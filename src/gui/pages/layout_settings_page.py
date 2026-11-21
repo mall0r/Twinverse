@@ -8,6 +8,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, GLib, GObject, Gtk, Pango  # noqa: E402
 
+from src.core.i18n import TRANSLATIONS, ngettext, subscribe, t
 from src.core.layout import LayoutCalculator
 from src.core.tiling import TEMPLATES, build_tiling_plan
 from src.gui.widgets import LayoutPreview, PlayerRow
@@ -15,6 +16,9 @@ from src.gui.widgets.player_row import INSTANCE_IDLE
 from src.models import DEFAULT_PLAYER_NAME, PlayerInstanceConfig
 
 ROSTER_SIDEBAR_WIDTH = 244
+SCREEN_MODE_IDS = ("fullscreen", "splitscreen")
+ORIENTATION_IDS = ("horizontal", "vertical")
+_DEFAULT_PLAYER_NAMES = frozenset({DEFAULT_PLAYER_NAME, *(cat["player.default_name"] for cat in TRANSLATIONS.values())})
 
 
 class LayoutSettingsPage(Gtk.Box):
@@ -63,6 +67,7 @@ class LayoutSettingsPage(Gtk.Box):
         self._roster_remove_buttons = []
         self.add_css_class("studio-workspace")
         self._build_ui()
+        subscribe(self.retranslate)
         self.connect("unmap", lambda *_: self._stop_drag_scrolling())
 
     @staticmethod
@@ -99,7 +104,8 @@ class LayoutSettingsPage(Gtk.Box):
         sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20, hexpand=False, vexpand=True)
         sidebar.add_css_class("party-sidebar")
         heading = Gtk.Box(spacing=8)
-        heading.append(self._label("Your party", "party-heading", hexpand=True))
+        self._roster_heading_label = self._label(t("roster.heading"), "party-heading", hexpand=True)
+        heading.append(self._roster_heading_label)
 
         sidebar.append(heading)
 
@@ -116,9 +122,10 @@ class LayoutSettingsPage(Gtk.Box):
         sidebar.append(scroll)
 
         self.add_player_button = Gtk.Button(hexpand=True)
-        self.add_player_button.set_child(Adw.ButtonContent(icon_name="twinverse-add-symbolic", label="Add player"))
-        self.add_player_button.set_tooltip_text("Add a player to the party")
-        self.add_player_button.update_property([Gtk.AccessibleProperty.LABEL], ["Add player"])
+        self._add_player_content = Adw.ButtonContent(icon_name="twinverse-add-symbolic", label=t("roster.add_player"))
+        self.add_player_button.set_child(self._add_player_content)
+        self.add_player_button.set_tooltip_text(t("roster.add_player_tooltip"))
+        self.add_player_button.update_property([Gtk.AccessibleProperty.LABEL], [t("roster.add_player")])
         self.add_player_button.add_css_class("party-add-button")
         self.add_player_button.connect("clicked", self._on_add_player_clicked)
         sidebar.append(self.add_player_button)
@@ -135,7 +142,8 @@ class LayoutSettingsPage(Gtk.Box):
         self.stage_header = Gtk.Box(spacing=16)
         self.stage_header.add_css_class("stage-header")
         titles = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True, valign=Gtk.Align.CENTER)
-        titles.append(self._label("SESSION LAYOUT", "eyebrow"))
+        self._stage_eyebrow_label = self._label(t("stage.eyebrow"), "eyebrow")
+        titles.append(self._stage_eyebrow_label)
         self.stage_header.append(titles)
 
         studio.append(self.stage_header)
@@ -143,7 +151,7 @@ class LayoutSettingsPage(Gtk.Box):
         canvas_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, vexpand=True)
         canvas_box.add_css_class("stage-surface")
         canvas_heading = Gtk.Box(spacing=8)
-        self.display_summary = self._label("Detecting displays", "canvas-display-count")
+        self.display_summary = self._label(t("stage.detecting_displays"), "canvas-display-count")
         canvas_heading.append(self.display_summary)
         canvas_box.append(canvas_heading)
         self.layout_preview = LayoutPreview()
@@ -161,40 +169,57 @@ class LayoutSettingsPage(Gtk.Box):
         canvas_box.append(self.layout_preview_group)
 
         self.displays_disabled_group = Adw.StatusPage(
-            title="Direct Steam mode",
+            title=t("stage.direct_title"),
             icon_name="twinverse-window-symbolic",
-            description="Players run in independent windows. Enable Gamescope in Preferences to arrange a split-screen session.",
+            description=t("stage.direct_description"),
             vexpand=True,
         )
         self.displays_disabled_group.set_visible(False)
         canvas_box.append(self.displays_disabled_group)
         hint = Gtk.Box(spacing=8)
         hint.append(Gtk.Image(icon_name="mouse-wireless-symbolic"))
-        hint.append(
-            self._label(
-                "Drag players between spaces to swap them.",
-                "canvas-hint",
-                wrap=True,
-            )
+        self._drag_hint_label = self._label(
+            t("stage.drag_hint"),
+            "canvas-hint",
+            wrap=True,
         )
+        hint.append(self._drag_hint_label)
         canvas_box.append(hint)
         studio.append(canvas_box)
 
         self.gamescope_settings_group = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16, homogeneous=True)
         self.gamescope_settings_group.add_css_class("layout-dock")
-        self.screen_modes = ["Fullscreen", "Splitscreen"]
-        self.orientations = ["Horizontal", "Vertical"]
-        self.screen_mode_row = Gtk.DropDown(model=Gtk.StringList.new(self.screen_modes))
-        self.orientation_row = Gtk.DropDown(model=Gtk.StringList.new(self.orientations))
-        self.placement_mode_row = Gtk.DropDown(model=Gtk.StringList.new(["Automatic", "Custom"]))
+        self.screen_modes = [t("stage.mode.fullscreen"), t("stage.mode.splitscreen")]
+        self.orientations = [t("stage.orientation.horizontal"), t("stage.orientation.vertical")]
+        self._screen_modes_model = Gtk.StringList.new(self.screen_modes)
+        self._orientations_model = Gtk.StringList.new(self.orientations)
+        self._placements_model = Gtk.StringList.new([t("stage.placement.automatic"), t("stage.placement.custom")])
+        self.screen_mode_row = Gtk.DropDown(model=self._screen_modes_model)
+        self.orientation_row = Gtk.DropDown(model=self._orientations_model)
+        self.placement_mode_row = Gtk.DropDown(model=self._placements_model)
         # Retain legacy values for profile migration; templates are chosen on each monitor.
-        self.orientation_field = self._field("SPLIT DIRECTION", self.orientation_row)
-        self.gamescope_settings_group.append(self._field("PLACEMENT", self.placement_mode_row))
+        self.orientation_field, self._orientation_field_label = self._field(
+            t("stage.split_direction"), self.orientation_row
+        )
+        self._placement_field, self._placement_field_label = self._field(t("stage.placement"), self.placement_mode_row)
+        self.gamescope_settings_group.append(self._placement_field)
         self.screen_mode_row.connect("notify::selected", self._on_screen_mode_changed)
         self.orientation_row.connect("notify::selected", self._on_setting_changed)
         self.placement_mode_row.connect("notify::selected", self._on_setting_changed)
         studio.append(self.gamescope_settings_group)
         return studio
+
+    def _selected_mode_id(self) -> str:
+        idx = self.screen_mode_row.get_selected()
+        if isinstance(idx, int) and 0 <= idx < len(SCREEN_MODE_IDS):
+            return SCREEN_MODE_IDS[idx]
+        return "splitscreen"
+
+    def _selected_orientation_id(self) -> str:
+        idx = self.orientation_row.get_selected()
+        if isinstance(idx, int) and 0 <= idx < len(ORIENTATION_IDS):
+            return ORIENTATION_IDS[idx]
+        return "vertical"
 
     @staticmethod
     def _drag_scroll_delta(y, height):
@@ -238,19 +263,21 @@ class LayoutSettingsPage(Gtk.Box):
 
     def _field(self, title, control):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.append(self._label(title, "dock-label"))
+        label = self._label(title, "dock-label")
+        box.append(label)
         control.add_css_class("dock-select")
         control.set_hexpand(True)
         control.update_property([Gtk.AccessibleProperty.LABEL], [title.capitalize()])
         box.append(control)
-        return box
+        return box, label
 
     def _build_inspector(self):
         panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         panel.add_css_class("player-panel")
         heading = Gtk.Box(spacing=8)
         heading.add_css_class("panel-heading")
-        heading.append(self._label("PLAYER SETUP", "eyebrow", hexpand=True))
+        self._inspector_eyebrow_label = self._label(t("inspector.eyebrow"), "eyebrow", hexpand=True)
+        heading.append(self._inspector_eyebrow_label)
 
         panel.append(heading)
         self.inspector_stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
@@ -258,6 +285,62 @@ class LayoutSettingsPage(Gtk.Box):
         scroller.set_child(self.inspector_stack)
         panel.append(scroller)
         return panel
+
+    @staticmethod
+    def _update_dropdown_strings(dropdown: Gtk.DropDown, model: Gtk.StringList, labels: list[str], default_idx: int):
+        selected = dropdown.get_selected()
+        if model.get_n_items() == len(labels):
+            for idx, text in enumerate(labels):
+                if model.get_string(idx) != text:
+                    model.splice(idx, 1, [text])
+        else:
+            model.splice(0, model.get_n_items(), labels)
+        target = selected if isinstance(selected, int) and 0 <= selected < len(labels) else default_idx
+        if dropdown.get_selected() != target:
+            dropdown.set_selected(target)
+
+    def retranslate(self, *_args):
+        """Refresh all studio labels, dropdown options, inspectors, and the canvas in place."""
+        was_loading = self._is_loading
+        self._is_loading = True
+        try:
+            self._roster_heading_label.set_label(t("roster.heading"))
+            self._add_player_content.set_label(t("roster.add_player"))
+            self.add_player_button.set_tooltip_text(t("roster.add_player_tooltip"))
+            self.add_player_button.update_property([Gtk.AccessibleProperty.LABEL], [t("roster.add_player")])
+
+            self._stage_eyebrow_label.set_label(t("stage.eyebrow"))
+            self._inspector_eyebrow_label.set_label(t("inspector.eyebrow"))
+            self.displays_disabled_group.set_title(t("stage.direct_title"))
+            self.displays_disabled_group.set_description(t("stage.direct_description"))
+            self._drag_hint_label.set_label(t("stage.drag_hint"))
+
+            split_label = t("stage.split_direction")
+            placement_label = t("stage.placement")
+            self._orientation_field_label.set_label(split_label)
+            self.orientation_row.update_property([Gtk.AccessibleProperty.LABEL], [split_label.capitalize()])
+            self._placement_field_label.set_label(placement_label)
+            self.placement_mode_row.update_property([Gtk.AccessibleProperty.LABEL], [placement_label.capitalize()])
+
+            self.screen_modes = [t("stage.mode.fullscreen"), t("stage.mode.splitscreen")]
+            self.orientations = [t("stage.orientation.horizontal"), t("stage.orientation.vertical")]
+            self._update_dropdown_strings(self.screen_mode_row, self._screen_modes_model, self.screen_modes, 1)
+            self._update_dropdown_strings(self.orientation_row, self._orientations_model, self.orientations, 1)
+            self._update_dropdown_strings(
+                self.placement_mode_row,
+                self._placements_model,
+                [t("stage.placement.automatic"), t("stage.placement.custom")],
+                0,
+            )
+
+            for row in self.player_rows:
+                row.retranslate()
+        finally:
+            self._is_loading = was_loading
+
+        self._preview_signature = None
+        self._update_layout_preview()
+        self._sync_roster()
 
     def _player_position(self, instance_num):
         try:
@@ -335,7 +418,9 @@ class LayoutSettingsPage(Gtk.Box):
         self.set_gamescope_enabled(profile.use_gamescope)
         self.set_network_isolation_enabled(profile.isolate_network)
         if is_split and profile.splitscreen:
-            self.orientation_row.set_selected(self.orientations.index(profile.splitscreen.orientation.capitalize()))
+            orientation_id = (profile.splitscreen.orientation or "vertical").lower()
+            orientation_idx = ORIENTATION_IDS.index(orientation_id) if orientation_id in ORIENTATION_IDS else 1
+            self.orientation_row.set_selected(orientation_idx)
         self.rebuild_player_rows(party, devices_info)
         selected = set(profile.selected_players) if profile.selected_players else set(self._party_players)
         for row in self.player_rows:
@@ -364,11 +449,13 @@ class LayoutSettingsPage(Gtk.Box):
 
         item = Gtk.ListBoxRow()
         item.add_css_class("party-player")
+        num_str = f"{instance_num + 1:02d}"
         item.update_property(
-            [Gtk.AccessibleProperty.LABEL], [f"Configure {player.get_player_name()} {instance_num + 1:02d}"]
+            [Gtk.AccessibleProperty.LABEL],
+            [t("roster.configure_a11y", name=player.get_player_name(), num=num_str)],
         )
         body = Gtk.Box(spacing=8)
-        number = Gtk.Label(label=f"{instance_num + 1:02d}", xalign=0.5, yalign=0.5, valign=Gtk.Align.CENTER)
+        number = Gtk.Label(label=num_str, xalign=0.5, yalign=0.5, valign=Gtk.Align.CENTER)
         number.set_size_request(36, 36)
         number.add_css_class("party-avatar")
         number.add_css_class(f"player-color-{instance_num % 8}")
@@ -378,7 +465,7 @@ class LayoutSettingsPage(Gtk.Box):
         name_label.set_ellipsize(Pango.EllipsizeMode.END)
         name_label.set_max_width_chars(14)
         text.append(name_label)
-        status = self._label("Not installed", "party-player-status")
+        status = self._label(t("status.not_installed"), "party-player-status")
         status.set_ellipsize(Pango.EllipsizeMode.END)
         status.set_max_width_chars(17)
         text.append(status)
@@ -390,9 +477,10 @@ class LayoutSettingsPage(Gtk.Box):
         remove_button = Gtk.Button(icon_name="twinverse-close-symbolic", valign=Gtk.Align.CENTER)
         remove_button.add_css_class("flat")
         remove_button.add_css_class("party-remove-button")
-        remove_button.set_tooltip_text(f"Remove {player.get_player_name()} ({instance_num + 1:02d}) from party")
+        remove_button.set_tooltip_text(t("roster.remove_tooltip", name=player.get_player_name(), num=num_str))
         remove_button.update_property(
-            [Gtk.AccessibleProperty.LABEL], [f"Remove {player.get_player_name()} {instance_num + 1:02d}"]
+            [Gtk.AccessibleProperty.LABEL],
+            [t("roster.remove_a11y", name=player.get_player_name(), num=num_str)],
         )
         remove_button.connect("clicked", lambda _btn, num=instance_num: self.remove_player(num))
         actions.append(remove_button)
@@ -529,6 +617,7 @@ class LayoutSettingsPage(Gtk.Box):
         names = {}
         for pos, player in enumerate(self.player_rows):
             instance_num = player._player_num
+            num_str = f"{instance_num + 1:02d}"
             player_name = player.get_player_name()
             status = player.get_status_text()
             names[instance_num] = player_name
@@ -536,15 +625,19 @@ class LayoutSettingsPage(Gtk.Box):
             controllers[instance_num] = player.get_selected_controller_name()
             mouse_grabs[instance_num] = player.has_grab_mouse()
             self._roster_names[pos].set_label(player_name)
-            self._roster_names[pos].set_tooltip_text(player_name if player_name != DEFAULT_PLAYER_NAME else None)
+            self._roster_names[pos].set_tooltip_text(player_name if player_name not in _DEFAULT_PLAYER_NAMES else None)
             self._roster_status[pos].set_label(status)
             self._roster_status[pos].set_tooltip_text(status)
             item = self._roster_rows[pos]
-            item.update_property([Gtk.AccessibleProperty.LABEL], [f"Configure {player_name} {instance_num + 1:02d}"])
+            item.update_property(
+                [Gtk.AccessibleProperty.LABEL],
+                [t("roster.configure_a11y", name=player_name, num=num_str)],
+            )
             remove_button = self._roster_remove_buttons[pos]
-            remove_button.set_tooltip_text(f"Remove {player_name} ({instance_num + 1:02d}) from party")
+            remove_button.set_tooltip_text(t("roster.remove_tooltip", name=player_name, num=num_str))
             remove_button.update_property(
-                [Gtk.AccessibleProperty.LABEL], [f"Remove {player_name} {instance_num + 1:02d}"]
+                [Gtk.AccessibleProperty.LABEL],
+                [t("roster.remove_a11y", name=player_name, num=num_str)],
             )
             for state in ("running", "starting", "stopping", "idle"):
                 item.remove_css_class(f"party-{state}")
@@ -560,7 +653,7 @@ class LayoutSettingsPage(Gtk.Box):
 
         count = len(self._displays)
         self.display_summary.set_label(
-            f"{count} display{'s' if count != 1 else ''}" if count else "No display detected"
+            ngettext("stage.display_one", "stage.display_many", count) if count else t("stage.no_display")
         )
 
         self._sync_placement_controls()
@@ -605,7 +698,7 @@ class LayoutSettingsPage(Gtk.Box):
 
     def get_data(self):
         """Return the existing profile/controller data contract from the studio controls."""
-        mode = self.screen_mode_row.get_selected_item().get_string().lower()
+        mode = self._selected_mode_id()
         live_configs = {row._player_num: row.get_config() for row in self.player_rows}
         max_index = max(
             max(self._party_players, default=-1),
@@ -619,9 +712,7 @@ class LayoutSettingsPage(Gtk.Box):
             "num_players": len(self._party_players),
             "party_players": list(self._party_players),
             "mode": mode,
-            "orientation": (
-                self.orientation_row.get_selected_item().get_string().lower() if mode == "splitscreen" else None
-            ),
+            "orientation": (self._selected_orientation_id() if mode == "splitscreen" else None),
             "player_configs": player_configs,
             "selected_players": self.get_selected_players(),
             "layout_order": list(self._layout_order) if self.placement_mode_row.get_selected() == 1 else None,
@@ -647,8 +738,8 @@ class LayoutSettingsPage(Gtk.Box):
         if row is not None:
             row.set_verification_status(is_verified)
 
-    def _on_screen_mode_changed(self, dropdown, *_args):
-        mode = dropdown.get_selected_item().get_string().lower()
+    def _on_screen_mode_changed(self, _dropdown, *_args):
+        mode = self._selected_mode_id()
         split = mode == "splitscreen"
         self.orientation_field.set_visible(split)
         self.orientation_row.set_visible(split)
@@ -685,8 +776,8 @@ class LayoutSettingsPage(Gtk.Box):
         instances = LayoutCalculator.order_instances(
             self.get_selected_players(), self._layout_order if custom else None
         )
-        mode = self.screen_mode_row.get_selected_item().get_string().lower()
-        orientation = self.orientation_row.get_selected_item().get_string().lower()
+        mode = self._selected_mode_id()
+        orientation = self._selected_orientation_id()
         allowed = self._can_reposition_players()
         self._tiling_plan = None
         if self._monitor_layouts:
@@ -764,7 +855,7 @@ class LayoutSettingsPage(Gtk.Box):
             unassigned = [player for player in unassigned if player == instance]
         if self._gamescope_enabled and unassigned:
             players = ", ".join(str(player + 1) for player in unassigned)
-            return f"Players {players} have no display space. Choose a larger template or exclude them from the party."
+            return t("stage.layout_error", players=players)
         return None
 
     def _update_num_players_limits(self, is_splitscreen):

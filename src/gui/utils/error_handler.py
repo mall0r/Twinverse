@@ -3,15 +3,16 @@
 from typing import Callable
 
 from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
+from src.core.i18n import t
 
 
 class ErrorHandler:
     """Maps exception types to user-facing messages."""
 
     _ERROR_FORMATTERS: dict[type, Callable[[Exception], str]] = {
-        DependencyError: lambda e: f"Missing dependency: {e}",
-        VirtualDeviceError: lambda e: f"Virtual device error: {e}",
-        TwinverseError: lambda e: f"Twinverse error: {e}",
+        DependencyError: lambda e: t("error.missing_dependency", error=e),
+        VirtualDeviceError: lambda e: t("error.virtual_device", error=e),
+        TwinverseError: lambda e: t("error.twinverse", error=e),
     }
 
     @classmethod
@@ -32,18 +33,18 @@ class ErrorHandler:
         if isinstance(error, FileNotFoundError):
             filename = getattr(error, "filename", None)
             if filename:
-                return f"Required command '{filename}' not found. Please install the missing dependency."
-            return f"Required file or command not found: {error}"
+                return t("error.command_not_found", filename=filename)
+            return t("error.file_not_found", error=error)
 
         if isinstance(error, OSError):
             if hasattr(error, "errno") and error.errno == 2:
                 filename = getattr(error, "filename", None)
                 if filename:
-                    return f"Required command '{filename}' not found. Please install the missing dependency."
-                return f"Required file or command not found: {error}"
-            return f"System error: {error}"
+                    return t("error.command_not_found", filename=filename)
+                return t("error.file_not_found", error=error)
+            return t("error.system", error=error)
 
-        return f"Could not launch: {error}"
+        return t("error.launch_failed", error=error)
 
     @classmethod
     def register_formatter(cls, error_type: type, formatter: Callable[[Exception], str]):

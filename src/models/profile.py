@@ -10,12 +10,20 @@ from pydantic.functional_validators import field_validator, model_validator
 
 from src.core import Config, Utils
 from src.core.config import ensure_private_dir
+from src.core.i18n import (
+    LANGUAGE_AUTO,
+    TRANSLATIONS,
+    LanguagePreference,
+    normalize_language_preference,
+    t,
+)
 from src.core.layout import LayoutCalculator
 from src.core.tiling import TEMPLATES
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_PLAYER_NAME = "Player"
+_DEFAULT_PLAYER_NAMES = frozenset({DEFAULT_PLAYER_NAME, *(cat["player.default_name"] for cat in TRANSLATIONS.values())})
 
 
 class PlayerInstanceConfig(BaseModel):
@@ -37,14 +45,14 @@ class PlayerInstanceConfig(BaseModel):
         if value is None:
             return None
         cleaned = str(value).strip()
-        if not cleaned or cleaned == DEFAULT_PLAYER_NAME:
+        if not cleaned or cleaned in _DEFAULT_PLAYER_NAMES:
             return None
         return cleaned
 
     @property
     def display_name(self) -> str:
-        """Return the player's configured name or the default label."""
-        return self.name or DEFAULT_PLAYER_NAME
+        """Return the player's configured name or the localized default label."""
+        return self.name or t("player.default_name")
 
 
 class SplitscreenConfig(BaseModel):
@@ -106,6 +114,13 @@ class Profile(BaseModel):
     use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_gamescope_wsi: bool = Field(default=Utils.is_wayland(), alias="ENABLE_GAMESCOPE_WSI")
     isolate_network: bool = Field(default=True, alias="ISOLATE_NETWORK")
+    language: LanguagePreference = Field(default=LANGUAGE_AUTO, alias="LANGUAGE")
+
+    @field_validator("language", mode="before")
+    @classmethod
+    def validate_language(cls, value):
+        """Normalize saved language preferences with safe fallback to auto."""
+        return normalize_language_preference(value)
 
     @field_validator("party_players")
     def validate_party_players(cls, value):
@@ -205,7 +220,7 @@ class Profile(BaseModel):
         """Return the display name for a given zero-based instance index."""
         if 0 <= instance_idx < len(self.player_configs):
             return self.player_configs[instance_idx].display_name
-        return DEFAULT_PLAYER_NAME
+        return t("player.default_name")
 
     def get_env_for_instance(self, instance_idx: int) -> Dict[str, str]:
         """Return the merged environment variables for a given instance index (0-based).

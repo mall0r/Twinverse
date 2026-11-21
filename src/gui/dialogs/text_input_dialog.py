@@ -3,6 +3,8 @@
 import gi
 from gi.repository import Gtk
 
+from src.core.i18n import t
+
 from .base_dialog import BaseDialog
 
 gi.require_version("Gtk", "4.0")
@@ -17,8 +19,8 @@ class TextInputDialog(BaseDialog):
         super().__init__(parent, title, message)
         self.entry = Gtk.Entry()
         self.set_extra_child(self.entry)
-        self.add_response("ok", "OK")
-        self.add_response("cancel", "Cancel")
+        self.add_response("ok", t("common.ok"))
+        self.add_response("cancel", t("common.cancel"))
         self.set_default_response("ok")
 
     def get_input(self) -> str:

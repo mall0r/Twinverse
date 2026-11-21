@@ -10,6 +10,7 @@ gi.require_version("Gsk", "4.0")
 
 from gi.repository import GObject, Graphene, Gsk, Gtk
 
+from src.core.i18n import ngettext, subscribe, t, translate_template_title
 from src.core.tiling import TEMPLATES
 
 _THUMB_WIDTH = 26
@@ -109,8 +110,7 @@ class TilingPicker(Gtk.Box):
             button.set_halign(Gtk.Align.START)
             button.set_valign(Gtk.Align.CENTER)
             button.set_child(_Thumbnail(template))
-            capacity = f"{template.capacity} player" + ("s" if template.capacity != 1 else "")
-            description = f"{template.title} · {capacity}"
+            description = self._format_template_description(template)
             button.set_tooltip_text(description)
             button.update_property([Gtk.AccessibleProperty.LABEL], [description])
             if first is None:
@@ -122,6 +122,21 @@ class TilingPicker(Gtk.Box):
             flow.insert(button, -1)
             button.get_parent().set_focusable(False)
         self.set_selected(selected)
+        subscribe(self.retranslate)
+
+    def _format_template_description(self, template) -> str:
+        capacity = ngettext("tiling.capacity_one", "tiling.capacity_many", template.capacity)
+        title = translate_template_title(template.id, template.title)
+        return t("tiling.tooltip", title=title, capacity=capacity)
+
+    def retranslate(self, *_args):
+        """Update template tooltips and accessible labels for the active language."""
+        for template_id, button in self.buttons.items():
+            template = TEMPLATES.get(template_id)
+            if template is not None:
+                description = self._format_template_description(template)
+                button.set_tooltip_text(description)
+                button.update_property([Gtk.AccessibleProperty.LABEL], [description])
 
     def set_selected(self, template_id):
         """Synchronize selection without notifying profile-change listeners."""

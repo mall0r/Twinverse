@@ -6,8 +6,18 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GObject, Gtk, Pango  # noqa: E402
+from gi.repository import Adw, Gio, GLib, GObject, Gtk, Pango  # noqa: E402
 
+from src.core.i18n import (
+    LANGUAGE_AUTO,
+    LANGUAGE_EN,
+    LANGUAGE_PT_BR,
+    get_language_preference,
+    ngettext,
+    normalize_language_preference,
+    subscribe,
+    t,
+)
 from src.gui.dialogs import ErrorDialog
 from src.gui.notifications import INFO, send_desktop_notification
 from src.gui.pages import LayoutSettingsPage
@@ -24,6 +34,7 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(*args, application=application, **kwargs)
         self._presenter = presenter
         self._session_state = "idle"
+        self._syncing_language_action = False
         self.set_title("Twinverse")
         self.set_default_size(1080, 720)
         self.set_size_request(660, 560)
@@ -40,6 +51,7 @@ class MainWindow(Adw.ApplicationWindow):
         style.connect("notify::dark", self._on_theme_changed)
         self._on_theme_changed(style, None)
         self._update_session_summary()
+        subscribe(self.retranslate)
         self.connect("close-request", self._on_close_request)
 
     def _build_workspace(self):
@@ -61,7 +73,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.session_icon.add_css_class("session-indicator")
         line.append(self.session_icon)
         self.session_title = Gtk.Label(
-            label="Session setup",
+            label=t("session.setup_title"),
             xalign=0,
             wrap=True,
             wrap_mode=Pango.WrapMode.WORD_CHAR,
@@ -88,25 +100,39 @@ class MainWindow(Adw.ApplicationWindow):
         self.launch_button.add_css_class("studio-launch")
         self.launch_button.add_css_class("launch-button")
         self.launch_button.set_sensitive(False)
-        self.launch_button.set_tooltip_text("Launch all selected players (Ctrl+Enter)")
+        self.launch_button.set_tooltip_text(t("session.launch_tooltip"))
         self.launch_button.connect("clicked", lambda *_: self._presenter.on_launch_clicked())
         self.launch_content_box = Gtk.Box(spacing=9, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         self.launch_icon = Gtk.Image(icon_name="twinverse-play-symbolic")
-        self.launch_label = Gtk.Label(label="Launch session")
+        self.launch_label = Gtk.Label(label=t("session.launch_button"))
         self.launch_spinner = StudioSpinner(size=16)
         self.launch_content_box.append(self.launch_icon)
         self.launch_content_box.append(self.launch_label)
         self.launch_button.set_child(self.launch_content_box)
+
+    def _build_menu_model(self) -> Gio.Menu:
+        menu = Gio.Menu()
+        menu.append(t("menu.preferences"), "win.preferences")
+        menu.append(t("menu.refresh_devices"), "win.refresh-devices")
+        language_menu = Gio.Menu()
+        language_menu.append(t("lang.auto"), f"win.language::{LANGUAGE_AUTO}")
+        language_menu.append(t("lang.en"), f"win.language::{LANGUAGE_EN}")
+        language_menu.append(t("lang.pt_BR"), f"win.language::{LANGUAGE_PT_BR}")
+        language_item = Gio.MenuItem.new(t("menu.language"), "win.language-menu")
+        language_item.set_submenu(language_menu)
+        menu.append_item(language_item)
+        menu.append(t("menu.about"), "win.about")
+        return menu
 
     def _build_header(self):
         header = Adw.HeaderBar()
         header.add_css_class("studio-header")
         self.inspector_toggle = Gtk.ToggleButton(icon_name="panel-right-symbolic", valign=Gtk.Align.CENTER)
         self._panel_controls = (
-            (self.layout_settings_page.inspector_split, self.inspector_toggle, "player setup", "F9"),
+            (self.layout_settings_page.inspector_split, self.inspector_toggle, "panel.player_setup", "F9"),
         )
         self._panel_bindings = []
-        for split, button, title, shortcut in self._panel_controls:
+        for split, button, title_key, shortcut in self._panel_controls:
             button.add_css_class("panel-toggle")
             self.layout_settings_page.stage_header.append(button)
             self._panel_bindings.append(
@@ -117,24 +143,20 @@ class MainWindow(Adw.ApplicationWindow):
                     GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE,
                 )
             )
-            split.connect("notify::show-sidebar", self._sync_panel_toggle, button, title, shortcut)
-            self._sync_panel_toggle(split, None, button, title, shortcut)
+            split.connect("notify::show-sidebar", self._sync_panel_toggle, button, title_key, shortcut)
+            self._sync_panel_toggle(split, None, button, title_key, shortcut)
 
         # An empty custom title also prevents the window title from appearing here.
         header.set_title_widget(Gtk.Box())
 
         self.theme_toggle_button = Gtk.Button()
         self.theme_toggle_button.add_css_class("flat")
-        self.theme_toggle_button.set_tooltip_text("Switch light / dark appearance")
+        self.theme_toggle_button.set_tooltip_text(t("header.theme_tooltip"))
         self.theme_toggle_button.connect("clicked", self._toggle_theme)
 
-        menu = Gio.Menu()
-        menu.append("Preferences", "win.preferences")
-        menu.append("Refresh devices", "win.refresh-devices")
-        menu.append("About Twinverse", "win.about")
-        self.menu_button = Gtk.MenuButton(icon_name="twinverse-menu-symbolic", menu_model=menu)
+        self.menu_button = Gtk.MenuButton(icon_name="twinverse-menu-symbolic", menu_model=self._build_menu_model())
         self.menu_button.add_css_class("flat")
-        self.menu_button.set_tooltip_text("Application menu")
+        self.menu_button.set_tooltip_text(t("header.menu_tooltip"))
         self.header_tools = Gtk.Box(spacing=4)
         self.header_tools.append(self.theme_toggle_button)
         self.header_tools.append(self.menu_button)
@@ -146,17 +168,63 @@ class MainWindow(Adw.ApplicationWindow):
             "preferences": self._presenter.on_preferences_clicked,
             "inspector": self._toggle_inspector,
             "refresh-devices": self._presenter.on_devices_refresh_requested,
+            "language-menu": lambda: None,
             "launch": lambda: self._presenter.on_launch_clicked() if self.launch_button.get_sensitive() else None,
         }
         for name, callback in actions.items():
             action = Gio.SimpleAction.new(name, None)
             action.connect("activate", lambda _a, _p, target=callback: target())
             self.add_action(action)
+
+        self.language_action = Gio.SimpleAction.new_stateful(
+            "language",
+            GLib.VariantType.new("s"),
+            GLib.Variant("s", get_language_preference()),
+        )
+        self.language_action.connect("activate", self._on_language_action_activated)
+        self.add_action(self.language_action)
+
         app = self.get_application()
         app.set_accels_for_action("win.preferences", ["<Control>comma"])
         app.set_accels_for_action("win.inspector", ["F9", "<Alt>2"])
         app.set_accels_for_action("win.refresh-devices", ["F5"])
         app.set_accels_for_action("win.launch", ["<Control>Return"])
+
+    def _on_language_action_activated(self, action, parameter):
+        if parameter is None or self._syncing_language_action:
+            return
+        requested = normalize_language_preference(parameter.get_string())
+        action.set_state(GLib.Variant("s", requested))
+        on_changed = getattr(self._presenter, "on_language_changed", None)
+        if callable(on_changed):
+            on_changed(requested)
+
+    def sync_language_action(self, preference: str):
+        """Update the stateful menu radio action without re-triggering the presenter."""
+        if not hasattr(self, "language_action"):
+            return
+        normalized = normalize_language_preference(preference)
+        self._syncing_language_action = True
+        try:
+            self.language_action.set_state(GLib.Variant("s", normalized))
+        finally:
+            self._syncing_language_action = False
+
+    def retranslate(self, *_args):
+        """Update header tooltips, application menu, panel toggle, and session summary."""
+        self.theme_toggle_button.set_tooltip_text(t("header.theme_tooltip"))
+        self.menu_button.set_tooltip_text(t("header.menu_tooltip"))
+        self.menu_button.set_menu_model(self._build_menu_model())
+        self.sync_language_action(get_language_preference())
+        for split, button, title_key, shortcut in self._panel_controls:
+            self._sync_panel_toggle(split, None, button, title_key, shortcut)
+        if self._session_state == "starting":
+            self.launch_label.set_label(t("session.starting_button"))
+        elif self._session_state == "stopping":
+            self.launch_label.set_label(t("session.stopping_button"))
+        else:
+            self.update_launch_button_action(self._session_state == "running")
+        self._update_session_summary()
 
     def _configure_adaptation(self):
         compact = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 1120sp"))
@@ -164,11 +232,17 @@ class MainWindow(Adw.ApplicationWindow):
         compact.add_setter(self.layout_settings_page.inspector_split, "show-sidebar", False)
         self.add_breakpoint(compact)
 
-    def _sync_panel_toggle(self, split, _pspec, button, title, shortcut):
+    def _sync_panel_toggle(self, split, _pspec, button, title_key, shortcut):
         visible = split.get_show_sidebar()
-        verb = "Hide" if visible else "Show"
-        button.set_tooltip_text(f"{verb} {title} ({shortcut})")
-        button.update_property([Gtk.AccessibleProperty.LABEL], [f"{verb} {title}"])
+        title = t(title_key)
+        tooltip = (
+            t("panel.hide_tooltip", title=title, shortcut=shortcut)
+            if visible
+            else t("panel.show_tooltip", title=title, shortcut=shortcut)
+        )
+        label = t("panel.hide_label", title=title) if visible else t("panel.show_label", title=title)
+        button.set_tooltip_text(tooltip)
+        button.update_property([Gtk.AccessibleProperty.LABEL], [label])
         expanded = Gtk.AccessibleTristate.TRUE if visible else Gtk.AccessibleTristate.FALSE
         # EXPANDED expects an integer tristate, not a boolean GValue.
         button.update_state([Gtk.AccessibleState.EXPANDED], [int(expanded)])
@@ -186,20 +260,21 @@ class MainWindow(Adw.ApplicationWindow):
         running = sum(row.get_instance_state() == INSTANCE_RUNNING for row in rows)
         state = self._session_state
         if state == "starting":
-            title, detail = "Starting your session", "Steam progress is shown beside each player."
+            title, detail = t("session.starting_title"), t("session.starting_detail")
         elif state == "stopping":
-            title, detail = "Ending the session", "Waiting for all instances to close."
+            title, detail = t("session.stopping_title"), t("session.stopping_detail")
         elif state == "running":
-            title, detail = "You're live", f"{running} running. Select any player to manage their instance."
+            title, detail = t("session.running_title"), t("session.running_detail", count=running)
         elif not selected:
-            title, detail = "Your party is empty", "Check a player to include them in the session."
+            title, detail = t("session.empty_title"), t("session.empty_detail")
         elif ready < len(selected):
             title, detail = (
-                "Setup needed",
-                f"{ready} of {len(selected)} ready. Select a player and install their Steam instance.",
+                t("session.needs_setup_title"),
+                t("session.needs_setup_detail", ready=ready, total=len(selected)),
             )
         else:
-            title, detail = "Ready to play", f"{len(selected)} players selected. Your space is ready."
+            title = t("session.ready_title")
+            detail = ngettext("session.ready_detail_one", "session.ready_detail_many", len(selected))
         self.session_title.set_label(title)
         self.session_detail.set_label(detail)
         for candidate in ("idle", "starting", "stopping", "running"):
@@ -213,7 +288,7 @@ class MainWindow(Adw.ApplicationWindow):
     def show_launching_state(self):
         """Show pending startup without prematurely offering a stop action."""
         self._session_state = "starting"
-        self.launch_label.set_label("Starting…")
+        self.launch_label.set_label(t("session.starting_button"))
         self.launch_button.set_sensitive(False)
         self._show_spinner()
         self.layout_settings_page.set_checkboxes_sensitive(False)
@@ -233,7 +308,7 @@ class MainWindow(Adw.ApplicationWindow):
     def show_stopping_state(self):
         """Keep termination pending until processes are confirmed gone."""
         self._session_state = "stopping"
-        self.launch_label.set_label("Stopping…")
+        self.launch_label.set_label(t("session.stopping_button"))
         self.launch_button.set_sensitive(False)
         self._show_spinner()
         self._update_session_summary()
@@ -252,11 +327,9 @@ class MainWindow(Adw.ApplicationWindow):
 
     def update_launch_button_action(self, is_running):
         """Keep the primary label, icon and tooltip aligned with its actual action."""
-        self.launch_label.set_label("End session" if is_running else "Launch session")
+        self.launch_label.set_label(t("session.end_button") if is_running else t("session.launch_button"))
         self.launch_icon.set_from_icon_name("twinverse-stop-symbolic" if is_running else "twinverse-play-symbolic")
-        self.launch_button.set_tooltip_text(
-            "Stop all instances" if is_running else "Launch all selected players (Ctrl+Enter)"
-        )
+        self.launch_button.set_tooltip_text(t("session.stop_tooltip") if is_running else t("session.launch_tooltip"))
         self.launch_button.remove_css_class("launch-button" if is_running else "stop-button")
         self.launch_button.add_css_class("stop-button" if is_running else "launch-button")
 
@@ -284,9 +357,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.toast_overlay.show_toast(message, level, timeout)
         return self.toast_overlay
 
-    def show_error(self, message, title="Error"):
+    def show_error(self, message, title=None):
         """Present failures without interrupting or rebuilding the workspace."""
-        ErrorDialog(self, title, message).present()
+        ErrorDialog(self, title or t("common.error"), message).present()
 
     def minimize_window(self):
         """Give launched games focus when the presenter confirms startup."""

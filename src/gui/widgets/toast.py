@@ -8,6 +8,7 @@ gi.require_version("Gtk", "4.0")
 
 from gi.repository import GLib, Gtk
 
+from src.core.i18n import subscribe, t
 from src.gui.notifications import BUSY, ERROR, INFO
 
 # The CSS class that gives the toast card its semantic styling per level.
@@ -38,6 +39,7 @@ class ToastOverlay(Gtk.Overlay):
         """Initialize the overlay and the studio-styled toast card."""
         super().__init__(**kwargs)
         self._timeout_id = 0
+        self._current_level = INFO
 
         self._icon = Gtk.Image(
             pixel_size=16,
@@ -73,8 +75,8 @@ class ToastOverlay(Gtk.Overlay):
         self._dismiss_button = Gtk.Button(icon_name="twinverse-close-symbolic", valign=Gtk.Align.CENTER)
         self._dismiss_button.add_css_class("flat")
         self._dismiss_button.add_css_class("toast-dismiss")
-        self._dismiss_button.set_tooltip_text("Dismiss")
-        self._dismiss_button.update_property([Gtk.AccessibleProperty.LABEL], ["Dismiss notification"])
+        self._dismiss_button.set_tooltip_text(t("toast.dismiss_tooltip"))
+        self._dismiss_button.update_property([Gtk.AccessibleProperty.LABEL], [t("toast.dismiss_a11y")])
         self._dismiss_button.connect("clicked", lambda *_: self.dismiss())
 
         self._card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -94,12 +96,27 @@ class ToastOverlay(Gtk.Overlay):
         )
         self._revealer.set_child(self._card)
         self.add_overlay(self._revealer)
+        subscribe(self.retranslate)
+
+    def _level_title(self, level: str) -> str:
+        resolved = level if level in LEVEL_TITLES else INFO
+        return t(f"toast.level.{resolved}")
+
+    def retranslate(self, *_args):
+        """Update toast labels for the active language."""
+        if hasattr(self, "_dismiss_button"):
+            self._dismiss_button.set_tooltip_text(t("toast.dismiss_tooltip"))
+            self._dismiss_button.update_property([Gtk.AccessibleProperty.LABEL], [t("toast.dismiss_a11y")])
+        if hasattr(self, "_title"):
+            level = getattr(self, "_current_level", INFO)
+            self._title.set_text(self._level_title(level))
 
     def show_toast(self, message: str, level: str = INFO, timeout: int = 3):
         """Show a non-blocking studio toast over the window, replacing any previous one."""
+        self._current_level = level if level in LEVEL_TITLES else INFO
         self._icon.set_from_icon_name(TOAST_ICONS.get(level, TOAST_ICONS[INFO]))
         if hasattr(self, "_title"):
-            self._title.set_text(LEVEL_TITLES.get(level, LEVEL_TITLES[INFO]))
+            self._title.set_text(self._level_title(level))
         self._label.set_text(message)
 
         for name in LEVEL_CLASSES.values():
