@@ -150,6 +150,10 @@ pub unsafe extern "C" fn access(pathname: *const c_char, mode: c_int) -> c_int {
 
 // ---- open / open64 / openat / openat64 / __open*_2 ------------------------
 
+// Stable Rust <= 1.89 (Flatpak SDK) cannot define C-variadic functions; on
+// SysV x86_64/i686 the optional integer/pointer argument is ABI-compatible
+// with a fixed parameter when forwarded only as needed.
+#[allow(unknown_lints, invalid_runtime_symbol_definitions)]
 #[no_mangle]
 pub unsafe extern "C" fn open(pathname: *const c_char, flags: c_int, mode: u32) -> c_int {
     let Some(real_fn) = real_open() else {
@@ -166,6 +170,7 @@ pub unsafe extern "C" fn open(pathname: *const c_char, flags: c_int, mode: u32) 
     }
 }
 
+#[allow(unknown_lints, invalid_runtime_symbol_definitions)]
 #[no_mangle]
 pub unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: u32) -> c_int {
     let real_fn = real_open64().or_else(|| real_open());
@@ -183,6 +188,7 @@ pub unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: u32
     }
 }
 
+#[allow(unknown_lints, invalid_runtime_symbol_definitions)]
 #[no_mangle]
 pub unsafe extern "C" fn openat(
     dirfd: c_int,
@@ -206,6 +212,7 @@ pub unsafe extern "C" fn openat(
     }
 }
 
+#[allow(unknown_lints, invalid_runtime_symbol_definitions)]
 #[no_mangle]
 pub unsafe extern "C" fn openat64(
     dirfd: c_int,
@@ -345,6 +352,7 @@ pub unsafe extern "C" fn write(fd: c_int, buf: *const c_void, count: usize) -> i
     real_fn(fd, buf, count)
 }
 
+#[allow(unknown_lints, invalid_runtime_symbol_definitions)]
 #[no_mangle]
 pub unsafe extern "C" fn ioctl(fd: c_int, request: c_ulong, arg: *mut c_void) -> c_int {
     let Some(real_fn) = real_ioctl() else {
