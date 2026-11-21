@@ -120,6 +120,7 @@ desktop ou do gerenciador de sessão continuam funcionando.
 | `TWINVERSE_LOG_KEEP_HELPERS` | `2` | Logs de auxiliar mantidos por execução |
 | `TWINVERSE_LOG_MAX_AGE_DAYS` | `14` | Idade do log mais antigo que é mantido |
 | `TWINVERSE_LOG_MAX_TOTAL_MB` | `256` | Limite de tamanho do diretório de logs inteiro |
+| `TWINVERSE_UINPUT_LOG` | não definida | Defina como `1` para ativar logs detalhados de `twinverse-input-bridge`, `libtwinverse_uinput.so` e `libtwinverse_udev.so` no log da instância |
 
 As opções de linha de comando têm prioridade sobre o ambiente.
 
@@ -142,6 +143,51 @@ Ao relatar um problema, inclua o relatório e os arquivos relevantes do
 diretório de logs. Revise o conteúdo antes de compartilhar: caminhos e linhas de
 comando ainda podem identificar sua configuração, mesmo com senhas e tokens
 comuns mascarados.
+
+## Virtual uinput, Steam Input e hotplug de controles
+
+Quando os artefatos nativos em Rust estão presentes (sempre empacotados no
+Flatpak e no AppImage, e compilados em `res/native/` pelo `./run.sh` ou
+`make build-native`), o Twinverse prepara um pequeno diretório de runtime
+dentro da home de cada jogador:
+
+```text
+<home_N>/.tw-in/
+├── bin/
+│   └── twinverse-input-bridge   # supervisor de hotplug e lista hidraw no host
+├── lib64/
+│   ├── libtwinverse_uinput.so   # interpositor 64 bits de /dev/uinput + event + hidraw
+│   └── libtwinverse_udev.so     # shim libudev 64 bits (evdev virtual + hotplug hidraw)
+├── lib32/
+│   ├── libtwinverse_uinput.so   # interpositor 32 bits (para o cliente Steam 32 bits)
+│   └── libtwinverse_udev.so     # shim libudev 32 bits
+└── sock/
+    ├── tw_event3000.sock        # socket do controle físico encaminhado pelo bridge
+    ├── tw_event2000.sock        # sockets de controles virtuais do Steam Input (2000+)
+    └── tw_hidraw.allow          # lista dinâmica (uma linha por nó) de hidraw permitidos
+```
+
+Pontos úteis para diagnóstico:
+
+- **Logs detalhados da camada nativa:** Defina `TWINVERSE_UINPUT_LOG=1` nas
+  **Environment variables** do jogador (para `libtwinverse_uinput.so` / `libtwinverse_udev.so`)
+  ou no ambiente antes de iniciar o Twinverse (para registrar também desconexões,
+  reconexões e transições da lista `hidraw` no `twinverse-input-bridge`). A saída
+  fica gravada em `logs/instances/instance-NN-*.log`.
+- **`LD_PRELOAD` adiado:** O Gamescope nunca recebe `LD_PRELOAD`. O Twinverse
+  injeta `TWINVERSE_VIRTUAL_UINPUT=1`, `TWINVERSE_UINPUT_SOCKET_DIR`,
+  `TWINVERSE_PHYSICAL_BRIDGE` e `TWINVERSE_HIDRAW_FILTER` na sandbox e usa
+  `GAMESCOPE_RUNTIME_SETUP` para ativar o `LD_PRELOAD` apenas no Steam e nos
+  jogos filhos.
+- **Staging verificado por conteúdo (Flatpak/OSTree):** Os arquivos em `~/.tw-in/`
+  são comparados byte a byte (não apenas por tamanho e `mtime`), garantindo que
+  atualizações do Flatpak sempre renovem as bibliotecas nativas mesmo quando o
+  OSTree define `mtime` como epoch 0.
+- **Detecção de fallback:** Se o `twinverse.log` indicar que as bibliotecas
+  nativas de uinput virtual não foram encontradas (por exemplo, ao rodar do
+  código-fonte sem Rust), o Twinverse usa automaticamente o fallback com
+  bind-mounts estáticos de `/dev/input/eventX`, máscara estática de `/dev/hidraw*`
+  e desativação única do Steam Input por conta.
 
 ## Travamentos e exceções não tratadas
 
@@ -241,7 +287,8 @@ O GTK 4.16 também não marcava como simbólicos os ícones encontrados diretame
 no diretório de recursos `icons/`, deixando o preenchimento branco do SVG fixo
 no tema claro. Um patch exclusivo do AppImage corrige essa classificação.
 O build testa os pixels dos ícones com foreground preto e branco usando o GTK
-que será empacotado, sem alterar os SVGs usados pelos outros formatos.
+que será empacotado (via `scripts/appimage/check-appearance.rs`), sem alterar
+os SVGs usados pelos outros formatos.
 
 ## Quando o cliente da Steam não abre
 
@@ -260,15 +307,19 @@ acontecendo:
 Não há prazo em nenhum desses casos. Uma máquina lenta leva o tempo que
 precisar, e a mensagem fica até o cliente da Steam dizer que está de pé.
 
-A checagem nunca confunde as instâncias. Só aceita um cliente da Steam que
-pertence ao grupo de processos daquela instância, então o cliente de outra
-instância, e o Steam do usuário, nunca são tomados como o nosso.
+A checagem nunca confunde as instâncias. Ela acompanha a árvore de processos
+do `steamwebhelper` (SteamRT3) restrita ao grupo de processos daquela instância
+(e encerra descendentes `setsid` com segurança ao parar), então o cliente de
+outra instância e o Steam principal do usuário nunca são confundidos ou afetados.
 
-Enquanto o cliente arranca, a linha da instância mostra um indicador a girar e
-o tooltip diz o que a Steam está a fazer, tirado do log do cliente. Uma Steam
-que se atualiza pode demorar minutos, e o indicador faz claro que ainda está
-a acontecer alguma coisa. A janela só é minimizada depois de todas as
-instâncias serem confirmadas como abertas.
+Enquanto o cliente inicia ou se atualiza (o que pode levar alguns minutos),
+a linha do jogador mostra um indicador giratório e o painel Player Setup exibe
+uma linha simples de log em tempo real logo acima do botão **Start player** /
+**Install Steam**, atualizada a cada segundo a partir de
+`.local/share/Steam/logs/console-linux.txt`. A última linha é preservada em
+intervalos silenciosos e limpa assim que a instância fica `Running` ou para.
+A janela só é minimizada depois que todas as instâncias são confirmadas como
+abertas.
 
 As mensagens da aplicação são mostradas sobre a janela. Quando a janela está
 minimizada, ou em segundo plano atrás de um jogo, a mesma mensagem também é

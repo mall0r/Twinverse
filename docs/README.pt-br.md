@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.1.4-blue.svg" alt="Versão"/></a>
+  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-2.0.0--alpha.1-blue.svg" alt="Versão"/></a>
   <a href="https://mall0r.github.io/Twinverse/?lang=pt"><img src="https://img.shields.io/badge/Documenta%C3%A7%C3%A3o-Online-84b4fa.svg" alt="Documentação"/></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="Licença"/></a>
   <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK"/></a>
@@ -18,6 +18,7 @@
 
 <p align="center">
   <a href="https://www.python.org" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/></a>
+  <a href="https://www.rust-lang.org/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust"/></a>
   <a href="https://www.gnu.org/software/bash/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Shell-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white" alt="Shell"/></a>
   <a href="https://www.javascript.com/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript"/></a>
   <a href="https://www.w3.org/Style/CSS/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/CSS3-66309A?style=for-the-badge&logo=css3&logoColor=white" alt="CSS"/></a>
@@ -25,7 +26,7 @@
 
 # O que é o Twinverse?
 
-O **Twinverse** é um aplicativo open-source para Linux e SteamOS que permite criar e gerenciar até **8 instâncias isoladas do `Steam Big Picture`** simultaneamente. Vários jogadores podem aproveitar suas bibliotecas de jogos em um único computador—em tela dividida ou em múltiplos monitores—com controles, saídas de áudio, diretórios home e endereços IPv4 privados na LAN dedicados.
+O **Twinverse** é um aplicativo open-source para Linux e SteamOS que permite criar e gerenciar até **8 instâncias isoladas do `Steam Big Picture`** simultaneamente. Vários jogadores podem aproveitar suas bibliotecas de jogos em um único computador—em tela dividida ou em múltiplos monitores—com controles dedicados (incluindo **Steam Input** isolado e reconexão hotplug no meio da partida), saídas de áudio, diretórios home e endereços IPv4 privados na LAN.
 
 > [!TIP]
 > **Documentação Interativa Completa:** Acesse o [**Site de Documentação do Twinverse**](https://mall0r.github.io/Twinverse/?lang=pt) (Português BR & English) para ver o guia passo a passo ilustrado, diagramas de layout, todas as funcionalidades, atalhos e solução de problemas.
@@ -44,9 +45,9 @@ O **Twinverse** é um aplicativo open-source para Linux e SteamOS que permite cr
 
 1. **Até 8 Instâncias Isoladas:** Execute múltiplos clientes Steam simultaneamente com nomes editáveis, controle de participação por jogador e recuperação automática de sessão em caso de fechamento inesperado.
 2. **Moldes por Monitor e Arrastar-e-Soltar:** Escolha entre 6 moldes visuais independentes por monitor (`Fullscreen`, `Columns`, `Rows`, `Main left`, `Main top`, `Grid` — até 4 jogadores por monitor), combine moldes entre telas e arraste jogadores diretamente entre os espaços.
-3. **Isolamento Real de Entrada:** Mascara `/dev/input` em cada sandbox para que cada jogador enxergue apenas seu próprio controle (ou um `"Virtual Joystick by Twinverse"` criado automaticamente), além da desativação única do Steam Input por conta.
+3. **Steam Input Completo, Isolamento Real de Entrada e Reconexão Hotplug:** Uma camada de virtualização em espaço de usuário feita em Rust puro para `/dev/uinput` e `libudev` (`libtwinverse_uinput.so` / `libtwinverse_udev.so`) mantém os controles virtuais do Steam Input estritamente restritos a cada instância, sem tocar no `/dev/uinput` do host. Um supervisor no host (`twinverse-input-bridge`) reconecta controles automaticamente se forem desconectados no meio da sessão, isola controles idênticos, filtra `/dev/hidraw*` dinamicamente (preservando giroscópio, vibração, touchpad e LEDs nativos) e fornece um `"Virtual Joystick by Twinverse"` automático quando nenhum controle físico é selecionado.
 4. **Canais de Áudio Dedicados:** Direcione o áudio de cada instância para sua própria saída PipeWire/PulseAudio (`PULSE_SINK`) com isolamento de captura PipeWire por instância.
-5. **Rede Isolada sem Root (`pasta`):** Atribui automaticamente um endereço IPv4 livre na LAN por instância (ou um `Guest IP` fixo opcional), evitando conflitos de porta e relays do Steam em partidas locais.
+5. **Rede Isolada sem Root (`pasta`):** Atribui automaticamente um endereço IPv4 livre na LAN por instância (ou um `Guest IP` fixo opcional), evitando conflitos de porta e relays do Steam em partidas locais. Pode ser ativada ou desativada a qualquer momento em `Preferences -> Engine` (**Isolate network**).
 6. **Diretórios Home Dedicados e Terminal na Sandbox:** Cada jogador possui uma pasta `home_1`–`home_8` isolada com atalhos para abrir a pasta, abrir um terminal interativo dentro da sandbox do jogador ou zerar o slot.
 7. **Pasta de Jogos Compartilhada e Qualquer Proton:** Monta `steamapps/common/` do host (com sincronização automática de manifestos `.acf`) e `compatibilitytools.d/` (incluindo [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)), evitando downloads duplicados.
 8. **Jogue Jogos Diferentes ao Mesmo Tempo:** Cada instância é totalmente independente—os jogadores não precisam jogar o mesmo jogo.
@@ -117,6 +118,8 @@ cd Twinverse
 ./run.sh
 ```
 
+O `./run.sh` compila automaticamente os arquivos GResource, compila as bibliotecas nativas em Rust de virtualização `/dev/uinput` e hotplug (quando `cargo` e os alvos `x86_64-unknown-linux-gnu` / `i686-unknown-linux-gnu` estão instalados), cria o `.venv` e inicia o Twinverse. Se o Rust não estiver instalado, o Twinverse ainda executa usando bind-mounts estáticos de dispositivos como fallback. Veja [CONTRIBUTING.md](../CONTRIBUTING.md) para os pré-requisitos completos de desenvolvimento.
+
 ## 📖 Documentação e Guias
 
 - **Documentação Interativa (PT-BR / EN):** [https://mall0r.github.io/Twinverse/?lang=pt](https://mall0r.github.io/Twinverse/?lang=pt)
@@ -130,12 +133,13 @@ cd Twinverse
 O Twinverse monta dinamicamente uma pilha de isolamento sem root para cada jogador:
 
 ```text
-[pasta (netns opcional)] -> bwrap (sandbox) -> gamescope (compositor) -> Steam Big Picture
+[twinverse-input-bridge (hotplug no host)] -> [pasta (netns opcional)] -> bwrap (sandbox) -> gamescope (compositor) -> Steam Big Picture
 ```
 
-1. **`pasta`** (quando instalado) cria um namespace de rede isolado com um endereço IPv4 livre na rede local.
-2. **`bwrap` (Bubblewrap)** monta um diretório `home_N` dedicado, mascara `/dev/input` expondo apenas o controle do jogador, compartilha `steamapps/common/` e `compatibilitytools.d/`, e injeta `PULSE_SINK` e variáveis de ambiente personalizadas.
-3. **`gamescope`** renderiza o Steam Big Picture exatamente na resolução e taxa de atualização do espaço escolhido, gerencia a captura exclusiva de mouse e trabalha em conjunto com o resolvedor D-Bus do KWin no KDE Plasma 6.0+ para posicionamento automático sem bordas.
+1. **`twinverse-input-bridge`** (Rust puro, quando há um controle físico atribuído) supervisiona o controle do jogador no host, encaminha o fluxo evdev para um socket Unix sintético persistente `/dev/input/event3000`, envia eventos de neutralização ao desconectar, isola controles idênticos, atualiza dinamicamente a lista de permissão de `/dev/hidraw*` e reconecta o controle automaticamente se ele for desconectado e reconectado durante a sessão.
+2. **`pasta`** (quando instalado e com **Isolate network** ativado) cria um namespace de rede isolado com um endereço IPv4 livre na rede local.
+3. **`bwrap` (Bubblewrap)** monta um diretório `home_N` dedicado, mascara `/dev/input`, prepara o interpositor de `/dev/uinput` em espaço de usuário (`libtwinverse_uinput.so`) e o shim de `libudev` (`libtwinverse_udev.so`) para o Steam e jogos (carregados após o Gamescope via `GAMESCOPE_RUNTIME_SETUP`) para manter controles virtuais do Steam Input estritamente privados por instância, compartilha `steamapps/common/` e `compatibilitytools.d/`, e injeta `PULSE_SINK` e variáveis de ambiente personalizadas.
+4. **`gamescope`** renderiza o Steam Big Picture exatamente na resolução e taxa de atualização do espaço escolhido, gerencia a captura exclusiva de mouse e trabalha em conjunto com o resolvedor D-Bus do KWin no KDE Plasma 6.0+ para posicionamento automático sem bordas.
 
 ---
 

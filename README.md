@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-1.1.4-blue.svg" alt="Version"/></a>
+  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-2.0.0--alpha.1-blue.svg" alt="Version"/></a>
   <a href="https://mall0r.github.io/Twinverse/"><img src="https://img.shields.io/badge/Documentation-Live-84b4fa.svg" alt="Documentation"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="License"/></a>
   <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK Version"/></a>
@@ -18,6 +18,7 @@
 
 <p align="center">
   <a href="https://www.python.org" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/></a>
+  <a href="https://www.rust-lang.org/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust"/></a>
   <a href="https://www.gnu.org/software/bash/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Shell-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white" alt="Shell"/></a>
   <a href="https://www.javascript.com/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript"/></a>
   <a href="https://www.w3.org/Style/CSS/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/CSS3-66309A?style=for-the-badge&logo=css3&logoColor=white" alt="CSS"/></a>
@@ -25,7 +26,7 @@
 
 # What is Twinverse?
 
-**Twinverse** is an open-source desktop application for Linux and SteamOS that lets you create and manage up to **8 isolated `Steam Big Picture` instances** simultaneously. Multiple players can enjoy their game libraries on a single computer—in splitscreen or across multiple monitors—with dedicated controllers, audio outputs, home directories, and private LAN IPv4 addresses.
+**Twinverse** is an open-source desktop application for Linux and SteamOS that lets you create and manage up to **8 isolated `Steam Big Picture` instances** simultaneously. Multiple players can enjoy their game libraries on a single computer—in splitscreen or across multiple monitors—with dedicated controllers (including full isolated **Steam Input** and mid-session hotplug reconnection), audio outputs, home directories, and private LAN IPv4 addresses.
 
 > [!TIP]
 > **Full Interactive Documentation:** Visit the [**Twinverse Documentation Site**](https://mall0r.github.io/Twinverse/) (English & Português BR) for the complete illustrated step-by-step guide, visual layout diagrams, all features, shortcuts, and troubleshooting FAQ.
@@ -44,9 +45,9 @@
 
 1. **Up to 8 Isolated Instances:** Run multiple Steam clients simultaneously with custom editable player names, per-player inclusion toggles, and automatic crash/session recovery.
 2. **Per-Monitor Tiling & Drag-and-Drop Studio:** Choose from 6 visual templates per display (`Fullscreen`, `Columns`, `Rows`, `Main left`, `Main top`, `Grid` — up to 4 players per monitor), mix templates across monitors, and drag players directly between spaces.
-3. **True Input Isolation:** Masks `/dev/input` per sandbox so each player only sees their assigned controller (or an automatic `"Virtual Joystick by Twinverse"` when no physical controller is selected), plus one-time per-account Steam Input disabling.
+3. **Full Steam Input, True Input Isolation & Hotplug Reconnection:** A pure-Rust userspace `/dev/uinput` + `libudev` virtualization layer (`libtwinverse_uinput.so` / `libtwinverse_udev.so`) keeps Steam Input virtual controllers strictly scoped to each instance without touching host `/dev/uinput`. A host supervisor (`twinverse-input-bridge`) automatically reconnects controllers if unplugged or replugged mid-session, isolates identical sibling gamepads, dynamically filters `/dev/hidraw*` (preserving native gyro, rumble, touchpad, and LEDs), and provides an automatic `"Virtual Joystick by Twinverse"` when no physical controller is selected.
 4. **Dedicated Audio Outputs:** Route each player's audio to its own PipeWire/PulseAudio sink (`PULSE_SINK`) with per-instance PipeWire capture isolation.
-5. **Rootless Per-Instance Networking (`pasta`):** Automatically assigns each instance its own free LAN IPv4 address (or an optional fixed `Guest IP`) so local co-op and dedicated servers connect directly without port conflicts or Steam relays.
+5. **Rootless Per-Instance Networking (`pasta`):** Automatically assigns each instance its own free LAN IPv4 address (or an optional fixed `Guest IP`) so local co-op and dedicated servers connect directly without port conflicts or Steam relays. Can be toggled anytime via **Isolate network** in `Preferences -> Engine`.
 6. **Dedicated Home Directories & Sandbox Shell:** Each player gets an isolated `home_1`–`home_8` directory with one-click access to open its folder, launch a sandboxed terminal inside the player's container, or reset the slot.
 7. **Shared Game Library & Any Proton:** Bind-mounts your host `steamapps/common/` (with automatic `.acf` manifest sync) and `compatibilitytools.d/` (including [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)), so games are never downloaded twice.
 8. **Play Different Games Simultaneously:** Each instance is completely independent—players do not need to play the same title.
@@ -117,6 +118,8 @@ cd Twinverse
 ./run.sh
 ```
 
+`./run.sh` automatically compiles GResources, builds the native Rust virtual uinput/hotplug libraries (when `cargo` and the `x86_64-unknown-linux-gnu` / `i686-unknown-linux-gnu` targets are installed), creates `.venv`, and launches Twinverse. If Rust is not installed, Twinverse still runs using static device bind-mounts as a fallback. See [CONTRIBUTING.md](CONTRIBUTING.md) for full developer prerequisites.
+
 ## 📖 Documentation & Guides
 
 - **Interactive Documentation (EN / PT-BR):** [https://mall0r.github.io/Twinverse/](https://mall0r.github.io/Twinverse/)
@@ -130,12 +133,13 @@ cd Twinverse
 Twinverse dynamically assembles a nested, rootless isolation stack for every player:
 
 ```text
-[pasta (optional netns)] -> bwrap (sandbox) -> gamescope (compositor) -> Steam Big Picture
+[twinverse-input-bridge (host hotplug)] -> [pasta (optional netns)] -> bwrap (sandbox) -> gamescope (compositor) -> Steam Big Picture
 ```
 
-1. **`pasta`** (when installed) gives each instance an isolated network namespace with its own free LAN IPv4 address.
-2. **`bwrap` (Bubblewrap)** mounts a dedicated `home_N` directory, masks `/dev/input` to expose only the player's controller, bind-mounts your shared `steamapps/common/` and `compatibilitytools.d/`, and sets `PULSE_SINK` and custom environment variables.
-3. **`gamescope`** renders the player's Steam Big Picture session at the exact tile resolution and monitor refresh rate, handles exclusive cursor grabbing, and works with KWin's D-Bus resolver on KDE Plasma 6.0+ for automatic borderless tiling.
+1. **`twinverse-input-bridge`** (pure Rust, when a physical controller is assigned) supervises the player's controller on the host, bridges its evdev stream to a persistent synthetic `/dev/input/event3000` Unix socket, emits neutralizer events on disconnect, isolates identical sibling controllers, updates the player's dynamic `/dev/hidraw*` allowlist, and automatically reconnects the gamepad if unplugged and replugged mid-session.
+2. **`pasta`** (when installed and **Isolate network** is enabled) gives each instance an isolated network namespace with its own free LAN IPv4 address.
+3. **`bwrap` (Bubblewrap)** mounts a dedicated `home_N` directory, masks `/dev/input`, stages the pure-Rust userspace `/dev/uinput` interposer (`libtwinverse_uinput.so`) and `libudev` shim (`libtwinverse_udev.so`) for Steam and games (deferred past Gamescope via `GAMESCOPE_RUNTIME_SETUP`) so Steam Input virtual controllers stay strictly private to each instance, bind-mounts your shared `steamapps/common/` and `compatibilitytools.d/`, and sets `PULSE_SINK` and custom environment variables.
+4. **`gamescope`** renders the player's Steam Big Picture session at the exact tile resolution and monitor refresh rate, handles exclusive cursor grabbing, and works with KWin's D-Bus resolver on KDE Plasma 6.0+ for automatic borderless tiling.
 
 ---
 

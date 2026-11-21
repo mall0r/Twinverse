@@ -119,6 +119,7 @@ working.
 | `TWINVERSE_LOG_KEEP_HELPERS` | `2` | Helper logs kept for each run |
 | `TWINVERSE_LOG_MAX_AGE_DAYS` | `14` | Age of the oldest log that is kept |
 | `TWINVERSE_LOG_MAX_TOTAL_MB` | `256` | Size limit of the whole log directory |
+| `TWINVERSE_UINPUT_LOG` | unset | Set to `1` to enable verbose stderr logs from `twinverse-input-bridge`, `libtwinverse_uinput.so`, and `libtwinverse_udev.so` inside the instance log |
 
 Command-line options win over the environment.
 
@@ -141,6 +142,48 @@ does not include the full environment or the instance environments.
 When reporting a problem, include the report and the relevant files from the
 log directory. Review them before sharing: paths and command lines can still
 identify your setup, even though common passwords and tokens are masked.
+
+## Virtual uinput, Steam Input & controller hotplug
+
+When the native Rust input artifacts are present (always bundled in Flatpak and
+AppImage, and built into `res/native/` by `./run.sh` or `make build-native`),
+Twinverse stages a small per-player runtime directory inside each player's home:
+
+```text
+<home_N>/.tw-in/
+├── bin/
+│   └── twinverse-input-bridge   # host hotplug & hidraw allowlist supervisor
+├── lib64/
+│   ├── libtwinverse_uinput.so   # 64-bit userspace /dev/uinput + event + hidraw interposer
+│   └── libtwinverse_udev.so     # 64-bit libudev shim (virtual evdev + hidraw hotplug)
+├── lib32/
+│   ├── libtwinverse_uinput.so   # 32-bit interposer (for Steam's 32-bit client)
+│   └── libtwinverse_udev.so     # 32-bit libudev shim
+└── sock/
+    ├── tw_event3000.sock        # bridged physical controller socket (when bridge active)
+    ├── tw_event2000.sock        # Steam Input virtual controller sockets (2000+)
+    └── tw_hidraw.allow          # dynamic newline-separated allowlist of hidraw nodes
+```
+
+Key troubleshooting notes:
+
+- **Verbose native tracing:** Set `TWINVERSE_UINPUT_LOG=1` either in the player's
+  **Environment variables** (for `libtwinverse_uinput.so` / `libtwinverse_udev.so`)
+  or in the environment before launching Twinverse (to also log `twinverse-input-bridge`
+  unplug/reconnect and `hidraw` allowlist transitions). Output is recorded in
+  `logs/instances/instance-NN-*.log`.
+- **Deferred `LD_PRELOAD`:** Gamescope itself is never preloaded. Twinverse
+  passes `TWINVERSE_VIRTUAL_UINPUT=1`, `TWINVERSE_UINPUT_SOCKET_DIR`,
+  `TWINVERSE_PHYSICAL_BRIDGE`, and `TWINVERSE_HIDRAW_FILTER` into the sandbox and
+  uses `GAMESCOPE_RUNTIME_SETUP` so `LD_PRELOAD` activates only for Steam and
+  its child game processes.
+- **Byte-verified staging (Flatpak/OSTree):** Staged files under `~/.tw-in/` are
+  compared by byte content (not just size and `mtime`) so Flatpak updates always
+  refresh native libraries even when OSTree sets `mtime` to epoch 0.
+- **Fallback detection:** If `twinverse.log` notes that native virtual uinput
+  libraries were not found (e.g., running from source without Rust), Twinverse
+  automatically falls back to static `/dev/input/eventX` bind-mounts, static
+  `/dev/hidraw*` masking, and one-time per-account Steam Input disabling.
 
 ## Crashes and unhandled exceptions
 Twinverse installs exception hooks and enables `faulthandler`. Python
@@ -234,8 +277,9 @@ to understand rules from recent distributions as well.
 GTK 4.16 also failed to mark icons found directly in the `icons/` resource
 directory as symbolic, leaving the SVG's white fill unchanged in light mode.
 An AppImage-only patch fixes this classification. The build checks actual
-icon pixels with black and white foregrounds using the GTK being packaged,
-without modifying the SVGs used by other packages.
+icon pixels with black and white foregrounds using the GTK being packaged
+(via `scripts/appimage/check-appearance.rs`), without modifying the SVGs used
+by other packages.
 
 ## When the Steam client does not open
 
@@ -253,15 +297,18 @@ instance it launches and tells the user what is happening:
 There is no timeout in any of it. A slow machine takes as long as it needs,
 and the message stays until the Steam client says it is up.
 
-The check never mixes the instances. It only accepts a Steam client that
-belongs to the process group of that instance, so the client of another
-instance, and the Steam of the user, are never taken for ours.
+The check never mixes the instances. It tracks the SteamRT3 `steamwebhelper`
+client tree scoped to that instance's process group (and safely terminates
+`setsid` descendants on stop), so the client of another instance and the user's
+host Steam are never confused or harmed.
 
-While the client starts, the row of the instance shows a spinner and the
-tooltip tells what the Steam is doing, taken from the log of the client. A
-Steam that updates itself can take minutes, and the spinner makes it clear
-that something is still happening. The window is only minimized once every
-instance was confirmed to be open.
+While the client starts or updates itself (which can take several minutes),
+the player row shows a spinning indicator and the Player Setup inspector
+displays a plain single-line live Steam startup log directly above the
+**Start player** / **Install Steam** button, polled every second from
+`.local/share/Steam/logs/console-linux.txt`. The last console line is kept
+across quiet intervals and cleared once the instance is `Running` or stopped.
+The window is only minimized once every instance has been confirmed open.
 
 The messages of the application are shown over the window. When the window is
 minimized, or in the background behind a game, the same message is also shown
@@ -271,13 +318,6 @@ permission. A message has a level, and the level decides the icon and how
 urgent it is: a failure is an error, and it is critical, so it is not missed,
 while a client that is starting, or updating itself, is a work in progress,
 and the other messages are only information.
-
-A client that updates itself can take minutes. The row of the instance shows a
-small bar next to its name, with the percentage that the Steam wrote in its
-log, so the wait does not look like a hang. The bar has no percentage when
-the client only says what it is doing, and it pulses instead. The tooltip of
-the bar tells what the Steam is doing, and the log of the client itself is
-in the home of the instance, at `.local/share/Steam/logs/console-linux.txt`.
 
 The buttons of the interface follow the same rule. An instance only shows
 "Stop" after its Steam client was confirmed to be up, and it only goes back

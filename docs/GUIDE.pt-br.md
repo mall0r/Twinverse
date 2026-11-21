@@ -34,7 +34,7 @@ Certifique-se de ter os pacotes nativos `steam`, `gamescope`, `bubblewrap` (`bwr
 2. **Lista de Jogadores (Party):** Adicione até 8 jogadores, marque quem participa, acompanhe o status (`Ready` / `Not installed` / `Running`) ou arraste jogadores para os espaços.
 3. **Status da Sessão e Botão Iniciar:** Exibe a prontidão geral e o botão **Launch session** / **End session** (`Ctrl+Enter`).
 4. **Posicionamento e Seletor de Moldes:** Alterna entre `Automatic` e `Custom` e permite escolher um molde visual independente para cada monitor.
-5. **Espaços Interativos de Jogadores:** Pré-visualização proporcional de cada monitor com nome, indicador de status e ícones de controle/mouse.
+5. **Espaços Interativos de Jogadores:** Pré-visualização proporcional de cada monitor com nome, indicador de status, selos de controle (passe o mouse sobre o ícone do controle para ver o nome completo atribuído) e indicador de mouse.
 6. **Inspetor Player Setup:** Permite renomear o jogador, instalar/iniciar/parar a instância individualmente e configurar controle, `Grab mouse`, saída de áudio, `Guest IP` e variáveis de ambiente.
 
 ---
@@ -84,10 +84,10 @@ Você pode combinar moldes diferentes entre monitores (por exemplo, `Main left` 
 
 Selecione cada jogador para configurar seu hardware no painel direito **Player Setup** (alterne a qualquer momento com `F9` ou `Alt+2`):
 
-- **Controller:** Menu pesquisável com os controles conectados (`/dev/input/by-id/*-event-joystick`). Pressione `F5` (ou clique em atualizar) após conectar novos controles. Deixe em `None` para que o Twinverse crie automaticamente um `"Virtual Joystick by Twinverse"` ao iniciar a sessão.
+- **Controller:** Menu pesquisável com os controles conectados (`/dev/input/by-id/*-event-joystick`), com rolagem suave (marquee) para nomes longos, tooltip com o nome completo e um ponto indicador no item selecionado. Pressione `F5` (ou clique em atualizar) após conectar novos controles. Deixe em `None` para que o Twinverse crie automaticamente um `"Virtual Joystick by Twinverse"` ao iniciar a sessão. Controles físicos se reconectam automaticamente se forem desconectados e reconectados no meio da partida.
 - **Grab mouse:** Passa `--force-grab-cursor` ao Gamescope. Apenas um jogador por vez pode capturar mouse e teclado; ativar em um desativa nos demais.
 - **Audio output:** Lista pesquisável de saídas PipeWire/PulseAudio (`Default` ou `PULSE_SINK` dedicado).
-- **Guest IP:** IPv4/CIDR fixo opcional ao usar `pasta`. Deixe vazio (`Automatic`) para escolha automática de um IPv4 livre na LAN.
+- **Guest IP:** IPv4/CIDR fixo opcional ao usar `pasta`. Deixe vazio (`Automatic`) para escolha automática de um IPv4 livre na LAN. Fica desabilitado automaticamente (preservando o IP salvo) quando **Isolate network** está desligado em `Preferences -> Engine`.
 - **Environment variables:** Expanda e clique em **Add variable** para injetar variáveis de ambiente individuais no `bwrap` (ex.: `PROTON_ENABLE_WAYLAND=1`, `MANGOHUD=1`).
 
 ![Inspetor Player Setup](assets/img/step-3-player-setup.png)
@@ -117,7 +117,7 @@ Slots novos aparecem como `Not installed`. Inicialize o Steam uma vez por jogado
 Quando todos os jogadores marcados estiverem `Ready` e alocados no layout, clique em **Launch session** (ou pressione `Ctrl+Enter`).
 
 - O Twinverse prepara o script de layout do KWin e coloca os painéis do KDE em `dodgewindows` (no KDE Plasma 6.0+).
-- Os jogadores iniciam sequencialmente (intervalo de 5 segundos) enquanto o Twinverse acompanha atualizações do Steam e o carregamento do `steamwebhelper`.
+- Os jogadores iniciam sequencialmente (intervalo de 5 segundos) enquanto o Twinverse exibe uma linha de log do Steam em tempo real no Player Setup e acompanha o carregamento do `steamwebhelper`.
 - Quando todos estiverem prontos, o Twinverse se minimiza automaticamente. Volte quando quiser para encerrar um jogador individual (**Stop player**) ou clique em **End session** para encerrar tudo com segurança e restaurar os painéis do KDE.
 
 ![Sessão Ativa](assets/img/step-5-live-session.png)
@@ -132,10 +132,12 @@ Se o Steam Link ou jogos multiplayer tiverem problemas de conexão, conflitos de
 
 O Twinverse detecta o `pasta` automaticamente e atribui a cada instância um namespace de rede sem root com um endereço IPv4 livre na LAN. Preencha **Guest IP** no Player Setup apenas se precisar de um endereço fixo; use IPs livres e diferentes entre si. Sem o `pasta`, o Twinverse continua usando a rede compartilhada do host.
 
+Se quiser que as instâncias compartilhem a rede do host (para descoberta LAN ou P2P local, mesmo com `pasta` instalado), desative **Isolate network** em `Preferences -> Engine`. Quaisquer valores salvos em `Guest IP` são preservados e voltam a ficar ativos quando você religar o isolamento.
+
 ### Preferências e Dados das Instâncias (`Ctrl+,`)
 
-- **Aba Engine:** Alterna **Use Gamescope** (desativado entra em Direct Steam mode), **Steam Deck tag** (`--mangoapp` + `-steamdeck` + limitador de FPS), **Gamescope WSI** (`ENABLE_GAMESCOPE_WSI`) ou **Reset all settings** (mantém as pastas home em disco).
-- **Aba Instance data:** Abre a pasta home de cada jogador (`home_1`–`home_8`), inicia um **terminal dentro da sandbox** (`bwrap` + `pasta` + `PULSE_SINK`) do jogador ou executa **Reset player** permanentemente.
+- **Aba Engine:** Alterna **Use Gamescope** (desativado entra em Direct Steam mode), **Steam Deck tag** (`--mangoapp` + `-steamdeck` + limitador de FPS), **Gamescope WSI** (`ENABLE_GAMESCOPE_WSI`), **Isolate network** (ativa ou desativa namespaces de rede do `pasta`) ou **Reset all settings** (mantém as pastas home em disco).
+- **Aba Instance data:** Abre a pasta home de cada jogador (`home_1`–`home_8`), inicia um **terminal dentro da sandbox** (`bwrap` + `pasta` quando o isolamento de rede está ativo + `PULSE_SINK`) do jogador ou executa **Reset player** permanentemente.
 
 ![Preferências Dados das Instâncias](assets/img/preferences-instance-data.png)
 
@@ -152,9 +154,14 @@ DRI_PRIME=1! %command%
 > [!WARNING]
 > Adicione isso nas **Opções de Inicialização do jogo no Steam**, e não nas `Environment variables` do Player Setup, para que o Gamescope continue na GPU principal.
 
-### Steam Input
+### Steam Input e Hotplug de Controles
 
-O Steam Input entra em conflito com o isolamento de controles por sandbox, então o Twinverse o desativa automaticamente uma única vez por conta logada no `localconfig.vdf` isolado. Alterações posteriores são preservadas e o seu Steam principal fora do Twinverse nunca é alterado.
+O Twinverse inclui uma camada de virtualização de entrada em espaço de usuário feita em Rust puro (`libtwinverse_uinput.so` e `libtwinverse_udev.so`) junto do supervisor de host `twinverse-input-bridge`:
+
+- **Suporte completo ao Steam Input (ativo por padrão):** Controles virtuais criados pelo Steam Input ficam estritamente restritos aos sockets Unix privados de cada jogador em `~/.tw-in/sock/`, sem tocar no `/dev/uinput` do host e sem vazar para outras instâncias.
+- **Reconexão automática no meio da sessão:** Se o controle de um jogador desconectar (bateria fraca, cabo solto ou suspensão Bluetooth), o `twinverse-input-bridge` envia eventos de neutralização para evitar botões/analógicos presos e reconecta o controle automaticamente quando ele voltar—incluindo controles idênticos.
+- **Isolamento dinâmico de `/dev/hidraw*`:** Apenas os nós `hidraw` pertencentes ao controle daquele jogador ficam visíveis na sandbox (preservando giroscópio, vibração, touchpad e LEDs nativos), sem expor os controles dos demais jogadores.
+- **Modo de fallback:** Somente ao executar a partir do código-fonte sem as bibliotecas nativas em Rust compiladas o Twinverse recorre aos bind-mounts estáticos de `/dev/input/eventX` e à desativação única do Steam Input por conta no `localconfig.vdf`.
 
 ### Atalhos de Teclado
 
@@ -176,4 +183,4 @@ O Steam Input entra em conflito com o isolamento de controles por sandbox, entã
 
 ### Depuração e Logs
 
-Execute `twinverse --diagnostics` para um relatório completo do ambiente ou consulte [DEBUGGING.pt-br.md](DEBUGGING.pt-br.md) para flags CLI, caminhos de logs e variáveis de ambiente.
+Execute `twinverse --diagnostics` para um relatório completo do ambiente ou consulte [DEBUGGING.pt-br.md](DEBUGGING.pt-br.md) para flags CLI, caminhos de logs, diagnóstico de uinput virtual e variáveis de ambiente.

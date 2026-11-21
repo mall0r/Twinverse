@@ -7,6 +7,32 @@ All notable changes to this project will be documented in this file. This projec
 
 ### Added
 
+- Add a pure-Rust userspace `/dev/uinput` interposer (`libtwinverse_uinput.so`) and `libudev` shim (`libtwinverse_udev.so`), built for both 64-bit and 32-bit with zero external Cargo dependencies, enabling full per-instance **Steam Input** without touching host `/dev/uinput` or leaking virtual controllers across instances.
+- Add a pure-Rust host input supervisor (`twinverse-input-bridge`) that bridges each player's physical controller over a persistent synthetic `/dev/input/event3000` Unix socket, emits disconnect neutralizer events on unplug, isolates identical sibling controllers, dynamically filters `/dev/hidraw*` via `tw_hidraw.allow` (preserving native gyro, rumble, touchpad, and LEDs), and automatically reconnects controllers mid-session when unplugged and replugged.
+- Add an **Isolate network** toggle (`ISOLATE_NETWORK`, default `On`) in `Preferences -> Engine` to disable per-instance `pasta` network isolation (for LAN discovery and local P2P), disabling the per-player `Guest IP` entry while keeping any saved IP intact.
+- Add a marquee-scrolling controller dropdown (`MarqueeLabel`) with full-name tooltips and a themed selection dot in Player Setup, plus controller-name tooltips when hovering a player space's enlarged gamepad badge on the layout canvas.
+
+### Fixed
+
+- Verify staged native Rust binaries and shared libraries by byte content (not just file size and `mtime`) so Flatpak/OSTree updates always refresh staged files under `~/.tw-in/` even when `mtime` is epoch 0.
+- Allow variadic `open`/`open64` interposition signatures in `twinverse-uinput-interposer` so the native workspace builds cleanly on Rust 1.100+.
+
+### Changed
+
+- Keep Steam Input enabled by default when the native userspace virtual `/dev/uinput` libraries are active, falling back to static device bind-mounts and one-time per-account Steam Input disabling only when running without the native libraries.
+- Build and bundle the 64-bit and 32-bit native Rust input libraries and `twinverse-input-bridge` across development runs (`./run.sh`), `make build-native`, `make build`, CI, Flatpak, and AppImage builds (with `GLIBC <= 2.35` validation).
+- Rewrite the AppImage symbolic icon appearance verification helper in pure Rust (`scripts/appimage/check-appearance.rs`), removing the last C source file from the repository.
+
+## [2.0.0-alpha.1] - 2026-11-20
+
+### Added
+
+- Redesign the interface and preferences window as a three-pane **Session Studio** (Party Roster, Session Layout canvas, and collapsible Player Setup inspector).
+- Add per-monitor tiling templates (`Fullscreen`, `Columns`, `Rows`, `Main left`, `Main top`, and `Grid`) with the `TilingPicker` native thumbnail widget, persistent per-connector layouts, `Automatic` vs. `Custom` placement, and animated drag-and-drop card motion (`CardMotion`).
+- Add direct `+ Add player` and per-player removal controls in the Party Roster, inline editable player names (up to 32 characters), mouse-grab indicators, and `Ready` check icons.
+- Bundle custom symbolic SVG icons (`res/icons/`) replacing system theme icons, add a dedicated `StudioSpinner` widget for reliable GTK4 animation, redesign floating toast notifications, and introduce a WCAG AA/AAA light mode color palette.
+- Add a bilingual (English & Português BR) static documentation site hosted on GitHub Pages (`docs/index.html`, search, dark/light toggle, lightbox, and automated deployment workflow).
+- Support SemVer pre-releases (`x.y.z-alpha.N`, `x.y.z-beta.N`, etc.) in CI/CD, `version_manager.py`, `create_release.sh`, and AppStream validation.
 - Rewrite the logging system with the Python standard library. Logs now live in the XDG state directory, use per-run and per-instance context, rotate and expire old files, mask common secrets, and capture unhandled exceptions and native crashes.
 - Add `--debug`, `--quiet`, `--log-level`, `--log-dir`, `--log-format`, `--json` and `--diagnostics` command-line options, plus `TWINVERSE_*` environment variables for the same settings.
 - Add English and Portuguese debugging guides.
@@ -14,15 +40,22 @@ All notable changes to this project will be documented in this file. This projec
 - Add `--clear-logs`, which empties the log directory and exits, and `TWINVERSE_LOG_KEEP_INSTANCES`, `TWINVERSE_LOG_KEEP_HELPERS`, `TWINVERSE_LOG_MAX_AGE_DAYS` and `TWINVERSE_LOG_MAX_TOTAL_MB` to adjust the retention.
 - Find the instances that outlived a previous session: Twinverse remembers what it launched, shows the survivors as running, and stops them with the same button.
 - Put the footer button in stop mode when an instance survived a crash, instead of waiting for a single instance to be stopped.
-- Follow the startup of every instance: the interface says that the Steam client is starting, confirms when it opens, and reports the reason the Steam gave when it fails or the instance stops on its own. The check is scoped by the process group of the instance, so the instances and the Steam of the user are never mixed, and it waits for the Steam instead of using a timeout.
+- Follow the startup of every instance: the interface says that the Steam client is starting, confirms when it opens, and reports the reason the Steam gave when it fails or the instance stops on its own. The check tracks the SteamRT3 `steamwebhelper` client tree scoped by the instance process group, so instances and the host Steam are never mixed, and waits without an artificial timeout.
 - Make the buttons of the interface follow the state that was confirmed: an instance only offers to stop after its Steam client was confirmed to be up, and only goes back to start after the instance was confirmed to be gone. The button of the footer only turns into a stop when every instance it follows is confirmed to be running, and a client that never came up leaves the leftover stopped.
 - Let an instance that is still starting be cancelled, so a Steam client that never comes up and never writes a log does not leave the interface stuck.
-- Show a spinner and what the Steam client is doing while an instance starts, so a Steam that updates itself does not look like a hang, and minimize the window only after the last instance is confirmed to be open.
+- Show a spinner and a plain single-line live Steam startup log in Player Setup while an instance bootstraps or updates itself, and minimize the window only after the last instance is confirmed to be open.
 - Show the messages of the application as desktop notifications while the window is hidden, so a failure is not missed behind a game.
 - Give every isolated instance its own free IPv4 address from the host's subnet, so a game client and a dedicated server on the same machine no longer share an address and Steam can connect directly instead of through a relay. Add a per-instance `GUEST_IP` setting to override the automatic choice.
 
 ### Fixed
 
+- Orient display dimensions accurately for rotated monitors.
+- Render fitting monitor preview spaces at 1:1 integer pixels to prevent blur, stabilize light mode layout, hide disconnected controllers from the dropdown, and thicken the gamepad badge icon.
+- Resolve symlinked `/etc/resolv.conf` targets cleanly before passing them to `pasta` to avoid SELinux denials on systemd-resolved systems.
+- Terminate SteamRT3 `setsid` descendant processes safely on stop without affecting other instances or the host Steam client, unlock Session Layout when Steam exits on its own, and prevent false unexpected-stop toasts.
+- Keep `Automatic` placement when switching monitor tiling templates instead of unexpectedly flipping to `Custom`.
+- Deduplicate logging handler errors, prevent `NullHandler` leaks, and close implicit instance log descriptors after writes.
+- Follow desktop themes, cursors, and fonts in the AppImage via Settings portal (`GDK_DEBUG=portals`) and host `/etc/fonts`, and patch symbolic icon classification for GTK 4.16.
 - Keep the run identifier in the records written by the launch worker thread, so every line of a launch can be tied to its session.
 - Write the logs of the instances in the directory chosen with `--log-dir`, instead of always in the XDG state directory.
 - Write the output of an instance straight to its log file in the Flatpak path as well, so an instance that outlives the application keeps its output and never blocks on a broken pipe.
@@ -57,7 +90,8 @@ All notable changes to this project will be documented in this file. This projec
 - Reset all the settings of the profile in the preferences window, and report a home directory that could not be removed.
 - Present the same window when the application is started again, instead of opening a second one.
 - Show the messages of the application with the icon of what they are: a failure is an error, a client that is starting or updating itself is a work in progress, and the other messages are only information. The desktop notification follows the same level, and a failure is critical, so it is not missed behind a game.
-- Show a small bar next to the name of the instance when its Steam client updates itself, with the percentage that the Steam wrote in its log, so a long update is not a wait without an answer.
+- Replace the Steam update progress bar with a plain single-line startup log strip in Player Setup so users can follow Steam bootstrap and update output cleanly.
+- Update `pyproject.toml` license metadata for `setuptools>=77`.
 
 ## [1.1.4] - 2026-10-15
 

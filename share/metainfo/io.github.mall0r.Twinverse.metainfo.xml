@@ -11,27 +11,22 @@
 
   <description>
     <p>
-      Twinverse is a tool that allows you to create and manage multiple instances
-      of `gamescope` and `steam` simultaneously. This enables multiple players to enjoy
-      their game library on a single computer, either in splitscreen mode or each with
-      their own display, along with dedicated audio output and input devices.
+      Twinverse is an open-source application for Linux and SteamOS that lets you create and manage up to 8 isolated Steam Big Picture instances simultaneously. Multiple players can enjoy their game libraries on a single computer—in splitscreen or across multiple monitors—with dedicated controllers, full isolated Steam Input, mid-session controller reconnection, dedicated audio outputs, home directories, and private LAN IPv4 addresses.
     </p>
     <p>Key Features:</p>
     <ul>
-      <li>Simple Multi-Instance Management: Run multiple Steam Client simultaneously, allowing you and your friends to enjoy your game libraries separately</li>
-      <li>Per-Instance Hardware Assignment: Assign specific mice, keyboards, and controllers to each game instance</li>
-      <li>Dedicated Audio Channels: Route audio from each game instance to a separate audio output device</li>
-      <li>Separate Home Directory: Customize settings and files for each instance individually</li>
-      <li>Shared Game Library: Share the Steam game directory among multiple instances</li>
-      <li>Use Any Proton: Use any version of Proton to run your games.</li>
-      <li>Play Whatever You Want: Instances are not limited to playing the same game; each instance can play whichever game it wants</li>
-      <li>Flexible Screen Modes: Choose between splitscreen (up to 4 instances per monitor) or fullscreen (1 instance per monitor)</li>
+      <li>Up to 8 Isolated Instances: Run multiple Steam clients simultaneously with custom player names, per-player inclusion toggles, and automatic crash/session recovery</li>
+      <li>Per-Monitor Tiling &amp; Drag-and-Drop Studio: Choose from 6 visual templates per display (Fullscreen, Columns, Rows, Main left, Main top, Grid — up to 4 players per monitor) and drag players directly between spaces</li>
+      <li>Full Steam Input &amp; Hotplug Controller Isolation: Pure-Rust userspace /dev/uinput and libudev virtualization keeps Steam Input strictly per-instance, automatically reconnects unplugged controllers mid-session, isolates identical sibling controllers, and dynamically filters /dev/hidraw*</li>
+      <li>Dedicated Audio Outputs: Route each player's audio to a separate PipeWire/PulseAudio sink with per-instance PipeWire capture isolation</li>
+      <li>Rootless Per-Instance Networking (pasta): Assigns each instance its own free LAN IPv4 address (or optional fixed Guest IP) to prevent port conflicts and Steam relays, with an Isolate network preference toggle</li>
+      <li>Dedicated Home Directories &amp; Sandbox Shell: Isolated home_1–home_8 folders with quick access to browse files or launch a sandboxed terminal</li>
+      <li>Shared Game Library &amp; Any Proton: Shares your host steamapps/common/ and compatibilitytools.d/ (including ProtonGE) so games are never downloaded twice</li>
+      <li>Play Different Games Simultaneously: Every instance is independent—players do not need to play the same title</li>
     </ul>
     <p>How it Works:</p>
-    <p>Twinverse uses Bubblewrap (bwrap), a low-level Linux sandboxing tool, to isolate each Steam Client instance.
-       This ensures that the instances do not interfere with each other or with the user's main system.
-       Furthermore, the Gamescope command line is dynamically generated based on the user's settings,
-       involving the bwrap command which, in turn, launches Steam.
+    <p>
+      Twinverse dynamically assembles a nested, rootless isolation stack for every player: a pure-Rust host input supervisor (twinverse-input-bridge) for controller hotplug and hidraw filtering, optional pasta per-instance networking, Bubblewrap (bwrap) for filesystem and device sandboxing with userspace virtual /dev/uinput and libudev shims, and Gamescope for per-tile display rendering and KDE Plasma 6 / KWin auto-tiling.
     </p>
   </description>
 
@@ -39,24 +34,24 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/twinverse-ui.png</image>
-      <caption>Main application window</caption>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-session-dark.png</image>
+      <caption>Session Studio main window in dark mode</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/multiscope_ui_config.png</image>
-      <caption>Main application window showing player configuration</caption>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-player-light.png</image>
+      <caption>Session Studio main window in light mode</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v1.0.0/share/screenshots/horizontal-steam.png</image>
-      <caption>Horizontal split-screen</caption>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-session-custom.png</image>
+      <caption>Multi-monitor mixed tiling templates and custom placement</caption>
     </screenshot>
   </screenshots>
 
-  <url type="homepage">https://github.com/mall0r/Twinverse</url>
+  <url type="homepage">https://mall0r.github.io/Twinverse/</url>
   <url type="vcs-browser">https://github.com/mall0r/Twinverse</url>
   <url type="donation">https://ko-fi.com/mallor</url>
   <url type="bugtracker">https://github.com/mall0r/Twinverse/issues/new</url>
-  <url type="help">https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md</url>
+  <url type="help">https://mall0r.github.io/Twinverse/</url>
 
   <provides>
     <binary>twinverse</binary>

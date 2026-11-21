@@ -39,9 +39,34 @@ Check out the official GitHub articles to learn more about [forking](https://doc
 
 #### What is the Project's Tech Stack?
 
-Twinverse is built for Linux/SteamOS systems and is primarily developed in Python 3, leveraging the GTK 4 framework through PyGObject bindings, with the Adwaita toolkit for modern GNOME-style UI components. It also incorporates a variety of open-source tools and libraries to deliver its multi-instance Steam gaming experience.
+Twinverse is built for Linux and SteamOS systems using two main layers:
 
-Gamescope and Bubblewrap (bwrap) are the most substantial dependencies, as they are responsible for handling display virtualization and process isolation (respectively). Gamescope manages the split-screen or multi-monitor display configurations, while Bubblewrap creates secure sandboxes for each Steam instance, ensuring that multiple instances don't interfere with each other or with the user's main system.
+- **Desktop Application (Python 3 + GTK 4 + libadwaita):** Built with PyGObject bindings and libadwaita for the modern GNOME-style Session Studio interface, profile management, process supervision, and KWin D-Bus integration.
+- **Native Input Isolation Workspace (`native/`, pure Rust):** A zero-external-dependency Cargo workspace targeting `GLIBC <= 2.35` on both 64-bit (`x86_64-unknown-linux-gnu`) and 32-bit (`i686-unknown-linux-gnu`, required for Steam's 32-bit client alongside 64-bit games):
+  - `twinverse-uinput-proto` — shared Unix-socket wire protocol and environment constants.
+  - `twinverse-uinput-interposer` (`libtwinverse_uinput.so`) — userspace `/dev/uinput`, `/dev/input/event*`, and dynamic `/dev/hidraw*` interposer keeping Steam Input virtual controllers private to each instance.
+  - `twinverse-udev-shim` (`libtwinverse_udev.so`) — `libudev` shim synthesizing virtual evdev devices and hotplug `hidraw` events inside the sandbox.
+  - `twinverse-input-bridge` — host-side supervisor that bridges physical controllers over Unix sockets, isolates identical sibling gamepads, updates dynamic `/dev/hidraw*` allowlists, and reconnects controllers on unplug/replug.
+
+On the host, **Gamescope**, **Bubblewrap (`bwrap`)**, and optionally **`pasta`** (`passt`) handle display virtualization, filesystem/process sandboxing, and rootless per-instance networking respectively.
+
+#### Rust Toolchain Prerequisites (Native Input Libraries)
+
+To compile the native Rust libraries locally (for full isolated Steam Input and controller hotplug reconnection), install `rustc`/`cargo`, the 32-bit Rust target, and 32-bit C multilib linking support:
+
+```bash
+rustup target add x86_64-unknown-linux-gnu i686-unknown-linux-gnu
+# Plus your distro's 32-bit multilib C runtime (e.g., gcc-multilib on Debian/Ubuntu,
+# glibc-devel.i686 + libgcc.i686 on Fedora, lib32-glibc + gcc-multilib on Arch).
+```
+
+To build only the native artifacts into `res/native/`:
+
+```bash
+make build-native
+# Or directly:
+./scripts/build-native.sh
+```
 
 
 ### Running, Testing, and Packaging Changes
@@ -52,7 +77,7 @@ When you are ready to test any changes you make, you can run **Twinverse** direc
 ./run.sh
 ```
 
-This script will compile the GResource files, create a virtual environment if needed, install dependencies, and run the application directly from source. This is the quickest way to test your changes during development.
+This script compiles the GResource files, builds the native Rust libraries (if `cargo` is available), creates a virtual environment if needed, installs dependencies, and runs the application directly from source. This is the quickest way to test your changes during development.
 
 > [!IMPORTANT]
 > Your project path should not contain folders with spaces in their name, otherwise Twinverse may not run correctly.
@@ -68,7 +93,7 @@ Or, if you prefer to do it manually in your terminal, use:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e ".[test]"
 ```
 
 This will create a virtual environment (if it doesn't exist), install all necessary dependencies, and set up pre-commit hooks.
@@ -79,7 +104,7 @@ Then run the comprehensive test suite using:
 make test
 ```
 
-This will run pytest with coverage checking and execute pre-commit hooks to ensure code quality.
+This runs the native Rust unit tests (`./scripts/build-native.sh --test`), the Python `pytest` suite, and all `pre-commit` hooks to ensure code quality.
 
 For cleaning up build artifacts, cached files, and temporary directories, you can use:
 
@@ -90,9 +115,10 @@ make clean
 > [!IMPORTANT]
 > The `make clean` command will remove all temporary files, build artifacts, virtual environments, and cached data. This includes the `.venv` directory, `__pycache__` directories, and build outputs. Only use this if you want to completely reset your development environment.
 
-- For Flatpak (primary distribution format): `make flatpak` (this will automatically set up the development environment if needed)
-- For AppImage: `make appimage` (this will automatically set up the development environment if needed)
-- For a standalone executable: `make build` (this will automatically set up the development environment if needed)
+- For native Rust libraries only: `make build-native`
+- For Flatpak (primary distribution format): `make flatpak` (automatically sets up the development environment if needed)
+- For AppImage: `make appimage` (builds inside an Ubuntu 22.04 Podman/Docker container)
+- For a local install in `.venv` (including native libraries): `make build`
 
 As a reminder, please take care to follow the [Code Standards](#code-standards) for the project when adding any code-based contributions.
 
@@ -108,7 +134,7 @@ make help
 
 ### Packaging an AppImage
 
-The `scripts/package-appimage.sh` script builds in an Ubuntu 22.04 container using Podman or Docker. It uses PyInstaller and linuxdeploy to bundle the Python runtime and GTK dependencies, targeting glibc 2.35 or newer.
+The `scripts/package-appimage.sh` script builds in an Ubuntu 22.04 container using Podman or Docker. Inside the container, it compiles the 64-bit and 32-bit native Rust libraries, bundles the Python runtime and GTK 4 / libadwaita dependencies with PyInstaller and linuxdeploy (targeting `GLIBC <= 2.35`), and verifies symbolic icon rendering with the Rust helper `scripts/appimage/check-appearance.rs`.
 
 ```bash
 make appimage
@@ -141,7 +167,7 @@ download of a new build before update tools can discover future releases.
 
 ### Packaging a Flatpak
 
-The `scripts/package-flatpak.sh` script automates the process of creating a Flatpak. It will build the application and then package it into a `.flatpak` file.
+The `scripts/package-flatpak.sh` script automates building and packaging the Flatpak into a `.flatpak` bundle, including compiling the 64-bit and 32-bit native Rust libraries inside the Flatpak SDK (`org.freedesktop.Sdk.Extension.rust-stable`, `org.freedesktop.Sdk.Compat.i386`, and `org.freedesktop.Sdk.Extension.toolchain-i386`, installed automatically by `flatpak-builder --install-deps-from=flathub`).
 
 ```bash
 make flatpak
@@ -164,7 +190,7 @@ Otherwise, you will be attempting to merge your changes with a different reposit
 
 It is a good idea to create a detailed (but concise) comment to accompany the initial pull request to explain:
 * The issue the pull request is addressing
-* What is changedc
+* What is changed
 * Testing procedures used and their results
 * Potential issues or challenges encountered
 * Any questions or other comments for contribution reviewers
@@ -197,6 +223,7 @@ Currently, there is no set release schedule, and releases will be published when
 * When in doubt, structure your code to prioritize readability!
 * Comment large blocks of abstract code with concise descriptions.
 * Use type hints wherever possible to improve code maintainability.
+* Keep the `native/` Rust workspace free of external Cargo dependencies and compatible with `GLIBC <= 2.35`.
 * Follow the existing code structure and naming conventions in the project.
 * Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification and [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) when creating commits and proposing changes.
 

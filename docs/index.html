@@ -18,7 +18,7 @@
   <meta property="og:image" content="https://mall0r.github.io/Twinverse/assets/img/hero-studio-dark.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Twinverse Documentation">
-  <meta name="twitter:description" content="Run up to 8 isolated Steam instances simultaneously on Linux &amp; SteamOS with Gamescope, Bubblewrap, and pasta.">
+  <meta name="twitter:description" content="Run up to 8 isolated Steam instances simultaneously on Linux &amp; SteamOS with full Steam Input, controller hotplug, Gamescope, Bubblewrap, and pasta.">
   <meta name="twitter:image" content="https://mall0r.github.io/Twinverse/assets/img/hero-studio-dark.png">
 
   <link rel="stylesheet" href="./assets/css/style.css">
@@ -44,7 +44,7 @@
           <img src="./assets/img/twinverse-logo.svg" alt="Twinverse logo" width="30" height="30">
           <span>Twinverse</span>
         </a>
-        <span class="version-pill">v1.1.4</span>
+        <span class="version-pill">v2.0.0-alpha.1</span>
       </div>
 
       <div class="topbar-actions">
@@ -158,12 +158,13 @@
           <span data-lang-block="pt">Documentação do Twinverse</span>
         </h1>
         <p class="hero-lead">
-          <span data-lang-block="en">Run up to <strong>8 isolated Steam Big Picture instances</strong> simultaneously on a single Linux or SteamOS computer. Play in splitscreen or across multiple monitors with dedicated controllers, audio outputs, home folders, and private LAN IPv4 addresses—without duplicating a single gigabyte of game files.</span>
-          <span data-lang-block="pt">Execute até <strong>8 instâncias isoladas do Steam Big Picture</strong> simultaneamente em um único computador com Linux ou SteamOS. Jogue em tela dividida ou em múltiplos monitores com controles, saídas de áudio, pastas home e endereços IPv4 dedicados—sem duplicar um único gigabyte de jogos.</span>
+          <span data-lang-block="en">Run up to <strong>8 isolated Steam Big Picture instances</strong> simultaneously on a single Linux or SteamOS computer. Play in splitscreen or across multiple monitors with dedicated controllers (including full isolated <strong>Steam Input</strong> and mid-session hotplug reconnection), audio outputs, home folders, and private LAN IPv4 addresses—without duplicating a single gigabyte of game files.</span>
+          <span data-lang-block="pt">Execute até <strong>8 instâncias isoladas do Steam Big Picture</strong> simultaneamente em um único computador com Linux ou SteamOS. Jogue em tela dividida ou em múltiplos monitores com controles dedicados (incluindo <strong>Steam Input</strong> isolado e reconexão hotplug no meio da partida), saídas de áudio, pastas home e endereços IPv4 dedicados—sem duplicar um único gigabyte de jogos.</span>
         </p>
 
         <div class="hero-badges">
-          <span class="badge badge-accent">v1.1.4</span>
+          <span class="badge badge-accent">v2.0.0-alpha.1</span>
+          <span class="badge">Python + Rust</span>
           <span class="badge">GTK4 &amp; libadwaita</span>
           <span class="badge">Gamescope + Bubblewrap + pasta</span>
           <span class="badge">
@@ -250,12 +251,12 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M6 12h4M8 10v4"></path><circle cx="15.5" cy="11" r="1"></circle><circle cx="17.5" cy="13" r="1"></circle></svg>
             </div>
             <h3>
-              <span data-lang-block="en">True Input &amp; Audio Isolation</span>
-              <span data-lang-block="pt">Isolamento Real de Entrada e Áudio</span>
+              <span data-lang-block="en">Full Steam Input, Hotplug &amp; Audio Isolation</span>
+              <span data-lang-block="pt">Steam Input, Hotplug e Isolamento de Áudio</span>
             </h3>
             <p>
-              <span data-lang-block="en">Each sandbox sees only its assigned controller (or an automatic virtual joystick) and routes sound to its own PipeWire/PulseAudio sink.</span>
-              <span data-lang-block="pt">Cada sandbox enxerga apenas o controle atribuído (ou um joystick virtual automático) e envia o som para sua própria saída PipeWire/PulseAudio.</span>
+              <span data-lang-block="en">Pure-Rust userspace <code>/dev/uinput</code> virtualization keeps Steam Input strictly per-instance, reconnects unplugged controllers mid-session, filters <code>/dev/hidraw*</code> dynamically, and routes sound to each player's PipeWire/PulseAudio sink.</span>
+              <span data-lang-block="pt">Virtualização de <code>/dev/uinput</code> em Rust puro mantém o Steam Input isolado por instância, reconecta controles desconectados no meio da partida, filtra <code>/dev/hidraw*</code> dinamicamente e direciona o som para a saída PipeWire/PulseAudio de cada jogador.</span>
             </p>
           </div>
 
@@ -339,7 +340,7 @@
               <tr>
                 <td><code>bwrap</code> (<code>bubblewrap</code>)</td>
                 <td><strong><span data-lang-block="en">Required (Host)</span><span data-lang-block="pt">Obrigatório (Host)</span></strong></td>
-                <td><span data-lang-block="en">Creates isolated per-player home directories and masks <code>/dev/input</code> so controllers never leak between players.</span><span data-lang-block="pt">Cria diretórios home isolados por jogador e mascara <code>/dev/input</code> para que controles nunca vazem entre instâncias.</span></td>
+                <td><span data-lang-block="en">Creates isolated per-player home directories and masks <code>/dev/input</code>, pairing with Twinverse's bundled Rust userspace <code>/dev/uinput</code> shim and <code>twinverse-input-bridge</code> for isolated Steam Input and controller hotplug.</span><span data-lang-block="pt">Cria diretórios home isolados por jogador e mascara <code>/dev/input</code>, trabalhando com o shim nativo em Rust de <code>/dev/uinput</code> e o <code>twinverse-input-bridge</code> para Steam Input isolado e hotplug de controles.</span></td>
               </tr>
               <tr>
                 <td><code>pactl</code></td>
@@ -476,15 +477,15 @@ chmod +x Twinverse-*.AppImage
 
           <div class="tab-panel" data-panel="install-source" hidden>
             <p>
-              <span data-lang-block="en">Running from source requires Python 3.12+, GTK4, libadwaita, and PyGObject on the system. The bundled <code>run.sh</code> script sets up a local virtual environment automatically.</span>
-              <span data-lang-block="pt">Executar a partir do código-fonte requer Python 3.12+, GTK4, libadwaita e PyGObject no sistema. O script <code>run.sh</code> cria e configura o ambiente virtual automaticamente.</span>
+              <span data-lang-block="en">Running from source requires Python 3.12+, GTK4, libadwaita, and PyGObject on the system. Having Rust (<code>cargo</code> with <code>x86_64-unknown-linux-gnu</code> and <code>i686-unknown-linux-gnu</code> targets) installed enables building the native Steam Input and hotplug libraries automatically (otherwise Twinverse falls back to static device mounts). The bundled <code>run.sh</code> script compiles resources, native libraries, and sets up <code>.venv</code> automatically.</span>
+              <span data-lang-block="pt">Executar a partir do código-fonte requer Python 3.12+, GTK4, libadwaita e PyGObject no sistema. Ter o Rust instalado (<code>cargo</code> com os alvos <code>x86_64-unknown-linux-gnu</code> e <code>i686-unknown-linux-gnu</code>) compila automaticamente as bibliotecas nativas de Steam Input e hotplug (sem ele, o Twinverse usa bind-mounts estáticos como fallback). O script <code>run.sh</code> compila recursos, bibliotecas nativas e cria o <code>.venv</code> automaticamente.</span>
             </p>
 <pre><code>git clone https://github.com/mall0r/Twinverse.git
 cd Twinverse
 ./run.sh</code></pre>
             <p>
-              <span data-lang-block="en">Developers can also use <code>make dev</code>, <code>make test</code>, <code>make check</code>, <code>make build-appimage</code>, and <code>make build-flatpak</code>. See <code>CONTRIBUTING.md</code> for full development guidelines.</span>
-              <span data-lang-block="pt">Desenvolvedores também podem usar <code>make dev</code>, <code>make test</code>, <code>make check</code>, <code>make build-appimage</code> e <code>make build-flatpak</code>. Consulte <code>CONTRIBUTING.md</code> para mais detalhes.</span>
+              <span data-lang-block="en">Developers can also use <code>make dev</code>, <code>make build-native</code> (builds native Rust artifacts into <code>res/native/</code>), <code>make build</code>, <code>make test</code>, <code>make appimage</code>, and <code>make flatpak</code>. See <code>CONTRIBUTING.md</code> for full development guidelines.</span>
+              <span data-lang-block="pt">Desenvolvedores também podem usar <code>make dev</code>, <code>make build-native</code> (compila os artefatos nativos em Rust em <code>res/native/</code>), <code>make build</code>, <code>make test</code>, <code>make appimage</code> e <code>make flatpak</code>. Consulte <code>CONTRIBUTING.md</code> para mais detalhes.</span>
             </p>
           </div>
         </div>
@@ -521,7 +522,7 @@ cd Twinverse
             <span class="legend-num">1</span>
             <div>
               <h4><span data-lang-block="en">Header Bar, Theme &amp; App Menu</span><span data-lang-block="pt">Cabeçalho, Tema e Menu</span></h4>
-              <p><span data-lang-block="en">Left side toggles the Party Roster and Player Setup panes, plus the app menu (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>About</strong>). Right side switches Dark/Light theme.</span><span data-lang-block="pt">À esquerda ficam os botões dos painéis laterais e o menu do app (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>About</strong>). À direita fica o botão de tema Claro/Escuro.</span></p>
+              <p><span data-lang-block="en">Left side switches Dark/Light appearance and opens the app menu (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>About</strong>). The <strong>Player Setup</strong> drawer toggle (<kbd>F9</kbd>) sits on the right side of the Session Layout header.</span><span data-lang-block="pt">À esquerda ficam o botão de tema Claro/Escuro e o menu do app (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>About</strong>). O botão da gaveta <strong>Player Setup</strong> (<kbd>F9</kbd>) fica à direita no cabeçalho do Session Layout.</span></p>
             </div>
           </div>
 
@@ -537,7 +538,7 @@ cd Twinverse
             <span class="legend-num">3</span>
             <div>
               <h4><span data-lang-block="en">Session Status &amp; Launch Bar</span><span data-lang-block="pt">Status da Sessão e Botão Iniciar</span></h4>
-              <p><span data-lang-block="en">Shows live readiness (<code>Ready to launch</code>, <code>Setup needed</code>, <code>You're live</code>) and the primary <strong>Launch session</strong> / <strong>End session</strong> button (<kbd>Ctrl+Enter</kbd>).</span><span data-lang-block="pt">Exibe o estado geral (<code>Ready to launch</code>, <code>Setup needed</code>, <code>You're live</code>) e o botão principal <strong>Launch session</strong> / <strong>End session</strong> (<kbd>Ctrl+Enter</kbd>).</span></p>
+              <p><span data-lang-block="en">Shows live readiness (<code>Ready to play</code>, <code>Setup needed</code>, <code>You're live</code>) and the primary <strong>Launch session</strong> / <strong>End session</strong> button (<kbd>Ctrl+Enter</kbd>).</span><span data-lang-block="pt">Exibe o estado geral (<code>Ready to play</code>, <code>Setup needed</code>, <code>You're live</code>) e o botão principal <strong>Launch session</strong> / <strong>End session</strong> (<kbd>Ctrl+Enter</kbd>).</span></p>
             </div>
           </div>
 
@@ -553,7 +554,7 @@ cd Twinverse
             <span class="legend-num">5</span>
             <div>
               <h4><span data-lang-block="en">Interactive Player Spaces</span><span data-lang-block="pt">Espaços Interativos de Jogadores</span></h4>
-              <p><span data-lang-block="en">True-aspect preview of each Gamescope region showing player name, index, readiness dot, controller and mouse-grab icons. Click to select or drag-and-drop to swap or move across monitors.</span><span data-lang-block="pt">Pré-visualização em proporção real de cada região do Gamescope com nome, índice, status e ícones de controle/mouse. Clique para selecionar ou arraste para trocar e mover entre monitores.</span></p>
+              <p><span data-lang-block="en">True-aspect preview of each Gamescope region showing player name, index, readiness dot, controller badge (hover to see the assigned gamepad name), and mouse-grab icon. Click to select or drag-and-drop to swap or move across monitors.</span><span data-lang-block="pt">Pré-visualização em proporção real de cada região do Gamescope com nome, índice, status, selo de controle (passe o mouse para ver o nome completo do controle) e ícone de captura de mouse. Clique para selecionar ou arraste para trocar e mover entre monitores.</span></p>
             </div>
           </div>
 
@@ -807,8 +808,8 @@ cd Twinverse
           <ul>
             <li>
               <strong>Controls — Controller:</strong>
-              <span data-lang-block="en">Searchable dropdown listing every connected joystick (<code>/dev/input/by-id/*-event-joystick</code>). Click the refresh icon (or press <kbd>F5</kbd>) if you plug in a controller after opening Twinverse. Leave as <code>None</code> to let Twinverse create an automatic virtual gamepad during launch so Steam Big Picture still responds cleanly.</span>
-              <span data-lang-block="pt">Menu pesquisável com todos os controles conectados (<code>/dev/input/by-id/*-event-joystick</code>). Clique no ícone de atualizar (ou pressione <kbd>F5</kbd>) se conectar um controle depois de abrir o app. Deixe em <code>None</code> para que o Twinverse crie um controle virtual automático na inicialização.</span>
+              <span data-lang-block="en">Searchable dropdown listing every connected joystick (<code>/dev/input/by-id/*-event-joystick</code>) with smooth marquee scrolling for long names, full-name tooltips, and a selection dot marking the active controller. Click the refresh icon (or press <kbd>F5</kbd>) after plugging in new controllers. Leave as <code>None</code> for an automatic virtual gamepad during launch. Assigned physical controllers reconnect automatically if unplugged or replugged mid-session.</span>
+              <span data-lang-block="pt">Menu pesquisável com todos os controles conectados (<code>/dev/input/by-id/*-event-joystick</code>), com rolagem suave (marquee) para nomes longos, tooltip com o nome completo e um ponto indicador no item ativo. Clique em atualizar (ou pressione <kbd>F5</kbd>) após conectar novos controles. Deixe em <code>None</code> para um controle virtual automático. Controles físicos atribuídos se reconectam automaticamente se desconectados no meio da partida.</span>
             </li>
             <li>
               <strong>Controls — Grab mouse:</strong>
@@ -822,8 +823,8 @@ cd Twinverse
             </li>
             <li>
               <strong>Network — Guest IP:</strong>
-              <span data-lang-block="en">Optional fixed IPv4 (or CIDR, e.g., <code>192.168.1.240</code>) used when <code>pasta</code> is installed. Leave blank (<code>Automatic</code>) to let Twinverse safely pick an unused LAN IPv4 automatically.</span>
-              <span data-lang-block="pt">IPv4 fixo opcional (ou CIDR, ex.: <code>192.168.1.240</code>) usado quando o <code>pasta</code> está instalado. Deixe em branco (<code>Automatic</code>) para o Twinverse escolher automaticamente um IPv4 livre na sua rede local.</span>
+              <span data-lang-block="en">Optional fixed IPv4 (or CIDR, e.g., <code>192.168.1.240</code>) used when <code>pasta</code> is installed and <strong>Isolate network</strong> is enabled. Leave blank (<code>Automatic</code>) to let Twinverse safely pick an unused LAN IPv4 automatically. Automatically disabled (preserving any saved IP) when network isolation is turned off in Preferences.</span>
+              <span data-lang-block="pt">IPv4 fixo opcional (ou CIDR, ex.: <code>192.168.1.240</code>) usado quando o <code>pasta</code> está instalado e <strong>Isolate network</strong> está ativado. Deixe em branco (<code>Automatic</code>) para escolher automaticamente um IPv4 livre na LAN. Fica desabilitado automaticamente (preservando o IP salvo) quando o isolamento de rede está desligado nas Preferências.</span>
             </li>
             <li>
               <strong>Environment variables:</strong>
@@ -936,8 +937,8 @@ cd Twinverse
               <span data-lang-block="pt"><strong>Preparação KWin e Painéis (KDE Plasma):</strong> Registra o script de layout do KWin e coloca os painéis do KDE temporariamente em <code>dodgewindows</code> para que os jogos ocupem toda a tela.</span>
             </li>
             <li>
-              <span data-lang-block="en"><strong>Staggered Startup:</strong> Starts each Steam Big Picture instance sequentially (5-second stagger) inside its own <code>pasta → bwrap → gamescope</code> stack while live-tracking Steam update progress and <code>steamwebhelper</code> readiness—even long Steam client updates won't time out prematurely.</span>
-              <span data-lang-block="pt"><strong>Inicialização Escalonada:</strong> Inicia cada instância do Steam Big Picture sequencialmente (intervalo de 5s) dentro da pilha <code>pasta → bwrap → gamescope</code>, acompanhando atualizações do Steam e o carregamento do <code>steamwebhelper</code> em tempo real—sem timeout artificial.</span>
+              <span data-lang-block="en"><strong>Staggered Startup:</strong> Starts each Steam Big Picture instance sequentially (5-second stagger) inside its own <code>twinverse-input-bridge → pasta → bwrap → gamescope</code> stack while showing a live single-line Steam startup log in Player Setup and tracking <code>steamwebhelper</code> readiness—even long Steam client updates won't time out prematurely.</span>
+              <span data-lang-block="pt"><strong>Inicialização Escalonada:</strong> Inicia cada instância do Steam Big Picture sequencialmente (intervalo de 5s) dentro da pilha <code>twinverse-input-bridge → pasta → bwrap → gamescope</code>, exibindo uma linha de log do Steam em tempo real no Player Setup e acompanhando o carregamento do <code>steamwebhelper</code>—sem timeout artificial.</span>
             </li>
             <li>
               <span data-lang-block="en"><strong>Auto-Minimize &amp; Live Control:</strong> Once every instance is live, Twinverse minimizes itself out of the way (and sends desktop notifications if it's in the background). You can return to Twinverse anytime to stop a single player with <strong>Stop player</strong> or cleanly end the entire session with <strong>End session</strong> (which restores KDE panels and terminates lingering child/Wine processes safely).</span>
@@ -1026,6 +1027,14 @@ cd Twinverse
                   </td>
                 </tr>
                 <tr>
+                  <td><strong>Isolate network</strong></td>
+                  <td><code>On</code></td>
+                  <td>
+                    <span data-lang-block="en">Controls per-instance rootless network namespaces via <code>pasta</code> across native, Flatpak, and sandboxed terminal launches. Turn this off to share the host network (for LAN discovery and local P2P); the per-player <code>Guest IP</code> field is disabled while preserving any saved IP value.</span>
+                    <span data-lang-block="pt">Controla namespaces de rede sem root por instância via <code>pasta</code> em execuções nativas, Flatpak e terminais na sandbox. Desative para compartilhar a rede do host (para descoberta LAN e P2P local); o campo <code>Guest IP</code> por jogador fica desabilitado preservando qualquer IP salvo.</span>
+                  </td>
+                </tr>
+                <tr>
                   <td><strong>Reset all settings</strong></td>
                   <td>—</td>
                   <td>
@@ -1049,8 +1058,8 @@ cd Twinverse
             </li>
             <li>
               <strong><span data-lang-block="en">Open sandboxed terminal:</span><span data-lang-block="pt">Abrir terminal na sandbox:</span></strong>
-              <span data-lang-block="en">Launches an interactive <code>bash -i</code> shell inside that player's exact <code>bwrap</code> + <code>pasta</code> + <code>PULSE_SINK</code> environment using your host terminal (auto-detects <code>konsole</code>, <code>gnome-terminal</code>, <code>kgx</code>, <code>xfce4-terminal</code>, <code>mate-terminal</code>, <code>kitty</code>, <code>alacritty</code>, <code>foot</code>, <code>x-terminal-emulator</code>, or <code>xterm</code>).</span>
-              <span data-lang-block="pt">Abre um shell <code>bash -i</code> interativo exatamente dentro do ambiente <code>bwrap</code> + <code>pasta</code> + <code>PULSE_SINK</code> daquele jogador usando o terminal do host (detecta automaticamente <code>konsole</code>, <code>gnome-terminal</code>, <code>kgx</code>, <code>xfce4-terminal</code>, <code>mate-terminal</code>, <code>kitty</code>, <code>alacritty</code>, <code>foot</code>, <code>x-terminal-emulator</code> ou <code>xterm</code>).</span>
+              <span data-lang-block="en">Launches an interactive <code>bash -i</code> shell inside that player's exact <code>bwrap</code> (+ <code>pasta</code> when network isolation is enabled) + <code>PULSE_SINK</code> environment using your host terminal (auto-detects <code>konsole</code>, <code>gnome-terminal</code>, <code>kgx</code>, <code>xfce4-terminal</code>, <code>mate-terminal</code>, <code>kitty</code>, <code>alacritty</code>, <code>foot</code>, <code>x-terminal-emulator</code>, or <code>xterm</code>).</span>
+              <span data-lang-block="pt">Abre um shell <code>bash -i</code> interativo exatamente dentro do ambiente <code>bwrap</code> (+ <code>pasta</code> quando o isolamento de rede está ativo) + <code>PULSE_SINK</code> daquele jogador usando o terminal do host (detecta automaticamente <code>konsole</code>, <code>gnome-terminal</code>, <code>kgx</code>, <code>xfce4-terminal</code>, <code>mate-terminal</code>, <code>kitty</code>, <code>alacritty</code>, <code>foot</code>, <code>x-terminal-emulator</code> ou <code>xterm</code>).</span>
             </li>
             <li>
               <strong><span data-lang-block="en">Reset player:</span><span data-lang-block="pt">Redefinir jogador:</span></strong>
@@ -1085,8 +1094,8 @@ cd Twinverse
                   <img src="./assets/img/preferences-engine-dark.png" alt="Preferences Engine tab in dark mode" loading="lazy">
                 </div>
                 <figcaption>
-                  <span data-lang-block="en"><strong>Preferences → Engine (Dark):</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI, or reset all profile settings.</span>
-                  <span data-lang-block="pt"><strong>Preferências → Engine (Escuro):</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI ou redefina as configurações do perfil.</span>
+                  <span data-lang-block="en"><strong>Preferences → Engine (Dark):</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI, Isolate network, or reset all profile settings.</span>
+                  <span data-lang-block="pt"><strong>Preferências → Engine (Escuro):</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI, Isolate network ou redefina as configurações do perfil.</span>
                 </figcaption>
               </figure>
             </div>
@@ -1178,33 +1187,47 @@ cd Twinverse
               <span data-lang-block="pt"><strong>Guest IP fixo:</strong> Defina um IPv4 ou CIDR específico no Player Setup se regras de firewall ou um servidor local exigirem endereço estático por jogador.</span>
             </li>
             <li>
+              <span data-lang-block="en"><strong>Per-session toggle:</strong> Turn <strong>Isolate network</strong> off anytime in <strong>Preferences → Engine</strong> to share the host network for LAN discovery or local P2P (including in sandboxed terminals) without losing your saved <code>Guest IP</code> entries.</span>
+              <span data-lang-block="pt"><strong>Alternância por sessão:</strong> Desative <strong>Isolate network</strong> a qualquer momento em <strong>Preferências → Engine</strong> para compartilhar a rede do host em jogos com descoberta LAN ou P2P local (inclusive em terminais na sandbox) sem perder seus valores salvos de <code>Guest IP</code>.</span>
+            </li>
+            <li>
               <span data-lang-block="en"><strong>Graceful fallback &amp; DNS resilience:</strong> Twinverse resolves symlinked <code>/etc/resolv.conf</code> targets cleanly for SELinux/systemd-resolved systems. If <code>pasta</code> is not installed, Twinverse transparently falls back to shared host networking.</span>
               <span data-lang-block="pt"><strong>Fallback transparente e DNS resiliente:</strong> O Twinverse resolve symlinks de <code>/etc/resolv.conf</code> corretamente em sistemas com SELinux/systemd-resolved. Se o <code>pasta</code> não estiver instalado, o app usa a rede compartilhada do host automaticamente.</span>
             </li>
           </ul>
         </div>
 
-        <!-- Feature 4: Input Isolation & Steam Input -->
+        <!-- Feature 4: Input Isolation, Steam Input & Hotplug -->
         <div id="feature-input" data-toc-sub>
           <h3>
-            <span data-lang-block="en">Hardware Input Isolation, Virtual Joysticks &amp; Steam Input</span>
-            <span data-lang-block="pt">Isolamento de Entrada, Joysticks Virtuais e Steam Input</span>
+            <span data-lang-block="en">Pure-Rust Virtual <code>/dev/uinput</code>, Steam Input &amp; Controller Hotplug</span>
+            <span data-lang-block="pt"><code>/dev/uinput</code> Virtual em Rust, Steam Input e Hotplug de Controles</span>
           </h3>
           <ul>
             <li>
-              <strong><span data-lang-block="en">Empty <code>/dev/input</code> sandbox:</span><span data-lang-block="pt"><code>/dev/input</code> vazio por sandbox:</span></strong>
-              <span data-lang-block="en">Bubblewrap mounts an empty <code>tmpfs</code> over <code>/dev/input</code> and selectively bind-mounts only the player's assigned <code>/dev/input/eventX</code> (plus a read-only <code>/dev/uinput</code>), guaranteeing zero cross-talk between gamepads.</span>
-              <span data-lang-block="pt">O Bubblewrap monta um <code>tmpfs</code> vazio sobre <code>/dev/input</code> e expõe seletivamente apenas o <code>/dev/input/eventX</code> atribuído ao jogador (mais <code>/dev/uinput</code> somente leitura), garantindo zero interferência entre controles.</span>
+              <strong><span data-lang-block="en">Full Isolated Steam Input:</span><span data-lang-block="pt">Steam Input Completo e Isolado:</span></strong>
+              <span data-lang-block="en">Twinverse ships pure-Rust 64-bit and 32-bit interposition libraries (<code>libtwinverse_uinput.so</code> and <code>libtwinverse_udev.so</code>, deferred past Gamescope via <code>GAMESCOPE_RUNTIME_SETUP</code>). Virtual controllers created by Steam Input stay strictly inside each player's private Unix sockets (<code>~/.tw-in/sock/</code>), never touching the host kernel's <code>/dev/uinput</code> and never leaking between instances.</span>
+              <span data-lang-block="pt">O Twinverse inclui bibliotecas nativas 64 e 32 bits em Rust puro (<code>libtwinverse_uinput.so</code> e <code>libtwinverse_udev.so</code>, carregadas após o Gamescope via <code>GAMESCOPE_RUNTIME_SETUP</code>). Controles virtuais criados pelo Steam Input ficam restritos aos sockets Unix privados de cada jogador (<code>~/.tw-in/sock/</code>), sem tocar no <code>/dev/uinput</code> do host e sem vazar entre instâncias.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Mid-Session Hotplug &amp; Sibling Isolation (<code>twinverse-input-bridge</code>):</span><span data-lang-block="pt">Hotplug em Sessão e Isolamento de Controles Idênticos (<code>twinverse-input-bridge</code>):</span></strong>
+              <span data-lang-block="en">A host-side Rust supervisor bridges each player's physical gamepad into a persistent synthetic <code>/dev/input/event3000</code>, emits neutralizer events on unplug so buttons and sticks never get stuck, keeps identical sibling controllers strictly separated, and reconnects gamepads automatically if unplugged and replugged mid-game.</span>
+              <span data-lang-block="pt">Um supervisor em Rust no host encaminha o controle físico de cada jogador para um <code>/dev/input/event3000</code> sintético persistente, emite eventos de neutralização ao desconectar para não travar botões/analógicos, mantém controles idênticos separados e reconecta automaticamente se o controle for desconectado no meio do jogo.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Dynamic <code>/dev/hidraw*</code> Filtering:</span><span data-lang-block="pt">Filtragem Dinâmica de <code>/dev/hidraw*</code>:</span></strong>
+              <span data-lang-block="en">Maintains a live per-instance <code>tw_hidraw.allow</code> allowlist and synthesizes <code>hidraw</code> hotplug udev events, preserving native gyro, rumble, touchpad, and LEDs for each player's own controller while hiding everyone else's devices.</span>
+              <span data-lang-block="pt">Mantém uma lista dinâmica <code>tw_hidraw.allow</code> por instância e sintetiza eventos udev de hotplug <code>hidraw</code>, preservando giroscópio, vibração, touchpad e LEDs nativos do controle de cada jogador sem expor os dispositivos dos demais.</span>
             </li>
             <li>
               <strong><span data-lang-block="en">Automatic Virtual Joystick:</span><span data-lang-block="pt">Joystick Virtual Automático:</span></strong>
-              <span data-lang-block="en">If a player has no physical controller selected (or their saved controller is disconnected), Twinverse creates a temporary <code>"Virtual Joystick by Twinverse"</code> via <code>evdev.UInput</code> during session launch and cleans it up on stop. Disconnected controllers never clutter the UI.</span>
-              <span data-lang-block="pt">Se um jogador não tiver controle físico selecionado (ou se o controle salvo estiver desconectado), o Twinverse cria um <code>"Virtual Joystick by Twinverse"</code> temporário via <code>evdev.UInput</code> durante a sessão e o remove ao encerrar. Controles desconectados não poluem a interface.</span>
+              <span data-lang-block="en">If a player has no physical controller selected (<code>None</code>), Twinverse creates a temporary <code>"Virtual Joystick by Twinverse"</code> via <code>evdev.UInput</code> during session launch and cleans it up on stop.</span>
+              <span data-lang-block="pt">Se um jogador não tiver controle físico selecionado (<code>None</code>), o Twinverse cria um <code>"Virtual Joystick by Twinverse"</code> temporário via <code>evdev.UInput</code> durante a sessão e o remove ao encerrar.</span>
             </li>
             <li>
-              <strong><span data-lang-block="en">One-time Steam Input Disabler:</span><span data-lang-block="pt">Desativação única do Steam Input:</span></strong>
-              <span data-lang-block="en">Because Steam Input's virtual hidraw layer conflicts with per-sandbox controller isolation, Twinverse automatically disables Steam Input once per logged-in account inside each isolated <code>localconfig.vdf</code> (recorded in <code>steam_input_disabled.json</code>). Any changes you make afterwards are preserved, and your host Steam outside Twinverse is never modified.</span>
-              <span data-lang-block="pt">Como o Steam Input entra em conflito com o isolamento de controles por sandbox, o Twinverse desativa o Steam Input automaticamente uma única vez por conta logada no <code>localconfig.vdf</code> isolado (registrado em <code>steam_input_disabled.json</code>). Alterações posteriores são mantidas e o seu Steam principal no host nunca é tocado.</span>
+              <strong><span data-lang-block="en">Graceful Source Fallback:</span><span data-lang-block="pt">Fallback Automático no Código-Fonte:</span></strong>
+              <span data-lang-block="en">Only when running from source without compiled native Rust libraries does Twinverse fall back to static <code>/dev/input/eventX</code> bind-mounts, static <code>/dev/hidraw*</code> masks, and one-time per-account Steam Input disabling in <code>localconfig.vdf</code>.</span>
+              <span data-lang-block="pt">Somente ao rodar do código-fonte sem as bibliotecas nativas em Rust compiladas o Twinverse recorre a bind-mounts estáticos de <code>/dev/input/eventX</code>, máscaras estáticas de <code>/dev/hidraw*</code> e desativação única do Steam Input por conta no <code>localconfig.vdf</code>.</span>
             </li>
           </ul>
         </div>
@@ -1381,29 +1404,35 @@ DRI_PRIME=1! %command%</code></pre>
         </p>
 
         <div class="arch-card">
-          <svg viewBox="0 0 820 270" role="img" aria-label="Twinverse nested sandboxing architecture diagram">
-            <!-- Outer pasta layer -->
-            <rect x="12" y="14" width="796" height="242" rx="14" fill="rgba(134, 217, 162, 0.08)" stroke="#86d9a2" stroke-width="2" stroke-dasharray="6 4"></rect>
-            <text x="28" y="38" fill="#86d9a2" font-size="13" font-weight="700" font-family="system-ui, sans-serif">1. pasta (Optional Rootless Network Namespace) — Dedicated LAN IPv4 &amp; isolated ports</text>
+          <svg viewBox="0 0 820 318" role="img" aria-label="Twinverse nested sandboxing architecture diagram">
+            <!-- Outer twinverse-input-bridge layer -->
+            <rect x="10" y="12" width="800" height="294" rx="14" fill="rgba(244, 159, 122, 0.07)" stroke="#f49f7a" stroke-width="2" stroke-dasharray="6 4"></rect>
+            <text x="26" y="35" fill="#f49f7a" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">1. twinverse-input-bridge (Pure-Rust Host Supervisor) — Physical evdev hotplug, sibling isolation, dynamic hidraw allowlist</text>
+
+            <!-- pasta layer -->
+            <rect x="26" y="48" width="768" height="242" rx="13" fill="rgba(134, 217, 162, 0.08)" stroke="#86d9a2" stroke-width="2" stroke-dasharray="6 4"></rect>
+            <text x="42" y="71" fill="#86d9a2" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">2. pasta (Optional Rootless Netns) — Dedicated LAN IPv4 &amp; isolated ports (toggle via Isolate network)</text>
 
             <!-- bwrap layer -->
-            <rect x="30" y="52" width="760" height="186" rx="12" fill="rgba(132, 180, 250, 0.1)" stroke="#84b4fa" stroke-width="2"></rect>
-            <text x="46" y="76" fill="#84b4fa" font-size="13" font-weight="700" font-family="system-ui, sans-serif">2. bwrap (Bubblewrap Sandbox) — Isolated home_N, empty /dev/input + 1 eventX, shared steamapps/common &amp; Proton, PULSE_SINK</text>
+            <rect x="42" y="84" width="736" height="190" rx="12" fill="rgba(132, 180, 250, 0.1)" stroke="#84b4fa" stroke-width="2"></rect>
+            <text x="58" y="107" fill="#84b4fa" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">3. bwrap (Bubblewrap Sandbox) — Isolated home_N, masked /dev/input, ~/.tw-in/ sockets, shared steamapps &amp; Proton, PULSE_SINK</text>
 
             <!-- gamescope layer -->
-            <rect x="48" y="92" width="724" height="128" rx="10" fill="rgba(192, 168, 240, 0.1)" stroke="#c0a8f0" stroke-width="2"></rect>
-            <text x="64" y="116" fill="#c0a8f0" font-size="13" font-weight="700" font-family="system-ui, sans-serif">3. gamescope (Micro-Compositor) — Exact tile W×H &amp; Hz, --force-grab-cursor, --mangoapp, TWINVERSE_KWIN_INSTANCE</text>
+            <rect x="58" y="120" width="704" height="138" rx="10" fill="rgba(192, 168, 240, 0.1)" stroke="#c0a8f0" stroke-width="2"></rect>
+            <text x="74" y="143" fill="#c0a8f0" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">4. gamescope (Micro-Compositor) — Exact tile W×H &amp; Hz, --force-grab-cursor, --mangoapp, deferred LD_PRELOAD</text>
 
             <!-- Inner boxes -->
-            <rect x="66" y="132" width="330" height="72" rx="8" fill="rgba(237, 197, 134, 0.12)" stroke="#edc586" stroke-width="1.8"></rect>
-            <text x="82" y="156" fill="#edc586" font-size="13" font-weight="700" font-family="system-ui, sans-serif">4. Steam Big Picture (-gamepadui -steamos3)</text>
-            <text x="82" y="176" fill="#939aa6" font-size="11.5" font-family="system-ui, sans-serif">• Official unmodified Steam client + Proton</text>
-            <text x="82" y="193" fill="#939aa6" font-size="11.5" font-family="system-ui, sans-serif">• Gamescope FPS limiter + SHM startup gate</text>
+            <rect x="74" y="158" width="332" height="84" rx="8" fill="rgba(237, 197, 134, 0.12)" stroke="#edc586" stroke-width="1.8"></rect>
+            <text x="88" y="180" fill="#edc586" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">5. Steam Big Picture (-gamepadui -steamos3)</text>
+            <text x="88" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Official unmodified Steam + Proton + Steam Input</text>
+            <text x="88" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• libtwinverse_uinput.so + libtwinverse_udev.so (64/32-bit)</text>
+            <text x="88" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Gamescope FPS limiter + SHM startup gate</text>
 
-            <rect x="414" y="132" width="340" height="72" rx="8" fill="rgba(132, 180, 250, 0.12)" stroke="#84b4fa" stroke-width="1.5"></rect>
-            <text x="430" y="156" fill="#84b4fa" font-size="13" font-weight="700" font-family="system-ui, sans-serif">Companion Services (Host / Per-Instance)</text>
-            <text x="430" y="176" fill="#939aa6" font-size="11.5" font-family="system-ui, sans-serif">• KWin D-Bus Layout Resolver &amp; panel dodging</text>
-            <text x="430" y="193" fill="#939aa6" font-size="11.5" font-family="system-ui, sans-serif">• overlay_focus.py • PipeWire rules • UInput joystick</text>
+            <rect x="420" y="158" width="326" height="84" rx="8" fill="rgba(132, 180, 250, 0.12)" stroke="#84b4fa" stroke-width="1.5"></rect>
+            <text x="434" y="180" fill="#84b4fa" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">Companion Services (Host / Per-Instance)</text>
+            <text x="434" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• KWin D-Bus Layout Resolver &amp; panel dodging</text>
+            <text x="434" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• overlay_focus.py • PipeWire capture rules</text>
+            <text x="434" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Placeholder evdev.UInput joystick (when None)</text>
           </svg>
         </div>
 
@@ -1535,6 +1564,7 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
                 <tr><td><code>TWINVERSE_LOG_KEEP_HELPERS</code></td><td><code>2</code></td><td><span data-lang-block="en">Newest helper log files kept per run.</span><span data-lang-block="pt">Logs de auxiliares mantidos por execução.</span></td></tr>
                 <tr><td><code>TWINVERSE_LOG_MAX_AGE_DAYS</code></td><td><code>14</code></td><td><span data-lang-block="en">Maximum retention age in days.</span><span data-lang-block="pt">Tempo máximo de retenção em dias.</span></td></tr>
                 <tr><td><code>TWINVERSE_LOG_MAX_TOTAL_MB</code></td><td><code>256</code></td><td><span data-lang-block="en">Total directory cap (oldest files pruned first).</span><span data-lang-block="pt">Limite total do diretório em MiB.</span></td></tr>
+                <tr><td><code>TWINVERSE_UINPUT_LOG</code></td><td>unset</td><td><span data-lang-block="en">Set to <code>1</code> to log verbose native virtual uinput, <code>hidraw</code> filtering, and controller hotplug events into the instance log.</span><span data-lang-block="pt">Defina como <code>1</code> para registrar logs detalhados de uinput virtual, filtragem <code>hidraw</code> e hotplug no log da instância.</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1542,6 +1572,37 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
             <span data-lang-block="en">For a deeper look at log directory structure, redaction rules, and attaching reports to GitHub Issues, read <a href="https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.md" target="_blank" rel="noopener noreferrer">DEBUGGING.md</a>.</span>
             <span data-lang-block="pt">Para mais detalhes sobre a árvore de diretórios, regras de redação e envio de relatórios em issues no GitHub, consulte <a href="https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.pt-br.md" target="_blank" rel="noopener noreferrer">DEBUGGING.pt-br.md</a>.</span>
           </p>
+        </div>
+
+        <div id="virtual-uinput-debugging" data-toc-sub>
+          <h3>
+            <span data-lang-block="en">Virtual <code>/dev/uinput</code>, Steam Input &amp; Hotplug Debugging</span>
+            <span data-lang-block="pt">Depuração de <code>/dev/uinput</code> Virtual, Steam Input e Hotplug</span>
+          </h3>
+          <p>
+            <span data-lang-block="en">When the pure-Rust native input libraries are available (always bundled in Flatpak and AppImage, and compiled into <code>res/native/</code> by <code>./run.sh</code> or <code>make build-native</code>), Twinverse stages a private runtime tree inside each player's home directory:</span>
+            <span data-lang-block="pt">Quando as bibliotecas nativas de entrada em Rust puro estão disponíveis (sempre empacotadas no Flatpak e no AppImage, e compiladas em <code>res/native/</code> pelo <code>./run.sh</code> ou <code>make build-native</code>), o Twinverse prepara um diretório privado dentro da home de cada jogador:</span>
+          </p>
+<pre><code>&lt;home_N&gt;/.tw-in/
+├── bin/twinverse-input-bridge   # host hotplug &amp; hidraw allowlist supervisor
+├── lib64/libtwinverse_{uinput,udev}.so
+├── lib32/libtwinverse_{uinput,udev}.so
+└── sock/
+    ├── tw_event3000.sock        # bridged physical controller socket
+    ├── tw_event2000.sock        # Steam Input virtual controllers (2000+)
+    └── tw_hidraw.allow          # dynamic per-instance hidraw allowlist</code></pre>
+          <ul>
+            <li>
+              <strong><span data-lang-block="en">Verbose native logs:</span><span data-lang-block="pt">Logs detalhados da camada nativa:</span></strong>
+              <span data-lang-block="en">Set <code>TWINVERSE_UINPUT_LOG=1</code> in the player's <strong>Environment variables</strong> (or before launching Twinverse to also trace <code>twinverse-input-bridge</code> unplug/reconnect and <code>hidraw</code> allowlist updates) and inspect <code>logs/instances/latest.log</code>.</span>
+              <span data-lang-block="pt">Defina <code>TWINVERSE_UINPUT_LOG=1</code> nas <strong>Environment variables</strong> do jogador (ou antes de iniciar o Twinverse para também registrar desconexões, reconexões e atualizações de <code>hidraw</code> do <code>twinverse-input-bridge</code>) e inspecione <code>logs/instances/latest.log</code>.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Deferred <code>LD_PRELOAD</code> &amp; byte-verified staging:</span><span data-lang-block="pt"><code>LD_PRELOAD</code> adiado e staging verificado por bytes:</span></strong>
+              <span data-lang-block="en">Gamescope itself is never preloaded (activated for Steam/games via <code>GAMESCOPE_RUNTIME_SETUP</code>). Staged binaries under <code>~/.tw-in/</code> are compared byte-for-byte so Flatpak/OSTree upgrades always refresh native files even when <code>mtime</code> is epoch 0.</span>
+              <span data-lang-block="pt">O Gamescope nunca recebe <code>LD_PRELOAD</code> (ativado apenas para Steam e jogos via <code>GAMESCOPE_RUNTIME_SETUP</code>). Os binários em <code>~/.tw-in/</code> são comparados byte a byte para que atualizações do Flatpak/OSTree sempre renovem os arquivos nativos mesmo com <code>mtime</code> igual a epoch 0.</span>
+            </li>
+          </ul>
         </div>
 
         <div id="troubleshooting" data-toc-sub>
@@ -1557,8 +1618,8 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
             </summary>
             <div class="troubleshoot-body">
               <p>
-                <span data-lang-block="en">1) Verify your user belongs to the <code>input</code> group (<code>groups</code> should list <code>input</code>). If you just ran <code>usermod -aG input "$USER"</code> or <code>ujust add-user-to-input-group</code>, a full reboot is required. 2) Press <kbd>F5</kbd> in Twinverse after plugging in USB/Bluetooth controllers. 3) Make sure Steam Input was not re-enabled inside that player's Steam settings if the game sees duplicate or missing inputs.</span>
-                <span data-lang-block="pt">1) Confirme se seu usuário faz parte do grupo <code>input</code> (o comando <code>groups</code> deve listar <code>input</code>). Após rodar <code>usermod -aG input "$USER"</code> ou <code>ujust add-user-to-input-group</code>, é obrigatório reiniciar o PC. 2) Pressione <kbd>F5</kbd> no Twinverse após conectar controles USB/Bluetooth. 3) Verifique se o Steam Input não foi reativado manualmente nas configurações Steam daquela instância.</span>
+                <span data-lang-block="en">1) Verify your user belongs to the <code>input</code> group (<code>groups</code> should list <code>input</code>). If you just ran <code>usermod -aG input "$USER"</code> or <code>ujust add-user-to-input-group</code>, a full reboot is required. 2) Press <kbd>F5</kbd> in Twinverse after plugging in new USB/Bluetooth controllers (controllers assigned before launch reconnect automatically if unplugged mid-session). 3) If running from source without Rust installed, compile the native libraries with <code>make build-native</code> for full isolated Steam Input and hotplug support, or set <code>TWINVERSE_UINPUT_LOG=1</code> and inspect <code>logs/instances/latest.log</code>.</span>
+                <span data-lang-block="pt">1) Confirme se seu usuário faz parte do grupo <code>input</code> (o comando <code>groups</code> deve listar <code>input</code>). Após rodar <code>usermod -aG input "$USER"</code> ou <code>ujust add-user-to-input-group</code>, é obrigatório reiniciar o PC. 2) Pressione <kbd>F5</kbd> no Twinverse após conectar novos controles USB/Bluetooth (controles já atribuídos se reconectam automaticamente se desconectados no meio da partida). 3) Ao rodar do código-fonte sem Rust instalado, compile as bibliotecas nativas com <code>make build-native</code> para suporte completo a Steam Input isolado e hotplug, ou defina <code>TWINVERSE_UINPUT_LOG=1</code> e inspecione <code>logs/instances/latest.log</code>.</span>
               </p>
             </div>
           </details>
@@ -1664,8 +1725,8 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
             <a href="https://ko-fi.com/mall0r" target="_blank" rel="noopener noreferrer">Support on Ko-fi</a>
           </div>
           <p>
-            <span data-lang-block="en">Twinverse v1.1.4 · GPL-3.0-or-later · Hosted on GitHub Pages</span>
-            <span data-lang-block="pt">Twinverse v1.1.4 · GPL-3.0-or-later · Hospedado no GitHub Pages</span>
+            <span data-lang-block="en">Twinverse v2.0.0-alpha.1 · GPL-3.0-or-later · Hosted on GitHub Pages</span>
+            <span data-lang-block="pt">Twinverse v2.0.0-alpha.1 · GPL-3.0-or-later · Hospedado no GitHub Pages</span>
           </p>
         </footer>
       </section>
