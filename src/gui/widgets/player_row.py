@@ -3,6 +3,7 @@
 # flake8: noqa: E402
 
 import os
+import weakref
 from typing import Optional
 
 import gi
@@ -12,6 +13,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, GObject, Gtk, Pango
 
 from src.gui.widgets.env_variable_row import EnvVariableRow
+from src.gui.widgets.marquee_label import MarqueeLabel
 from src.gui.widgets.spinner import StudioSpinner
 from src.models import DEFAULT_PLAYER_NAME, PlayerInstanceConfig
 
@@ -20,6 +22,44 @@ INSTANCE_IDLE = "idle"
 INSTANCE_STARTING = "starting"
 INSTANCE_RUNNING = "running"
 INSTANCE_STOPPING = "stopping"
+
+
+class _ControllerOptionRow(Gtk.Box):
+    """Dropdown list row with marquee scrolling for long controller names and a selection dot."""
+
+    def __init__(self, max_width: int = 220):
+        super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=8, hexpand=True)
+        self.add_css_class("inspector-controller-option")
+        self.label = MarqueeLabel(max_width=max_width)
+        self.label.add_css_class("inspector-controller-option-label")
+        self.dot = Gtk.Image.new_from_icon_name("twinverse-dot-symbolic")
+        self.dot.set_pixel_size(14)
+        self.dot.set_valign(Gtk.Align.CENTER)
+        self.dot.set_accessible_role(Gtk.AccessibleRole.PRESENTATION)
+        self.dot.add_css_class("inspector-controller-selected-dot")
+        self.dot.set_opacity(0.0)
+        self.append(self.label)
+        self.append(self.dot)
+        self._selection_handler = 0
+        self._bound_item: Optional[GObject.Object] = None
+        self._selected = False
+
+    def is_selected_option(self) -> bool:
+        """Return whether this row currently shows the selected dot indicator."""
+        return self._selected
+
+    def set_selected(self, selected: bool) -> None:
+        """Show or hide the selection dot without shifting option text alignment."""
+        self._selected = bool(selected)
+        self.dot.set_opacity(1.0 if self._selected else 0.0)
+        if self._selected:
+            self.add_css_class("is-selected")
+        else:
+            self.remove_css_class("is-selected")
+
+    def sync_selected(self, dropdown: Gtk.DropDown, _pspec=None) -> None:
+        """Sync the selection dot against the dropdown's currently selected item."""
+        self.set_selected(self._bound_item is not None and dropdown.get_selected_item() == self._bound_item)
 
 
 class PlayerRow(Gtk.Box):
@@ -227,6 +267,7 @@ class PlayerRow(Gtk.Box):
         )
         joysticks = self._devices_info["joystick"]
         self.joystick_row = self._create_dropdown(["None"] + [device["name"] for device in joysticks])
+        self.joystick_row.set_list_factory(self._create_controller_list_factory(self.joystick_row))
         controller_field = self._create_field("_Controller", self.joystick_row)
         controller_field.set_tooltip_text(
             "Assign a gamepad to this player. If controllers are missing after refreshing, "
@@ -320,6 +361,49 @@ class PlayerRow(Gtk.Box):
         dropdown.connect("notify::selected", on_selected if on_selected is not None else self._on_setting_changed)
         return dropdown
 
+    def _create_controller_list_factory(self, dropdown: Gtk.DropDown) -> Gtk.SignalListItemFactory:
+        # Use a weak reference so the factory closure never forms a reference cycle with the dropdown.
+        dropdown_ref = weakref.ref(dropdown)
+        list_factory = Gtk.SignalListItemFactory()
+        list_factory.connect("setup", self._setup_controller_list_item)
+        list_factory.connect("bind", self._bind_controller_list_item, dropdown_ref)
+        list_factory.connect("unbind", self._unbind_controller_list_item, dropdown_ref)
+        return list_factory
+
+    @staticmethod
+    def _setup_controller_list_item(_factory, item):
+        item.set_child(_ControllerOptionRow())
+
+    @staticmethod
+    def _bind_controller_list_item(_factory, item, dropdown_ref):
+        dropdown = dropdown_ref()
+        row = item.get_child()
+        if dropdown is None or not isinstance(row, _ControllerOptionRow):
+            return
+        if row._selection_handler:
+            dropdown.disconnect(row._selection_handler)
+            row._selection_handler = 0
+        list_obj = item.get_item()
+        text = list_obj.get_string() if list_obj is not None else ""
+        row._bound_item = list_obj
+        row.label.set_text(text)
+        row.set_tooltip_text(text)
+        row.sync_selected(dropdown)
+        row._selection_handler = dropdown.connect("notify::selected-item", row.sync_selected)
+
+    @staticmethod
+    def _unbind_controller_list_item(_factory, item, dropdown_ref):
+        dropdown = dropdown_ref()
+        row = item.get_child()
+        if not isinstance(row, _ControllerOptionRow):
+            return
+        if dropdown is not None and row._selection_handler:
+            dropdown.disconnect(row._selection_handler)
+        row._selection_handler = 0
+        row._bound_item = None
+        row.set_selected(False)
+        row.label.stop()
+
     @staticmethod
     def _setup_dropdown_item(_factory, item):
         # Long option labels must not force the entire inspector wider.
@@ -398,6 +482,15 @@ class PlayerRow(Gtk.Box):
     def has_controller_selected(self) -> bool:
         """Return whether this player currently has a controller assigned."""
         return self._get_combo_device_id(self.joystick_row, self._devices_info["joystick"]) is not None
+
+    def get_selected_controller_name(self) -> Optional[str]:
+        """Return the name of the controller currently assigned to this player."""
+        selected_idx = self.joystick_row.get_selected()
+        devices = self._devices_info["joystick"]
+        if 0 < selected_idx <= len(devices):
+            name = (devices[selected_idx - 1].get("name") or "").strip()
+            return name or devices[selected_idx - 1].get("id") or None
+        return None
 
     def has_grab_mouse(self) -> bool:
         """Return whether this player currently has mouse capture enabled."""

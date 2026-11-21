@@ -2,6 +2,7 @@
 
 # flake8: noqa: E402
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from math import ceil
 
@@ -233,7 +234,7 @@ class LayoutPreview(Gtk.Box):
         self._slots: list[_PlayerSlot] = []
         self._active_player: int | None = None
         self._player_statuses: dict[int, str] = {}
-        self._player_controllers: dict[int, bool] = {}
+        self._player_controllers: dict[int, str | None] = {}
         self._player_mouse_grabs: dict[int, bool] = {}
         self._player_names: dict[int, str] = {}
         self._updating = False
@@ -564,9 +565,17 @@ class LayoutPreview(Gtk.Box):
         for slot in range(len(self._slots)):
             self._refresh_slot(slot)
 
-    def set_player_controllers(self, controllers: dict[int, bool]):
+    def set_player_controllers(self, controllers: Mapping[int, bool | str | None]):
         """Update per-player controller badges in place, preserving widgets and keyboard focus."""
-        self._player_controllers = {player: bool(assigned) for player, assigned in controllers.items()}
+        normalized: dict[int, str | None] = {}
+        for player, assigned in controllers.items():
+            if isinstance(assigned, str):
+                normalized[player] = assigned.strip() or None
+            elif assigned:
+                normalized[player] = "Controller assigned"
+            else:
+                normalized[player] = None
+        self._player_controllers = normalized
         for slot in range(len(self._slots)):
             self._refresh_slot(slot)
 
@@ -922,6 +931,7 @@ class LayoutPreview(Gtk.Box):
         caption.append(space)
 
         icon_size = 12 if compact else 14
+        controller_icon_size = 16 if compact else 20
         mouse_icon = Gtk.Image.new_from_icon_name("mouse-wireless-symbolic")
         mouse_icon.set_pixel_size(icon_size)
         mouse_icon.set_valign(Gtk.Align.CENTER)
@@ -932,9 +942,8 @@ class LayoutPreview(Gtk.Box):
         caption.append(mouse_icon)
 
         controller_icon = Gtk.Image.new_from_icon_name("twinverse-gamepad-symbolic")
-        controller_icon.set_pixel_size(icon_size)
+        controller_icon.set_pixel_size(controller_icon_size)
         controller_icon.set_valign(Gtk.Align.CENTER)
-        controller_icon.set_tooltip_text("Controller assigned")
         controller_icon.add_css_class("slot-controller-icon")
         controller_icon.add_css_class("slot-input-icon")
         controller_icon.set_visible(False)
@@ -1021,6 +1030,7 @@ class LayoutPreview(Gtk.Box):
         widgets.instance = instance
         if instance is None:
             widgets.controller_icon.set_visible(False)
+            widgets.controller_icon.set_tooltip_text(None)
             widgets.mouse_icon.set_visible(False)
             widgets.status_icon.set_from_icon_name("twinverse-dot-symbolic")
             widgets.status_icon.set_pixel_size(8)
@@ -1035,7 +1045,9 @@ class LayoutPreview(Gtk.Box):
                 ["Empty space", f"{widgets.location} Drop a player here."],
             )
             return
-        widgets.controller_icon.set_visible(bool(self._player_controllers.get(instance, False)))
+        controller_name = self._player_controllers.get(instance)
+        widgets.controller_icon.set_visible(bool(controller_name))
+        widgets.controller_icon.set_tooltip_text(controller_name)
         widgets.mouse_icon.set_visible(bool(self._player_mouse_grabs.get(instance, False)))
         player_name = self._player_names.get(instance) or DEFAULT_PLAYER_NAME
         widgets.number.set_label(f"{instance + 1:02d}")

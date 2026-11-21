@@ -218,12 +218,15 @@ def test_studio_header_and_roster_copy_are_minimal(page, devices):
 
 
 def test_slot_shows_controller_icon_in_top_right_when_controller_selected(page, devices):
-    """Spaces display a gamepad icon in the top-right only when their player has a controller selected."""
-    devices_with_pad = {
+    """Spaces display a gamepad icon with each player's selected controller name as tooltip."""
+    devices_with_pads = {
         **devices,
-        "joystick": [{"id": "/dev/input/event10", "name": "Xbox Wireless Controller"}],
+        "joystick": [
+            {"id": "/dev/input/event10", "name": "Xbox Wireless Controller"},
+            {"id": "/dev/input/event11", "name": "DualSense Wireless Controller"},
+        ],
     }
-    page.load_data(Profile(num_players=2), devices_with_pad, {})
+    page.load_data(Profile(num_players=2), devices_with_pads, {})
     preview = page.layout_preview
 
     first_slot, second_slot = preview._slots[0], preview._slots[1]
@@ -231,25 +234,45 @@ def test_slot_shows_controller_icon_in_top_right_when_controller_selected(page, 
     assert caption.has_css_class("slot-caption")
     assert caption.get_last_child() is first_slot.controller_icon
     assert first_slot.controller_icon.get_icon_name() == "twinverse-gamepad-symbolic"
+    assert first_slot.controller_icon.get_pixel_size() == 20
     assert not first_slot.controller_icon.get_visible()
+    assert first_slot.controller_icon.get_tooltip_text() is None
     assert not second_slot.controller_icon.get_visible()
+    assert second_slot.controller_icon.get_tooltip_text() is None
 
-    # Selecting a controller updates the player's slot icon in place without rebuilding the canvas.
+    # Selecting a controller updates the player's slot icon and tooltip in place without rebuilding.
     first_button = first_slot.button
     page.player_rows[0].joystick_row.set_selected(1)
     assert preview._slots[0].button is first_button
     assert preview._slots[0].controller_icon.get_visible()
+    assert preview._slots[0].controller_icon.get_tooltip_text() == "Xbox Wireless Controller"
     assert not preview._slots[1].controller_icon.get_visible()
+    assert preview._slots[1].controller_icon.get_tooltip_text() is None
 
-    # Swapping players moves the controller icon along with the player.
-    assert preview.assign_player(0, 1)
-    assert not preview._slots[0].controller_icon.get_visible()
+    # Assigning a different controller to player 2 shows that specific controller on their space.
+    page.player_rows[1].joystick_row.set_selected(2)
     assert preview._slots[1].controller_icon.get_visible()
+    assert preview._slots[1].controller_icon.get_tooltip_text() == "DualSense Wireless Controller"
 
-    # Clearing back to "None" hides the icon again.
+    # Swapping players moves both controller icons and their per-player tooltips together.
+    assert preview.assign_player(0, 1)
+    assert preview._slots[0].controller_icon.get_tooltip_text() == "DualSense Wireless Controller"
+    assert preview._slots[1].controller_icon.get_tooltip_text() == "Xbox Wireless Controller"
+
+    # Clearing back to "None" hides the icon and clears its tooltip.
     page.player_rows[0].joystick_row.set_selected(0)
+    page.player_rows[1].joystick_row.set_selected(0)
     assert not preview._slots[0].controller_icon.get_visible()
+    assert preview._slots[0].controller_icon.get_tooltip_text() is None
     assert not preview._slots[1].controller_icon.get_visible()
+    assert preview._slots[1].controller_icon.get_tooltip_text() is None
+
+    # Legacy boolean callers still receive a sensible fallback tooltip.
+    preview.set_player_controllers({0: True, 1: False})
+    assert preview._slots[1].controller_icon.get_visible()
+    assert preview._slots[1].controller_icon.get_tooltip_text() == "Controller assigned"
+    assert not preview._slots[0].controller_icon.get_visible()
+    assert preview._slots[0].controller_icon.get_tooltip_text() is None
 
 
 def test_slot_shows_mouse_icon_alone_and_side_by_side_with_controller(page, devices):
@@ -447,3 +470,6 @@ def test_two_row_layouts_use_compact_slots_to_avoid_tiny_fonts(page, devices):
     assert not preview._slots[0].cell.has_css_class("slot-compact")
     assert not preview._slots[1].cell.has_css_class("slot-compact")
     assert all(slot.cell.has_css_class("slot-compact") for slot in preview._slots[2:6])
+    assert preview._slots[0].controller_icon.get_pixel_size() == 20
+    assert all(slot.controller_icon.get_pixel_size() == 16 for slot in preview._slots[2:6])
+    assert preview._slots[4].controller_icon.get_tooltip_text() is None

@@ -523,7 +523,7 @@
     padding: 15px;
 }
 .slot-caption {
-    min-height: 14px;
+    min-height: 20px;
 }
 .slot-space {
     font-size: 8px;
@@ -587,7 +587,7 @@
     padding: 7px 10px;
 }
 .slot-compact .slot-caption {
-    min-height: 12px;
+    min-height: 16px;
 }
 .slot-compact .slot-number {
     font-size: 20px;
@@ -937,6 +937,19 @@
 }
 .light .inspector-dropdown > button:not(:disabled):active {
     background: #e2e2e2;
+}
+.inspector-controller-option {
+    min-height: 22px;
+}
+.inspector-controller-selected-dot {
+    color: @layout_accent;
+    -gtk-icon-size: 14px;
+}
+.light .inspector-controller-selected-dot {
+    color: @layout_accent_light;
+}
+.inspector-controller-option.is-selected .inspector-controller-option-label {
+    font-weight: 600;
 }
 .light .inspector-entry:focus-within,
 .light .inspector-env-key:focus-within,

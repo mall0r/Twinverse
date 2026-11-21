@@ -530,7 +530,7 @@ class LayoutSettingsPage(Gtk.Box):
             status = player.get_status_text()
             names[instance_num] = player_name
             statuses[instance_num] = status
-            controllers[instance_num] = player.has_controller_selected()
+            controllers[instance_num] = player.get_selected_controller_name()
             mouse_grabs[instance_num] = player.has_grab_mouse()
             self._roster_names[pos].set_label(player_name)
             self._roster_names[pos].set_tooltip_text(player_name if player_name != DEFAULT_PLAYER_NAME else None)
