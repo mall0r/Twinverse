@@ -185,10 +185,9 @@ stream.rules = [
         """Build the base steam command."""
         cmd = ["steam"]
 
-        if self.profile.use_steamdeck_tag:
-            cmd.append("-steamdeck")
-
         if self.profile.use_gamescope:
+            if self.profile.use_steamdeck_tag:
+                cmd.append("-steamdeck")
             logger.info("Instance %s: using Steam command with Gamescope flags", self.instance_num + 1)
             cmd.extend(["-gamepadui", "-steamos3"])
         else:

@@ -50,3 +50,18 @@ def test_unmanaged_launch_does_not_prepare_overlay(tmp_path, gamescope, steamdec
     command_builder = builder(tmp_path / "player", gamescope, steamdeck)
     assert command_builder.prepare_overlay_environment() == {}
     assert not command_builder.home_path.exists()
+
+
+@pytest.mark.parametrize(
+    "gamescope,steamdeck,expected",
+    [
+        (False, False, ["steam"]),
+        (False, True, ["steam"]),
+        (True, False, ["steam", "-gamepadui", "-steamos3"]),
+        (True, True, ["steam", "-steamdeck", "-gamepadui", "-steamos3"]),
+    ],
+)
+def test_steamdeck_flag_requires_gamescope(tmp_path, gamescope, steamdeck, expected):
+    """Verify -steamdeck is only passed to Steam when Gamescope is active."""
+    command_builder = builder(tmp_path / "player", gamescope, steamdeck)
+    assert command_builder._build_base_steam_command() == expected

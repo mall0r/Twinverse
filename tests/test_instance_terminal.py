@@ -63,8 +63,9 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     service.launch_instance(profile, 1, use_gamescope_override=False)
     service._sync_app_manifests.assert_called_once_with(tmp_path / "player 1")
     _, start_command, start_env = launch.call_args.args
-    steam_command = ["steam", "-steamdeck"] if steamdeck else ["steam"]
+    steam_command = ["steam"]
     assert start_command[-len(steam_command) :] == steam_command
+    assert "-steamdeck" not in start_command
     assert command == start_command[: -len(steam_command)] + ["/usr/bin/konsole", "--separate", "-e", "bash", "-i"]
     assert terminal_env == start_env == {"ENABLE_GAMESCOPE_WSI": "0", "PULSE_SINK": "player-output"}
     assert command[0] == "bwrap"
