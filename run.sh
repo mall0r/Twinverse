@@ -9,6 +9,18 @@ glib-compile-resources \
   --sourcedir=res \
   res/twinverse.gresources.xml
 
+# Build native Rust virtual uinput libraries & hotplug bridge if missing
+if [ ! -f "res/native/lib64/libtwinverse_uinput.so" ] || \
+   [ ! -f "res/native/lib64/libtwinverse_udev.so" ] || \
+   [ ! -f "res/native/lib32/libtwinverse_uinput.so" ] || \
+   [ ! -f "res/native/lib32/libtwinverse_udev.so" ] || \
+   [ ! -x "res/native/bin/twinverse-input-bridge" ]; then
+    echo "🦀 Building native virtual uinput libraries..."
+    if ! ./scripts/build-native.sh; then
+        echo "⚠️  Could not build native virtual uinput libraries; continuing with Steam Input fallback." >&2
+    fi
+fi
+
 # Create venv if it doesn't exist
 if [ ! -d ".venv" ]; then
     echo "📦 Creating virtual environment..."

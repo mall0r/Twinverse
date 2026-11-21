@@ -24,6 +24,7 @@ help:
 	@echo ""
 	@echo "Usage:"
 	@echo "  make build           Build the application with production flags"
+	@echo "  make build-native    Build Rust virtual uinput & libudev native libraries (64-bit & 32-bit)"
 	@echo "  make flatpak         Build Flatpak package with validation"
 	@echo "  make test            Run test suite with coverage check"
 	@echo "  make clean           Remove all temporary artifacts"
@@ -53,8 +54,14 @@ compile-resources:
 		echo -e "\033[1;31m twinverse.gresources.xml not found!\033[0m" >&2; \
 	fi
 
+# ===== NATIVE RUST LIBRARIES =====
+build-native:
+	$(call print_header,"Building native Rust virtual uinput libraries...")
+	@./scripts/build-native.sh
+	$(call print_success,"Native libraries built successfully!")
+
 # ===== BUILD APPLICATION =====
-build: dev
+build: dev build-native
 	$(call print_header,"Building Twinverse with production flags...")
 	@echo "Installing Twinverse in the virtual environment..."
 	@. .venv/bin/activate && $(PYTHON) -m pip install --upgrade pip && $(PYTHON) -m pip install .
@@ -77,6 +84,9 @@ validate-manifest:
 
 # ===== TEST SUITE =====
 test: dev
+	$(call print_header,"Running native Rust tests...")
+	@./scripts/build-native.sh --test
+	@echo ""
 	$(call print_header,"Running test suite...")
 	@echo "Running pytest..."
 	@. .venv/bin/activate && $(PYTHON) -m pytest
@@ -271,4 +281,4 @@ appimage:
 	$(call print_success,"AppImage package created successfully!")
 
 # ===== TARGETS =====
-.PHONY: help build flatpak validate-manifest test clean bump-patch release-major release-custom version update-version update-version-force bump-major bump-minor release-minor release-patch check-deps git-status appimage dev
+.PHONY: help build build-native flatpak validate-manifest test clean bump-patch release-major release-custom version update-version update-version-force bump-major bump-minor release-minor release-patch check-deps git-status appimage dev

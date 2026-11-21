@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential ca-certificates curl git binutils patchelf file \
+    build-essential gcc-multilib ca-certificates curl git binutils patchelf file \
     python3-dev python3-venv python3-pip python3-mako python3-markdown \
     pkg-config ninja-build gettext flex bison sassc gobject-introspection \
     libgirepository1.0-dev libffi-dev libpcre2-dev libmount-dev libselinux1-dev \
@@ -15,6 +15,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     shared-mime-info adwaita-icon-theme \
     libappstream-dev librsvg2-common desktop-file-utils squashfs-tools && rm -rf /var/lib/apt/lists/*
 RUN python3 -m pip install --no-cache-dir meson==1.11.2 packaging
+
+# Install Rust (64-bit + 32-bit targets) for the userspace virtual uinput libraries.
+ENV RUSTUP_HOME=/opt/rust/rustup
+ENV CARGO_HOME=/opt/rust/cargo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    --profile minimal \
+    --default-toolchain stable \
+    --target x86_64-unknown-linux-gnu \
+    --target i686-unknown-linux-gnu
+ENV PATH=/opt/rust/cargo/bin:$PATH
 
 # Build the modern GNOME stack against glibc 2.35, rather than copying it
 # from a rolling-release workstation. Keep the prefix out of the host system.

@@ -10,6 +10,8 @@ appdir="$work/AppDir"
 mkdir -p "$appdir/usr/bin" "$appdir/usr/share"
 
 cp -a res "$work/res"
+rm -rf "$work/res/native"
+CARGO_TARGET_DIR="$work/native-target" OUT_DIR="$work/res/native" bash scripts/build-native.sh
 glib-compile-resources --target="$work/res/twinverse.gresource" \
     --sourcedir=res res/twinverse.gresources.xml
 # A window-only smoke test misses icons that stay white in light mode. Test

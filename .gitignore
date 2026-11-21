@@ -3,8 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
+# C / Rust native extensions and build outputs
 *.so
+native/target/
+res/native/
 
 # Distribution / packaging
 build-dir/

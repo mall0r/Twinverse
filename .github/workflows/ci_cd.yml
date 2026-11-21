@@ -36,10 +36,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libgirepository-2.0-dev \
-            gcc libcairo2-dev pkg-config python3-dev \
+            gcc gcc-multilib libcairo2-dev pkg-config python3-dev \
             libglib2.0-dev libglib2.0-dev-bin \
             libgtk-4-dev libadwaita-1-dev \
             gir1.2-gtk-4.0 gir1.2-adw-1
+
+      - name: Set up Rust targets
+        run: |
+          rustup target add x86_64-unknown-linux-gnu i686-unknown-linux-gnu
+
+      - name: Build and test native Rust libraries
+        run: |
+          bash scripts/build-native.sh --test
+          bash scripts/build-native.sh
+          python3 scripts/appimage/check-glibc.py res/native 2.35
 
       - name: Install Python dependencies
         run: |

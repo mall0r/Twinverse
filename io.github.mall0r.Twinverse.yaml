@@ -2,6 +2,10 @@ app-id: io.github.mall0r.Twinverse
 runtime: org.gnome.Platform
 runtime-version: '51'
 sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Compat.i386
+  - org.freedesktop.Sdk.Extension.toolchain-i386
 command: twinverse
 
 finish-args:
@@ -45,10 +49,14 @@ modules:
   # Main application
   - name: twinverse
     buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/toolchain-i386/bin
     build-commands:
       - mkdir -p /app/lib/twinverse
       - cp -r src /app/lib/twinverse/
       - cp -r res /app/lib/twinverse/
+      - rm -rf /app/lib/twinverse/res/native
+      - CARGO_TARGET_DIR=/tmp/twinverse-native-target OUT_DIR=/app/lib/twinverse/res/native bash scripts/build-native.sh
       - cp twinverse.py /app/lib/twinverse/
       - cp version /app/lib/twinverse/
 
