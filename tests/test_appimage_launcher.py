@@ -28,6 +28,7 @@ def launch(tmp_path):
     def run(**overrides):
         integration_vars = {
             "GDK_DEBUG",
+            "GDK_DISABLE",
             "FONTCONFIG_PATH",
             "FONTCONFIG_FILE",
             "XDG_DATA_DIRS",
@@ -137,6 +138,43 @@ def test_host_wayland_libraries_are_not_shadowed(launch, tmp_path):
     )
     (env, _), appdir = launch(BASH_ENV=str(bash_env), LD_LIBRARY_PATH="/custom/lib")
     assert env["LD_LIBRARY_PATH"] == f"{appdir}/usr/lib:/custom/lib"
+
+
+def test_gles_api_is_disabled_when_host_lacks_libglesv2(launch, tmp_path):
+    """Disable GDK's GLES API when the host omits libGLESv2.so.2, preserving other flags."""
+    bash_env = tmp_path / "no-host-glesv2.sh"
+    bash_env.write_text(
+        "function [() {\n"
+        '    if [[ "$1" == -r && "$2" == *libGLESv2.so.2 ]]; then return 1; fi\n'
+        '    if [[ "$1" == -x && "$2" == *ldconfig ]]; then return 1; fi\n'
+        '    builtin [ "$@"\n'
+        "}\n"
+        "command() {\n"
+        '    if [[ "$1" == -v && "$2" == ldconfig ]]; then return 1; fi\n'
+        '    builtin command "$@"\n'
+        "}\n"
+    )
+    (env, _), _appdir = launch(BASH_ENV=str(bash_env))
+    assert env["GDK_DISABLE"] == "gles-api"
+
+    (env_existing, _), _appdir = launch(BASH_ENV=str(bash_env), GDK_DISABLE="vulkan")
+    assert env_existing["GDK_DISABLE"] == "vulkan,gles-api"
+
+    (env_already, _), _appdir = launch(BASH_ENV=str(bash_env), GDK_DISABLE="vulkan,gles-api")
+    assert env_already["GDK_DISABLE"] == "vulkan,gles-api"
+
+
+def test_gles_api_is_kept_when_host_provides_libglesv2(launch, tmp_path):
+    """Leave GDK_DISABLE untouched when host libGLESv2.so.2 is available."""
+    bash_env = tmp_path / "with-host-glesv2.sh"
+    bash_env.write_text(
+        "function [() {\n"
+        '    if [[ "$1" == -r && "$2" == *libGLESv2.so.2 ]]; then return 0; fi\n'
+        '    builtin [ "$@"\n'
+        "}\n"
+    )
+    (env, _), _appdir = launch(BASH_ENV=str(bash_env))
+    assert "GDK_DISABLE" not in env
 
 
 def test_spec_excludes_host_abi_libraries():

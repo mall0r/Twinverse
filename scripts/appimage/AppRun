@@ -47,6 +47,14 @@ do
     fi
 done
 
+# Mesa EGL advertises OpenGL ES even on minimal X11 hosts that omit libgles2,
+# causing libepoxy to abort when dlopen("libGLESv2.so.2") fails. Fall back to
+# desktop OpenGL instead of bundling a libglvnd dispatcher that must match the
+# host's libGLdispatch ABI.
+if ! _host_has_lib "libGLESv2.so.2" && [[ ! "${GDK_DISABLE:-}" =~ (^|[,:\;[:space:]])gles-api($|[,:\;[:space:]]) ]]; then
+    export GDK_DISABLE="${GDK_DISABLE:+$GDK_DISABLE,}gles-api"
+fi
+
 # GTK 4.16 uses GSettings outside Flatpak, but our private GLib has no host
 # settings backend. The Settings portal supplies the desktop's font/cursor
 # preferences (and live updates) without loading incompatible host modules.
