@@ -2,13 +2,25 @@
 import os
 
 work = os.environ['TWINVERSE_BUILD_DIR']
+
+# Exclude core host-ABI and Wayland libraries from PyInstaller's _internal
+# directory so host graphics drivers (Mesa/LLVM/EGL) never bind against older
+# Ubuntu 22.04 copies and silently fall back to software Cairo rendering.
+# Wayland fallback copies are staged separately by package.sh and only added
+# to LD_LIBRARY_PATH by AppRun on minimal X11-only hosts that lack them.
+_HOST_ABI_EXCLUDES = {
+    'libstdc++.so.6',
+    'libgcc_s.so.1',
+    'libexpat.so.1',
+    'libz.so.1',
+    'libwayland-client.so.0',
+    'libwayland-cursor.so.0',
+    'libwayland-egl.so.1',
+}
+
 a = Analysis(
     ['/project/twinverse.py'],
     pathex=['/project'],
-    # PyInstaller excludes Wayland libraries as system libraries by default,
-    # but an X11-only host still needs them to load this GTK build.
-    binaries=[('/opt/twinverse/lib/libwayland-' + name, '.')
-              for name in ('client.so.0', 'cursor.so.0', 'egl.so.1')],
     datas=[(work + '/res', 'res'), ('/project/version', '.'), ('/etc/fonts', 'etc/fonts')],
     hiddenimports=[
         'gi.repository.Gtk', 'gi.repository.Adw', 'gi.repository.Gdk',
@@ -16,6 +28,7 @@ a = Analysis(
     ],
     hooksconfig={'gi': {'module-versions': {'Gtk': '4.0', 'Gdk': '4.0', 'Adw': '1'}}},
 )
+a.binaries = [b for b in a.binaries if os.path.basename(b[0]) not in _HOST_ABI_EXCLUDES]
 pyz = PYZ(a.pure)
 exe = EXE(
     pyz, a.scripts, [], exclude_binaries=True, name='twinverse',

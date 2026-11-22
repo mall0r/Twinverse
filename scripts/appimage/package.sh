@@ -26,6 +26,24 @@ cp scripts/appimage/twinverse.spec.in "$work/twinverse.spec"
 pyinstaller --noconfirm --clean --distpath "$work/dist" --workpath "$work/build" \
     "$work/twinverse.spec"
 cp -a "$work/dist/twinverse/." "$appdir/usr/bin/"
+for forbidden in \
+    libstdc++.so.6 libgcc_s.so.1 libexpat.so.1 libz.so.1 \
+    libwayland-client.so.0 libwayland-cursor.so.0 libwayland-egl.so.1
+do
+    if [ -e "$appdir/usr/bin/_internal/$forbidden" ]; then
+        echo "Forbidden host-ABI library found in _internal: $forbidden" >&2
+        exit 1
+    fi
+done
+# Stage Wayland libraries in per-library fallback directories outside _internal.
+# AppRun only appends a fallback directory when the host does not provide that
+# library, preventing older bundled Wayland copies from shadowing host Mesa/EGL.
+install -Dm644 /opt/twinverse/lib/libwayland-client.so.0 \
+    "$appdir/usr/lib/fallback/wayland-client/libwayland-client.so.0"
+install -Dm644 /opt/twinverse/lib/libwayland-cursor.so.0 \
+    "$appdir/usr/lib/fallback/wayland-cursor/libwayland-cursor.so.0"
+install -Dm644 /opt/twinverse/lib/libwayland-egl.so.1 \
+    "$appdir/usr/lib/fallback/wayland-egl/libwayland-egl.so.1"
 cp scripts/appimage/AppRun "$appdir/AppRun"
 chmod +x "$appdir/AppRun"
 app_id=io.github.mall0r.Twinverse

@@ -5,6 +5,48 @@ HERE=$(dirname "$(readlink -f "$0")")
 # Include PyInstaller's share directory now, otherwise its GLib hook prepends it.
 export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}:$HERE/usr/share:$HERE/usr/bin/_internal/share"
 export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+_ldconfig_cache=""
+_ldconfig_loaded=0
+_host_has_lib() {
+    local name=$1
+    local dir
+    for dir in /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /lib /lib64 /lib/x86_64-linux-gnu; do
+        if [ -r "$dir/$name" ]; then
+            return 0
+        fi
+    done
+    if [ "$_ldconfig_loaded" -eq 0 ]; then
+        _ldconfig_loaded=1
+        local ldconfig_bin=""
+        if command -v ldconfig >/dev/null 2>&1; then
+            ldconfig_bin=$(command -v ldconfig)
+        elif [ -x /sbin/ldconfig ]; then
+            ldconfig_bin=/sbin/ldconfig
+        elif [ -x /usr/sbin/ldconfig ]; then
+            ldconfig_bin=/usr/sbin/ldconfig
+        fi
+        if [ -n "$ldconfig_bin" ]; then
+            _ldconfig_cache=$("$ldconfig_bin" -p 2>/dev/null || true)
+        fi
+    fi
+    [[ "$_ldconfig_cache" == *"$name (libc6,x86-64"* ]]
+}
+
+# Prefer the host's Wayland libraries so host Mesa/EGL drivers keep working;
+# only fall back to the bundled copies on minimal X11-only systems.
+for fallback in \
+    "wayland-client:libwayland-client.so.0" \
+    "wayland-cursor:libwayland-cursor.so.0" \
+    "wayland-egl:libwayland-egl.so.1"
+do
+    subdir=${fallback%%:*}
+    soname=${fallback#*:}
+    if [ -d "$HERE/usr/lib/fallback/$subdir" ] && ! _host_has_lib "$soname"; then
+        export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HERE/usr/lib/fallback/$subdir"
+    fi
+done
+
 # GTK 4.16 uses GSettings outside Flatpak, but our private GLib has no host
 # settings backend. The Settings portal supplies the desktop's font/cursor
 # preferences (and live updates) without loading incompatible host modules.
