@@ -62,7 +62,7 @@ class MainPresenter:
         self._owned_instances: set[int] = set()
         self._instance_states: dict[int, str] = {}
         self._progress_shown: dict[int, tuple[str, Optional[int]]] = {}
-        self._minimized_after_launch = False
+        self._minimize_after_launch = False
 
         self._load_initial_data()
 
@@ -220,12 +220,16 @@ class MainPresenter:
         return True
 
     def _minimize_when_all_open(self):
-        """Minimize the window once every instance was confirmed to be open."""
-        if self._minimized_after_launch:
+        """Minimize the window once every instance from a session launch is open."""
+        if not self._minimize_after_launch:
             return
-        if self._footer_state() != INSTANCE_RUNNING:
+        footer_state = self._footer_state()
+        if footer_state == INSTANCE_IDLE and not getattr(self, "_bulk_operation_in_progress", False):
+            self._minimize_after_launch = False
             return
-        self._minimized_after_launch = True
+        if footer_state != INSTANCE_RUNNING:
+            return
+        self._minimize_after_launch = False
         logger.info("Every instance is open, minimizing the window")
         self.window.minimize_window()
 
@@ -551,7 +555,7 @@ class MainPresenter:
         self._settings_controller.save_profile()
 
         self.window.show_launching_state()
-        self._minimized_after_launch = False
+        self._minimize_after_launch = True
 
         logger.info("Initiating launch of instances...")
         started = self._launch_controller.launch_instances(
@@ -563,6 +567,7 @@ class MainPresenter:
         if not started:
             logger.warning("Another launch is already in progress.")
             self._bulk_operation_in_progress = False
+            self._minimize_after_launch = False
             self.window.show_idle_state()
             self._update_launch_button_sensitivity()
             self._update_number_of_instances_sensitivity()
@@ -575,6 +580,7 @@ class MainPresenter:
                 self._begin_instance_stop(instance_num)
         self._starting_instances.clear()
         self._owned_instances.clear()
+        self._minimize_after_launch = False
 
         self._bulk_operation_in_progress = True
 
@@ -805,3 +811,4 @@ class MainPresenter:
         self._update_launch_button_sensitivity()
         self._update_number_of_instances_sensitivity()
         self._bulk_operation_in_progress = False
+        self._minimize_after_launch = False

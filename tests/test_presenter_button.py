@@ -75,7 +75,8 @@ def _presenter(recovered=None):
     presenter._owned_instances = set()
     presenter._instance_states = {}
     presenter._progress_shown = {}
-    presenter._minimized_after_launch = False
+    presenter._minimize_after_launch = False
+    presenter._bulk_operation_in_progress = False
     presenter.window = Mock()
     layout_page = Mock()
     layout_page.get_selected_players.return_value = [0, 1]
@@ -254,8 +255,10 @@ def test_the_row_tells_what_the_steam_is_doing():
 
 
 def test_the_window_is_minimized_only_when_every_instance_is_open():
-    """The window goes away when the last Steam client was confirmed."""
+    """The window goes away after Launch session when the last Steam client is confirmed."""
     presenter = _presenter()
+    presenter._launch_controller.launch_instances.return_value = True
+    presenter._on_launch_requested()
     presenter._instance_service.processes[0] = _running_process()
     presenter._instance_service.processes[1] = _running_process()
     presenter._instance_service.is_client_up.side_effect = lambda number: number == 0
@@ -270,6 +273,39 @@ def test_the_window_is_minimized_only_when_every_instance_is_open():
     presenter._watch_instances()
 
     presenter.window.minimize_window.assert_called_once()
+
+
+def test_start_player_does_not_minimize_window():
+    """Launching a single player via Start player keeps the main window visible."""
+    presenter = _presenter()
+    presenter._kde_manager = Mock()
+    presenter.on_instance_launch_requested(0)
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = True
+
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    assert presenter.window.get_layout_page().player_rows[0].get_instance_state() == INSTANCE_RUNNING
+    presenter.window.minimize_window.assert_not_called()
+
+
+def test_failed_session_launch_does_not_minimize_subsequent_start_player():
+    """A cancelled or failed session launch must not leave auto-minimize armed for Start player."""
+    presenter = _presenter()
+    presenter._kde_manager = Mock()
+    presenter._launch_controller.launch_instances.return_value = True
+    presenter._on_launch_requested()
+    presenter._restore_after_failed_launch()
+
+    presenter.on_instance_launch_requested(0)
+    presenter._instance_service.processes[0] = _running_process()
+    presenter._instance_service.is_client_up.return_value = True
+
+    presenter._watch_instance_start(0)
+    presenter._watch_instances()
+
+    presenter.window.minimize_window.assert_not_called()
 
 
 def test_a_starting_instance_can_be_cancelled():
