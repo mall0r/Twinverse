@@ -30,7 +30,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ### Added
 
-- Redesign the interface and preferences window as a three-pane **Session Studio** (Party Roster, Session Layout canvas, and collapsible Player Setup inspector).
+- Redesign the interface and preferences window with a three-pane layout (Party Roster, Session Layout canvas, and collapsible Player Setup inspector).
 - Add per-monitor tiling templates (`Fullscreen`, `Columns`, `Rows`, `Main left`, `Main top`, and `Grid`) with the `TilingPicker` native thumbnail widget, persistent per-connector layouts, `Automatic` vs. `Custom` placement, and animated drag-and-drop card motion (`CardMotion`).
 - Add direct `+ Add player` and per-player removal controls in the Party Roster, inline editable player names (up to 32 characters), mouse-grab indicators, and `Ready` check icons.
 - Bundle custom symbolic SVG icons (`res/icons/`) replacing system theme icons, add a dedicated `StudioSpinner` widget for reliable GTK4 animation, redesign floating toast notifications, and introduce a WCAG AA/AAA light mode color palette.

@@ -197,11 +197,11 @@
         <div class="tabs">
           <div class="tab-list" role="tablist">
             <button class="tab-btn" role="tab" aria-selected="true" data-tab="theme-dark">
-              <span data-lang-block="en">Dark Studio</span>
+              <span data-lang-block="en">Dark Theme</span>
               <span data-lang-block="pt">Tema Escuro</span>
             </button>
             <button class="tab-btn" role="tab" aria-selected="false" data-tab="theme-light">
-              <span data-lang-block="en">Light Studio</span>
+              <span data-lang-block="en">Light Theme</span>
               <span data-lang-block="pt">Tema Claro</span>
             </button>
           </div>
@@ -209,11 +209,11 @@
           <div class="tab-panel" data-panel="theme-dark">
             <figure class="figure">
               <div class="figure-img-wrap">
-                <img src="./assets/img/hero-studio-dark.png" alt="Twinverse Session Studio in Dark Mode">
+                <img src="./assets/img/hero-studio-dark.png" alt="Twinverse in Dark Mode">
               </div>
               <figcaption>
-                <span data-lang-block="en"><strong>Twinverse Session Studio (Dark Mode)</strong> — Three-pane workspace with the Party Roster on the left, live monitor tiling canvas in the center, and Player Setup inspector on the right.</span>
-                <span data-lang-block="pt"><strong>Twinverse Session Studio (Modo Escuro)</strong> — Área de trabalho em três painéis com a lista de jogadores (Party) à esquerda, pré-visualização interativa de monitores ao centro e o inspetor Player Setup à direita.</span>
+                <span data-lang-block="en"><strong>Twinverse (Dark Mode)</strong> — Three-pane workspace with the Party Roster on the left, live monitor tiling canvas in the center, and Player Setup inspector on the right.</span>
+                <span data-lang-block="pt"><strong>Twinverse (Modo Escuro)</strong> — Área de trabalho em três painéis com a lista de jogadores (Party) à esquerda, pré-visualização interativa de monitores ao centro e o inspetor Player Setup à direita.</span>
               </figcaption>
             </figure>
           </div>
@@ -221,11 +221,11 @@
           <div class="tab-panel" data-panel="theme-light" hidden>
             <figure class="figure">
               <div class="figure-img-wrap">
-                <img src="./assets/img/studio-light-mode.png" alt="Twinverse Session Studio in Light Mode" loading="lazy">
+                <img src="./assets/img/studio-light-mode.png" alt="Twinverse in Light Mode" loading="lazy">
               </div>
               <figcaption>
-                <span data-lang-block="en"><strong>Twinverse Session Studio (Light Mode)</strong> — Switch themes anytime with the header button. Theme preference is persisted across restarts.</span>
-                <span data-lang-block="pt"><strong>Twinverse Session Studio (Modo Claro)</strong> — Alterne o tema a qualquer momento pelo botão no cabeçalho. A preferência é salva automaticamente.</span>
+                <span data-lang-block="en"><strong>Twinverse (Light Mode)</strong> — Switch themes anytime with the header button. Theme preference is persisted across restarts.</span>
+                <span data-lang-block="pt"><strong>Twinverse (Modo Claro)</strong> — Alterne o tema a qualquer momento pelo botão no cabeçalho. A preferência é salva automaticamente.</span>
               </figcaption>
             </figure>
           </div>
@@ -386,22 +386,6 @@
             <span data-lang-block="pt"><strong>SteamOS</strong> (AMD) e <strong>Bazzite</strong> já vêm com Steam, Gamescope, Bubblewrap e PipeWire pré-instalados por padrão.</span>
           </p>
         </div>
-
-        <div class="callout callout-important">
-          <p class="callout-title">
-            <span data-lang-block="en">Mandatory Permission: Add Your User to the <code>input</code> Group</span>
-            <span data-lang-block="pt">Permissão Obrigatória: Adicione seu Usuário ao Grupo <code>input</code></span>
-          </p>
-          <p>
-            <span data-lang-block="en">Twinverse needs read access to <code>/dev/input</code> and <code>/dev/uinput</code> to detect controllers and create automatic virtual joysticks. Run the appropriate command below and <strong>reboot your computer</strong>:</span>
-            <span data-lang-block="pt">O Twinverse precisa de acesso a <code>/dev/input</code> e <code>/dev/uinput</code> para detectar controles e criar joysticks virtuais automáticos. Execute o comando correspondente abaixo e <strong>reinicie o computador</strong>:</span>
-          </p>
-<pre><code># Most Linux distributions (Arch, Fedora, Ubuntu, Debian, openSUSE, SteamOS)
-sudo usermod -aG input "$USER"
-
-# Bazzite (immutable Fedora Atomic)
-ujust add-user-to-input-group</code></pre>
-        </div>
       </section>
 
       <!-- SECTION 3: INSTALLATION -->
@@ -422,10 +406,7 @@ ujust add-user-to-input-group</code></pre>
 
         <div class="tabs">
           <div class="tab-list" role="tablist">
-            <button class="tab-btn" role="tab" aria-selected="true" data-tab="install-flatpak">
-              <span data-lang-block="en">Flatpak (Recommended)</span>
-              <span data-lang-block="pt">Flatpak (Recomendado)</span>
-            </button>
+            <button class="tab-btn" role="tab" aria-selected="true" data-tab="install-flatpak">Flatpak</button>
             <button class="tab-btn" role="tab" aria-selected="false" data-tab="install-appimage">AppImage</button>
             <button class="tab-btn" role="tab" aria-selected="false" data-tab="install-source">
               <span data-lang-block="en">From Source</span>
@@ -494,8 +475,8 @@ cd Twinverse
       <!-- SECTION 4: WORKSPACE ANATOMY -->
       <section id="workspace-anatomy" class="doc-section">
         <p class="eyebrow">
-          <span data-lang-block="en">Know the Studio</span>
-          <span data-lang-block="pt">Conheça o Studio</span>
+          <span data-lang-block="en">Know the Interface</span>
+          <span data-lang-block="pt">Conheça a Interface</span>
         </p>
         <h2>
           <span data-lang-block="en">Interface Anatomy</span>
@@ -503,17 +484,17 @@ cd Twinverse
         </h2>
 
         <p>
-          <span data-lang-block="en">Twinverse uses a clean three-pane GTK4/libadwaita studio layout designed to keep party selection, visual monitor tiling, and per-player hardware configuration visible at once. On screens narrower than <code>1120sp</code>, the right-hand <strong>Player Setup</strong> pane collapses cleanly into a slide-over drawer (toggle anytime with <kbd>F9</kbd> or <kbd>Alt+2</kbd>).</span>
+          <span data-lang-block="en">Twinverse uses a clean three-pane GTK4/libadwaita layout designed to keep party selection, visual monitor tiling, and per-player hardware configuration visible at once. On screens narrower than <code>1120sp</code>, the right-hand <strong>Player Setup</strong> pane collapses cleanly into a slide-over drawer (toggle anytime with <kbd>F9</kbd> or <kbd>Alt+2</kbd>).</span>
           <span data-lang-block="pt">O Twinverse usa uma interface GTK4/libadwaita em três painéis pensada para manter a lista de jogadores, o mapa visual de monitores e a configuração de hardware por jogador visíveis ao mesmo tempo. Em telas menores que <code>1120sp</code>, o painel direito <strong>Player Setup</strong> se recolhe automaticamente em uma gaveta lateral (alterne a qualquer momento com <kbd>F9</kbd> ou <kbd>Alt+2</kbd>).</span>
         </p>
 
         <figure class="figure">
           <div class="figure-img-wrap">
-            <img src="./assets/img/anatomy-studio.png" alt="Annotated anatomy of Twinverse Session Studio showing 6 numbered regions" loading="lazy">
+            <img src="./assets/img/anatomy-studio.png" alt="Annotated anatomy of Twinverse showing 6 numbered regions" loading="lazy">
           </div>
           <figcaption>
-            <span data-lang-block="en"><strong>Session Studio Anatomy</strong> — Click the image to zoom in. Each numbered badge matches a core area explained below.</span>
-            <span data-lang-block="pt"><strong>Anatomia do Session Studio</strong> — Clique na imagem para ampliar. Cada número corresponde a uma área descrita abaixo.</span>
+            <span data-lang-block="en"><strong>Interface Anatomy</strong> — Click the image to zoom in. Each numbered badge matches a core area explained below.</span>
+            <span data-lang-block="pt"><strong>Anatomia da Interface</strong> — Clique na imagem para ampliar. Cada número corresponde a uma área descrita abaixo.</span>
           </figcaption>
         </figure>
 
@@ -583,6 +564,22 @@ cd Twinverse
           <span data-lang-block="en">Follow these five steps the first time you set up Twinverse. Once your players are signed into Steam, future gaming nights take a single click on <strong>Launch session</strong>.</span>
           <span data-lang-block="pt">Siga estes cinco passos na primeira vez em que configurar o Twinverse. Depois que os jogadores fizerem login no Steam, as próximas sessões exigem apenas um clique em <strong>Launch session</strong>.</span>
         </p>
+
+        <div class="callout callout-important">
+          <p class="callout-title">
+            <span data-lang-block="en">Mandatory Permission: Add Your User to the <code>input</code> Group</span>
+            <span data-lang-block="pt">Permissão Obrigatória: Adicione seu Usuário ao Grupo <code>input</code></span>
+          </p>
+          <p>
+            <span data-lang-block="en">Twinverse needs read access to <code>/dev/input</code> and <code>/dev/uinput</code> to detect controllers and create automatic virtual joysticks. Run the appropriate command below and <strong>reboot your computer</strong>:</span>
+            <span data-lang-block="pt">O Twinverse precisa de acesso a <code>/dev/input</code> e <code>/dev/uinput</code> para detectar controles e criar joysticks virtuais automáticos. Execute o comando correspondente abaixo e <strong>reinicie o computador</strong>:</span>
+          </p>
+<pre><code># Most Linux distributions (Arch, Fedora, Ubuntu, Debian, openSUSE, SteamOS)
+sudo usermod -aG input "$USER"
+
+# Bazzite (immutable Fedora Atomic)
+ujust add-user-to-input-group</code></pre>
+        </div>
 
         <!-- STEP 1 -->
         <article id="step-1-party" class="step-block" data-toc-sub>
@@ -1130,8 +1127,8 @@ cd Twinverse
                   <img src="./assets/img/direct-steam-mode.png" alt="Direct Steam mode displayed when Use Gamescope is turned off" loading="lazy">
                 </div>
                 <figcaption>
-                  <span data-lang-block="en"><strong>Direct Steam Mode:</strong> When <em>Use Gamescope</em> is disabled, the studio explains that monitor tiling is bypassed and provides a one-click shortcut back to Preferences.</span>
-                  <span data-lang-block="pt"><strong>Direct Steam Mode:</strong> Quando <em>Use Gamescope</em> está desativado, o studio informa que o auto-tiling está desabilitado e oferece um atalho direto para as Preferências.</span>
+                  <span data-lang-block="en"><strong>Direct Steam Mode:</strong> When <em>Use Gamescope</em> is disabled, Twinverse explains that monitor tiling is bypassed and provides a one-click shortcut back to Preferences.</span>
+                  <span data-lang-block="pt"><strong>Direct Steam Mode:</strong> Quando <em>Use Gamescope</em> está desativado, o Twinverse informa que o auto-tiling está desabilitado e oferece um atalho direto para as Preferências.</span>
                 </figcaption>
               </figure>
             </div>
@@ -1336,8 +1333,8 @@ DRI_PRIME=1! %command%</code></pre>
           <div class="card-grid-2">
             <div>
               <h4>
-                <span data-lang-block="en">Twinverse Studio Shortcuts</span>
-                <span data-lang-block="pt">Atalhos do Twinverse Studio</span>
+                <span data-lang-block="en">Twinverse Shortcuts</span>
+                <span data-lang-block="pt">Atalhos do Twinverse</span>
               </h4>
               <div class="table-wrap">
                 <table>

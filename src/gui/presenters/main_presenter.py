@@ -468,9 +468,9 @@ class MainPresenter:
             else "https://github.com/mall0r/Twinverse/blob/main/README.md"
         )
         support_url = (
-            "https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.pt-br.md"
+            "https://mall0r.github.io/Twinverse/?lang=pt#step-by-step"
             if is_pt
-            else "https://github.com/mall0r/Twinverse/blob/main/docs/GUIDE.md"
+            else "https://mall0r.github.io/Twinverse/#step-by-step"
         )
         about = Adw.AboutDialog(
             application_name="Twinverse",

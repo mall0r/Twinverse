@@ -32,7 +32,7 @@
 > **Full Interactive Documentation:** Visit the [**Twinverse Documentation Site**](https://mall0r.github.io/Twinverse/) (English & Português BR) for the complete illustrated step-by-step guide, visual layout diagrams, all features, shortcuts, and troubleshooting FAQ.
 
 <p align="center">
-  <img alt="Twinverse Session Studio" src="share/screenshots/twinverse-session-dark.png" />
+  <img alt="Twinverse" src="share/screenshots/twinverse-session-dark.png" />
 </p>
 
 > [!WARNING]
@@ -44,7 +44,7 @@
 > Mouse and keyboard (`Grab mouse`) can only be assigned to one instance at a time.
 
 1. **Up to 8 Isolated Instances:** Run multiple Steam clients simultaneously with custom editable player names, per-player inclusion toggles, and automatic crash/session recovery.
-2. **Per-Monitor Tiling & Drag-and-Drop Studio:** Choose from 6 visual templates per display (`Fullscreen`, `Columns`, `Rows`, `Main left`, `Main top`, `Grid` — up to 4 players per monitor), mix templates across monitors, and drag players directly between spaces.
+2. **Per-Monitor Tiling & Drag-and-Drop Layout:** Choose from 6 visual templates per display (`Fullscreen`, `Columns`, `Rows`, `Main left`, `Main top`, `Grid` — up to 4 players per monitor), mix templates across monitors, and drag players directly between spaces.
 3. **Full Steam Input, True Input Isolation & Hotplug Reconnection:** A pure-Rust userspace `/dev/uinput` + `libudev` virtualization layer (`libtwinverse_uinput.so` / `libtwinverse_udev.so`) keeps Steam Input virtual controllers strictly scoped to each instance without touching host `/dev/uinput`. A host supervisor (`twinverse-input-bridge`) automatically reconnects controllers if unplugged or replugged mid-session, isolates identical sibling gamepads, dynamically filters `/dev/hidraw*` (preserving native gyro, rumble, touchpad, and LEDs), and provides an automatic `"Virtual Joystick by Twinverse"` when no physical controller is selected.
 4. **Dedicated Audio Outputs:** Route each player's audio to its own PipeWire/PulseAudio sink (`PULSE_SINK`) with per-instance PipeWire capture isolation.
 5. **Rootless Per-Instance Networking (`pasta`):** Automatically assigns each instance its own free LAN IPv4 address (or an optional fixed `Guest IP`) so local co-op and dedicated servers connect directly without port conflicts or Steam relays. Can be toggled anytime via **Isolate network** in `Preferences -> Engine`.
@@ -63,7 +63,7 @@
 
 You need the **native** host packages `steam`, `gamescope`, `bubblewrap` (`bwrap`), and `pactl` (`pipewire-pulse` or `pulseaudio-utils`) installed from your distribution.
 
-- **Strongly recommended (`pasta` / `passt`):** Enables automatic rootless per-instance network isolation with distinct LAN IPv4 addresses. Install it on the host `PATH`, including when running Twinverse via Flatpak. See the [Networking section](https://mall0r.github.io/Twinverse/#feature-networking) or [Guide](docs/GUIDE.md#per-instance-networking-pasta).
+- **Strongly recommended (`pasta` / `passt`):** Enables automatic rootless per-instance network isolation with distinct LAN IPv4 addresses. Install it on the host `PATH`, including when running Twinverse via Flatpak. See the [Networking section](https://mall0r.github.io/Twinverse/#feature-networking).
 - **Mandatory `input` group:** Add your user to the `input` group and reboot so Twinverse can manage controllers and virtual joysticks:
 
 ```bash
@@ -85,7 +85,7 @@ For Gamescope GPU support, you will need:
 
 ## 📦 Installation
 
-### Flatpak (Recommended)
+### Flatpak
 
 1. Download the latest `Twinverse-*.flatpak` file from [**Releases**](https://github.com/mall0r/Twinverse/releases).
 2. Add the Flathub remote (if not already configured) and install:
@@ -123,7 +123,7 @@ cd Twinverse
 ## 📖 Documentation & Guides
 
 - **Interactive Documentation (EN / PT-BR):** [https://mall0r.github.io/Twinverse/](https://mall0r.github.io/Twinverse/)
-- **Step-by-Step Guide (Markdown):** [docs/GUIDE.md](docs/GUIDE.md) | [docs/GUIDE.pt-br.md](docs/GUIDE.pt-br.md)
+- **Step-by-Step Guide:** [English](https://mall0r.github.io/Twinverse/#step-by-step) | [Português BR](https://mall0r.github.io/Twinverse/?lang=pt#step-by-step)
 - **Debugging & Logs:** [docs/DEBUGGING.md](docs/DEBUGGING.md) | [docs/DEBUGGING.pt-br.md](docs/DEBUGGING.pt-br.md)
 
 ---

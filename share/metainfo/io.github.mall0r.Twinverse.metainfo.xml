@@ -16,7 +16,7 @@
     <p>Key Features:</p>
     <ul>
       <li>Up to 8 Isolated Instances: Run multiple Steam clients simultaneously with custom player names, per-player inclusion toggles, and automatic crash/session recovery</li>
-      <li>Per-Monitor Tiling &amp; Drag-and-Drop Studio: Choose from 6 visual templates per display (Fullscreen, Columns, Rows, Main left, Main top, Grid — up to 4 players per monitor) and drag players directly between spaces</li>
+      <li>Per-Monitor Tiling &amp; Drag-and-Drop Layout: Choose from 6 visual templates per display (Fullscreen, Columns, Rows, Main left, Main top, Grid — up to 4 players per monitor) and drag players directly between spaces</li>
       <li>Full Steam Input &amp; Hotplug Controller Isolation: Pure-Rust userspace /dev/uinput and libudev virtualization keeps Steam Input strictly per-instance, automatically reconnects unplugged controllers mid-session, isolates identical sibling controllers, and dynamically filters /dev/hidraw*</li>
       <li>Dedicated Audio Outputs: Route each player's audio to a separate PipeWire/PulseAudio sink with per-instance PipeWire capture isolation</li>
       <li>Rootless Per-Instance Networking (pasta): Assigns each instance its own free LAN IPv4 address (or optional fixed Guest IP) to prevent port conflicts and Steam relays, with an Isolate network preference toggle</li>
@@ -35,11 +35,11 @@
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-session-dark.png</image>
-      <caption>Session Studio main window in dark mode</caption>
+      <caption>Twinverse main window in dark mode</caption>
     </screenshot>
     <screenshot>
       <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-player-light.png</image>
-      <caption>Session Studio main window in light mode</caption>
+      <caption>Twinverse main window in light mode</caption>
     </screenshot>
     <screenshot>
       <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-session-custom.png</image>
@@ -60,7 +60,7 @@
   <releases>
     <release version="2.0.0-alpha.1" date="2026-11-20" type="development">
       <description>
-        <p>Early alpha preview of Twinverse 2.0 featuring the redesigned three-pane Session Studio interface (Party Roster, Session Layout canvas, and collapsible Player Setup inspector).</p>
+        <p>Early alpha preview of Twinverse 2.0 featuring the redesigned three-pane interface (Party Roster, Session Layout canvas, and collapsible Player Setup inspector).</p>
         <p>Add per-monitor tiling templates (Fullscreen, Columns, Rows, Main Left, Main Top, and Grid) with native thumbnails, crisp 1:1 integer-pixel framing, and animated drag-and-drop player placement.</p>
         <p>Add editable player names, direct player add/remove controls, bundled custom symbolic icons, redesigned floating toast notifications, and a WCAG AA/AAA light mode palette.</p>
         <p>Give each isolated instance its own IPv4 address with pasta, track SteamRT3 steamwebhelper startup and termination safely across descendant sessions, and recover surviving instances across restarts.</p>

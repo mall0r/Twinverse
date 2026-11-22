@@ -32,7 +32,7 @@ O **Twinverse** é um aplicativo open-source para Linux e SteamOS que permite cr
 > **Documentação Interativa Completa:** Acesse o [**Site de Documentação do Twinverse**](https://mall0r.github.io/Twinverse/?lang=pt) (Português BR & English) para ver o guia passo a passo ilustrado, diagramas de layout, todas as funcionalidades, atalhos e solução de problemas.
 
 <p align="center">
-  <img alt="Studio de sessões do Twinverse" src="../share/screenshots/twinverse-session-dark.png" />
+  <img alt="Twinverse" src="../share/screenshots/twinverse-session-dark.png" />
 </p>
 
 > [!WARNING]
@@ -63,7 +63,7 @@ O **Twinverse** é um aplicativo open-source para Linux e SteamOS que permite cr
 
 É necessário ter instalados os pacotes **nativos** da sua distribuição: `steam`, `gamescope`, `bubblewrap` (`bwrap`) e `pactl` (`pipewire-pulse` ou `pulseaudio-utils`).
 
-- **Altamente recomendado (`pasta` / `passt`):** Ativa o isolamento de rede sem root por instância com endereços IPv4 distintos na LAN. Instale no `PATH` do host, inclusive ao usar o Twinverse via Flatpak. Consulte a [seção de Rede](https://mall0r.github.io/Twinverse/?lang=pt#feature-networking) ou o [Guia](GUIDE.pt-br.md#rede-por-instância-pasta).
+- **Altamente recomendado (`pasta` / `passt`):** Ativa o isolamento de rede sem root por instância com endereços IPv4 distintos na LAN. Instale no `PATH` do host, inclusive ao usar o Twinverse via Flatpak. Consulte a [seção de Rede](https://mall0r.github.io/Twinverse/?lang=pt#feature-networking).
 - **Grupo `input` obrigatório:** Adicione seu usuário ao grupo `input` e reinicie o computador para permitir o gerenciamento de controles e joysticks virtuais:
 
 ```bash
@@ -85,7 +85,7 @@ Para o Gamescope funcionar corretamente, conforme sua GPU:
 
 ## 📦 Instalação
 
-### Flatpak (Recomendado)
+### Flatpak
 
 1. Baixe o arquivo `Twinverse-*.flatpak` mais recente em [**Releases**](https://github.com/mall0r/Twinverse/releases).
 2. Configure o repositório Flathub (se ainda não tiver) e instale:
@@ -123,7 +123,7 @@ O `./run.sh` compila automaticamente os arquivos GResource, compila as bibliotec
 ## 📖 Documentação e Guias
 
 - **Documentação Interativa (PT-BR / EN):** [https://mall0r.github.io/Twinverse/?lang=pt](https://mall0r.github.io/Twinverse/?lang=pt)
-- **Guia Passo a Passo (Markdown):** [docs/GUIDE.pt-br.md](GUIDE.pt-br.md) | [docs/GUIDE.md](GUIDE.md)
+- **Guia Passo a Passo:** [Português BR](https://mall0r.github.io/Twinverse/?lang=pt#step-by-step) | [English](https://mall0r.github.io/Twinverse/#step-by-step)
 - **Depuração e Logs:** [docs/DEBUGGING.pt-br.md](DEBUGGING.pt-br.md) | [docs/DEBUGGING.md](DEBUGGING.md)
 
 ---
