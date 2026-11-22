@@ -29,9 +29,7 @@ from .instance_registry import (
 )
 from .kde_manager import KdeManager
 from .network import network_command
-from .steam_input import SteamInputDisabler
 from .steam_probe import ClientUpdate, SteamClientProbe
-from .virtual_uinput import is_virtual_uinput_available
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +52,6 @@ class InstanceService:
         from .device_manager import DeviceManager
         from .virtual_device import VirtualDeviceService
 
-        self.steam_input = SteamInputDisabler()
         self.virtual_device = VirtualDeviceService()
         self.kde_manager = kde_manager
         self.device_manager = DeviceManager()
@@ -282,10 +279,6 @@ class InstanceService:
         self._prepare_home(home_path)
         if application_command is None:
             self._sync_app_manifests(home_path)
-            if not is_virtual_uinput_available():
-                # Fallback when the native userspace /dev/uinput libraries are
-                # unavailable: disable Steam Input once before Steam reads it.
-                self.steam_input.disable_once(instance_num, home_path)
 
         device_info = self._validate_input_devices(profile, instance_num, instance_num + 1)
         instance_env = self._prepare_environment(profile, device_info, instance_num)

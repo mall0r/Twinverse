@@ -161,7 +161,7 @@ O Twinverse inclui uma camada de virtualização de entrada em espaço de usuár
 - **Suporte completo ao Steam Input (ativo por padrão):** Controles virtuais criados pelo Steam Input ficam estritamente restritos aos sockets Unix privados de cada jogador em `~/.tw-in/sock/`, sem tocar no `/dev/uinput` do host e sem vazar para outras instâncias.
 - **Reconexão automática no meio da sessão:** Se o controle de um jogador desconectar (bateria fraca, cabo solto ou suspensão Bluetooth), o `twinverse-input-bridge` envia eventos de neutralização para evitar botões/analógicos presos e reconecta o controle automaticamente quando ele voltar—incluindo controles idênticos.
 - **Isolamento dinâmico de `/dev/hidraw*`:** Apenas os nós `hidraw` pertencentes ao controle daquele jogador ficam visíveis na sandbox (preservando giroscópio, vibração, touchpad e LEDs nativos), sem expor os controles dos demais jogadores.
-- **Modo de fallback:** Somente ao executar a partir do código-fonte sem as bibliotecas nativas em Rust compiladas o Twinverse recorre aos bind-mounts estáticos de `/dev/input/eventX` e à desativação única do Steam Input por conta no `localconfig.vdf`.
+- **Modo de fallback:** Somente ao executar a partir do código-fonte sem as bibliotecas nativas em Rust compiladas o Twinverse recorre aos bind-mounts estáticos de `/dev/input/eventX` e à máscara estática de `/dev/hidraw*`.
 
 ### Atalhos de Teclado
 

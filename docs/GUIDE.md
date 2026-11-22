@@ -161,7 +161,7 @@ Twinverse ships a pure-Rust userspace input virtualization layer (`libtwinverse_
 - **Full Steam Input support (enabled by default):** Virtual controllers created by Steam Input stay strictly scoped to each player's private Unix sockets under `~/.tw-in/sock/`, never touching the host kernel's `/dev/uinput` and never leaking to other instances.
 - **Automatic mid-session reconnection:** If a player's controller disconnects (dead battery, loose cable, or Bluetooth sleep), `twinverse-input-bridge` sends neutralizer events so sticks/buttons don't get stuck and seamlessly reconnects the controller when it comes back—including identical sibling controllers.
 - **Dynamic `/dev/hidraw*` isolation:** Only the player's own controller `hidraw` nodes are exposed inside their sandbox (preserving native gyro, rumble, touchpad, and LEDs) without leaking other players' devices.
-- **Graceful fallback:** Only when running from source without the native Rust libraries compiled does Twinverse fall back to static `/dev/input/eventX` bind-mounts and one-time per-account Steam Input disabling in `localconfig.vdf`.
+- **Graceful fallback:** Only when running from source without the native Rust libraries compiled does Twinverse fall back to static `/dev/input/eventX` bind-mounts and static `/dev/hidraw*` masking.
 
 ### Keyboard Shortcuts
 

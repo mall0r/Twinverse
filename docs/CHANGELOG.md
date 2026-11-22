@@ -19,9 +19,12 @@ All notable changes to this project will be documented in this file. This projec
 
 ### Changed
 
-- Keep Steam Input enabled by default when the native userspace virtual `/dev/uinput` libraries are active, falling back to static device bind-mounts and one-time per-account Steam Input disabling only when running without the native libraries.
 - Build and bundle the 64-bit and 32-bit native Rust input libraries and `twinverse-input-bridge` across development runs (`./run.sh`), `make build-native`, `make build`, CI, Flatpak, and AppImage builds (with `GLIBC <= 2.35` validation).
 - Rewrite the AppImage symbolic icon appearance verification helper in pure Rust (`scripts/appimage/check-appearance.rs`), removing the last C source file from the repository.
+
+### Removed
+
+- Remove the legacy first-launch Steam Input disabler (`SteamInputDisabler` / `localconfig.vdf` patching) now that per-instance userspace `/dev/uinput` isolation supports Steam Input natively.
 
 ## [2.0.0-alpha.1] - 2026-11-20
 

@@ -182,8 +182,8 @@ Key troubleshooting notes:
   refresh native libraries even when OSTree sets `mtime` to epoch 0.
 - **Fallback detection:** If `twinverse.log` notes that native virtual uinput
   libraries were not found (e.g., running from source without Rust), Twinverse
-  automatically falls back to static `/dev/input/eventX` bind-mounts, static
-  `/dev/hidraw*` masking, and one-time per-account Steam Input disabling.
+  automatically falls back to static `/dev/input/eventX` bind-mounts and static
+  `/dev/hidraw*` masking.
 
 ## Crashes and unhandled exceptions
 Twinverse installs exception hooks and enables `faulthandler`. Python

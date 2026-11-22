@@ -186,8 +186,7 @@ Pontos úteis para diagnóstico:
 - **Detecção de fallback:** Se o `twinverse.log` indicar que as bibliotecas
   nativas de uinput virtual não foram encontradas (por exemplo, ao rodar do
   código-fonte sem Rust), o Twinverse usa automaticamente o fallback com
-  bind-mounts estáticos de `/dev/input/eventX`, máscara estática de `/dev/hidraw*`
-  e desativação única do Steam Input por conta.
+  bind-mounts estáticos de `/dev/input/eventX` e máscara estática de `/dev/hidraw*`.
 
 ## Travamentos e exceções não tratadas
 

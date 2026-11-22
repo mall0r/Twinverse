@@ -10,7 +10,6 @@ from src.core import Config, Utils
 from src.core.exceptions import DependencyError
 from src.models import PlayerInstanceConfig, Profile
 from src.services.instance import InstanceService
-from src.services.steam_input import SteamInputDisabler
 
 
 @pytest.mark.parametrize("flatpak", [False, True])
@@ -28,7 +27,6 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     service.pgids = {}
     service.processes = {}
     service._sync_app_manifests = Mock()
-    service.steam_input = SteamInputDisabler()
     native_launch = Mock(return_value=(Mock(pid=123), 123))
     flatpak_launch = Mock(return_value=(Mock(pid=456), 456))
     service._launch_natively = native_launch
