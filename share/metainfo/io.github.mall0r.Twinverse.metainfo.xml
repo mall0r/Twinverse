@@ -34,15 +34,15 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-session-dark.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.2/share/screenshots/twinverse-session-dark.png</image>
       <caption>Twinverse main window in dark mode</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-player-light.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.2/share/screenshots/twinverse-player-light.png</image>
       <caption>Twinverse main window in light mode</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.1/share/screenshots/twinverse-session-custom.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.2/share/screenshots/twinverse-session-custom.png</image>
       <caption>Multi-monitor mixed tiling templates and custom placement</caption>
     </screenshot>
   </screenshots>
@@ -58,6 +58,16 @@
   </provides>
 
   <releases>
+    <release version="2.0.0-alpha.2" date="2026-11-22" type="development">
+      <description>
+        <p>Add pure-Rust userspace /dev/uinput and libudev virtualization (64-bit and 32-bit) together with the twinverse-input-bridge host supervisor for full per-instance Steam Input, mid-session controller hotplug reconnection, identical controller isolation, and dynamic /dev/hidraw* filtering.</p>
+        <p>Add full Brazilian Portuguese (pt_BR) UI localization with live language switching (Auto, English, Português BR) in the main menu and Preferences.</p>
+        <p>Add an Isolate network toggle in Preferences to enable or disable per-instance pasta network namespaces, plus a marquee-scrolling controller dropdown with slot hover tooltips.</p>
+        <p>Fix AppImage UI low-FPS software fallback by preventing bundled libstdc++ and Wayland libraries from shadowing host Mesa/EGL drivers, restoring full GPU-accelerated GskGLRenderer on Wayland and X11.</p>
+        <p>Fix Steam Deck OOBE feature locks on fresh instances by passing -steamdeck only when Gamescope is enabled, and keep the main window visible when launching a single player via Start player.</p>
+        <p>Remove the legacy first-launch Steam Input disabler, migrate deprecated Adw.MessageDialog usages to Adw.AlertDialog, and refresh screenshots and documentation.</p>
+      </description>
+    </release>
     <release version="2.0.0-alpha.1" date="2026-11-20" type="development">
       <description>
         <p>Early alpha preview of Twinverse 2.0 featuring the redesigned three-pane interface (Party Roster, Session Layout canvas, and collapsible Player Setup inspector).</p>

@@ -5,26 +5,35 @@ All notable changes to this project will be documented in this file. This projec
 
 ## [Unreleased]
 
+## [2.0.0-alpha.2] - 2026-11-22
+
 ### Added
 
 - Add a pure-Rust userspace `/dev/uinput` interposer (`libtwinverse_uinput.so`) and `libudev` shim (`libtwinverse_udev.so`), built for both 64-bit and 32-bit with zero external Cargo dependencies, enabling full per-instance **Steam Input** without touching host `/dev/uinput` or leaking virtual controllers across instances.
 - Add a pure-Rust host input supervisor (`twinverse-input-bridge`) that bridges each player's physical controller over a persistent synthetic `/dev/input/event3000` Unix socket, emits disconnect neutralizer events on unplug, isolates identical sibling controllers, dynamically filters `/dev/hidraw*` via `tw_hidraw.allow` (preserving native gyro, rumble, touchpad, and LEDs), and automatically reconnects controllers mid-session when unplugged and replugged.
+- Add full Brazilian Portuguese (`pt_BR`) UI localization with live language switching (`Auto`, `English`, `Português (Brasil)`) in the main menu and `Preferences`.
 - Add an **Isolate network** toggle (`ISOLATE_NETWORK`, default `On`) in `Preferences -> Engine` to disable per-instance `pasta` network isolation (for LAN discovery and local P2P), disabling the per-player `Guest IP` entry while keeping any saved IP intact.
 - Add a marquee-scrolling controller dropdown (`MarqueeLabel`) with full-name tooltips and a themed selection dot in Player Setup, plus controller-name tooltips when hovering a player space's enlarged gamepad badge on the layout canvas.
 
 ### Fixed
 
+- Fix AppImage low-FPS software fallback (`GskCairoRenderer`) by excluding host-ABI libraries (`libstdc++.so.6`, `libgcc_s.so.1`, `libexpat.so.1`, `libz.so.1`) from PyInstaller's `_internal` directory and staging Wayland libraries as host-missing fallbacks in `AppRun`, restoring hardware-accelerated `GskGLRenderer` on Wayland and X11.
+- Fix Steam Deck OOBE feature blocks (Store, Community, Profile, Account) on newly installed Desktop-mode Steam instances by passing `-steamdeck` only when Gamescope is active.
+- Keep the main window visible when launching an individual player via **Start player** / **Install Steam**, auto-minimizing only after a **Launch session** run.
 - Verify staged native Rust binaries and shared libraries by byte content (not just file size and `mtime`) so Flatpak/OSTree updates always refresh staged files under `~/.tw-in/` even when `mtime` is epoch 0.
 - Allow variadic `open`/`open64` interposition signatures in `twinverse-uinput-interposer` so the native workspace builds cleanly on Rust 1.100+.
 
 ### Changed
 
 - Build and bundle the 64-bit and 32-bit native Rust input libraries and `twinverse-input-bridge` across development runs (`./run.sh`), `make build-native`, `make build`, CI, Flatpak, and AppImage builds (with `GLIBC <= 2.35` validation).
+- Migrate deprecated `Adw.MessageDialog` usages to `Adw.AlertDialog`, eliminating GTK/libadwaita deprecation warnings across the app and test suite.
 - Rewrite the AppImage symbolic icon appearance verification helper in pure Rust (`scripts/appimage/check-appearance.rs`), removing the last C source file from the repository.
+- Standardize naming to **Twinverse**, refresh documentation and GitHub Pages screenshots for the compact UI, remove Flatpak-over-AppImage recommendation, move the `input` group permission block to the start of the Step-by-Step Guide, and replace legacy Markdown guides with direct links to GitHub Pages.
 
 ### Removed
 
 - Remove the legacy first-launch Steam Input disabler (`SteamInputDisabler` / `localconfig.vdf` patching) now that per-instance userspace `/dev/uinput` isolation supports Steam Input natively.
+- Remove duplicate `docs/GUIDE.md` and `docs/GUIDE.pt-br.md` files in favor of the bilingual GitHub Pages guide.
 
 ## [2.0.0-alpha.1] - 2026-11-20
 

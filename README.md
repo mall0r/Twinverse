@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-2.0.0--alpha.1-blue.svg" alt="Version"/></a>
+  <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-2.0.0--alpha.2-blue.svg" alt="Version"/></a>
   <a href="https://mall0r.github.io/Twinverse/"><img src="https://img.shields.io/badge/Documentation-Live-84b4fa.svg" alt="Documentation"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="License"/></a>
   <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK Version"/></a>
