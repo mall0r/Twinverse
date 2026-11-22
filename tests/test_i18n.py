@@ -10,9 +10,10 @@ from unittest.mock import patch
 import gi
 import pytest
 
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, GLib  # noqa: E402
+from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
 
 from src.core.config import Config
 from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
@@ -53,6 +54,14 @@ _PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z0-9_]+)\}")
 
 def _placeholders(text: str) -> set[str]:
     return set(_PLACEHOLDER_RE.findall(text))
+
+
+@pytest.fixture
+def gtk_display():
+    """Initialize GTK/Adwaita when a display is available, otherwise skip."""
+    if not Gtk.init_check() or Gdk.Display.get_default() is None:
+        pytest.skip("A GTK display is required")
+    Adw.init()
 
 
 def test_translation_catalog_parity_and_placeholders():
@@ -156,13 +165,17 @@ def test_profile_language_persistence_and_default_player_names():
     assert loaded.language == LANGUAGE_PT_BR
 
 
-def test_error_handler_and_dialogs_localize_in_pt_br():
+def test_error_handler_localizes_in_pt_br():
     set_language(LANGUAGE_PT_BR)
     assert "Dependência ausente" in ErrorHandler.format_error(DependencyError("gamescope"))
     assert "Erro de dispositivo virtual" in ErrorHandler.format_error(VirtualDeviceError("uinput"))
     assert "Erro do Twinverse" in ErrorHandler.format_error(TwinverseError("boom"))
     not_found = FileNotFoundError(2, "No such file", "bwrap")
     assert "Comando obrigatório 'bwrap' não encontrado" in ErrorHandler.format_error(not_found)
+
+
+def test_dialogs_localize_in_pt_br(gtk_display):
+    set_language(LANGUAGE_PT_BR)
 
     confirm = ConfirmationDialog(None, "Título", "Mensagem")
     assert confirm.get_response_label("ok") == "OK"
@@ -176,7 +189,7 @@ def test_error_handler_and_dialogs_localize_in_pt_br():
     assert text_dialog.get_response_label("cancel") == "Cancelar"
 
 
-def test_toast_overlay_live_retranslation():
+def test_toast_overlay_live_retranslation(gtk_display):
     toast = ToastOverlay()
     toast.show_toast("Working...", level=BUSY, timeout=0)
     assert toast._title.get_text() == "WORKING"
@@ -191,7 +204,7 @@ def test_toast_overlay_live_retranslation():
     assert toast._title.get_text() == "ERRO"
 
 
-def test_player_row_and_layout_page_live_language_switch():
+def test_player_row_and_layout_page_live_language_switch(gtk_display):
     devices = {
         "joystick": [{"id": "pad-0", "name": "DualSense"}],
         "audio": [{"id": "sink-0", "name": "HDMI"}],
@@ -258,7 +271,7 @@ def test_player_row_and_layout_page_live_language_switch():
     assert row0.get_status_text() == "Parando…"
 
 
-def test_main_window_and_preferences_language_switching():
+def test_main_window_and_preferences_language_switching(gtk_display):
     app = Adw.Application(application_id="io.github.mall0r.Twinverse.test.i18n")
     profile = Profile()
     recorded: list[tuple[str, object]] = []
@@ -309,7 +322,7 @@ def test_main_window_and_preferences_language_switching():
     assert win.launch_label.get_label() == "Launch session"
 
 
-def test_main_presenter_applies_saved_profile_language_on_startup():
+def test_main_presenter_applies_saved_profile_language_on_startup(gtk_display):
     profile = Profile(LANGUAGE=LANGUAGE_PT_BR)
     profile.save()
 
