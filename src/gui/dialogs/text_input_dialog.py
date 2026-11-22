@@ -22,6 +22,7 @@ class TextInputDialog(BaseDialog):
         self.add_response("ok", t("common.ok"))
         self.add_response("cancel", t("common.cancel"))
         self.set_default_response("ok")
+        self.set_close_response("cancel")
 
     def get_input(self) -> str:
         """Get the text input from the dialog."""

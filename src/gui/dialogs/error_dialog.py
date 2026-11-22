@@ -18,3 +18,4 @@ class ErrorDialog(BaseDialog):
         super().__init__(parent, title, message)
         self.add_response("ok", t("common.ok"))
         self.set_default_response("ok")
+        self.set_close_response("ok")

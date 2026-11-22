@@ -7,9 +7,14 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 
-class BaseDialog(Adw.MessageDialog):
+class BaseDialog(Adw.AlertDialog):
     """Base dialog class."""
 
     def __init__(self, parent, title: str, message: str, **kwargs):
         """Initialize the base dialog."""
-        super().__init__(transient_for=parent, modal=True, title=title, body=message, **kwargs)
+        super().__init__(heading=title, body=message, **kwargs)
+        self._parent = parent
+
+    def present(self, parent=None):
+        """Present the dialog attached to its configured parent widget."""
+        super().present(self._parent if parent is None else parent)

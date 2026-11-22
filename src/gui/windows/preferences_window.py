@@ -470,8 +470,7 @@ class PreferencesWindow(Adw.Window):
     def _on_delete_player_clicked(self, button, player_index):
         """Handle deletion of a player's configuration and home directory."""
         player_label = f"{self._profile.get_player_name(player_index)} ({player_index + 1:02d})"
-        dialog = Adw.MessageDialog(
-            transient_for=self,
+        dialog = Adw.AlertDialog(
             heading=t("prefs.instances.confirm_heading", player=player_label),
             body=t("prefs.instances.confirm_body", player=player_label),
         )
@@ -483,7 +482,7 @@ class PreferencesWindow(Adw.Window):
         dialog.set_close_response("cancel")
 
         dialog.connect("response", self._on_confirmation_response, player_index)
-        dialog.present()
+        dialog.present(self)
 
     def _on_confirmation_response(self, dialog, response, player_index):
         """Handle the confirmation dialog response."""

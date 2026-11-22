@@ -19,3 +19,4 @@ class ConfirmationDialog(BaseDialog):
         self.add_response("ok", t("common.ok"))
         self.add_response("cancel", t("common.cancel"))
         self.set_default_response("cancel")
+        self.set_close_response("cancel")
