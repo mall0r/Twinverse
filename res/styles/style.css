@@ -960,8 +960,23 @@
 .light .inspector-controller-selected-dot {
     color: @layout_accent_light;
 }
+.inspector-controller-option.is-disconnected .inspector-controller-selected-dot {
+    color: #f0c44d;
+}
+.light .inspector-controller-option.is-disconnected .inspector-controller-selected-dot {
+    color: #c27803;
+}
 .inspector-controller-option.is-selected .inspector-controller-option-label {
     font-weight: 600;
+}
+.inspector-controller-option.is-taken .inspector-controller-option-label {
+    opacity: 0.45;
+}
+.inspector-controller-owner-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: inherit;
+    opacity: 0.45;
 }
 .light .inspector-entry:focus-within,
 .light .inspector-env-key:focus-within,

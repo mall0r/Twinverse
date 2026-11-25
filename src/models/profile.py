@@ -36,6 +36,7 @@ class PlayerInstanceConfig(BaseModel):
     physical_device_name: Optional[str] = Field(default=None, alias="PHYSICAL_DEVICE_NAME")
     grab_input_devices: bool = Field(default=False, alias="GRAB_INPUT_DEVICES")
     audio_device_id: Optional[str] = Field(default=None, alias="AUDIO_DEVICE_ID")
+    audio_device_name: Optional[str] = Field(default=None, alias="AUDIO_DEVICE_NAME")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
     guest_ip: Optional[str] = Field(default=None, alias="GUEST_IP")
 
@@ -52,13 +53,19 @@ class PlayerInstanceConfig(BaseModel):
 
     @model_validator(mode="after")
     def normalize_physical_device(self):
-        """Trim saved controller metadata and drop stale names when unassigned."""
+        """Trim saved controller and audio metadata and drop stale names when unassigned."""
         if self.physical_device_id is not None:
             self.physical_device_id = self.physical_device_id.strip() or None
         if self.physical_device_id is None:
             self.physical_device_name = None
         elif self.physical_device_name is not None:
             self.physical_device_name = self.physical_device_name.strip() or None
+        if self.audio_device_id is not None:
+            self.audio_device_id = self.audio_device_id.strip() or None
+        if self.audio_device_id is None:
+            self.audio_device_name = None
+        elif self.audio_device_name is not None:
+            self.audio_device_name = self.audio_device_name.strip() or None
         return self
 
     @property

@@ -4,7 +4,7 @@
 
 import os
 import weakref
-from typing import Optional
+from typing import Optional, Sequence
 
 import gi
 
@@ -29,37 +29,101 @@ _DEFAULT_PLAYER_NAMES = frozenset({DEFAULT_PLAYER_NAME, *(cat["player.default_na
 
 
 class _ControllerOptionRow(Gtk.Box):
-    """Dropdown list row with marquee scrolling for long controller names and a selection dot."""
+    """Dropdown list row with marquee scrolling, selection dot, and plain player-number indicator."""
 
     def __init__(self, max_width: int = 220):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=8, hexpand=True)
         self.add_css_class("inspector-controller-option")
         self.label = MarqueeLabel(max_width=max_width)
         self.label.add_css_class("inspector-controller-option-label")
+        self.owner_badge = Gtk.Label(xalign=1.0, yalign=0.5, valign=Gtk.Align.CENTER, halign=Gtk.Align.END)
+        self.owner_badge.add_css_class("inspector-controller-owner-badge")
+        self.owner_badge.set_visible(False)
         self.dot = Gtk.Image.new_from_icon_name("twinverse-dot-symbolic")
         self.dot.set_pixel_size(14)
         self.dot.set_valign(Gtk.Align.CENTER)
+        self.dot.set_halign(Gtk.Align.CENTER)
         self.dot.set_accessible_role(Gtk.AccessibleRole.PRESENTATION)
         self.dot.add_css_class("inspector-controller-selected-dot")
         self.dot.set_opacity(0.0)
+        self._indicators = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL,
+            spacing=6,
+            valign=Gtk.Align.CENTER,
+            halign=Gtk.Align.END,
+        )
+        self._indicators.append(self.owner_badge)
+        self._indicators.append(self.dot)
         self.append(self.label)
-        self.append(self.dot)
+        self.append(self._indicators)
         self._selection_handler = 0
         self._bound_item: Optional[GObject.Object] = None
         self._selected = False
+        self._disconnected = False
+        self._other_players: tuple[int, ...] = ()
+        self._blocked = False
 
     def is_selected_option(self) -> bool:
         """Return whether this row currently shows the selected dot indicator."""
         return self._selected
 
+    def is_disconnected_option(self) -> bool:
+        """Return whether this row represents a remembered disconnected device."""
+        return self._disconnected
+
+    def other_players(self) -> tuple[int, ...]:
+        """Return zero-based indices of other players currently using this device."""
+        return self._other_players
+
+    def owner_player(self) -> Optional[int]:
+        """Return the first zero-based player index using this device, or None."""
+        return self._other_players[0] if self._other_players else None
+
+    def _sync_indicator_visibility(self) -> None:
+        has_others = bool(self._other_players)
+        self.owner_badge.set_visible(has_others)
+        # Keep the dot visible when selected (even alongside shared audio numbers) or when no
+        # numbers are shown (preserving alignment); hide it when numbers replace an unselected dot.
+        show_dot = (not self._blocked) and (self._selected or not has_others)
+        self.dot.set_visible(show_dot)
+        self.dot.set_opacity(1.0 if self._selected else 0.0)
+
     def set_selected(self, selected: bool) -> None:
         """Show or hide the selection dot without shifting option text alignment."""
-        self._selected = bool(selected)
-        self.dot.set_opacity(1.0 if self._selected else 0.0)
+        self._selected = bool(selected) and not self._blocked
         if self._selected:
             self.add_css_class("is-selected")
         else:
             self.remove_css_class("is-selected")
+        self._sync_indicator_visibility()
+
+    def set_disconnected(self, disconnected: bool) -> None:
+        """Mark this row as disconnected so its selection dot uses the warning yellow tint."""
+        self._disconnected = bool(disconnected)
+        if self._disconnected:
+            self.add_css_class("is-disconnected")
+        else:
+            self.remove_css_class("is-disconnected")
+
+    def set_other_players(self, players: Sequence[int], *, blocked: bool = False) -> None:
+        """Display other players' numbers on the right, optionally blocking selection."""
+        self._other_players = tuple(players)
+        self._blocked = bool(blocked) and bool(self._other_players)
+        if self._other_players:
+            self.owner_badge.set_label(", ".join(f"{player + 1:02d}" for player in self._other_players))
+        else:
+            self.owner_badge.set_label("")
+        if self._blocked:
+            self.add_css_class("is-taken")
+            self._selected = False
+            self.remove_css_class("is-selected")
+        else:
+            self.remove_css_class("is-taken")
+        self._sync_indicator_visibility()
+
+    def set_taken_by(self, player_num: Optional[int]) -> None:
+        """Mark a controller row as exclusively owned by another player."""
+        self.set_other_players(() if player_num is None else (player_num,), blocked=player_num is not None)
 
     def sync_selected(self, dropdown: Gtk.DropDown, _pspec=None) -> None:
         """Sync the selection dot against the dropdown's currently selected item."""
@@ -91,6 +155,14 @@ class PlayerRow(Gtk.Box):
         self._editing_name = False
         self._devices_info = {kind: list(devices_info.get(kind, [])) for kind in ("joystick", "audio")}
         self._joystick_options, _ = self._build_joystick_options(self._devices_info["joystick"])
+        self._audio_options, _ = self._build_audio_options(self._devices_info["audio"])
+        self._other_player_controllers: dict[str, int] = {}
+        self._other_player_audio: dict[str, list[int]] = {}
+        self._last_valid_joystick_idx = 0
+        self._joystick_item_to_option: dict[GObject.Object, dict] = {}
+        self._bound_controller_items: dict[_ControllerOptionRow, Gtk.ListItem] = {}
+        self._audio_item_to_option: dict[GObject.Object, dict] = {}
+        self._bound_audio_items: dict[_ControllerOptionRow, Gtk.ListItem] = {}
         self._parent_page = None
         self._is_loading = False
         self._is_verified = False
@@ -290,6 +362,7 @@ class PlayerRow(Gtk.Box):
         self.joystick_row = self._create_dropdown(
             self._joystick_dropdown_labels(), on_selected=self._on_joystick_selected
         )
+        self._sync_joystick_item_map()
         self.joystick_row.set_list_factory(self._create_controller_list_factory(self.joystick_row))
         self._controller_field, self._controller_label = self._create_field(
             t("player.controller_label"), self.joystick_row
@@ -317,8 +390,9 @@ class PlayerRow(Gtk.Box):
         audio_section, self._audio_heading_label = self._create_section(
             t("player.audio_section"), "twinverse-audio-symbolic"
         )
-        audio = self._devices_info["audio"]
-        self.audio_row = self._create_dropdown([t("player.audio_default")] + [device["name"] for device in audio])
+        self.audio_row = self._create_dropdown(self._audio_dropdown_labels(), on_selected=self._on_audio_selected)
+        self._sync_audio_item_map()
+        self.audio_row.set_list_factory(self._create_audio_list_factory(self.audio_row))
         audio_field, self._audio_label = self._create_field(t("player.output_device_label"), self.audio_row)
         audio_section.append(audio_field)
 
@@ -390,12 +464,13 @@ class PlayerRow(Gtk.Box):
         return dropdown
 
     def _create_controller_list_factory(self, dropdown: Gtk.DropDown) -> Gtk.SignalListItemFactory:
-        # Use a weak reference so the factory closure never forms a reference cycle with the dropdown.
+        # Use weak references so factory closures never form reference cycles with the dropdown or row.
         dropdown_ref = weakref.ref(dropdown)
+        owner_ref = weakref.ref(self)
         list_factory = Gtk.SignalListItemFactory()
         list_factory.connect("setup", self._setup_controller_list_item)
-        list_factory.connect("bind", self._bind_controller_list_item, dropdown_ref)
-        list_factory.connect("unbind", self._unbind_controller_list_item, dropdown_ref)
+        list_factory.connect("bind", self._bind_controller_list_item, dropdown_ref, owner_ref)
+        list_factory.connect("unbind", self._unbind_controller_list_item, dropdown_ref, owner_ref)
         return list_factory
 
     @staticmethod
@@ -403,8 +478,9 @@ class PlayerRow(Gtk.Box):
         item.set_child(_ControllerOptionRow())
 
     @staticmethod
-    def _bind_controller_list_item(_factory, item, dropdown_ref):
+    def _bind_controller_list_item(_factory, item, dropdown_ref, owner_ref):
         dropdown = dropdown_ref()
+        owner = owner_ref()
         row = item.get_child()
         if dropdown is None or not isinstance(row, _ControllerOptionRow):
             return
@@ -416,21 +492,160 @@ class PlayerRow(Gtk.Box):
         row._bound_item = list_obj
         row.label.set_text(text)
         row.set_tooltip_text(text)
-        row.sync_selected(dropdown)
+        if owner is not None:
+            owner._bound_controller_items[row] = item
+            option = owner._joystick_item_to_option.get(list_obj)
+            owner._apply_controller_option_state(item, row, option)
+        else:
+            item.set_activatable(True)
+            item.set_selectable(True)
+            row.set_disconnected(False)
+            row.set_taken_by(None)
+            row.sync_selected(dropdown)
         row._selection_handler = dropdown.connect("notify::selected-item", row.sync_selected)
 
     @staticmethod
-    def _unbind_controller_list_item(_factory, item, dropdown_ref):
+    def _unbind_controller_list_item(_factory, item, dropdown_ref, owner_ref):
         dropdown = dropdown_ref()
+        owner = owner_ref()
         row = item.get_child()
         if not isinstance(row, _ControllerOptionRow):
             return
+        if owner is not None:
+            owner._bound_controller_items.pop(row, None)
         if dropdown is not None and row._selection_handler:
             dropdown.disconnect(row._selection_handler)
         row._selection_handler = 0
         row._bound_item = None
+        item.set_activatable(True)
+        item.set_selectable(True)
+        row.set_disconnected(False)
+        row.set_taken_by(None)
         row.set_selected(False)
         row.label.stop()
+
+    @staticmethod
+    def _canonical_controller_id(device_id: Optional[str]) -> Optional[str]:
+        cleaned = (device_id or "").strip()
+        if not cleaned:
+            return None
+        return os.path.realpath(cleaned) if os.path.isabs(cleaned) else cleaned
+
+    def _controller_owner_for_id(self, device_id: Optional[str]) -> Optional[int]:
+        cleaned = (device_id or "").strip()
+        if not cleaned or not self._other_player_controllers:
+            return None
+        if cleaned in self._other_player_controllers:
+            return self._other_player_controllers[cleaned]
+        canonical = self._canonical_controller_id(cleaned)
+        if canonical is not None and canonical in self._other_player_controllers:
+            return self._other_player_controllers[canonical]
+        return None
+
+    def _sync_joystick_item_map(self) -> None:
+        self._joystick_item_to_option.clear()
+        model = self.joystick_row.get_model()
+        if not isinstance(model, Gtk.StringList):
+            return
+        for idx, opt in enumerate(self._joystick_options):
+            item_obj = model.get_item(idx + 1)
+            if item_obj is not None:
+                self._joystick_item_to_option[item_obj] = opt
+
+    def _apply_controller_option_state(
+        self, item: Gtk.ListItem, row: _ControllerOptionRow, option: Optional[dict]
+    ) -> None:
+        is_disconnected = bool(option and option.get("disconnected"))
+        owner_num = self._controller_owner_for_id(option.get("id")) if option is not None else None
+        taken = owner_num is not None
+        item.set_activatable(not taken)
+        item.set_selectable(not taken)
+        row.set_disconnected(is_disconnected)
+        row.set_taken_by(owner_num)
+        row.sync_selected(self.joystick_row)
+
+    def _refresh_bound_controller_items(self) -> None:
+        for row, item in list(self._bound_controller_items.items()):
+            list_obj = item.get_item()
+            option = self._joystick_item_to_option.get(list_obj)
+            self._apply_controller_option_state(item, row, option)
+
+    def _create_audio_list_factory(self, dropdown: Gtk.DropDown) -> Gtk.SignalListItemFactory:
+        dropdown_ref = weakref.ref(dropdown)
+        owner_ref = weakref.ref(self)
+        list_factory = Gtk.SignalListItemFactory()
+        list_factory.connect("setup", self._setup_controller_list_item)
+        list_factory.connect("bind", self._bind_audio_list_item, dropdown_ref, owner_ref)
+        list_factory.connect("unbind", self._unbind_audio_list_item, dropdown_ref, owner_ref)
+        return list_factory
+
+    @staticmethod
+    def _bind_audio_list_item(_factory, item, dropdown_ref, owner_ref):
+        dropdown = dropdown_ref()
+        owner = owner_ref()
+        row = item.get_child()
+        if dropdown is None or not isinstance(row, _ControllerOptionRow):
+            return
+        if row._selection_handler:
+            dropdown.disconnect(row._selection_handler)
+            row._selection_handler = 0
+        list_obj = item.get_item()
+        text = list_obj.get_string() if list_obj is not None else ""
+        row._bound_item = list_obj
+        row.label.set_text(text)
+        row.set_tooltip_text(text)
+        item.set_activatable(True)
+        item.set_selectable(True)
+        if owner is not None:
+            owner._bound_audio_items[row] = item
+            option = owner._audio_item_to_option.get(list_obj)
+            owner._apply_audio_option_state(row, option)
+        else:
+            row.set_disconnected(False)
+            row.set_other_players((), blocked=False)
+            row.sync_selected(dropdown)
+        row._selection_handler = dropdown.connect("notify::selected-item", row.sync_selected)
+
+    @staticmethod
+    def _unbind_audio_list_item(_factory, item, dropdown_ref, owner_ref):
+        dropdown = dropdown_ref()
+        owner = owner_ref()
+        row = item.get_child()
+        if not isinstance(row, _ControllerOptionRow):
+            return
+        if owner is not None:
+            owner._bound_audio_items.pop(row, None)
+        if dropdown is not None and row._selection_handler:
+            dropdown.disconnect(row._selection_handler)
+        row._selection_handler = 0
+        row._bound_item = None
+        row.set_disconnected(False)
+        row.set_other_players((), blocked=False)
+        row.set_selected(False)
+        row.label.stop()
+
+    def _sync_audio_item_map(self) -> None:
+        self._audio_item_to_option.clear()
+        model = self.audio_row.get_model()
+        if not isinstance(model, Gtk.StringList):
+            return
+        for idx, opt in enumerate(self._audio_options):
+            item_obj = model.get_item(idx + 1)
+            if item_obj is not None:
+                self._audio_item_to_option[item_obj] = opt
+
+    def _apply_audio_option_state(self, row: _ControllerOptionRow, option: Optional[dict]) -> None:
+        is_disconnected = bool(option and option.get("disconnected"))
+        others = self._other_player_audio.get(option["id"], []) if option is not None else []
+        row.set_disconnected(is_disconnected)
+        row.set_other_players(others, blocked=False)
+        row.sync_selected(self.audio_row)
+
+    def _refresh_bound_audio_items(self) -> None:
+        for row, item in list(self._bound_audio_items.items()):
+            list_obj = item.get_item()
+            option = self._audio_item_to_option.get(list_obj)
+            self._apply_audio_option_state(row, option)
 
     @staticmethod
     def _setup_dropdown_item(_factory, item):
@@ -495,9 +710,12 @@ class PlayerRow(Gtk.Box):
         self._joystick_options, selected_idx = self._build_joystick_options(
             self._devices_info["joystick"], device_id, device_name
         )
+        self._last_valid_joystick_idx = selected_idx
         self.joystick_row.set_model(Gtk.StringList.new(self._joystick_dropdown_labels()))
+        self._sync_joystick_item_map()
         self.joystick_row.set_selected(selected_idx)
         self._sync_joystick_disconnected_style()
+        self._refresh_bound_controller_items()
 
     def _selected_joystick_option(self) -> Optional[dict]:
         selected_idx = self.joystick_row.get_selected()
@@ -519,6 +737,7 @@ class PlayerRow(Gtk.Box):
                 model.remove(model.get_n_items() - 1)
             finally:
                 self._is_loading = was_loading
+            self._sync_joystick_item_map()
 
     def _sync_joystick_disconnected_style(self) -> None:
         opt = self._selected_joystick_option()
@@ -530,8 +749,115 @@ class PlayerRow(Gtk.Box):
     def _on_joystick_selected(self, *_args):
         if self._is_loading:
             return
+        opt = self._selected_joystick_option()
+        if opt is not None and self._controller_owner_for_id(opt.get("id")) is not None:
+            fallback = self._last_valid_joystick_idx
+            model = self.joystick_row.get_model()
+            if not isinstance(model, Gtk.StringList) or not (0 <= fallback < model.get_n_items()):
+                fallback = 0
+            fallback_opt = self._joystick_options[fallback - 1] if 0 < fallback <= len(self._joystick_options) else None
+            if fallback_opt is not None and self._controller_owner_for_id(fallback_opt.get("id")) is not None:
+                fallback = 0
+            was_loading = self._is_loading
+            self._is_loading = True
+            try:
+                self.joystick_row.set_selected(fallback)
+            finally:
+                self._is_loading = was_loading
+            return
+        selected_idx = self.joystick_row.get_selected()
+        if selected_idx == self._last_valid_joystick_idx:
+            return
+        self._last_valid_joystick_idx = selected_idx
         self._prune_unselected_disconnected_joystick()
         self._sync_joystick_disconnected_style()
+        if self._parent_page is not None and hasattr(self._parent_page, "_sync_controller_exclusivity"):
+            self._parent_page._sync_controller_exclusivity()
+        self._on_setting_changed()
+
+    @staticmethod
+    def _format_audio_label(option: dict) -> str:
+        name = (option.get("name") or "").strip() or (option.get("id") or "")
+        if option.get("disconnected"):
+            return t("player.controller_disconnected_label", name=name)
+        return name
+
+    def _audio_dropdown_labels(self) -> list[str]:
+        return [t("player.audio_default")] + [self._format_audio_label(opt) for opt in self._audio_options]
+
+    @classmethod
+    def _build_audio_options(
+        cls,
+        connected_devices: list[dict],
+        remembered_id: Optional[str] = None,
+        remembered_name: Optional[str] = None,
+    ) -> tuple[list[dict], int]:
+        options = [
+            {
+                "id": device["id"],
+                "name": (device.get("name") or "").strip() or device["id"],
+                "disconnected": False,
+            }
+            for device in connected_devices
+        ]
+        cleaned_id = (remembered_id or "").strip()
+        if not cleaned_id:
+            return options, 0
+
+        connected_idx = cls._find_connected_device_index(connected_devices, cleaned_id)
+        if connected_idx is not None:
+            return options, connected_idx + 1
+
+        display_name = (remembered_name or "").strip() or cleaned_id
+        options.append({"id": cleaned_id, "name": display_name, "disconnected": True})
+        return options, len(options)
+
+    def _rebuild_audio_model(self, device_id: Optional[str], device_name: Optional[str] = None) -> None:
+        self._audio_options, selected_idx = self._build_audio_options(
+            self._devices_info["audio"], device_id, device_name
+        )
+        self.audio_row.set_model(Gtk.StringList.new(self._audio_dropdown_labels()))
+        self._sync_audio_item_map()
+        self.audio_row.set_selected(selected_idx)
+        self._sync_audio_disconnected_style()
+        self._refresh_bound_audio_items()
+
+    def _selected_audio_option(self) -> Optional[dict]:
+        selected_idx = self.audio_row.get_selected()
+        if 0 < selected_idx <= len(self._audio_options):
+            return self._audio_options[selected_idx - 1]
+        return None
+
+    def _prune_unselected_disconnected_audio(self) -> None:
+        if not self._audio_options or not self._audio_options[-1].get("disconnected"):
+            return
+        if self.audio_row.get_selected() == len(self._audio_options):
+            return
+        self._audio_options.pop()
+        model = self.audio_row.get_model()
+        if isinstance(model, Gtk.StringList) and model.get_n_items() == len(self._audio_options) + 2:
+            was_loading = self._is_loading
+            self._is_loading = True
+            try:
+                model.remove(model.get_n_items() - 1)
+            finally:
+                self._is_loading = was_loading
+            self._sync_audio_item_map()
+
+    def _sync_audio_disconnected_style(self) -> None:
+        opt = self._selected_audio_option()
+        if opt is not None and opt.get("disconnected"):
+            self.audio_row.add_css_class("controller-disconnected")
+        else:
+            self.audio_row.remove_css_class("controller-disconnected")
+
+    def _on_audio_selected(self, *_args):
+        if self._is_loading:
+            return
+        self._prune_unselected_disconnected_audio()
+        self._sync_audio_disconnected_style()
+        if self._parent_page is not None and hasattr(self._parent_page, "_sync_audio_assignments"):
+            self._parent_page._sync_audio_assignments()
         self._on_setting_changed()
 
     def _create_env_section(self):
@@ -605,6 +931,8 @@ class PlayerRow(Gtk.Box):
                         joystick_model.splice(idx, 1, [label])
                 if self.joystick_row.get_selected() != selected_idx:
                     self.joystick_row.set_selected(selected_idx)
+                self._sync_joystick_item_map()
+                self._refresh_bound_controller_items()
             else:
                 selected_joystick = self._selected_joystick_option()
                 self._rebuild_joystick_model(
@@ -613,15 +941,22 @@ class PlayerRow(Gtk.Box):
                 )
 
             audio_model = self.audio_row.get_model()
-            audio_default = t("player.audio_default")
-            if isinstance(audio_model, Gtk.StringList) and audio_model.get_n_items() >= 1:
+            expected_audio_labels = self._audio_dropdown_labels()
+            if isinstance(audio_model, Gtk.StringList) and audio_model.get_n_items() == len(expected_audio_labels):
                 selected_idx = self.audio_row.get_selected()
-                if audio_model.get_string(0) != audio_default:
-                    audio_model.splice(0, 1, [audio_default])
-                    if self.audio_row.get_selected() != selected_idx:
-                        self.audio_row.set_selected(selected_idx)
+                for idx, label in enumerate(expected_audio_labels):
+                    if audio_model.get_string(idx) != label:
+                        audio_model.splice(idx, 1, [label])
+                if self.audio_row.get_selected() != selected_idx:
+                    self.audio_row.set_selected(selected_idx)
+                self._sync_audio_item_map()
+                self._refresh_bound_audio_items()
             else:
-                self.update_devices(self._devices_info)
+                selected_audio = self._selected_audio_option()
+                self._rebuild_audio_model(
+                    selected_audio["id"] if selected_audio is not None else None,
+                    selected_audio.get("name") if selected_audio is not None else None,
+                )
 
             self._update_button_state()
             self._update_status_icon()
@@ -681,6 +1016,57 @@ class PlayerRow(Gtk.Box):
         opt = self._selected_joystick_option()
         return opt is not None and not opt.get("disconnected", False)
 
+    def get_selected_controller_id(self) -> Optional[str]:
+        """Return the physical device ID currently assigned to this player, or None."""
+        opt = self._selected_joystick_option()
+        return opt["id"] if opt is not None else None
+
+    def clear_selected_controller(self) -> None:
+        """Reset controller selection to None without emitting a configuration edit."""
+        was_loading = self._is_loading
+        self._is_loading = True
+        try:
+            self._last_valid_joystick_idx = 0
+            self.joystick_row.set_selected(0)
+            self._prune_unselected_disconnected_joystick()
+            self._sync_joystick_item_map()
+            self._sync_joystick_disconnected_style()
+            self._refresh_bound_controller_items()
+        finally:
+            self._is_loading = was_loading
+
+    def set_other_player_controllers(self, owners: dict[str, int]) -> None:
+        """Mark controllers assigned to other players as non-selectable with their owner badge."""
+        normalized: dict[str, int] = {}
+        for dev_id, owner_num in owners.items():
+            if owner_num == self._player_num:
+                continue
+            cleaned = (dev_id or "").strip()
+            if not cleaned:
+                continue
+            normalized[cleaned] = owner_num
+            canonical = self._canonical_controller_id(cleaned)
+            if canonical is not None:
+                normalized[canonical] = owner_num
+        self._other_player_controllers = normalized
+        self._refresh_bound_controller_items()
+
+    def get_selected_audio_id(self) -> Optional[str]:
+        """Return the audio device ID currently assigned to this player, or None for Default."""
+        opt = self._selected_audio_option()
+        return opt["id"] if opt is not None else None
+
+    def set_other_player_audio(self, assignments: dict[str, list[int]]) -> None:
+        """Display other players' numbers on shared audio devices without blocking selection."""
+        normalized: dict[str, list[int]] = {}
+        for dev_id, players in assignments.items():
+            cleaned = (dev_id or "").strip()
+            others = [player for player in players if player != self._player_num]
+            if cleaned and others:
+                normalized[cleaned] = others
+        self._other_player_audio = normalized
+        self._refresh_bound_audio_items()
+
     def get_selected_controller_name(self) -> Optional[str]:
         """Return the display label of the controller currently assigned to this player."""
         opt = self._selected_joystick_option()
@@ -708,7 +1094,9 @@ class PlayerRow(Gtk.Box):
         selected_joystick = self._selected_joystick_option()
         current_joystick_id = selected_joystick["id"] if selected_joystick is not None else None
         current_joystick_name = selected_joystick.get("name") if selected_joystick is not None else None
-        current_audio = self._get_combo_device_id(self.audio_row, self._devices_info["audio"])
+        selected_audio = self._selected_audio_option()
+        current_audio_id = selected_audio["id"] if selected_audio is not None else None
+        current_audio_name = selected_audio.get("name") if selected_audio is not None else None
         was_loading = self._is_loading
         self._is_loading = True
         try:
@@ -722,22 +1110,19 @@ class PlayerRow(Gtk.Box):
             if joysticks_changed:
                 self._rebuild_joystick_model(current_joystick_id, current_joystick_name)
             if audio_changed:
-                self.audio_row.set_model(
-                    Gtk.StringList.new([t("player.audio_default")] + [device["name"] for device in new_audio])
-                )
-                self._set_combo_selection(self.audio_row, new_audio, current_audio)
+                self._rebuild_audio_model(current_audio_id, current_audio_name)
         finally:
             self._is_loading = was_loading
 
     def load_config(self, config: PlayerInstanceConfig):
-        """Restore settings silently, retaining remembered controllers even when disconnected."""
+        """Restore settings silently, retaining remembered devices even when disconnected."""
         was_loading = self._is_loading
         self._is_loading = True
         try:
             self.set_player_name(config.name)
             self.grab_input_switch.set_active(config.grab_input_devices)
             self._rebuild_joystick_model(config.physical_device_id, config.physical_device_name)
-            self._set_combo_selection(self.audio_row, self._devices_info["audio"], config.audio_device_id)
+            self._rebuild_audio_model(config.audio_device_id, config.audio_device_name)
             self.guest_ip_row.set_text(config.guest_ip or "")
             for env_row in self._env_rows:
                 self._env_box.remove(env_row)
@@ -753,12 +1138,16 @@ class PlayerRow(Gtk.Box):
         selected_joystick = self._selected_joystick_option()
         joystick_id = selected_joystick["id"] if selected_joystick is not None else None
         joystick_name = (selected_joystick.get("name") or "").strip() or None if selected_joystick is not None else None
+        selected_audio = self._selected_audio_option()
+        audio_id = selected_audio["id"] if selected_audio is not None else None
+        audio_name = (selected_audio.get("name") or "").strip() or None if selected_audio is not None else None
         return PlayerInstanceConfig(
             NAME=self._custom_name,
             PHYSICAL_DEVICE_ID=joystick_id,
             PHYSICAL_DEVICE_NAME=joystick_name,
             GRAB_INPUT_DEVICES=self.grab_input_switch.get_active(),
-            AUDIO_DEVICE_ID=self._get_combo_device_id(self.audio_row, self._devices_info["audio"]),
+            AUDIO_DEVICE_ID=audio_id,
+            AUDIO_DEVICE_NAME=audio_name,
             ENV=self._collect_env_vars(),
             GUEST_IP=self.guest_ip_row.get_text().strip() or None,
         )

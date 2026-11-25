@@ -430,6 +430,8 @@ class LayoutSettingsPage(Gtk.Box):
             row.set_selected(instance_num in selected)
             row.set_verification_status(self._verification_statuses.get(instance_num, False))
         self._apply_grab_input_exclusivity()
+        self._sync_controller_exclusivity(enforce_unique=True)
+        self._sync_audio_assignments()
         self._is_loading = False
         active = self._active_player if self._active_player in self._party_players else self._party_players[0]
         self.select_player(active, open_inspector=False)
@@ -564,6 +566,9 @@ class LayoutSettingsPage(Gtk.Box):
                 player.set_grab_input_sensitive(False)
             elif player.grab_input_switch.get_active():
                 self._apply_grab_input_exclusivity()
+            existing_players = [row._player_num for row in self.player_rows if row is not player]
+            self._sync_controller_exclusivity(enforce_unique=True, priority_players=existing_players)
+            self._sync_audio_assignments()
         finally:
             self._is_loading = was_loading
 
@@ -598,6 +603,8 @@ class LayoutSettingsPage(Gtk.Box):
             if had_grab:
                 for remaining in self.player_rows:
                     remaining.set_grab_input_sensitive(True)
+            self._sync_controller_exclusivity()
+            self._sync_audio_assignments()
         finally:
             self._is_loading = was_loading
 
@@ -673,6 +680,46 @@ class LayoutSettingsPage(Gtk.Box):
 
     def _sync_placement_controls(self):
         self.layout_preview.set_reposition_enabled(self._can_reposition_players())
+
+    def _sync_controller_exclusivity(self, *, enforce_unique: bool = False, priority_players=None):
+        """Keep controller assignments unique across players and update dropdown badges."""
+        owners: dict[str, int] = {}
+        ordered_rows = list(self.player_rows)
+        if priority_players is not None:
+            priority_set = set(priority_players)
+            ordered_rows.sort(key=lambda r: (0 if r._player_num in priority_set else 1, r._player_num))
+
+        for row in ordered_rows:
+            dev_id = row.get_selected_controller_id()
+            if not dev_id:
+                continue
+            canonical = PlayerRow._canonical_controller_id(dev_id)
+            conflict = dev_id in owners or (canonical is not None and canonical in owners)
+            if conflict and enforce_unique:
+                row.clear_selected_controller()
+                continue
+            if not conflict:
+                owners[dev_id] = row._player_num
+                if canonical is not None:
+                    owners[canonical] = row._player_num
+
+        for row in self.player_rows:
+            other_owners = {dev: owner for dev, owner in owners.items() if owner != row._player_num}
+            row.set_other_player_controllers(other_owners)
+
+    def _sync_audio_assignments(self):
+        """Share selected audio device player numbers across dropdowns without blocking reuse."""
+        assignments: dict[str, list[int]] = {}
+        for row in sorted(self.player_rows, key=lambda r: r._player_num):
+            audio_id = row.get_selected_audio_id()
+            if audio_id:
+                assignments.setdefault(audio_id, []).append(row._player_num)
+
+        for row in self.player_rows:
+            other_audio = {
+                dev: [owner for owner in players if owner != row._player_num] for dev, players in assignments.items()
+            }
+            row.set_other_player_audio(other_audio)
 
     def _apply_grab_input_exclusivity(self):
         active = next((row._player_num for row in self.player_rows if row.grab_input_switch.get_active()), None)
@@ -760,6 +807,8 @@ class LayoutSettingsPage(Gtk.Box):
             self._devices_info = {kind: list(items) for kind, items in devices_info.items()}
             for row in self.player_rows:
                 row.update_devices(devices_info)
+            self._sync_controller_exclusivity(enforce_unique=True)
+            self._sync_audio_assignments()
             self._displays = sorted(devices_info.get("displays", []), key=lambda display: display.get("id", 0))
             self._num_monitors = max(1, len(self._displays))
             self._update_num_players_limits(self.screen_mode_row.get_selected() == 1)
