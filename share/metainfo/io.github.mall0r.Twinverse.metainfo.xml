@@ -11,7 +11,7 @@
 
   <description>
     <p>
-      Twinverse is an open-source application for Linux and SteamOS that lets you create and manage up to 8 isolated Steam Big Picture instances simultaneously. Multiple players can enjoy their game libraries on a single computer—in splitscreen or across multiple monitors—with dedicated controllers, full isolated Steam Input, mid-session controller reconnection, dedicated audio outputs, home directories, and private LAN IPv4 addresses.
+      Twinverse is an open-source application for Linux that lets you create and manage up to 8 isolated Steam Big Picture instances simultaneously. Multiple players can enjoy their game libraries on a single computer—in splitscreen or across multiple monitors—with dedicated controllers, full isolated Steam Input, mid-session controller reconnection, dedicated audio outputs, home directories, and private LAN IPv4 addresses.
     </p>
     <p>Key Features:</p>
     <ul>

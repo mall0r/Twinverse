@@ -26,7 +26,7 @@
 
 # What is Twinverse?
 
-**Twinverse** runs up to **8 Steam clients on one Linux or SteamOS PC**. Each player has a separate Steam home and can play the same game as the others or a different one. Gamescope displays Steam Big Picture in split screen or across monitors. By default, the instances **share the host network**.
+**Twinverse** runs up to **8 Steam clients on one Linux PC**. Each player has a separate Steam home and can play the same game as the others or a different one. Gamescope displays Steam Big Picture in split screen or across monitors. By default, the instances **share the host network**.
 
 > [!TIP]
 > See the [illustrated walkthrough](https://mall0r.github.io/Twinverse/#step-by-step) for screenshots of the setup.

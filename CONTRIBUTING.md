@@ -39,7 +39,7 @@ Check out the official GitHub articles to learn more about [forking](https://doc
 
 #### What is the Project's Tech Stack?
 
-Twinverse is built for Linux and SteamOS systems using two main layers:
+Twinverse is built for Linux systems using two main layers:
 
 - **Desktop Application (Python 3 + GTK 4 + libadwaita):** Built with PyGObject bindings and libadwaita for the modern GNOME-style workspace, profile management, process supervision, live `inotify`/GDK device hotplug monitoring (`DeviceHotplugMonitor`), global controller shortcut monitoring (`HOME + L3`, `ShortcutMonitor`) with the `EndSessionOverlay`, and KWin D-Bus integration.
 - **Native Input Isolation Workspace (`native/`, pure Rust):** A zero-external-dependency Cargo workspace targeting `GLIBC <= 2.35` on both 64-bit (`x86_64-unknown-linux-gnu`) and 32-bit (`i686-unknown-linux-gnu`, required for Steam's 32-bit client alongside 64-bit games):

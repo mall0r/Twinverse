@@ -26,7 +26,7 @@
 
 # O que é o Twinverse?
 
-O **Twinverse** executa até **8 clientes Steam em um único PC com Linux ou SteamOS**. Cada jogador tem uma pasta pessoal do Steam e pode jogar o mesmo título que os demais ou escolher outro. O Gamescope exibe o Steam Big Picture em tela dividida ou em vários monitores. Por padrão, as instâncias **compartilham a rede do host**.
+O **Twinverse** executa até **8 clientes Steam em um único PC com Linux**. Cada jogador tem uma pasta pessoal do Steam e pode jogar o mesmo título que os demais ou escolher outro. O Gamescope exibe o Steam Big Picture em tela dividida ou em vários monitores. Por padrão, as instâncias **compartilham a rede do host**.
 
 > [!TIP]
 > Veja as telas de configuração no [guia ilustrado](https://mall0r.github.io/Twinverse/?lang=pt#step-by-step).

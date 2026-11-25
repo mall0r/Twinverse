@@ -253,7 +253,7 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "presenter.no_instances_selected": "No instances selected to launch.",
         # About dialog
         "about.comments": (
-            "Twinverse is a tool for Linux/SteamOS that allows you to create and manage multiple "
+            "Twinverse is a tool for Linux that allows you to create and manage multiple "
             "instances of gamescope and steam simultaneously. Twinverse uses Bubblewrap (bwrap), "
             "a low-level Linux sandboxing tool, to isolate each Steam Client instance."
         ),
@@ -507,7 +507,7 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "presenter.no_instances_selected": "Nenhuma instância selecionada para iniciar.",
         # About dialog
         "about.comments": (
-            "Twinverse é uma ferramenta para Linux/SteamOS que permite criar e gerenciar múltiplas "
+            "Twinverse é uma ferramenta para Linux que permite criar e gerenciar múltiplas "
             "instâncias de Gamescope e Steam simultaneamente. O Twinverse usa Bubblewrap (bwrap), "
             "uma ferramenta de sandbox Linux de baixo nível, para isolar cada cliente Steam."
         ),
