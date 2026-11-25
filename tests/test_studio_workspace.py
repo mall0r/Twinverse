@@ -177,7 +177,7 @@ def test_running_locks_placement_but_keeps_player_navigation(window):
     page.layout_preview._slots[1].button.emit("clicked")
     assert page.inspector_stack.get_visible_child() is page.player_rows[1]
     assert page.layout_preview._slots[1].button.is_sensitive()
-    assert window.launch_label.get_label() == "End session"
+    assert window.launch_label.get_label() == "End Session"
 
     window.show_idle_state()
     assert page.screen_mode_row.is_sensitive()
@@ -241,11 +241,11 @@ def test_session_action_and_status_track_readiness_and_transitions(window):
     assert window.launch_spinner.get_spinning()
     window.show_running_state()
     assert window.launch_icon.get_visible()
-    assert window.launch_label.get_label() == "End session"
+    assert window.launch_label.get_label() == "End Session"
     window.show_stopping_state()
     assert window.launch_label.get_label() == "Stopping…"
     window.show_idle_state()
-    assert window.launch_label.get_label() == "Launch session"
+    assert window.launch_label.get_label() == "Launch Session"
     assert window.launch_spinner.get_parent() is None
 
 
@@ -470,13 +470,13 @@ def test_party_add_and_per_player_remove_stay_locked_during_play(window):
 def test_player_actions_explain_their_scope(window):
     """Per-player launch controls must not look like duplicates of the session action."""
     row = window.get_layout_page().player_rows[0]
-    assert row.launch_button.get_label() == "Start player"
+    assert row.launch_button.get_label() == "Start Player"
     row.set_verification_status(False)
     assert row.launch_button.get_label() == "Install Steam"
     row.set_instance_state("running")
-    assert row.launch_button.get_label() == "Stop player"
+    assert row.launch_button.get_label() == "Stop Player"
     row.set_instance_state("starting")
-    assert row.launch_button.get_label() == "Cancel startup"
+    assert row.launch_button.get_label() == "Cancel Startup"
 
 
 def test_controls_section_has_right_aligned_icon_only_refresh_button(window):

@@ -28,8 +28,14 @@ from src.gui.widgets.player_row import (
     INSTANCE_STARTING,
     INSTANCE_STOPPING,
 )
-from src.gui.windows import MainWindow, PreferencesWindow
-from src.services import DeviceManager, InstanceService, KdeManager, SteamVerifier
+from src.gui.windows import EndSessionOverlay, MainWindow, PreferencesWindow
+from src.services import (
+    ControllerShortcutMonitor,
+    DeviceManager,
+    InstanceService,
+    KdeManager,
+    SteamVerifier,
+)
 from src.services.steam_probe import is_update_progress
 
 logger = logging.getLogger(__name__)
@@ -63,6 +69,11 @@ class MainPresenter:
         self._instance_states: dict[int, str] = {}
         self._progress_shown: dict[int, tuple[str, Optional[int]]] = {}
         self._minimize_after_launch = False
+        self._exit_overlay: Optional[EndSessionOverlay] = None
+        self._shortcut_monitor = ControllerShortcutMonitor(
+            on_trigger=self._schedule_exit_confirmation,
+            on_navigate=self._schedule_exit_navigation,
+        )
 
         self._load_initial_data()
 
@@ -495,6 +506,10 @@ class MainPresenter:
 
     def on_close_requested(self):
         """Handle window close request."""
+        self._dismiss_exit_overlay()
+        monitor = getattr(self, "_shortcut_monitor", None)
+        if monitor is not None:
+            monitor.stop()
         self.window.set_sensitive(False)
 
         # The settings of this session are kept before the app goes away.
@@ -575,6 +590,7 @@ class MainPresenter:
     def _on_stop_requested(self):
         """Handle stop request."""
         logger.info("Stop all instances requested by user.")
+        self._dismiss_exit_overlay()
         for instance_num in list(self._instance_states):
             if self._instance_states.get(instance_num) != INSTANCE_IDLE:
                 self._begin_instance_stop(instance_num)
@@ -697,6 +713,85 @@ class MainPresenter:
             self.window.show_running_state()
         else:
             self.window.show_idle_state()
+        self._sync_shortcut_monitor()
+
+    def _has_stoppable_instances(self) -> bool:
+        """Return whether at least one instance is starting or running."""
+        return any(state in (INSTANCE_STARTING, INSTANCE_RUNNING) for state in self._instance_states.values())
+
+    def _sync_shortcut_monitor(self) -> None:
+        """Run the controller exit-shortcut monitor only while a session is active."""
+        monitor = getattr(self, "_shortcut_monitor", None)
+        if self._has_stoppable_instances():
+            if monitor is not None:
+                monitor.start()
+            return
+        self._dismiss_exit_overlay()
+        if monitor is not None and self._footer_state() == INSTANCE_IDLE:
+            monitor.stop()
+
+    def _schedule_exit_confirmation(self) -> None:
+        """Forward the controller shortcut trigger to the GTK main loop."""
+        GLib.idle_add(self._on_exit_shortcut_triggered)
+
+    def _schedule_exit_navigation(self, action: str) -> None:
+        """Forward a controller navigation event to the open exit overlay."""
+        GLib.idle_add(self._on_exit_shortcut_navigation, action)
+
+    def _on_exit_shortcut_triggered(self) -> bool:
+        """Show the centered confirmation overlay after holding HOME + SELECT."""
+        if getattr(self, "_exit_overlay", None) is not None:
+            return False
+        if not self._has_stoppable_instances() or self._footer_state() == INSTANCE_STOPPING:
+            return False
+        logger.info("Controller exit shortcut triggered (HOME + SELECT held)")
+        overlay = EndSessionOverlay(
+            self._app,
+            on_confirm=self._on_exit_overlay_confirmed,
+            on_cancel=self._on_exit_overlay_cancelled,
+        )
+        self._exit_overlay = overlay
+        monitor = getattr(self, "_shortcut_monitor", None)
+        if monitor is not None:
+            monitor.set_navigation_mode(True)
+        overlay.present()
+        return False
+
+    def _on_exit_shortcut_navigation(self, action: str) -> bool:
+        """Apply a controller navigation step to the active confirmation overlay."""
+        overlay = getattr(self, "_exit_overlay", None)
+        if overlay is not None:
+            overlay.navigate(action)
+        return False
+
+    def _on_exit_overlay_confirmed(self) -> None:
+        """End all running instances after confirming the controller exit overlay."""
+        self._exit_overlay = None
+        monitor = getattr(self, "_shortcut_monitor", None)
+        if monitor is not None:
+            monitor.set_navigation_mode(False)
+        if self._has_stoppable_instances():
+            self._on_stop_requested()
+            present = getattr(self.window, "present", None)
+            if callable(present):
+                present()
+
+    def _on_exit_overlay_cancelled(self) -> None:
+        """Close the exit confirmation overlay while keeping all instances running."""
+        self._exit_overlay = None
+        monitor = getattr(self, "_shortcut_monitor", None)
+        if monitor is not None:
+            monitor.set_navigation_mode(False)
+
+    def _dismiss_exit_overlay(self) -> None:
+        """Close any open exit confirmation overlay without triggering callbacks."""
+        overlay = getattr(self, "_exit_overlay", None)
+        self._exit_overlay = None
+        monitor = getattr(self, "_shortcut_monitor", None)
+        if monitor is not None:
+            monitor.set_navigation_mode(False)
+        if overlay is not None:
+            overlay.dismiss()
 
     def _on_preference_changed(self, key: str, value):
         """Handle preference changed."""

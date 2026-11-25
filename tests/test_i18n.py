@@ -133,7 +133,7 @@ def test_normalize_and_set_language_notifications():
 
 def test_t_ngettext_and_template_titles():
     set_language(LANGUAGE_PT_BR)
-    assert t("session.launch_button") == "Iniciar sessão"
+    assert t("session.launch_button") == "Iniciar Sessão"
     assert ngettext("stage.display_one", "stage.display_many", 1) == "1 monitor"
     assert ngettext("stage.display_one", "stage.display_many", 2) == "2 monitores"
     assert translate_template_title("main-left", "Main left") == "Principal à esquerda"
@@ -229,13 +229,13 @@ def test_player_row_and_layout_page_live_language_switch(gtk_display):
     set_language(LANGUAGE_PT_BR)
 
     assert page._roster_heading_label.get_label() == "Seu grupo"
-    assert page._add_player_content.get_label() == "Adicionar jogador"
+    assert page._add_player_content.get_label() == "Adicionar Jogador"
     assert page._stage_eyebrow_label.get_label() == "LAYOUT DA SESSÃO"
     assert page._inspector_eyebrow_label.get_label() == "CONFIGURAÇÃO DO JOGADOR"
     assert page.display_summary.get_label() == "1 monitor"
     assert row0.get_player_name() == "Jogador"
     assert row0.get_status_text() == "Pronto"
-    assert row0.launch_button.get_label() == "Iniciar jogador"
+    assert row0.launch_button.get_label() == "Iniciar Jogador"
     assert row1.get_status_text() == "Não instalado"
     assert row1.launch_button.get_label() == "Instalar Steam"
 
@@ -260,13 +260,13 @@ def test_player_row_and_layout_page_live_language_switch(gtk_display):
     # Runtime states in PT-BR
     row0.set_instance_state(INSTANCE_STARTING)
     assert row0.get_status_text() == "Iniciando Steam…"
-    assert row0.launch_button.get_label() == "Cancelar inicialização"
+    assert row0.launch_button.get_label() == "Cancelar Inicialização"
     row0.set_update_progress("Downloading", 42)
     assert row0.get_status_text() == "Atualizando Steam · 42%"
     row0.clear_update_progress()
     row0.set_instance_state(INSTANCE_RUNNING)
     assert row0.get_status_text() == "Em execução"
-    assert row0.launch_button.get_label() == "Parar jogador"
+    assert row0.launch_button.get_label() == "Parar Jogador"
     row0.set_instance_state(INSTANCE_STOPPING)
     assert row0.get_status_text() == "Parando…"
 
@@ -299,7 +299,7 @@ def test_main_window_and_preferences_language_switching(gtk_display):
     win = MainWindow(app, presenter)
     prefs = PreferencesWindow(win, profile, on_pref_changed)
 
-    assert win.launch_label.get_label() == "Launch session"
+    assert win.launch_label.get_label() == "Launch Session"
     assert prefs.get_title() == "Preferences"
 
     # Switch to PT-BR via Preferences dropdown (index 2 -> pt_BR)
@@ -309,8 +309,8 @@ def test_main_window_and_preferences_language_switching(gtk_display):
     assert prefs.get_title() == "Preferências"
     assert prefs._engine_heading_label.get_label() == "Motor de execução"
     assert prefs._gamescope_title_label.get_label() == "Usar Gamescope"
-    assert prefs._reset_button.get_label() == "Redefinir tudo"
-    assert win.launch_label.get_label() == "Iniciar sessão"
+    assert prefs._reset_button.get_label() == "Redefinir Tudo"
+    assert win.launch_label.get_label() == "Iniciar Sessão"
     assert win.language_action.get_state().get_string() == LANGUAGE_PT_BR
 
     # Switch back to English via MainWindow stateful menu action
@@ -319,7 +319,7 @@ def test_main_window_and_preferences_language_switching(gtk_display):
     assert get_language() == LANGUAGE_EN
     assert prefs.get_title() == "Preferences"
     assert prefs.language_row.get_selected() == 1
-    assert win.launch_label.get_label() == "Launch session"
+    assert win.launch_label.get_label() == "Launch Session"
 
 
 def test_main_presenter_applies_saved_profile_language_on_startup(gtk_display):
@@ -340,10 +340,10 @@ def test_main_presenter_applies_saved_profile_language_on_startup(gtk_display):
 
         presenter = MainPresenter(app)
         assert get_language() == LANGUAGE_PT_BR
-        assert presenter.window.launch_label.get_label() == "Iniciar sessão"
+        assert presenter.window.launch_label.get_label() == "Iniciar Sessão"
         assert presenter.window.session_title.get_label() == "Pronto para jogar"
 
         presenter.on_language_changed(LANGUAGE_EN)
         assert get_language() == LANGUAGE_EN
-        assert presenter.window.launch_label.get_label() == "Launch session"
+        assert presenter.window.launch_label.get_label() == "Launch Session"
         assert Profile.load().language == LANGUAGE_EN

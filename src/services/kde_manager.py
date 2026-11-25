@@ -8,6 +8,7 @@ import pydbus
 from gi.repository import Gio, GLib
 
 from src.core.config import Config, ensure_private_dir
+from src.core.i18n import TRANSLATIONS
 from src.core.tiling import build_tiling_plan
 from src.models import Profile
 from src.services.device_manager import DeviceManager
@@ -92,12 +93,20 @@ class KdeManager:
                 self.stop_kwin_script()
                 if self.kwin_script_id is not None:
                     return
+            overlay_titles = list(
+                dict.fromkeys(
+                    catalog["exit_confirm.window_title"]
+                    for catalog in TRANSLATIONS.values()
+                    if "exit_confirm.window_title" in catalog
+                )
+            )
             settings = {
                 "instances": instances,
                 "monitors": monitor_names,
                 "service": self._layout_resolver.service_name,
                 "path": OBJECT_PATH,
                 "interface": INTERFACE,
+                "overlayTitles": overlay_titles,
             }
             if placements is not None:
                 settings["placements"] = placements

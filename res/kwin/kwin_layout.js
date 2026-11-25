@@ -5,6 +5,9 @@ var twinverseWindows = [];
 var twinversePlacement = null;
 var twinverseUpdating = false;
 var twinverseOutputs = [];
+var twinverseOverlay = null;
+var twinversePreviousActive = null;
+var twinverseCenteringOverlay = false;
 
 function twinverseRecord(client) {
   return twinverseWindows.find(function (record) { return record.client === client; });
@@ -31,6 +34,60 @@ function twinverseScreens() {
 
 function twinverseMonitor(screens, index) {
   return screens[index] || screens.find(function (screen) { return !!screen; });
+}
+
+function twinverseIsOverlay(client) {
+  if (!client || !twinverseLayout.overlayTitles) return false;
+  return twinverseLayout.overlayTitles.indexOf(client.caption) >= 0;
+}
+
+function twinverseHasOverlay() {
+  return twinverseOverlay !== null;
+}
+
+function twinverseCenterOverlay(client) {
+  if (!client || twinverseCenteringOverlay) return;
+  var screens = twinverseScreens();
+  var output = workspace.activeScreen || twinverseMonitor(screens, 0) || workspace.screens[0];
+  if (!output) return;
+  var current = client.frameGeometry;
+  if (!current || current.width <= 0 || current.height <= 0) return;
+  var area = output.geometry;
+  var target = {
+    x: area.x + Math.floor((area.width - current.width) / 2),
+    y: area.y + Math.floor((area.height - current.height) / 2),
+    width: current.width,
+    height: current.height
+  };
+  if (current.x !== target.x || current.y !== target.y) {
+    twinverseCenteringOverlay = true;
+    try {
+      client.frameGeometry = target;
+    } finally {
+      twinverseCenteringOverlay = false;
+    }
+  }
+}
+
+function twinverseTrackOverlay(client) {
+  if (twinverseOverlay === client) return;
+  twinversePreviousActive = workspace.activeWindow;
+  twinverseOverlay = client;
+  var clients = getGamescopeClients();
+  for (var i = 0; i < clients.length; i++) {
+    clients[i].keepAbove = false;
+  }
+  client.keepAbove = true;
+  client.onAllDesktops = true;
+  if (client.skipTaskbar !== undefined) client.skipTaskbar = true;
+  if (client.skipPager !== undefined) client.skipPager = true;
+  twinverseCenterOverlay(client);
+  if (client.frameGeometryChanged) {
+    client.frameGeometryChanged.connect(function () {
+      if (twinverseOverlay === client) twinverseCenterOverlay(client);
+    });
+  }
+  workspace.activeWindow = client;
 }
 
 function twinverseGeometry(client, geometry) {
@@ -80,13 +137,22 @@ function twinverseRefresh() {
 }
 
 function twinverseTrack(client) {
+  if (twinverseIsOverlay(client)) {
+    twinverseTrackOverlay(client);
+    return;
+  }
   if (twinverseRecord(client)) return;
   if (client.resourceClass !== "gamescope") {
-    // Some backends publish the class after windowAdded. Unrelated windows
-    // must not trigger a redistribution of the managed instances.
+    // Some backends publish the class or caption after windowAdded. Unrelated
+    // windows must not trigger a redistribution of the managed instances.
     if (client.windowClassChanged) {
       client.windowClassChanged.connect(function () {
         if (client.resourceClass === "gamescope") twinverseTrack(client);
+      });
+    }
+    if (client.captionChanged) {
+      client.captionChanged.connect(function () {
+        if (twinverseIsOverlay(client)) twinverseTrackOverlay(client);
       });
     }
     return;
@@ -110,6 +176,16 @@ function twinverseTrack(client) {
 }
 
 function twinverseRemoved(client) {
+  if (twinverseOverlay === client) {
+    twinverseOverlay = null;
+    var previous = twinversePreviousActive;
+    twinversePreviousActive = null;
+    if (previous && getGamescopeClients().indexOf(previous) >= 0) {
+      workspace.activeWindow = previous;
+    }
+    twinverseRefresh();
+    return;
+  }
   var record = twinverseRecord(client);
   if (!record) return;
   record.removed = true;

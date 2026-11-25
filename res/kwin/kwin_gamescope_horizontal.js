@@ -35,7 +35,8 @@ function gamescopeAboveBelow() {
   // There is no active window while the desktop has the focus, and reading
   // it would throw and stop the placement of the instances.
   var activeWindow = workspace.activeWindow;
-  var activeIsGamescope = activeWindow !== null && activeWindow !== undefined &&
+  var activeIsGamescope = !twinverseHasOverlay() &&
+    activeWindow !== null && activeWindow !== undefined &&
     twinverseSlot(activeWindow) >= 0;
   for (var i = 0; i < gamescopeClients.length; i++) {
     if (activeIsGamescope) {

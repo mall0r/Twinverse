@@ -1325,3 +1325,113 @@
 .tiling-option:disabled {
     opacity: 0.45;
 }
+
+/* Centered exit-session confirmation overlay triggered by controller shortcut. */
+window.exit-confirm-window {
+    background: @studio_surface;
+    color: @studio_fg;
+    border: 1px solid alpha(white, 0.16);
+    border-radius: 18px;
+}
+window.exit-confirm-window.light {
+    background: @studio_surface_light;
+    color: @studio_fg_light;
+    border: 1px solid @studio_control_border_light;
+}
+.exit-confirm-card {
+    padding: 28px 28px 22px;
+}
+.exit-confirm-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+}
+.exit-confirm-body {
+    font-size: 13px;
+    color: @studio_secondary;
+}
+.light .exit-confirm-body {
+    color: @studio_secondary_light;
+}
+.exit-confirm-actions {
+    margin-top: 6px;
+}
+.exit-confirm-button {
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: none;
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease,
+        transform 110ms cubic-bezier(0.2, 0, 0, 1);
+}
+.exit-confirm-button:active {
+    transform: scale(0.97);
+}
+.exit-confirm-cancel {
+    background: @studio_control;
+    border-color: @studio_border;
+    color: @studio_fg;
+}
+.exit-confirm-cancel:hover {
+    background: @studio_border;
+}
+.exit-confirm-cancel.is-selected {
+    background: alpha(@layout_accent, 0.18);
+    border-color: @layout_accent;
+    box-shadow: 0 0 0 2px alpha(@layout_accent, 0.25);
+}
+.light .exit-confirm-cancel {
+    background: @studio_control_light;
+    border-color: @studio_control_border_light;
+    color: @studio_fg_light;
+}
+.light .exit-confirm-cancel:hover {
+    background: #e5e5e5;
+}
+.light .exit-confirm-cancel.is-selected {
+    background: alpha(@layout_accent_light, 0.12);
+    border-color: @layout_accent_light;
+    box-shadow: 0 0 0 2px alpha(@layout_accent_light, 0.22);
+}
+.exit-confirm-danger {
+    background: #4b342d;
+    border-color: #6d4b3e;
+    color: #f4b7a7;
+}
+.exit-confirm-danger:hover {
+    background: #5c3e35;
+}
+.exit-confirm-danger.is-selected {
+    background: #f0a291;
+    border-color: #ffffff;
+    color: #3e201c;
+    box-shadow: 0 0 0 2px alpha(#f0a291, 0.35);
+}
+.light .exit-confirm-danger {
+    background: #fde8e8;
+    border-color: #d97777;
+    color: #991b1b;
+}
+.light .exit-confirm-danger:hover {
+    background: #fbd5d5;
+}
+.light .exit-confirm-danger.is-selected {
+    background: @studio_danger_light;
+    border-color: #7f1d1d;
+    color: #ffffff;
+    box-shadow: 0 0 0 2px alpha(@studio_danger_light, 0.28);
+}
+.exit-confirm-hint {
+    margin-top: 2px;
+    font-size: 11px;
+    color: @studio_muted;
+}
+.light .exit-confirm-hint {
+    color: @studio_muted_light;
+}

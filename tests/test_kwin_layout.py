@@ -373,3 +373,94 @@ console.log('stable');
     )
     result = subprocess.check_output([node], input=HARNESS + script + scenario, text=True, timeout=10)
     assert result.strip() == "stable"
+
+
+def test_exit_confirmation_overlay_floats_centered_above_gamescope(kde, node_executable):
+    """The exit overlay stays centered above splitscreen Gamescope windows and restores focus on close."""
+    profile = Profile(mode="splitscreen", num_players=2, selected_players=[0, 1])
+    profile.splitscreen.orientation = "vertical"
+    kde.start_kwin_script(profile)
+    script = kde._kwin_script_temp_path.read_text()
+
+    scenario = r"""
+const game0 = add(0, 100);
+const game1 = add(1, 101);
+flush();
+workspace.activeScreen = workspace.screens[1]; // HDMI-A-1 (0, 0, 1920, 1080)
+workspace.activeWindow = game0;
+workspace.windowActivated.emit();
+assert.equal(game0.keepAbove, true);
+assert.equal(game1.keepAbove, true);
+
+// Overlay arrives with its localized title and is elevated, centered, and focused.
+const overlay = {
+  pid: 500,
+  resourceClass: 'io.github.mall0r.Twinverse',
+  caption: 'Twinverse — End Session',
+  keepAbove: false,
+  onAllDesktops: false,
+  skipTaskbar: false,
+  skipPager: false,
+  frameGeometryChanged: signal(),
+  windowClassChanged: signal(),
+  captionChanged: signal(),
+  writes: 0
+};
+let overlayGeo = {x: 10, y: 10, width: 440, height: 260};
+Object.defineProperty(overlay, 'frameGeometry', {
+  get: () => overlayGeo,
+  set: value => { overlayGeo = value; overlay.writes++; overlay.frameGeometryChanged.emit(); }
+});
+clients.push(overlay);
+workspace.windowAdded.emit(overlay);
+
+assert.equal(overlay.keepAbove, true);
+assert.equal(overlay.onAllDesktops, true);
+assert.equal(overlay.skipTaskbar, true);
+assert.equal(workspace.activeWindow, overlay);
+assert.deepEqual(overlay.frameGeometry, {x: 740, y: 410, width: 440, height: 260});
+assert.equal(game0.keepAbove, false);
+assert.equal(game1.keepAbove, false);
+
+// Even if a Gamescope window fires activation while the overlay is up, keepAbove stays off.
+workspace.windowActivated.emit();
+assert.equal(game0.keepAbove, false);
+assert.equal(game1.keepAbove, false);
+
+// Closing the overlay restores focus and keepAbove on the Gamescope windows.
+remove(overlay);
+assert.equal(workspace.activeWindow, game0);
+assert.equal(game0.keepAbove, true);
+assert.equal(game1.keepAbove, true);
+
+// Late caption publication (PT-BR) is also recognized cleanly.
+const ptOverlay = {
+  pid: 501,
+  resourceClass: 'io.github.mall0r.Twinverse',
+  caption: '',
+  keepAbove: false,
+  onAllDesktops: false,
+  skipTaskbar: false,
+  skipPager: false,
+  frameGeometryChanged: signal(),
+  windowClassChanged: signal(),
+  captionChanged: signal(),
+  writes: 0
+};
+let ptGeo = {x: 0, y: 0, width: 400, height: 240};
+Object.defineProperty(ptOverlay, 'frameGeometry', {
+  get: () => ptGeo,
+  set: value => { ptGeo = value; ptOverlay.writes++; ptOverlay.frameGeometryChanged.emit(); }
+});
+clients.push(ptOverlay);
+workspace.windowAdded.emit(ptOverlay);
+assert.equal(ptOverlay.keepAbove, false);
+ptOverlay.caption = 'Twinverse — Encerrar Sessão';
+ptOverlay.captionChanged.emit();
+assert.equal(ptOverlay.keepAbove, true);
+assert.deepEqual(ptOverlay.frameGeometry, {x: 760, y: 420, width: 400, height: 240});
+remove(ptOverlay);
+console.log('overlay-ok');
+"""
+    result = subprocess.check_output([node_executable], input=HARNESS + script + scenario, text=True, timeout=10)
+    assert result.strip() == "overlay-ok"
