@@ -1,6 +1,91 @@
 """Host-side setup for the existing bwrap's optional rootless network."""
 
+import socket
 from typing import Optional
+
+# Steam's steamclient.so binds and connects to hardcoded TCP 127.0.0.1:57343
+# (57344 for Steam China) for its Steam3Master IPC unless this environment
+# variable overrides it. When instances share the host network (network
+# isolation disabled or pasta unavailable), Steam, steamwebhelper (Big Picture
+# UI) and games otherwise collide with host Steam or other instances on port
+# 57343 and lose controller input. Pass via env only -- the CLI flag
+# -master_ipc_name_override causes regressions in Big Picture and games.
+STEAM_MASTER_IPC_ENV = "steam_master_ipc_name_override"
+STEAM_DEFAULT_MASTER_IPC_PORTS = frozenset({57343, 57344})
+# Above Linux's default ephemeral range (32768-60999), with a disjoint block
+# per instance so concurrent launches never select the same loopback port.
+STEAM_MASTER_IPC_BASE_PORT = 61100
+STEAM_MASTER_IPC_BLOCK_SIZE = 16
+STEAM_MASTER_IPC_MAX_PORT = 65535
+_STEAM_MASTER_IPC_SLOTS = (STEAM_MASTER_IPC_MAX_PORT - STEAM_MASTER_IPC_BASE_PORT + 1) // STEAM_MASTER_IPC_BLOCK_SIZE
+
+# Pure-bash host-side port selector for shared-network launches. Runs inside
+# the host shell spawned from Flatpak (which intentionally has no network
+# permission) without external tools, subshells or stdout output.
+SHARED_NETWORK_IPC_SETUP = (
+    "_tw_select_steam_master_ipc() { "
+    "local _idx=${1:-0} _base _size _slots _off _port _hex _f _la _used; "
+    f"_size={STEAM_MASTER_IPC_BLOCK_SIZE}; "
+    f"_slots={_STEAM_MASTER_IPC_SLOTS}; "
+    "case \"$_idx\" in ''|*[!0-9]*) _idx=0 ;; esac; "
+    f"_base=$(( {STEAM_MASTER_IPC_BASE_PORT} + (_idx % _slots) * _size )); "
+    "for ((_off = 0; _off < _size; _off++)); do "
+    "_port=$(( _base + _off )); "
+    f'[ "$_port" -le {STEAM_MASTER_IPC_MAX_PORT} ] || break; '
+    "printf -v _hex '%04X' \"$_port\"; "
+    "_used=0; "
+    'for _f in "${TWINVERSE_PROC_NET_TCP:-/proc/net/tcp}" "${TWINVERSE_PROC_NET_TCP6:-/proc/net/tcp6}"; do '
+    '[ -r "$_f" ] || continue; '
+    "while IFS=$' \\t' read -r _ _la _; do "
+    'case "${_la^^}" in *:"$_hex") _used=1; break ;; esac; '
+    'done < "$_f"; '
+    '[ "$_used" -eq 0 ] || break; '
+    "done; "
+    'if [ "$_used" -eq 0 ]; then '
+    f'export {STEAM_MASTER_IPC_ENV}="127.0.0.1:$_port"; '
+    "return 0; "
+    "fi; "
+    "done; "
+    f'export {STEAM_MASTER_IPC_ENV}="127.0.0.1:$_base"; '
+    "}; "
+)
+
+
+def _is_loopback_tcp_port_available(port: int) -> bool:
+    """Return True if ``127.0.0.1:<port>`` can be bound right now."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", port))
+        return True
+    except OSError:
+        return False
+
+
+def select_steam_master_ipc_address(instance_index: int = 0) -> str:
+    """Pick a free host loopback address for one instance's Steam3Master IPC."""
+    index = max(0, int(instance_index))
+    block_start = STEAM_MASTER_IPC_BASE_PORT + (index % _STEAM_MASTER_IPC_SLOTS) * STEAM_MASTER_IPC_BLOCK_SIZE
+    for offset in range(STEAM_MASTER_IPC_BLOCK_SIZE):
+        port = block_start + offset
+        if port <= STEAM_MASTER_IPC_MAX_PORT and _is_loopback_tcp_port_available(port):
+            return f"127.0.0.1:{port}"
+    try:
+        for _ in range(8):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.bind(("127.0.0.1", 0))
+                port = sock.getsockname()[1]
+            if port not in STEAM_DEFAULT_MASTER_IPC_PORTS:
+                return f"127.0.0.1:{port}"
+    except OSError:
+        pass
+    return f"127.0.0.1:{block_start}"
+
+
+def shared_network_ipc_shell_snippet(instance_index: int = 0) -> str:
+    """Return a pure-bash snippet that exports a free Steam3Master IPC address."""
+    index = max(0, int(instance_index))
+    return f"{SHARED_NETWORK_IPC_SETUP}_tw_select_steam_master_ipc {index}; "
+
 
 # Pick a free IPv4 address for the guest from the end of the host's subnet.
 # The address has to be in the same subnet as the host, otherwise the guest

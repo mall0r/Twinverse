@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import socket
 import subprocess
 from unittest.mock import Mock
 
@@ -10,7 +11,17 @@ import pytest
 from src.core import Config, Utils
 from src.models import PlayerInstanceConfig, Profile
 from src.services.instance import InstanceService
-from src.services.network import GUEST_ADDRESS_SETUP, NETWORK_SETUP, network_command
+from src.services.network import (
+    GUEST_ADDRESS_SETUP,
+    NETWORK_SETUP,
+    STEAM_DEFAULT_MASTER_IPC_PORTS,
+    STEAM_MASTER_IPC_BASE_PORT,
+    STEAM_MASTER_IPC_BLOCK_SIZE,
+    STEAM_MASTER_IPC_ENV,
+    network_command,
+    select_steam_master_ipc_address,
+    shared_network_ipc_shell_snippet,
+)
 
 
 def _unprivileged_namespaces_available() -> bool:
@@ -36,15 +47,19 @@ def test_native_optional_network(monkeypatch, installed):
     monkeypatch.setattr("src.services.instance.shutil.which", lambda name: name != "pasta" or installed)
     monkeypatch.setattr("subprocess.Popen", spawn)
     monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.delenv(STEAM_MASTER_IPC_ENV, raising=False)
     command = ["bwrap", "--dev-bind", "/", "/", "--", "printf", "%s", "spaces ' $ ;"]
     service._launch_natively(1, command, {})
     launched = spawn.call_args.args[0]
+    launched_env = spawn.call_args.kwargs["env"]
     if installed:
         assert launched[:2] == ["bash", "-c"]
         assert launched[4:6] == ["", "1"]
         assert launched[6:] == command
+        assert STEAM_MASTER_IPC_ENV not in launched_env
     else:
         assert launched == command
+        assert launched_env[STEAM_MASTER_IPC_ENV].startswith("127.0.0.1:")
 
 
 @pytest.mark.parametrize("installed", [False, True])
@@ -352,7 +367,7 @@ def test_pasta_does_not_watch_the_namespace_directory(tmp_path):
 
 
 def test_native_network_isolation_can_be_disabled(monkeypatch):
-    """Disabling network isolation skips pasta even when it is installed on the host."""
+    """Disabling network isolation skips pasta and isolates Steam3Master IPC via env only."""
     service = InstanceService.__new__(InstanceService)
     service.logger = Mock()
     process = Mock(pid=123)
@@ -362,8 +377,105 @@ def test_native_network_isolation_can_be_disabled(monkeypatch):
     monkeypatch.setattr("subprocess.Popen", spawn)
     monkeypatch.setattr("time.sleep", lambda _: None)
     command = ["bwrap", "--dev-bind", "/", "/", "--", "printf", "%s", "shared host"]
-    service._launch_natively(1, command, {}, isolate_network=False)
+    service._launch_natively(0, command, {}, isolate_network=False)
+    first_env = spawn.call_args.kwargs["env"]
     assert spawn.call_args.args[0] == command
+    assert "-master_ipc_name_override" not in spawn.call_args.args[0]
+
+    service._launch_natively(1, command, {}, isolate_network=False)
+    second_env = spawn.call_args.kwargs["env"]
+    assert first_env[STEAM_MASTER_IPC_ENV].startswith("127.0.0.1:")
+    assert second_env[STEAM_MASTER_IPC_ENV].startswith("127.0.0.1:")
+    assert first_env[STEAM_MASTER_IPC_ENV] != second_env[STEAM_MASTER_IPC_ENV]
+
+
+def test_native_shared_network_respects_explicit_ipc_override(monkeypatch):
+    """An explicit steam_master_ipc_name_override in instance_env is preserved."""
+    service = InstanceService.__new__(InstanceService)
+    service.logger = Mock()
+    process = Mock(pid=123)
+    process.poll.return_value = None
+    spawn = Mock(return_value=process)
+    monkeypatch.setattr("src.services.instance.shutil.which", lambda _name: True)
+    monkeypatch.setattr("subprocess.Popen", spawn)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    command = ["bwrap", "--dev-bind", "/", "/", "--", "true"]
+    service._launch_natively(
+        0,
+        command,
+        {STEAM_MASTER_IPC_ENV: "127.0.0.1:62000"},
+        isolate_network=False,
+    )
+    assert spawn.call_args.kwargs["env"][STEAM_MASTER_IPC_ENV] == "127.0.0.1:62000"
+
+
+def test_select_steam_master_ipc_address_uses_disjoint_blocks_and_skips_busy_port():
+    """Each instance gets a disjoint loopback block and skips already-bound ports."""
+    occupied_port = STEAM_MASTER_IPC_BASE_PORT
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.bind(("127.0.0.1", occupied_port))
+            sock.listen(1)
+        except OSError:
+            # Already in use on the test host -- still exercises skipping it.
+            pass
+        addr0 = select_steam_master_ipc_address(0)
+        addr1 = select_steam_master_ipc_address(1)
+
+    port0 = int(addr0.rsplit(":", 1)[1])
+    port1 = int(addr1.rsplit(":", 1)[1])
+    assert addr0.startswith("127.0.0.1:")
+    assert addr1.startswith("127.0.0.1:")
+    assert port0 != occupied_port
+    assert STEAM_MASTER_IPC_BASE_PORT < port0 < STEAM_MASTER_IPC_BASE_PORT + STEAM_MASTER_IPC_BLOCK_SIZE
+    assert (
+        STEAM_MASTER_IPC_BASE_PORT + STEAM_MASTER_IPC_BLOCK_SIZE
+        <= port1
+        < STEAM_MASTER_IPC_BASE_PORT + 2 * STEAM_MASTER_IPC_BLOCK_SIZE
+    )
+    assert port0 not in STEAM_DEFAULT_MASTER_IPC_PORTS
+    assert port1 not in STEAM_DEFAULT_MASTER_IPC_PORTS
+
+
+def test_shared_network_ipc_shell_snippet_is_pure_bash_and_skips_used_ports(tmp_path):
+    """The Flatpak host shell snippet needs no PATH tools and skips bound TCP/TCP6 ports."""
+    p0 = STEAM_MASTER_IPC_BASE_PORT
+    p1 = STEAM_MASTER_IPC_BASE_PORT + 1
+    p2 = STEAM_MASTER_IPC_BASE_PORT + 2
+    tcp4 = tmp_path / "tcp"
+    tcp6 = tmp_path / "tcp6"
+    tcp4.write_text("  sl  local_address rem_address   st\n" f"   0: 0100007F:{p0:04X} 00000000:0000 0A\n")
+    tcp6.write_text(
+        "  sl  local_address rem_address   st\n"
+        f"   0: 00000000000000000000000000000000:{p1:04x} 00000000000000000000000000000000:0000 0A\n"
+    )
+    env = {
+        "PATH": "",
+        "TWINVERSE_PROC_NET_TCP": str(tcp4),
+        "TWINVERSE_PROC_NET_TCP6": str(tcp6),
+    }
+    snippet = shared_network_ipc_shell_snippet(0)
+    result = subprocess.run(
+        ["/bin/bash", "-eu", "-c", f'{snippet}printf "%s" "${{{STEAM_MASTER_IPC_ENV}}}"'],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == ""
+    assert result.stdout == f"127.0.0.1:{p2}"
+
+    snippet_inst1 = shared_network_ipc_shell_snippet(1)
+    result1 = subprocess.run(
+        ["/bin/bash", "-eu", "-c", f'{snippet_inst1}printf "%s" "${{{STEAM_MASTER_IPC_ENV}}}"'],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result1.returncode == 0, result1.stderr
+    assert result1.stdout == f"127.0.0.1:{STEAM_MASTER_IPC_BASE_PORT + STEAM_MASTER_IPC_BLOCK_SIZE}"
 
 
 def test_flatpak_network_isolation_can_be_disabled(monkeypatch, tmp_path):
@@ -392,6 +504,49 @@ def test_flatpak_network_isolation_can_be_disabled(monkeypatch, tmp_path):
     body = log.split("\n\n", 1)[1] if "\n\n" in log else ""
     assert body.strip() == f"shared:{value}"
     network_spy.assert_not_called()
+
+
+@pytest.mark.parametrize("isolate_network,pasta_installed", [(False, True), (True, False), (True, True)])
+def test_flatpak_exports_steam_master_ipc_only_on_shared_network(
+    monkeypatch, tmp_path, isolate_network, pasta_installed
+):
+    """Flatpak exports a per-instance Steam3Master IPC override whenever sharing the host network."""
+    service = InstanceService.__new__(InstanceService)
+    service.logger = Mock()
+    process = Mock(pid=123)
+    process.poll.return_value = None
+    process.stdout.readline.return_value = b"123\n"
+    spawn = Mock(return_value=process)
+    monkeypatch.setattr(Utils, "flatpak_spawn_host", spawn)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path / "logs")
+
+    print_ipc = ["/bin/bash", "-c", f'printf "ipc=%s\\n" "${{{STEAM_MASTER_IPC_ENV}:-}}"']
+    monkeypatch.setattr("src.services.instance.network_command", lambda *args: print_ipc)
+    if pasta_installed:
+        pasta = tmp_path / "pasta"
+        pasta.write_text("#!/bin/sh\nexit 0\n")
+        pasta.chmod(0o755)
+
+    tcp4 = tmp_path / "tcp"
+    tcp6 = tmp_path / "tcp6"
+    tcp4.write_text("  sl  local_address rem_address   st\n")
+    tcp6.write_text("  sl  local_address rem_address   st\n")
+
+    service._launch_in_flatpak(1, print_ipc, {}, isolate_network=isolate_network)
+    run_env = {k: v for k, v in os.environ.items() if k != STEAM_MASTER_IPC_ENV}
+    run_env["PATH"] = str(tmp_path)
+    run_env["TWINVERSE_PROC_NET_TCP"] = str(tcp4)
+    run_env["TWINVERSE_PROC_NET_TCP6"] = str(tcp6)
+    subprocess.check_output(spawn.call_args.args[0], executable="/bin/bash", env=run_env, text=True)
+
+    log = next((tmp_path / "logs" / "instances").glob("instance-02-*.log")).read_text()
+    body = log.split("\n\n", 1)[1] if "\n\n" in log else ""
+    expected_port = STEAM_MASTER_IPC_BASE_PORT + STEAM_MASTER_IPC_BLOCK_SIZE
+    if isolate_network and pasta_installed:
+        assert body.strip() == "ipc="
+    else:
+        assert body.strip() == f"ipc=127.0.0.1:{expected_port}"
 
 
 def test_profile_isolate_network_defaults_true_and_serializes():

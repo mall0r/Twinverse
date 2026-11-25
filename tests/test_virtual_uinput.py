@@ -508,4 +508,6 @@ def test_instance_service_wraps_bridge_outside_network_command(monkeypatch, tmp_
     shell_cmd = captured_flatpak[0][2]
     assert "exec /home/user/.tw-in/bin/twinverse-input-bridge --socket-dir /home/user/.tw-in/sock" in shell_cmd
     assert "-- pasta -- bwrap" in shell_cmd
-    assert "else exec /home/user/.tw-in/bin/twinverse-input-bridge" in shell_cmd
+    else_branch = shell_cmd.split("else ", 1)[1]
+    assert "exec /home/user/.tw-in/bin/twinverse-input-bridge" in else_branch
+    assert "-- bwrap" in else_branch

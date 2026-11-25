@@ -28,7 +28,12 @@ from .instance_registry import (
     RecoveredInstance,
 )
 from .kde_manager import KdeManager
-from .network import network_command
+from .network import (
+    STEAM_MASTER_IPC_ENV,
+    network_command,
+    select_steam_master_ipc_address,
+    shared_network_ipc_shell_snippet,
+)
 from .steam_probe import ClientUpdate, SteamClientProbe
 
 logger = logging.getLogger(__name__)
@@ -421,16 +426,19 @@ class InstanceService:
         # the processes of the instance.
         watcher = SteamClientProbe(instance_num).watcher_script()
         bridge_prefix = f"{shlex.join(bridge_command)} -- " if bridge_command else ""
+        shared_ipc_setup = (
+            "" if instance_env.get(STEAM_MASTER_IPC_ENV) else shared_network_ipc_shell_snippet(instance_num)
+        )
         if isolate_network:
             network_launch = shlex.join(network_command(base_command, guest_address, instance_num))
             inner_script = (
                 f"echo $$; {watcher} "
                 f"if command -v pasta >/dev/null 2>&1; then exec {bridge_prefix}{network_launch}; "
-                f"else exec {bridge_prefix}{escaped_command}; fi{redirect}"
+                f"else {shared_ipc_setup}exec {bridge_prefix}{escaped_command}; fi{redirect}"
             )
         else:
             logger.info("Instance %s: network isolation disabled; sharing host network", instance_num + 1)
-            inner_script = f"echo $$; {watcher} exec {bridge_prefix}{escaped_command}{redirect}"
+            inner_script = f"echo $$; {watcher} {shared_ipc_setup}exec {bridge_prefix}{escaped_command}{redirect}"
         # The instance leads its own process group, so it can be signalled as
         # a whole and its children go down with it.
         bash_path = shutil.which("bash") or "/bin/bash"
@@ -553,11 +561,20 @@ class InstanceService:
             logger.error("Instance %s: %s", instance_num + 1, error_msg)
             raise DependencyError(error_msg)
 
-        if isolate_network:
-            if shutil.which("pasta"):
-                base_command = network_command(base_command, guest_address, instance_num)
+        use_isolated_network = bool(isolate_network and shutil.which("pasta"))
+        if use_isolated_network:
+            base_command = network_command(base_command, guest_address, instance_num)
         else:
-            logger.info("Instance %s: network isolation disabled; sharing host network", instance_num + 1)
+            if not isolate_network:
+                logger.info("Instance %s: network isolation disabled; sharing host network", instance_num + 1)
+            if not instance_env.get(STEAM_MASTER_IPC_ENV):
+                ipc_address = select_steam_master_ipc_address(instance_num)
+                native_env[STEAM_MASTER_IPC_ENV] = ipc_address
+                logger.info(
+                    "Instance %s: using isolated Steam master IPC %s on shared network",
+                    instance_num + 1,
+                    ipc_address,
+                )
 
         if bridge_command:
             base_command = [*bridge_command, "--", *base_command]
