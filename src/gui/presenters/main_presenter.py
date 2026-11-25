@@ -1,6 +1,7 @@
 """Mediates between the view (window) and the controllers."""
 
 import logging
+import threading
 from typing import Optional
 
 from gi.repository import Adw, GLib, Gtk
@@ -31,6 +32,7 @@ from src.gui.widgets.player_row import (
 from src.gui.windows import EndSessionOverlay, MainWindow, PreferencesWindow
 from src.services import (
     ControllerShortcutMonitor,
+    DeviceHotplugMonitor,
     DeviceManager,
     InstanceService,
     KdeManager,
@@ -71,10 +73,16 @@ class MainPresenter:
         self._progress_shown: dict[int, tuple[str, Optional[int]]] = {}
         self._minimize_after_launch = False
         self._exit_overlay: Optional[EndSessionOverlay] = None
+        self._last_devices_info: Optional[dict] = None
+        self._hotplug_lock = threading.Lock()
+        self._hotplug_refresh_pending = False
         self._shortcut_monitor = ControllerShortcutMonitor(
             on_trigger=self._schedule_exit_confirmation,
             on_navigate=self._schedule_exit_navigation,
             bridge_socket_enumerator=self._active_bridge_sockets,
+        )
+        self._hotplug_monitor = DeviceHotplugMonitor(
+            on_change=self._schedule_hotplug_refresh,
         )
 
         self._load_initial_data()
@@ -102,6 +110,7 @@ class MainPresenter:
         """Load initial data into the UI."""
         profile = self._settings_controller.get_profile()
         devices_info = self._settings_controller.get_devices_info()
+        self._last_devices_info = devices_info
 
         self._verification_controller.verify_instances(
             profile.party_indices(), on_each_complete=lambda i, verified: None  # Silent initial verification
@@ -115,6 +124,10 @@ class MainPresenter:
         self._show_recovered_instances()
         self._update_launch_button_sensitivity()
         self._sync_launch_button_action()
+
+        hotplug_monitor = getattr(self, "_hotplug_monitor", None)
+        if hotplug_monitor is not None:
+            hotplug_monitor.start()
 
     def _show_recovered_instances(self):
         """Show the instances that outlived the session that launched them."""
@@ -388,6 +401,7 @@ class MainPresenter:
 
         if current_row_ids != new_party:
             devices_info = self._settings_controller.get_devices_info()
+            self._last_devices_info = devices_info
             verification_statuses = self._verification_controller.get_all_statuses()
             layout_page.load_data(profile, devices_info, verification_statuses)
             self._settings_controller.update_from_ui_data(layout_page.get_data())
@@ -512,6 +526,9 @@ class MainPresenter:
         monitor = getattr(self, "_shortcut_monitor", None)
         if monitor is not None:
             monitor.stop()
+        hotplug_monitor = getattr(self, "_hotplug_monitor", None)
+        if hotplug_monitor is not None:
+            hotplug_monitor.stop()
         self.window.set_sensitive(False)
 
         # The settings of this session are kept before the app goes away.
@@ -530,10 +547,47 @@ class MainPresenter:
         logger.info("Refreshing devices...")
         self._settings_controller.refresh_devices()
         devices_info = self._settings_controller.get_devices_info()
+        self._last_devices_info = devices_info
 
         layout_page = self.window.get_layout_page()
         layout_page.update_devices_info(devices_info)
         self._update_launch_button_sensitivity()
+
+    def _schedule_hotplug_refresh(self) -> None:
+        """Coalesce background hotplug notifications onto the GTK main loop."""
+        lock = getattr(self, "_hotplug_lock", None)
+        if lock is not None:
+            with lock:
+                if getattr(self, "_hotplug_refresh_pending", False):
+                    return
+                self._hotplug_refresh_pending = True
+        GLib.idle_add(self._on_hotplug_devices_changed)
+
+    def _on_hotplug_devices_changed(self) -> bool:
+        """Refresh UI device and display lists automatically after a hotplug event."""
+        lock = getattr(self, "_hotplug_lock", None)
+        if lock is not None:
+            with lock:
+                self._hotplug_refresh_pending = False
+        else:
+            self._hotplug_refresh_pending = False
+
+        try:
+            self._settings_controller.refresh_devices()
+            devices_info = self._settings_controller.get_devices_info()
+        except Exception:
+            logger.debug("Automatic device refresh failed during hardware change", exc_info=True)
+            return False
+
+        if devices_info == getattr(self, "_last_devices_info", None):
+            return False
+
+        logger.info("Detected input or display change; refreshing device lists.")
+        self._last_devices_info = devices_info
+        layout_page = self.window.get_layout_page()
+        layout_page.update_devices_info(devices_info)
+        self._update_launch_button_sensitivity()
+        return False
 
     def _active_bridge_sockets(self) -> list[str]:
         """Return live ``twinverse-input-bridge`` Unix sockets for active instances."""
@@ -836,6 +890,7 @@ class MainPresenter:
         if key == "player_configs":
             profile = self._settings_controller.get_profile()
             devices_info = self._settings_controller.get_devices_info()
+            self._last_devices_info = devices_info
             layout_page = self.window.get_layout_page()
 
             verification_statuses = self._verification_controller.get_all_statuses()

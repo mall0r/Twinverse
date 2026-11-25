@@ -704,7 +704,7 @@ class PlayerRow(Gtk.Box):
         self._parent_page = parent_page
 
     def update_devices(self, devices_info: dict):
-        """Replace device models while retaining assignments by ID, even when disconnected."""
+        """Replace device models when changed while retaining assignments by ID, even when disconnected."""
         selected_joystick = self._selected_joystick_option()
         current_joystick_id = selected_joystick["id"] if selected_joystick is not None else None
         current_joystick_name = selected_joystick.get("name") if selected_joystick is not None else None
@@ -712,13 +712,20 @@ class PlayerRow(Gtk.Box):
         was_loading = self._is_loading
         self._is_loading = True
         try:
-            self._devices_info = {kind: list(devices_info.get(kind, [])) for kind in ("joystick", "audio")}
-            self._rebuild_joystick_model(current_joystick_id, current_joystick_name)
-            audio_devices = self._devices_info["audio"]
-            self.audio_row.set_model(
-                Gtk.StringList.new([t("player.audio_default")] + [device["name"] for device in audio_devices])
-            )
-            self._set_combo_selection(self.audio_row, audio_devices, current_audio)
+            new_joysticks = list(devices_info.get("joystick", []))
+            new_audio = list(devices_info.get("audio", []))
+            joysticks_changed = new_joysticks != self._devices_info["joystick"]
+            audio_model = self.audio_row.get_model()
+            audio_model_missing = not isinstance(audio_model, Gtk.StringList) or audio_model.get_n_items() == 0
+            audio_changed = new_audio != self._devices_info["audio"] or audio_model_missing
+            self._devices_info = {"joystick": new_joysticks, "audio": new_audio}
+            if joysticks_changed:
+                self._rebuild_joystick_model(current_joystick_id, current_joystick_name)
+            if audio_changed:
+                self.audio_row.set_model(
+                    Gtk.StringList.new([t("player.audio_default")] + [device["name"] for device in new_audio])
+                )
+                self._set_combo_selection(self.audio_row, new_audio, current_audio)
         finally:
             self._is_loading = was_loading
 

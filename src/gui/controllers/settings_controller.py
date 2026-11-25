@@ -98,10 +98,11 @@ class SettingsController:
         Returns:
             Dict with "joystick", "mouse", "keyboard", "audio" and "displays".
         """
+        input_devices = self._device_manager.get_input_devices()
         return {
-            "joystick": self._device_manager.get_input_devices().get("joystick", []),
-            "mouse": self._device_manager.get_input_devices().get("mouse", []),
-            "keyboard": self._device_manager.get_input_devices().get("keyboard", []),
+            "joystick": input_devices.get("joystick", []),
+            "mouse": input_devices.get("mouse", []),
+            "keyboard": input_devices.get("keyboard", []),
             "audio": self._device_manager.get_audio_devices(),
             "displays": self._device_manager.get_screen_info(),
         }
