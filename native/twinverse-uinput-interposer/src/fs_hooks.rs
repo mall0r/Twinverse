@@ -5,6 +5,7 @@ use core::cell::Cell;
 use core::ffi::{c_char, c_int, c_ulong, c_void};
 use core::mem::{size_of, zeroed};
 use core::ptr;
+use core::sync::atomic::{AtomicU32, Ordering};
 
 use twinverse_uinput_proto::{
     cstr_bytes, fmt_u32, is_hidraw_basename, parse_hidraw_dev_path, udyn_index_for_basename,
@@ -13,16 +14,16 @@ use twinverse_uinput_proto::{
 };
 
 use crate::ffi::{
-    format_syspath, free, get_errno, getenv, hidraw_filter_enabled, is_hidraw_blocked, malloc,
-    needs_mode, qsort, readlink, real___fxstat, real___fxstat64, real___lxstat, real___lxstat64,
-    real___open64_2, real___open_2, real___openat64_2, real___openat_2, real___read_chk,
-    real___xstat, real___xstat64, real_access, real_close, real_closedir, real_fstat, real_fstat64,
-    real_ioctl, real_lstat, real_lstat64, real_open, real_open64, real_openat, real_openat64,
-    real_opendir, real_read, real_readdir, real_readdir64, real_realpath, real_scandir,
-    real_scandir64, real_stat, real_stat64, real_write, realloc, set_errno, strdup, Dirent,
-    Dirent64, RecursiveMutex, Scandir64ComparFn, Scandir64FilterFn, ScandirComparFn,
-    ScandirFilterFn, Stat, Stat64, AT_FDCWD, DIR, DT_CHR, EFAULT, ENOENT, ENOSYS, PATH_MAX,
-    S_IFCHR, W_OK,
+    format_syspath, free, get_errno, getenv, hidraw_filter_enabled, is_hidraw_blocked,
+    is_sandbox_input_muted, malloc, needs_mode, qsort, readlink, real___fxstat, real___fxstat64,
+    real___lxstat, real___lxstat64, real___open64_2, real___open_2, real___openat64_2,
+    real___openat_2, real___read_chk, real___xstat, real___xstat64, real_access, real_close,
+    real_closedir, real_fstat, real_fstat64, real_ioctl, real_lstat, real_lstat64, real_open,
+    real_open64, real_openat, real_openat64, real_opendir, real_read, real_readdir,
+    real_readdir64, real_realpath, real_scandir, real_scandir64, real_stat, real_stat64,
+    real_write, realloc, set_errno, strdup, Dirent, Dirent64, RecursiveMutex, Scandir64ComparFn,
+    Scandir64FilterFn, ScandirComparFn, ScandirFilterFn, Stat, Stat64, AT_FDCWD, DIR, DT_CHR,
+    EAGAIN, EFAULT, ENOENT, ENOSYS, PATH_MAX, S_IFCHR, W_OK,
 };
 use crate::inotify::{self, is_dev_input_dir};
 use crate::uinput;
@@ -39,6 +40,59 @@ unsafe fn virtual_uinput_forced() -> bool {
 #[inline]
 fn is_dev_dir(path: &[u8]) -> bool {
     path == b"/dev" || path == b"/dev/"
+}
+
+const HIDRAW_FD_WORDS: usize = 128; // 128 * 32 = 4096 file descriptors
+static HIDRAW_FDS: [AtomicU32; HIDRAW_FD_WORDS] = {
+    const ZERO: AtomicU32 = AtomicU32::new(0);
+    [ZERO; HIDRAW_FD_WORDS]
+};
+
+#[inline]
+fn track_hidraw_fd(fd: c_int) {
+    if fd >= 0 {
+        let idx = fd as usize;
+        let word = idx / 32;
+        if word < HIDRAW_FD_WORDS {
+            HIDRAW_FDS[word].fetch_or(1u32 << (idx % 32), Ordering::Relaxed);
+        }
+    }
+}
+
+#[inline]
+fn untrack_hidraw_fd(fd: c_int) {
+    if fd >= 0 {
+        let idx = fd as usize;
+        let word = idx / 32;
+        if word < HIDRAW_FD_WORDS {
+            HIDRAW_FDS[word].fetch_and(!(1u32 << (idx % 32)), Ordering::Relaxed);
+        }
+    }
+}
+
+#[inline]
+fn is_tracked_hidraw_fd(fd: c_int) -> bool {
+    if fd >= 0 {
+        let idx = fd as usize;
+        let word = idx / 32;
+        if word < HIDRAW_FD_WORDS {
+            return (HIDRAW_FDS[word].load(Ordering::Relaxed) & (1u32 << (idx % 32))) != 0;
+        }
+    }
+    false
+}
+
+#[inline]
+unsafe fn maybe_track_opened_hidraw(path_bytes: Option<&[u8]>, fd: c_int) -> c_int {
+    if fd >= 0 {
+        if hidraw_filter_enabled() && path_bytes.is_some_and(|p| parse_hidraw_dev_path(p).is_some())
+        {
+            track_hidraw_fd(fd);
+        } else {
+            untrack_hidraw_fd(fd);
+        }
+    }
+    fd
 }
 
 #[inline]
@@ -160,14 +214,16 @@ pub unsafe extern "C" fn open(pathname: *const c_char, flags: c_int, mode: u32) 
         set_errno(EFAULT);
         return -1;
     };
-    if let Some(fd) = common_open(cstr_bytes(pathname), flags) {
+    let path = cstr_bytes(pathname);
+    if let Some(fd) = common_open(path, flags) {
         return fd;
     }
-    if needs_mode(flags) {
+    let fd = if needs_mode(flags) {
         real_fn(pathname, flags, mode)
     } else {
         real_fn(pathname, flags)
-    }
+    };
+    maybe_track_opened_hidraw(path, fd)
 }
 
 #[allow(unknown_lints, invalid_runtime_symbol_definitions)]
@@ -178,14 +234,16 @@ pub unsafe extern "C" fn open64(pathname: *const c_char, flags: c_int, mode: u32
         set_errno(EFAULT);
         return -1;
     };
-    if let Some(fd) = common_open(cstr_bytes(pathname), flags) {
+    let path = cstr_bytes(pathname);
+    if let Some(fd) = common_open(path, flags) {
         return fd;
     }
-    if needs_mode(flags) {
+    let fd = if needs_mode(flags) {
         real_fn(pathname, flags, mode)
     } else {
         real_fn(pathname, flags)
-    }
+    };
+    maybe_track_opened_hidraw(path, fd)
 }
 
 #[allow(unknown_lints, invalid_runtime_symbol_definitions)]
@@ -205,11 +263,12 @@ pub unsafe extern "C" fn openat(
     if let Some(fd) = common_open(resolved, flags) {
         return fd;
     }
-    if needs_mode(flags) {
+    let fd = if needs_mode(flags) {
         real_fn(dirfd, pathname, flags, mode)
     } else {
         real_fn(dirfd, pathname, flags)
-    }
+    };
+    maybe_track_opened_hidraw(resolved, fd)
 }
 
 #[allow(unknown_lints, invalid_runtime_symbol_definitions)]
@@ -230,11 +289,12 @@ pub unsafe extern "C" fn openat64(
     if let Some(fd) = common_open(resolved, flags) {
         return fd;
     }
-    if needs_mode(flags) {
+    let fd = if needs_mode(flags) {
         real_fn(dirfd, pathname, flags, mode)
     } else {
         real_fn(dirfd, pathname, flags)
-    }
+    };
+    maybe_track_opened_hidraw(resolved, fd)
 }
 
 #[no_mangle]
@@ -243,10 +303,11 @@ pub unsafe extern "C" fn __open_2(file: *const c_char, oflag: c_int) -> c_int {
         set_errno(EFAULT);
         return -1;
     };
-    if let Some(fd) = common_open(cstr_bytes(file), oflag) {
+    let path = cstr_bytes(file);
+    if let Some(fd) = common_open(path, oflag) {
         return fd;
     }
-    real_fn(file, oflag)
+    maybe_track_opened_hidraw(path, real_fn(file, oflag))
 }
 
 #[no_mangle]
@@ -255,10 +316,11 @@ pub unsafe extern "C" fn __open64_2(file: *const c_char, oflag: c_int) -> c_int 
         set_errno(EFAULT);
         return -1;
     };
-    if let Some(fd) = common_open(cstr_bytes(file), oflag) {
+    let path = cstr_bytes(file);
+    if let Some(fd) = common_open(path, oflag) {
         return fd;
     }
-    real_fn(file, oflag)
+    maybe_track_opened_hidraw(path, real_fn(file, oflag))
 }
 
 #[no_mangle]
@@ -272,7 +334,7 @@ pub unsafe extern "C" fn __openat_2(dirfd: c_int, file: *const c_char, oflag: c_
     if let Some(fd) = common_open(resolved, oflag) {
         return fd;
     }
-    real_fn(dirfd, file, oflag)
+    maybe_track_opened_hidraw(resolved, real_fn(dirfd, file, oflag))
 }
 
 #[no_mangle]
@@ -286,7 +348,7 @@ pub unsafe extern "C" fn __openat64_2(dirfd: c_int, file: *const c_char, oflag: 
     if let Some(fd) = common_open(resolved, oflag) {
         return fd;
     }
-    real_fn(dirfd, file, oflag)
+    maybe_track_opened_hidraw(resolved, real_fn(dirfd, file, oflag))
 }
 
 // ---- close / read / __read_chk / write / ioctl ----------------------------
@@ -297,6 +359,7 @@ pub unsafe extern "C" fn close(fd: c_int) -> c_int {
         set_errno(EFAULT);
         return -1;
     };
+    untrack_hidraw_fd(fd);
     inotify::forget_fd(fd);
     uinput::handle_close(fd);
     real_fn(fd)
@@ -313,6 +376,17 @@ pub unsafe extern "C" fn read(fd: c_int, buf: *mut c_void, count: usize) -> isiz
     }
     if let Some(ret) = uinput::try_read(fd, buf, count) {
         return ret;
+    }
+    if is_tracked_hidraw_fd(fd) && is_sandbox_input_muted() {
+        let n = real_fn(fd, buf, count);
+        if n > 0 {
+            if !buf.is_null() {
+                ptr::write_bytes(buf as *mut u8, 0, n as usize);
+            }
+            set_errno(EAGAIN);
+            return -1;
+        }
+        return n;
     }
     real_fn(fd, buf, count)
 }
@@ -334,7 +408,7 @@ pub unsafe extern "C" fn __read_chk(
     if inotify::is_tracked(fd) {
         return inotify::handle_read(fd, buf, nbytes);
     }
-    if uinput::is_consumer_fd(fd) {
+    if uinput::is_consumer_fd(fd) || is_tracked_hidraw_fd(fd) {
         return read(fd, buf, nbytes);
     }
     real_fn(fd, buf, nbytes, buflen)

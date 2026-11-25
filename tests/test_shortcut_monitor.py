@@ -230,10 +230,12 @@ def test_navigation_mode_routes_dpad_hat_stick_and_guards_accidental_confirm():
     monitor.process_event("pad0", EV_ABS, ABS_X, 0, clock.now)  # returned to center
     monitor.process_event("pad0", EV_ABS, ABS_X, -28000, clock.now)
 
-    # Unsigned stick (DualSense 0..255, center ~128).
+    # Events from a different controller (dualsense) are completely ignored while pad0 owns the overlay.
+    assert monitor.active_navigation_device == "pad0"
     monitor.process_event("dualsense", EV_ABS, ABS_X, 240, clock.now)
-    monitor.process_event("dualsense", EV_ABS, ABS_X, 128, clock.now)
-    monitor.process_event("dualsense", EV_ABS, ABS_X, 10, clock.now)
+    monitor.process_event("dualsense", EV_KEY, BTN_DPAD_RIGHT, 1, clock.now)
+    monitor.process_event("dualsense", EV_KEY, BTN_SOUTH, 1, clock.now)
+    monitor.process_event("dualsense", EV_KEY, BTN_EAST, 1, clock.now)
 
     monitor.process_event("pad0", EV_KEY, BTN_SOUTH, 1, clock.now)
     monitor.process_event("pad0", EV_KEY, BTN_EAST, 1, clock.now)
@@ -245,11 +247,31 @@ def test_navigation_mode_routes_dpad_hat_stick_and_guards_accidental_confirm():
         "left",
         "right",
         "left",
-        "right",
-        "left",
         "confirm",
         "cancel",
     ]
+
+    # Closing navigation mode unlocks ownership; triggering from dualsense locks onto dualsense (0..255 stick).
+    monitor.set_navigation_mode(False)
+    assert monitor.active_navigation_device is None
+    actions.clear()
+    monitor.process_event("dualsense", EV_KEY, BTN_MODE, 1, clock.now)
+    monitor.process_event("dualsense", EV_KEY, BTN_SELECT, 1, clock.now)
+    assert monitor.check_holds(clock.advance(2.0))
+    monitor.set_navigation_mode(True)
+    assert monitor.active_navigation_device == "dualsense"
+    monitor.process_event("dualsense", EV_KEY, BTN_MODE, 0, clock.advance(0.5))
+    monitor.process_event("dualsense", EV_KEY, BTN_SELECT, 0, clock.now)
+
+    # pad0 is now ignored while dualsense owns the overlay.
+    monitor.process_event("pad0", EV_KEY, BTN_DPAD_RIGHT, 1, clock.now)
+    monitor.process_event("pad0", EV_KEY, BTN_SOUTH, 1, clock.now)
+
+    # Unsigned stick (DualSense 0..255, center ~128).
+    monitor.process_event("dualsense", EV_ABS, ABS_X, 240, clock.now)
+    monitor.process_event("dualsense", EV_ABS, ABS_X, 128, clock.now)
+    monitor.process_event("dualsense", EV_ABS, ABS_X, 10, clock.now)
+    assert actions == ["right", "left"]
 
 
 def test_device_filtering_skips_virtual_twinverse_and_steam_pads():
@@ -361,10 +383,112 @@ def test_shortcut_monitor_reads_bridge_socket_when_controller_is_exclusively_gra
         )
         assert nav_done.wait(timeout=1.5)
         assert nav_events == ["right", "confirm"]
+
+        # Verify TWCTL handshake: monitor registered on connect, muted on nav=True, unmuted on nav=False.
+        monitor.set_navigation_mode(False)
+        conn.settimeout(1.0)
+        ctl = b""
+        while len(ctl) < 24:
+            chunk = conn.recv(24 - len(ctl))
+            if not chunk:
+                break
+            ctl += chunk
+        assert ctl == b"TWCTL\x01\x00\x00TWCTL\x02\x01\x00TWCTL\x02\x00\x00"
     finally:
         if conn is not None:
             conn.close()
         server.close()
+        monitor.stop()
+
+
+def test_shortcut_monitor_mutes_only_triggering_bridge_and_ignores_other_player_bridge(tmp_path):
+    """Only the bridge controller that triggered HOME+SELECT gets muted and controls the End Session overlay."""
+
+    def make_bridge_socket(instance_name: str):
+        sock_dir = tmp_path / instance_name / ".tw-in" / "sock"
+        sock_dir.mkdir(parents=True)
+        sock_path = sock_dir / "tw_event3000.sock"
+        desc_path = sock_dir / "tw_event3000.desc"
+        desc = bytearray(1752)
+        struct.pack_into("<II", desc, 0, 0x54575549, 1)
+        struct.pack_into("<iiiiii", desc, 212, 0, -32768, 32767, 0, 0, 0)
+        struct.pack_into("<I", desc, 1748, 24)
+        desc_path.write_bytes(desc)
+        srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        srv.bind(str(sock_path))
+        srv.listen(4)
+        srv.settimeout(2.0)
+        return sock_path, srv
+
+    sock1, srv1 = make_bridge_socket("instance_1")
+    sock2, srv2 = make_bridge_socket("instance_2")
+
+    fired = threading.Event()
+    nav_events: list[str] = []
+    nav_done = threading.Event()
+
+    def on_nav(action: str) -> None:
+        nav_events.append(action)
+        if action == "confirm":
+            nav_done.set()
+
+    monitor = ControllerShortcutMonitor(
+        on_trigger=fired.set,
+        on_navigate=on_nav,
+        hold_seconds=0.15,
+        rescan_interval=0.2,
+        nav_grace_seconds=0.0,
+        device_enumerator=lambda: [],
+        bridge_socket_enumerator=lambda: [str(sock1), str(sock2)],
+    )
+    conn1 = conn2 = None
+    try:
+        monitor.start()
+        conn1, _ = srv1.accept()
+        conn2, _ = srv2.accept()
+        conn1.settimeout(1.0)
+        conn2.settimeout(1.0)
+        assert conn1.recv(8) == b"TWCTL\x01\x00\x00"
+        assert conn2.recv(8) == b"TWCTL\x01\x00\x00"
+
+        # Player 1 triggers HOME + SELECT.
+        conn1.sendall(
+            struct.pack("<qqHHi", 1, 0, EV_KEY, BTN_MODE, 1) + struct.pack("<qqHHi", 1, 100, EV_KEY, BTN_SELECT, 1)
+        )
+        assert fired.wait(timeout=1.5)
+
+        # Entering navigation mode mutes Player 1's bridge ONLY.
+        monitor.set_navigation_mode(True)
+        assert conn1.recv(8) == b"TWCTL\x02\x01\x00"
+        conn2.settimeout(0.1)
+        with pytest.raises(socket.timeout):
+            conn2.recv(8)
+
+        # Player 2's navigation/confirm inputs are ignored; Player 1's inputs work.
+        conn2.sendall(
+            struct.pack("<qqHHi", 2, 0, EV_KEY, BTN_DPAD_RIGHT, 1) + struct.pack("<qqHHi", 2, 100, EV_KEY, BTN_SOUTH, 1)
+        )
+        time.sleep(0.05)
+        assert nav_events == []
+
+        conn1.sendall(
+            struct.pack("<qqHHi", 3, 0, EV_KEY, BTN_MODE, 0)
+            + struct.pack("<qqHHi", 3, 100, EV_KEY, BTN_SELECT, 0)
+            + struct.pack("<qqHHi", 3, 200, EV_KEY, BTN_DPAD_RIGHT, 1)
+            + struct.pack("<qqHHi", 3, 300, EV_KEY, BTN_SOUTH, 1)
+        )
+        assert nav_done.wait(timeout=1.5)
+        assert nav_events == ["right", "confirm"]
+
+        # Exiting navigation mode unmutes Player 1's bridge.
+        monitor.set_navigation_mode(False)
+        assert conn1.recv(8) == b"TWCTL\x02\x00\x00"
+    finally:
+        for conn in (conn1, conn2):
+            if conn is not None:
+                conn.close()
+        srv1.close()
+        srv2.close()
         monitor.stop()
 
 

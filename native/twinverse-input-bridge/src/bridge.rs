@@ -19,8 +19,9 @@ use std::time::{Duration, Instant};
 
 use twinverse_uinput_proto::{
     clear_bit, default_abs_rest_value, set_bit, test_bit, udyn_bytes, NativeInputEvent, UdynDesc,
-    ABS_CNT, ABS_MAX, EV_ABS, EV_KEY, EV_SYN, HIDRAW_ALLOW_FILENAME, KEY_MAX, SYN_REPORT,
-    UDYN_EVENT_BASE, UDYN_MAX_CLIENTS,
+    ABS_CNT, ABS_MAX, EV_ABS, EV_KEY, EV_SYN, HIDRAW_ALLOW_FILENAME, INPUT_MUTE_FILENAME, KEY_MAX,
+    SYN_REPORT, TWCTL_CMD_REGISTER_MONITOR, TWCTL_CMD_SET_SANDBOX_MUTE, TWCTL_MAGIC,
+    TWCTL_PACKET_LEN, UDYN_EVENT_BASE, UDYN_MAX_CLIENTS,
 };
 
 use crate::evdev::{
@@ -39,6 +40,7 @@ use crate::ffi::{
 const FAST_RETRY_MS: c_int = 100;
 const FALLBACK_POLL_MS: c_int = 500;
 const FAST_RETRY_WINDOW: Duration = Duration::from_secs(3);
+const UNMUTE_SUPPRESS_TIMEOUT: Duration = Duration::from_millis(1500);
 
 /// Configuration for the physical controller bridge.
 #[derive(Clone, Debug)]
@@ -248,11 +250,32 @@ fn bind_unix_listener(sock_path: &Path) -> Option<c_int> {
     Some(fd)
 }
 
+struct BridgeClient {
+    fd: c_int,
+    is_monitor: bool,
+    mute_requested: bool,
+    rx_buf: [u8; TWCTL_PACKET_LEN],
+    rx_len: usize,
+}
+
+impl BridgeClient {
+    fn new(fd: c_int) -> Self {
+        Self {
+            fd,
+            is_monitor: false,
+            mute_requested: false,
+            rx_buf: [0u8; TWCTL_PACKET_LEN],
+            rx_len: 0,
+        }
+    }
+}
+
 struct BridgeState {
     cfg: BridgeConfig,
     desc_path: PathBuf,
     sock_path: PathBuf,
     allow_path: PathBuf,
+    mute_path: PathBuf,
     stop_read_fd: c_int,
     listen_fd: c_int,
     phys_fd: c_int,
@@ -263,8 +286,12 @@ struct BridgeState {
     excluded_phys: HashSet<Vec<u8>>,
     desc: Option<UdynDesc>,
     pressed_keys: [u8; udyn_bytes(KEY_MAX)],
+    suppressed_keys: [u8; udyn_bytes(KEY_MAX)],
+    suppress_until: Option<Instant>,
     abs_values: [i32; ABS_CNT],
-    clients: Vec<c_int>,
+    sandbox_muted: bool,
+    mute_file_active: bool,
+    clients: Vec<BridgeClient>,
     fast_retry_until: Option<Instant>,
     log_enabled: bool,
 }
@@ -278,6 +305,7 @@ impl BridgeState {
             .socket_dir
             .join(format!("tw_event{}.sock", cfg.event_num));
         let allow_path = cfg.socket_dir.join(HIDRAW_ALLOW_FILENAME);
+        let mute_path = cfg.socket_dir.join(INPUT_MUTE_FILENAME);
         let log_enabled =
             std::env::var_os("TWINVERSE_UINPUT_LOG").is_some_and(|v| !v.is_empty() && v != "0");
 
@@ -308,6 +336,7 @@ impl BridgeState {
             desc_path,
             sock_path,
             allow_path,
+            mute_path,
             stop_read_fd,
             listen_fd: -1,
             phys_fd: -1,
@@ -318,7 +347,11 @@ impl BridgeState {
             excluded_phys: HashSet::new(),
             desc: None,
             pressed_keys: [0u8; udyn_bytes(KEY_MAX)],
+            suppressed_keys: [0u8; udyn_bytes(KEY_MAX)],
+            suppress_until: None,
             abs_values: [0i32; ABS_CNT],
+            sandbox_muted: false,
+            mute_file_active: false,
             clients: Vec::new(),
             fast_retry_until: None,
             log_enabled,
@@ -346,6 +379,8 @@ impl BridgeState {
 
     fn init_before_spawn(&mut self) {
         let _ = fs::create_dir_all(&self.cfg.socket_dir);
+        let _ = fs::remove_file(&self.mute_path);
+        self.mute_file_active = false;
         // Always start with an explicit allowlist file so hidraw filtering has
         // deterministic state before the sandbox starts.
         let _ = write_hidraw_allow(&self.cfg.socket_dir, &[]);
@@ -439,9 +474,85 @@ impl BridgeState {
         true
     }
 
+    fn has_suppressed_keys(&self) -> bool {
+        self.suppressed_keys.iter().any(|&b| b != 0)
+    }
+
+    fn set_mute_file(&mut self, active: bool) {
+        if self.mute_file_active == active {
+            return;
+        }
+        if active {
+            let _ = fs::write(&self.mute_path, b"1\n");
+        } else {
+            let _ = fs::remove_file(&self.mute_path);
+        }
+        self.mute_file_active = active;
+    }
+
+    fn sync_mute_file(&mut self) {
+        if self
+            .suppress_until
+            .is_some_and(|deadline| Instant::now() >= deadline)
+        {
+            self.suppressed_keys = [0u8; udyn_bytes(KEY_MAX)];
+            self.suppress_until = None;
+        }
+        let want_file = self.sandbox_muted || self.has_suppressed_keys();
+        self.set_mute_file(want_file);
+    }
+
+    fn update_sandbox_mute(&mut self) {
+        let want_muted = self
+            .clients
+            .iter()
+            .any(|c| c.is_monitor && c.mute_requested);
+        if want_muted == self.sandbox_muted {
+            return;
+        }
+        if want_muted {
+            self.sandbox_muted = true;
+            self.suppressed_keys = [0u8; udyn_bytes(KEY_MAX)];
+            self.suppress_until = None;
+            self.sync_mute_file();
+            if let Some(desc) = self.desc {
+                let (sec, usec) = realtime_sec_usec();
+                // Neutralize sandbox state from a copy so physical held-key tracking remains exact.
+                let mut sandbox_keys = self.pressed_keys;
+                let mut sandbox_abs = self.abs_values;
+                let neutral = build_neutralizer_events(
+                    &desc,
+                    &mut sandbox_keys,
+                    &mut sandbox_abs,
+                    sec,
+                    usec,
+                );
+                if !neutral.is_empty() {
+                    self.broadcast_events_to(&neutral, false);
+                }
+            }
+            self.log("sandbox controller input muted by host overlay monitor");
+        } else {
+            self.sandbox_muted = false;
+            // Suppress trailing releases of buttons still held when closing the overlay
+            // (e.g. releasing Cancel/B) so they never leak into Steam or the game.
+            self.suppressed_keys = self.pressed_keys;
+            self.suppress_until = if self.has_suppressed_keys() {
+                Some(Instant::now() + UNMUTE_SUPPRESS_TIMEOUT)
+            } else {
+                None
+            };
+            self.sync_mute_file();
+            self.log("sandbox controller input unmuted by host overlay monitor");
+        }
+    }
+
     fn handle_disconnect(&mut self) {
         self.release_physical_fd();
         let _ = write_hidraw_allow(&self.cfg.socket_dir, &[]);
+        self.suppressed_keys = [0u8; udyn_bytes(KEY_MAX)];
+        self.suppress_until = None;
+        self.sync_mute_file();
 
         if let Some(desc) = self.desc {
             let (sec, usec) = realtime_sec_usec();
@@ -453,7 +564,10 @@ impl BridgeState {
                 usec,
             );
             if !neutral.is_empty() {
-                self.broadcast_events(&neutral);
+                self.broadcast_events_to(&neutral, true);
+                if !self.sandbox_muted {
+                    self.broadcast_events_to(&neutral, false);
+                }
             }
         }
         self.log("physical controller disconnected; keeping virtual slot alive for reconnection");
@@ -475,15 +589,20 @@ impl BridgeState {
         }
     }
 
-    fn broadcast_events(&mut self, events: &[NativeInputEvent]) {
+    fn broadcast_events_to(&mut self, events: &[NativeInputEvent], monitors_only: bool) {
         if events.is_empty() || self.clients.is_empty() {
             return;
         }
         let byte_len = events.len() * size_of::<NativeInputEvent>();
         let ptr = events.as_ptr() as *const c_void;
         let mut idx = 0;
+        let mut removed_monitor = false;
         while idx < self.clients.len() {
-            let cfd = self.clients[idx];
+            if self.clients[idx].is_monitor != monitors_only {
+                idx += 1;
+                continue;
+            }
+            let cfd = self.clients[idx].fd;
             let rc = unsafe { send(cfd, ptr, byte_len, MSG_DONTWAIT | MSG_NOSIGNAL) };
             let drop_client = if rc < 0 {
                 let err = last_errno();
@@ -495,11 +614,130 @@ impl BridgeState {
                 unsafe {
                     close(cfd);
                 }
-                self.clients.swap_remove(idx);
+                let removed = self.clients.swap_remove(idx);
+                if removed.is_monitor && removed.mute_requested {
+                    removed_monitor = true;
+                }
             } else {
                 idx += 1;
             }
         }
+        if removed_monitor {
+            self.update_sandbox_mute();
+        }
+    }
+
+    fn forward_physical_batch(&mut self, batch: &[NativeInputEvent]) {
+        for ev in batch {
+            self.track_event_state(ev);
+        }
+        // Host monitors always receive raw events so the exit overlay stays responsive.
+        self.broadcast_events_to(batch, true);
+
+        if self.sandbox_muted {
+            return;
+        }
+
+        self.sync_mute_file();
+        if !self.has_suppressed_keys() {
+            self.broadcast_events_to(batch, false);
+            return;
+        }
+
+        let mut filtered = Vec::with_capacity(batch.len());
+        let mut frame_has_non_syn = false;
+        for &ev in batch {
+            if ev.ev_type == EV_KEY as u16 {
+                let code = ev.code as usize;
+                if test_bit(&self.suppressed_keys, code, KEY_MAX) {
+                    if ev.value == 0 {
+                        clear_bit(&mut self.suppressed_keys, code, KEY_MAX);
+                        continue;
+                    } else if ev.value == 2 {
+                        continue;
+                    } else {
+                        clear_bit(&mut self.suppressed_keys, code, KEY_MAX);
+                    }
+                }
+                frame_has_non_syn = true;
+                filtered.push(ev);
+            } else if ev.ev_type == EV_SYN as u16 && ev.code == SYN_REPORT {
+                if frame_has_non_syn {
+                    filtered.push(ev);
+                    frame_has_non_syn = false;
+                }
+            } else {
+                frame_has_non_syn = true;
+                filtered.push(ev);
+            }
+        }
+        if !self.has_suppressed_keys() {
+            self.suppress_until = None;
+            self.sync_mute_file();
+        }
+        if !filtered.is_empty() {
+            self.broadcast_events_to(&filtered, false);
+        }
+    }
+
+    fn read_client_control(&mut self, cfd: c_int) -> bool {
+        let Some(pos) = self.clients.iter().position(|c| c.fd == cfd) else {
+            return false;
+        };
+        let mut tmp = [0u8; 64];
+        let mut disconnected = false;
+        let mut mute_changed = false;
+        loop {
+            let rc = unsafe { read(cfd, tmp.as_mut_ptr() as *mut c_void, tmp.len()) };
+            if rc > 0 {
+                let client = &mut self.clients[pos];
+                for &byte in &tmp[..(rc as usize)] {
+                    client.rx_buf[client.rx_len] = byte;
+                    client.rx_len += 1;
+                    if client.rx_len == TWCTL_PACKET_LEN {
+                        let pkt = client.rx_buf;
+                        client.rx_len = 0;
+                        if pkt[..5] == TWCTL_MAGIC {
+                            match pkt[5] {
+                                TWCTL_CMD_REGISTER_MONITOR => {
+                                    client.is_monitor = true;
+                                }
+                                TWCTL_CMD_SET_SANDBOX_MUTE => {
+                                    if client.is_monitor {
+                                        let want = pkt[6] != 0;
+                                        if client.mute_requested != want {
+                                            client.mute_requested = want;
+                                            mute_changed = true;
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                if (rc as usize) < tmp.len() {
+                    break;
+                }
+            } else if rc == 0 {
+                disconnected = true;
+                break;
+            } else {
+                let err = last_errno();
+                if err == EAGAIN || err == EWOULDBLOCK {
+                    break;
+                }
+                if err == EINTR {
+                    continue;
+                }
+                disconnected = true;
+                break;
+            }
+        }
+        if mute_changed {
+            self.update_sandbox_mute();
+        }
+        disconnected
     }
 
     fn accept_clients(&mut self) {
@@ -537,7 +775,7 @@ impl BridgeState {
                 }
                 continue;
             }
-            self.clients.push(cfd);
+            self.clients.push(BridgeClient::new(cfd));
         }
     }
 
@@ -552,10 +790,7 @@ impl BridgeState {
             if rc > 0 {
                 let count = (rc as usize) / size_of::<NativeInputEvent>();
                 if count > 0 {
-                    for ev in &batch[..count] {
-                        self.track_event_state(ev);
-                    }
-                    self.broadcast_events(&batch[..count]);
+                    self.forward_physical_batch(&batch[..count]);
                 }
                 if (rc as usize) < byte_cap {
                     break;
@@ -660,17 +895,16 @@ impl BridgeState {
             };
 
             let clients_start = pollfds.len();
-            for &cfd in &self.clients {
-                // `events = 0` still reports POLLHUP/POLLERR so closed clients are
-                // reaped promptly without waking on readable data.
+            for client in &self.clients {
+                // Watch POLLIN for host-monitor TWCTL commands as well as POLLHUP/POLLERR.
                 pollfds.push(PollFd {
-                    fd: cfd,
-                    events: 0,
+                    fd: client.fd,
+                    events: POLLIN,
                     revents: 0,
                 });
             }
 
-            let timeout_ms = if self.phys_fd >= 0 {
+            let mut timeout_ms = if self.phys_fd >= 0 {
                 -1
             } else if self
                 .fast_retry_until
@@ -680,6 +914,17 @@ impl BridgeState {
             } else {
                 FALLBACK_POLL_MS
             };
+            if let Some(deadline) = self.suppress_until {
+                let remaining = deadline
+                    .saturating_duration_since(Instant::now())
+                    .as_millis()
+                    .min(c_int::MAX as u128) as c_int;
+                timeout_ms = if timeout_ms < 0 {
+                    remaining.max(1)
+                } else {
+                    timeout_ms.min(remaining.max(1))
+                };
+            }
 
             let rc = unsafe { poll(pollfds.as_mut_ptr(), pollfds.len() as u64, timeout_ms) };
             if rc < 0 {
@@ -693,17 +938,30 @@ impl BridgeState {
                 break;
             }
 
-            // Reap disconnected clients BEFORE accepting new ones or broadcasting,
-            // matching by fd so `pollfds` and `self.clients` can never go out of sync.
+            if self.suppress_until.is_some() {
+                self.sync_mute_file();
+            }
+
+            // Process incoming TWCTL packets and reap disconnected clients BEFORE
+            // accepting new ones or broadcasting, matching by fd so indices never desync.
+            let mut clients_removed = false;
             for pfd in &pollfds[clients_start..] {
-                if (pfd.revents & (POLLHUP | POLLERR | POLLNVAL)) != 0 {
-                    if let Some(pos) = self.clients.iter().position(|&fd| fd == pfd.fd) {
-                        let cfd = self.clients.swap_remove(pos);
+                let mut drop_client = (pfd.revents & (POLLHUP | POLLERR | POLLNVAL)) != 0;
+                if (pfd.revents & POLLIN) != 0 && self.read_client_control(pfd.fd) {
+                    drop_client = true;
+                }
+                if drop_client {
+                    if let Some(pos) = self.clients.iter().position(|c| c.fd == pfd.fd) {
+                        let client = self.clients.swap_remove(pos);
                         unsafe {
-                            close(cfd);
+                            close(client.fd);
                         }
+                        clients_removed = true;
                     }
                 }
+            }
+            if clients_removed {
+                self.update_sandbox_mute();
             }
 
             if let Some(i) = listen_idx {
@@ -747,9 +1005,9 @@ impl Drop for BridgeState {
             }
             self.listen_fd = -1;
         }
-        for cfd in self.clients.drain(..) {
+        for client in self.clients.drain(..) {
             unsafe {
-                close(cfd);
+                close(client.fd);
             }
         }
         if self.inotify_fd >= 0 {
@@ -767,6 +1025,7 @@ impl Drop for BridgeState {
         let _ = fs::remove_file(&self.sock_path);
         let _ = fs::remove_file(&self.desc_path);
         let _ = fs::remove_file(&self.allow_path);
+        let _ = fs::remove_file(&self.mute_path);
     }
 }
 
@@ -923,6 +1182,146 @@ mod tests {
             close(pipe_fds[1]);
         }
         worker.join().expect("bridge worker panicked!");
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_monitor_mute_neutralizes_sandbox_and_suppresses_trailing_release() {
+        use std::io::Read;
+        use std::os::unix::net::UnixStream;
+
+        let tmp = std::env::temp_dir().join(format!("tw_bridge_mute_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+
+        let mut stop_pipe = [-1 as c_int; 2];
+        assert_eq!(unsafe { pipe2(stop_pipe.as_mut_ptr(), O_NONBLOCK | O_CLOEXEC) }, 0);
+        let mut phys_pipe = [-1 as c_int; 2];
+        assert_eq!(unsafe { pipe2(phys_pipe.as_mut_ptr(), O_NONBLOCK | O_CLOEXEC) }, 0);
+
+        let cfg = BridgeConfig::new(tmp.clone(), PathBuf::from("/dev/input/nonexistent"), None);
+        let mut state = BridgeState::new(cfg, stop_pipe[0]);
+        state.desc = Some(UdynDesc::new_default());
+        state.phys_fd = phys_pipe[0];
+        let lfd = bind_unix_listener(&state.sock_path).expect("bind listener");
+        state.listen_fd = lfd;
+        let sock_path = state.sock_path.clone();
+        let mute_path = state.mute_path.clone();
+
+        let worker = thread::spawn(move || {
+            state.run_loop();
+        });
+
+        let mut sandbox = UnixStream::connect(&sock_path).expect("connect sandbox");
+        let mut monitor = UnixStream::connect(&sock_path).expect("connect monitor");
+        sandbox.set_read_timeout(Some(Duration::from_millis(400))).unwrap();
+        monitor.set_read_timeout(Some(Duration::from_millis(400))).unwrap();
+
+        // Register monitor client via TWCTL.
+        monitor
+            .write_all(&[b'T', b'W', b'C', b'T', b'L', TWCTL_CMD_REGISTER_MONITOR, 0, 0])
+            .unwrap();
+        thread::sleep(Duration::from_millis(40));
+
+        let send_phys = |ev_type: u16, code: u16, value: i32| {
+            let events = [
+                NativeInputEvent { sec: 1, usec: 0, ev_type, code, value },
+                NativeInputEvent { sec: 1, usec: 1, ev_type: EV_SYN as u16, code: SYN_REPORT, value: 0 },
+            ];
+            let bytes = unsafe {
+                std::slice::from_raw_parts(
+                    events.as_ptr() as *const u8,
+                    events.len() * size_of::<NativeInputEvent>(),
+                )
+            };
+            unsafe {
+                let _ = write(phys_pipe[1], bytes.as_ptr() as *const c_void, bytes.len());
+            }
+        };
+
+        let read_events = |stream: &mut UnixStream, count: usize| -> Vec<NativeInputEvent> {
+            let mut raw = vec![0u8; count * size_of::<NativeInputEvent>()];
+            stream.read_exact(&mut raw).expect("read_exact events");
+            let mut out = Vec::with_capacity(count);
+            for chunk in raw.chunks_exact(size_of::<NativeInputEvent>()) {
+                let ev = unsafe { ptr::read_unaligned(chunk.as_ptr() as *const NativeInputEvent) };
+                out.push(ev);
+            }
+            out
+        };
+
+        // 1. Hold BTN_MODE (316) before muting -> both sandbox and monitor receive it.
+        send_phys(EV_KEY as u16, 316, 1);
+        let sb_ev = read_events(&mut sandbox, 2);
+        let mon_ev = read_events(&mut monitor, 2);
+        assert_eq!(sb_ev[0].code, 316);
+        assert_eq!(sb_ev[0].value, 1);
+        assert_eq!(mon_ev[0].code, 316);
+        assert_eq!(mon_ev[0].value, 1);
+        assert!(!mute_path.exists());
+
+        // 2. Monitor enables sandbox mute -> sandbox gets neutralizer releasing BTN_MODE,
+        //    and tw_input.mute flag file is created.
+        monitor
+            .write_all(&[b'T', b'W', b'C', b'T', b'L', TWCTL_CMD_SET_SANDBOX_MUTE, 1, 0])
+            .unwrap();
+        let sb_neutral = read_events(&mut sandbox, 2);
+        assert_eq!(sb_neutral[0].ev_type, EV_KEY as u16);
+        assert_eq!(sb_neutral[0].code, 316);
+        assert_eq!(sb_neutral[0].value, 0);
+        assert_eq!(sb_neutral[1].ev_type, EV_SYN as u16);
+        assert!(mute_path.exists());
+
+        // 3. While muted, release BTN_MODE and press BTN_EAST (305 / Cancel):
+        //    only monitor receives them; sandbox receives nothing.
+        send_phys(EV_KEY as u16, 316, 0);
+        send_phys(EV_KEY as u16, 305, 1);
+        let mon_while_muted = read_events(&mut monitor, 4);
+        assert_eq!(mon_while_muted[0].code, 316);
+        assert_eq!(mon_while_muted[0].value, 0);
+        assert_eq!(mon_while_muted[2].code, 305);
+        assert_eq!(mon_while_muted[2].value, 1);
+
+        sandbox.set_read_timeout(Some(Duration::from_millis(80))).unwrap();
+        let mut probe = [0u8; 24];
+        assert!(sandbox.read(&mut probe).is_err());
+
+        // 4. Unmute while BTN_EAST is still held, then release BTN_EAST:
+        //    the trailing release is swallowed for sandbox, tw_input.mute clears,
+        //    and the next fresh BTN_SOUTH (304) press reaches sandbox cleanly.
+        monitor
+            .write_all(&[b'T', b'W', b'C', b'T', b'L', TWCTL_CMD_SET_SANDBOX_MUTE, 0, 0])
+            .unwrap();
+        thread::sleep(Duration::from_millis(40));
+        send_phys(EV_KEY as u16, 305, 0); // trailing release -> suppressed
+        send_phys(EV_KEY as u16, 304, 1); // fresh press -> forwarded
+
+        sandbox.set_read_timeout(Some(Duration::from_millis(400))).unwrap();
+        let sb_after = read_events(&mut sandbox, 2);
+        assert_eq!(sb_after[0].code, 304);
+        assert_eq!(sb_after[0].value, 1);
+        assert!(!mute_path.exists());
+
+        // 5. Re-mute and drop monitor abruptly -> sandbox auto-unmutes and mute file clears.
+        monitor
+            .write_all(&[b'T', b'W', b'C', b'T', b'L', TWCTL_CMD_SET_SANDBOX_MUTE, 1, 0])
+            .unwrap();
+        // Neutralizer for held BTN_SOUTH (304)
+        let _ = read_events(&mut sandbox, 2);
+        assert!(mute_path.exists());
+        drop(monitor);
+        thread::sleep(Duration::from_millis(60));
+        send_phys(EV_KEY as u16, 304, 0); // trailing release clears suppressed_keys
+        thread::sleep(Duration::from_millis(40));
+        assert!(!mute_path.exists());
+
+        let byte: u8 = 1;
+        unsafe {
+            let _ = write(stop_pipe[1], (&byte as *const u8) as *const c_void, 1);
+            close(stop_pipe[1]);
+            close(phys_pipe[1]);
+        }
+        worker.join().expect("bridge worker panicked");
         let _ = fs::remove_dir_all(&tmp);
     }
 }

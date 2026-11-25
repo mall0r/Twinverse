@@ -61,6 +61,9 @@ _UDYN_DESC_MIN_SIZE = 1752
 _INPUT_EVENT_64 = struct.Struct("<qqHHi")
 _INPUT_EVENT_32 = struct.Struct("<iiHHi")
 _INPUT_EVENT_NATIVE = struct.Struct("llHHi")
+_TWCTL_REGISTER_MONITOR = b"TWCTL\x01\x00\x00"
+_TWCTL_MUTE_SANDBOX = b"TWCTL\x02\x01\x00"
+_TWCTL_UNMUTE_SANDBOX = b"TWCTL\x02\x00\x00"
 
 DEFAULT_HOLD_SECONDS = 2.0
 DEFAULT_RESCAN_INTERVAL = 1.5
@@ -155,6 +158,7 @@ class _BridgeSocketDevice:
         self._abs_x_min, self._abs_x_max = abs_x_range
         self._event_struct = event_struct
         self._buf = bytearray()
+        self._sandbox_muted = False
 
     @classmethod
     def connect(cls, sock_path: Path) -> Optional[_BridgeSocketDevice]:
@@ -168,6 +172,7 @@ class _BridgeSocketDevice:
                 target = f"/proc/self/fd/{dir_fd}/{sock_path.name}"
             sock.settimeout(0.2)
             sock.connect(target)
+            sock.sendall(_TWCTL_REGISTER_MONITOR)
             sock.setblocking(False)
         except OSError:
             sock.close()
@@ -216,7 +221,23 @@ class _BridgeSocketDevice:
         del self._buf[: count * rec_size]
         return events
 
+    def set_sandbox_muted(self, muted: bool) -> bool:
+        """Mute or unmute sandbox clients on this controller bridge."""
+        muted = bool(muted)
+        if self._sandbox_muted == muted:
+            return True
+        packet = _TWCTL_MUTE_SANDBOX if muted else _TWCTL_UNMUTE_SANDBOX
+        try:
+            self._sock.sendall(packet)
+        except OSError:
+            logger.debug("Failed to set sandbox mute=%s on %s", muted, self.name, exc_info=True)
+            return False
+        self._sandbox_muted = muted
+        return True
+
     def close(self) -> None:
+        if self._sandbox_muted:
+            self.set_sandbox_muted(False)
         try:
             self._sock.close()
         except OSError:
@@ -254,6 +275,8 @@ class ControllerShortcutMonitor:
         self._running = False
         self._navigation_mode = False
         self._nav_enabled_at = 0.0
+        self._nav_device_key: Optional[str] = None
+        self._muted_device_key: Optional[str] = None
         self._rescan_requested = False
         self._thread: Optional[threading.Thread] = None
         self._wake_r: Optional[int] = None
@@ -272,6 +295,12 @@ class ControllerShortcutMonitor:
         """Return whether controller events are routed to the confirmation overlay."""
         with self._lock:
             return self._navigation_mode
+
+    @property
+    def active_navigation_device(self) -> Optional[str]:
+        """Return the device key currently locked to control the confirmation overlay, if any."""
+        with self._lock:
+            return self._nav_device_key
 
     def start(self) -> None:
         """Start monitoring connected gamepads in a daemon thread."""
@@ -317,6 +346,8 @@ class ControllerShortcutMonitor:
                 return
             self._running = False
             self._navigation_mode = False
+            self._unmute_active_device_locked()
+            self._nav_device_key = None
             self._rescan_requested = False
             thread = self._thread
             self._thread = None
@@ -344,7 +375,13 @@ class ControllerShortcutMonitor:
                     state.combo_since = None
                     state.stick_x_dir = 0
                     state.hat_x_dir = 0
+                self._unmute_active_device_locked()
+                if self._nav_device_key is not None:
+                    self._set_device_sandbox_muted_locked(self._nav_device_key, True)
+                    self._muted_device_key = self._nav_device_key
             else:
+                self._unmute_active_device_locked()
+                self._nav_device_key = None
                 for state in self._states.values():
                     state.combo_since = None
                     state.stick_x_dir = 0
@@ -352,6 +389,24 @@ class ControllerShortcutMonitor:
                     if not (state.home_held and state.select_held):
                         state.combo_triggered = False
             self._wake_locked()
+
+    def _set_device_sandbox_muted_locked(self, device_key: Optional[str], muted: bool) -> None:
+        if device_key is None:
+            return
+        device = self._devices.get(device_key)
+        if device is None:
+            return
+        setter = getattr(device, "set_sandbox_muted", None)
+        if callable(setter):
+            setter(muted)
+
+    def _unmute_active_device_locked(self) -> None:
+        if self._muted_device_key is not None:
+            self._set_device_sandbox_muted_locked(self._muted_device_key, False)
+            self._muted_device_key = None
+
+    def _is_nav_owner_locked(self, device_key: str) -> bool:
+        return self._nav_device_key is None or device_key == self._nav_device_key
 
     def register_device_state(
         self,
@@ -395,7 +450,7 @@ class ControllerShortcutMonitor:
                     state.select_held = pressed
                     self._update_combo_state_locked(state, timestamp)
 
-                if self._navigation_mode and is_press_edge:
+                if self._navigation_mode and is_press_edge and self._is_nav_owner_locked(device_key):
                     if code in DPAD_LEFT_CODES:
                         nav_action = "left"
                     elif code in DPAD_RIGHT_CODES:
@@ -406,7 +461,7 @@ class ControllerShortcutMonitor:
                         elif code in CANCEL_CODES:
                             nav_action = "cancel"
 
-            elif ev_type == EV_ABS and self._navigation_mode:
+            elif ev_type == EV_ABS and self._navigation_mode and self._is_nav_owner_locked(device_key):
                 if code == ABS_HAT0X:
                     direction = -1 if value < 0 else (1 if value > 0 else 0)
                     if direction != state.hat_x_dir:
@@ -443,7 +498,7 @@ class ControllerShortcutMonitor:
         with self._lock:
             if self._navigation_mode:
                 return False
-            for state in self._states.values():
+            for device_key, state in self._states.items():
                 if (
                     state.home_held
                     and state.select_held
@@ -453,6 +508,7 @@ class ControllerShortcutMonitor:
                 ):
                     state.combo_triggered = True
                     state.combo_since = None
+                    self._nav_device_key = device_key
                     triggered = True
                     break
 
@@ -638,6 +694,8 @@ class ControllerShortcutMonitor:
         with self._lock:
             device = self._devices.pop(path, None)
             self._states.pop(path, None)
+            if self._muted_device_key == path:
+                self._muted_device_key = None
         if device is None:
             return
         try:

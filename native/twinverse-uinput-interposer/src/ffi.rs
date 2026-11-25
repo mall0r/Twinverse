@@ -14,7 +14,7 @@ use core::ptr;
 use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use twinverse_uinput_proto::{
     cstr_bytes, fmt_u32, hidraw_allow_contains, write_cstr_parts, ENV_DEBUG_LOG,
-    ENV_HIDRAW_FILTER, ENV_PHYSICAL_BRIDGE, ENV_SOCKET_DIR, HIDRAW_ALLOW_BYTES,
+    ENV_HIDRAW_FILTER, ENV_PHYSICAL_BRIDGE, ENV_SOCKET_DIR, HIDRAW_ALLOW_BYTES, INPUT_MUTE_BYTES,
 };
 
 pub type size_t = usize;
@@ -674,6 +674,29 @@ pub unsafe fn format_desc_path(event_num: i32, out: &mut [u8]) -> Option<usize> 
 pub unsafe fn format_hidraw_allow_path(out: &mut [u8]) -> Option<usize> {
     let dir = socket_dir_bytes();
     write_cstr_parts(out, &[dir, b"/", HIDRAW_ALLOW_BYTES])
+}
+
+pub unsafe fn format_input_mute_path(out: &mut [u8]) -> Option<usize> {
+    let dir = socket_dir_bytes();
+    write_cstr_parts(out, &[dir, b"/", INPUT_MUTE_BYTES])
+}
+
+/// Return true when the host input bridge has temporarily muted this sandbox's
+/// controller (e.g. while the End Session confirmation overlay owns the gamepad).
+pub unsafe fn is_sandbox_input_muted() -> bool {
+    if !hidraw_filter_enabled() {
+        return false;
+    }
+    let saved = get_errno();
+    let mut path = [0u8; 256];
+    let mut muted = false;
+    if format_input_mute_path(&mut path).is_some() {
+        if let Some(acc_fn) = real_access() {
+            muted = acc_fn(path.as_ptr() as *const c_char, F_OK) == 0;
+        }
+    }
+    set_errno(saved);
+    muted
 }
 
 #[inline]

@@ -19,6 +19,7 @@ SOCK_SUBDIR_NAME = "sock"
 BRIDGE_BIN_SUBDIR = "bin"
 BRIDGE_BIN_NAME = "twinverse-input-bridge"
 HIDRAW_ALLOW_FILENAME = "tw_hidraw.allow"
+INPUT_MUTE_FILENAME = "tw_input.mute"
 DEFAULT_SYSFS_ROOT = Path("/sys")
 DEFAULT_DEV_ROOT = Path("/dev")
 
@@ -171,6 +172,7 @@ def _cleanup_stale_sockets(sock_dir: Path) -> None:
 
     if not bridge_live:
         (sock_dir / HIDRAW_ALLOW_FILENAME).unlink(missing_ok=True)
+        (sock_dir / INPUT_MUTE_FILENAME).unlink(missing_ok=True)
 
 
 def stage_virtual_uinput(

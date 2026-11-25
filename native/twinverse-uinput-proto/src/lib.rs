@@ -45,6 +45,20 @@ pub const ENV_HIDRAW_FILTER: &[u8] = b"TWINVERSE_HIDRAW_FILTER\0";
 /// Basename of the dynamic hidraw allowlist file inside `ENV_SOCKET_DIR`.
 pub const HIDRAW_ALLOW_FILENAME: &str = "tw_hidraw.allow";
 pub const HIDRAW_ALLOW_BYTES: &[u8] = b"tw_hidraw.allow";
+/// Basename of the temporary sandbox mute flag file inside `ENV_SOCKET_DIR`.
+/// Present while a host overlay owns the controller and mutes sandbox hidraw reads.
+pub const INPUT_MUTE_FILENAME: &str = "tw_input.mute";
+pub const INPUT_MUTE_BYTES: &[u8] = b"tw_input.mute";
+
+/// Fixed-size host-to-bridge control packet sent over `tw_event3000.sock`.
+/// Layout: `[b'T', b'W', b'C', b'T', b'L', cmd, arg, 0]`.
+pub const TWCTL_MAGIC: [u8; 5] = *b"TWCTL";
+pub const TWCTL_PACKET_LEN: usize = 8;
+/// Mark the connected Unix stream client as a host shortcut monitor so it keeps
+/// receiving input events while sandbox clients are muted.
+pub const TWCTL_CMD_REGISTER_MONITOR: u8 = 1;
+/// Mute (`arg != 0`) or unmute (`arg == 0`) sandbox clients on this bridge.
+pub const TWCTL_CMD_SET_SANDBOX_MUTE: u8 = 2;
 
 /// Linux input constants from `<linux/input-event-codes.h>` and `<linux/uinput.h>`.
 pub const EV_SYN: usize = 0x00;
