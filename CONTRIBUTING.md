@@ -41,18 +41,18 @@ Check out the official GitHub articles to learn more about [forking](https://doc
 
 Twinverse is built for Linux and SteamOS systems using two main layers:
 
-- **Desktop Application (Python 3 + GTK 4 + libadwaita):** Built with PyGObject bindings and libadwaita for the modern GNOME-style Session Studio interface, profile management, process supervision, and KWin D-Bus integration.
+- **Desktop Application (Python 3 + GTK 4 + libadwaita):** Built with PyGObject bindings and libadwaita for the modern GNOME-style workspace, profile management, process supervision, live `inotify`/GDK device hotplug monitoring (`DeviceHotplugMonitor`), global controller shortcut monitoring (`HOME + L3`, `ShortcutMonitor`) with the `EndSessionOverlay`, and KWin D-Bus integration.
 - **Native Input Isolation Workspace (`native/`, pure Rust):** A zero-external-dependency Cargo workspace targeting `GLIBC <= 2.35` on both 64-bit (`x86_64-unknown-linux-gnu`) and 32-bit (`i686-unknown-linux-gnu`, required for Steam's 32-bit client alongside 64-bit games):
-  - `twinverse-uinput-proto` — shared Unix-socket wire protocol and environment constants.
-  - `twinverse-uinput-interposer` (`libtwinverse_uinput.so`) — userspace `/dev/uinput`, `/dev/input/event*`, and dynamic `/dev/hidraw*` interposer keeping Steam Input virtual controllers private to each instance.
+  - `twinverse-uinput-proto` — shared Unix-socket wire protocol, `TWCTL` control packets, and environment constants.
+  - `twinverse-uinput-interposer` (`libtwinverse_uinput.so`) — userspace `/dev/uinput`, `/dev/input/event*`, and dynamic `/dev/hidraw*` interposer (including `tw_input.mute` support) keeping Steam Input virtual controllers private to each instance.
   - `twinverse-udev-shim` (`libtwinverse_udev.so`) — `libudev` shim synthesizing virtual evdev devices and hotplug `hidraw` events inside the sandbox.
-  - `twinverse-input-bridge` — host-side supervisor that bridges physical controllers over Unix sockets, isolates identical sibling gamepads, updates dynamic `/dev/hidraw*` allowlists, and reconnects controllers on unplug/replug.
+  - `twinverse-input-bridge` — host-side supervisor that bridges physical controllers over Unix sockets, isolates assigned pads from host Steam via `EVIOCGRAB`, isolates identical sibling gamepads, updates dynamic `/dev/hidraw*` allowlists, mutes sandbox input while the **End Session** overlay is open, and reconnects controllers on unplug/replug.
 
-On the host, **Gamescope**, **Bubblewrap (`bwrap`)**, and optionally **`pasta`** (`passt`) handle display virtualization, filesystem/process sandboxing, and rootless per-instance networking respectively.
+On the host, **Gamescope** and **Bubblewrap (`bwrap`)** handle display virtualization and filesystem/process sandboxing. Instances share the host network by default (with per-instance `steam_master_ipc_name_override` loopback ports and `-private_ip_override` RFC 5737 TEST-NET-1 addresses), with optional **`pasta`** (`passt`) rootless network namespaces when **Isolate network** is enabled.
 
 #### Rust Toolchain Prerequisites (Native Input Libraries)
 
-To compile the native Rust libraries locally (for full isolated Steam Input and controller hotplug reconnection), install `rustc`/`cargo`, the 32-bit Rust target, and 32-bit C multilib linking support:
+To compile the native Rust libraries locally (for full isolated Steam Input, `EVIOCGRAB` host isolation, and controller hotplug reconnection), install `rustc`/`cargo`, the 32-bit Rust target, and 32-bit C multilib linking support:
 
 ```bash
 rustup target add x86_64-unknown-linux-gnu i686-unknown-linux-gnu

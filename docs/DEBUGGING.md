@@ -6,9 +6,9 @@
 
 # Debugging and logs
 
-Twinverse writes developer logs for diagnosing launch failures and crashes. The
-logs are disposable, stay on your machine, and are not shown in the interface.
-They are written with the Python standard library only.
+Twinverse writes local, disposable logs for diagnosing launch failures, crashes,
+input and network problems. The main log uses Python's standard library; each
+instance log also captures output from Steam and its native helpers.
 
 ## Where the logs are
 
@@ -120,6 +120,7 @@ working.
 | `TWINVERSE_LOG_MAX_AGE_DAYS` | `14` | Age of the oldest log that is kept |
 | `TWINVERSE_LOG_MAX_TOTAL_MB` | `256` | Size limit of the whole log directory |
 | `TWINVERSE_UINPUT_LOG` | unset | Set to `1` to enable verbose stderr logs from `twinverse-input-bridge`, `libtwinverse_uinput.so`, and `libtwinverse_udev.so` inside the instance log |
+| `TWINVERSE_BRIDGE_NO_GRAB` | unset | Set to `1` in the host bridge's environment to test without exclusive controller capture |
 
 Command-line options win over the environment.
 
@@ -161,17 +162,19 @@ Twinverse stages a small per-player runtime directory inside each player's home:
 │   └── libtwinverse_udev.so     # 32-bit libudev shim
 └── sock/
     ├── tw_event3000.sock        # bridged physical controller socket (when bridge active)
-    ├── tw_event2000.sock        # Steam Input virtual controller sockets (2000+)
-    └── tw_hidraw.allow          # dynamic newline-separated allowlist of hidraw nodes
+    ├── tw_event3000.desc        # descriptor for the bridged controller
+    ├── tw_event3001.sock        # first Steam Input slot when 3000 is reserved for the bridge
+    ├── tw_hidraw.allow          # dynamic newline-separated allowlist of hidraw nodes
+    └── tw_input.mute            # temporary flag for muting sandbox hidraw reads, not a log
 ```
 
 Key troubleshooting notes:
 
-- **Verbose native tracing:** Set `TWINVERSE_UINPUT_LOG=1` either in the player's
-  **Environment variables** (for `libtwinverse_uinput.so` / `libtwinverse_udev.so`)
-  or in the environment before launching Twinverse (to also log `twinverse-input-bridge`
-  unplug/reconnect and `hidraw` allowlist transitions). Output is recorded in
-  `logs/instances/instance-NN-*.log`.
+- **Verbose native tracing:** For a native launch, run `TWINVERSE_UINPUT_LOG=1 twinverse --debug`
+  before starting the player. Look in `logs/instances/instance-NN-*.log` for
+  `[twinverse-input-bridge]` (host), `[twinverse_uinput]` and `[twinverse-udev]`
+  (sandbox). Setting `TWINVERSE_UINPUT_LOG=1` only in the player's **Environment
+  variables** traces the sandbox libraries, not the host bridge.
 - **Deferred `LD_PRELOAD`:** Gamescope itself is never preloaded. Twinverse
   passes `TWINVERSE_VIRTUAL_UINPUT=1`, `TWINVERSE_UINPUT_SOCKET_DIR`,
   `TWINVERSE_PHYSICAL_BRIDGE`, and `TWINVERSE_HIDRAW_FILTER` into the sandbox and
@@ -185,7 +188,100 @@ Key troubleshooting notes:
   automatically falls back to static `/dev/input/eventX` bind-mounts and static
   `/dev/hidraw*` masking.
 
+## Troubleshooting in 2.0.0-alpha.3
+
+In `twinverse.log`, the `Launching instance` line gives the log path for that
+player and launch. When comparing players, use those files from the same run:
+`instances/latest.log` points only to the most recent launch.
+
+### HOME brings host Steam to the front
+
+1. Check `twinverse.log` for `hotplug controller bridge enabled for` and the
+   assigned device path. The bridge requests `EVIOCGRAB` on **that physical
+   evdev node** so host Steam does not receive its button events. This is not
+   the **Grab mouse** setting; a static device bind does not provide this grab.
+2. With native tracing enabled, look for `[twinverse-input-bridge] connected`
+   and `event3000, grabbed=true` in the player's instance log. A host evdev
+   reader seeing no events from that node is expected until the instance stops
+   or the controller disconnects. The bridge requests the grab again on reconnect.
+3. `EVIOCGRAB failed for` includes the node and `errno`; the bridge continues
+   with `grabbed=false`, without host isolation. Check for another program
+   holding the node. For comparison only, `TWINVERSE_BRIDGE_NO_GRAB=1` or the
+   bridge's `--no-grab` disables the grab (`--no-grab` is not a Twinverse
+   option). Remove the override and relaunch the player after the test.
+
+### HOME + L3 does not open End Session, or the game reacts underneath it
+
+With an instance starting or running, press HOME/Guide (`BTN_MODE` or
+`KEY_HOMEPAGE`) and the **left stick click** (`BTN_THUMBL`, L3) together on the
+same pad. No hold is required. In `twinverse.log`, look for `Shortcut monitor attached gamepad`:
+for a grabbed pad the monitor reads `bridge:…/.tw-in/sock/tw_event3000.sock`,
+not button events from the raw host node. `Controller exit shortcut triggered (HOME + L3)`
+confirms Twinverse recognized the combination.
+
+Only the pad that opened the dialog can navigate it. Release both buttons,
+choose left/right with the D-pad or stick, then press A/Cross to activate the
+selection (initially **Cancel**) or B/Circle to cancel. If the pad disconnects,
+Esc also cancels. Confirming **End Session** stops all instances, not just that player.
+
+While the dialog is open, the bridge neutralizes held inputs and pauses that
+pad's input to its Steam client and game; other players keep control. In the
+triggering player's instance log, look for `sandbox controller input muted by host overlay monitor`
+on open and `sandbox controller input unmuted by host overlay monitor` on close.
+The bridge suppresses trailing button releases so canceling does not also act in the game.
+
+### A controller or display is missing, or a device cannot be selected
+
+- The UI watches `/dev/input` and `/dev/input/by-id` using inotify and monitors
+  displays through GDK. In `twinverse.log`, look for `Input hotplug monitor started for`
+  and `Display hotplug monitor connected to Gdk.Display`, then `Detected input or display change; refreshing device lists.`
+  when a rescan finds a change. If the list stays stale, use **Refresh devices**.
+  For a missing pad, check `ls -l /dev/input/by-id/` for an `event-joystick` link
+  and read access to its target (`id -nG` if the host uses the `input` group).
+- A yellow selection dot and **(Disconnected)** mean the profile remembers
+  `PHYSICAL_DEVICE_ID` and `PHYSICAL_DEVICE_NAME`; no reassignment is needed.
+  With the bridge active, `physical controller disconnected; keeping virtual slot alive for reconnection`
+  in the instance log is expected. Reconnect the same pad and look for a new
+  `connected` line with the resolved node and `hidraw` list.
+- A player number instead of a dot (e.g. **02**) means that controller belongs
+  to another player. Select **None** for its owner before moving it. Audio output
+  badges also show who uses a device, but outputs are **shareable**; a number
+  there does not block selection.
+
+### Shared network: lost Steam input, Session Replaced, or a game cannot connect
+
+**Check the network mode first.** In alpha.3 the profile default is
+`ISOLATE_NETWORK=false` (shared host network); alpha.2 defaulted to isolation,
+so check **Preferences → Engine → Isolate network** on an existing profile.
+With isolation off, `twinverse.log` says `network isolation disabled; sharing host network`.
+The saved per-player `GUEST_IP` is not used. Enable isolation and relaunch if a
+LAN game or dedicated server needs distinct local IPs. With `pasta` installed
+on the host, check the instance log for `Twinverse: isolated network enabled (pasta)`
+and `Twinverse: guest address` (or `Twinverse: no free guest address; sharing the host address`).
+If `pasta` is missing, the launcher uses the shared network instead.
+
+- **Input is lost in Big Picture or a game despite a working bridge.** On a
+  shared network, Steam clients can collide on the Steam3Master IPC endpoint
+  `127.0.0.1:57343`. Twinverse sets the environment variable
+  `steam_master_ipc_name_override` to a separate loopback endpoint per instance;
+  do not add the Steam flag `-master_ipc_name_override`. On native launches,
+  compare the `using isolated Steam master IPC` lines in `twinverse.log`
+  (e.g. `127.0.0.1:61100` and `127.0.0.1:61116` if free). Flatpak selects the
+  port in the host shell without printing it; the missing native log line is
+  not evidence of a collision.
+- **Host Steam reports `Session Replaced` when the same account signs in.**
+  Compare the `# command:` headers of the instance logs: expect
+  `-private_ip_override 192.0.2.1` for player 1, `-private_ip_override 192.0.2.2`
+  for player 2. In either network mode, these TEST-NET-1 addresses identify
+  Steam logon sessions only. They do not change the LAN IP, sockets or routing
+  and are not server addresses or values to enter in `GUEST_IP`.
+- **Only multiplayer fails.** Sharing the host network avoids potential UDP
+  source-port conflicts in `pasta`; it is not a confirmed fix for Factorio.
+  Report the network mode, where the server runs, which player fails and the
+  exact game error alongside the relevant instance logs.
+
 ## Crashes and unhandled exceptions
+
 Twinverse installs exception hooks and enables `faulthandler`. Python
 tracebacks go to `twinverse.log`; native crashes and hard aborts write a Python
 stack to `crash.log`, including the state of every thread. A crash in a child
@@ -305,10 +401,11 @@ host Steam are never confused or harmed.
 While the client starts or updates itself (which can take several minutes),
 the player row shows a spinning indicator and the Player Setup inspector
 displays a plain single-line live Steam startup log directly above the
-**Start player** / **Install Steam** button, polled every second from
+**Start Player** / **Install Steam** button, polled every second from
 `.local/share/Steam/logs/console-linux.txt`. The last console line is kept
 across quiet intervals and cleared once the instance is `Running` or stopped.
-The window is only minimized once every instance has been confirmed open.
+**Launch Session** minimizes the window once every instance is confirmed open;
+starting a single player leaves it visible.
 
 The messages of the application are shown over the window. When the window is
 minimized, or in the background behind a game, the same message is also shown
@@ -319,15 +416,11 @@ urgent it is: a failure is an error, and it is critical, so it is not missed,
 while a client that is starting, or updating itself, is a work in progress,
 and the other messages are only information.
 
-The buttons of the interface follow the same rule. An instance only shows
-"Stop" after its Steam client was confirmed to be up, and it only goes back
-to "Start" after the instance was confirmed to be gone. While an instance is
-starting its button says "Cancel", which stops the instance that never came
-up, and while it is stopping the button cannot be pressed. The button of the
-footer only turns into "Stop" when every instance it follows is confirmed to
-be running, so a launch that is still going on cannot be interrupted halfway.
-A client that never came up leaves nothing to preserve, so the leftover is
-stopped and the instance goes back to "Start".
+An instance shows **Stop Player** only after Steam is confirmed up, and
+returns to **Start Player** once the instance is gone. During startup,
+**Cancel Startup** stops that instance; while it is stopping the button is
+disabled. The footer only offers **End Session** once every tracked instance
+is running. If a client never opens, Twinverse stops the leftover instance.
 
 The log of the Steam client itself is in the home of the instance, at
 `.local/share/Steam/logs/console-linux.txt`. That file holds the reason of a

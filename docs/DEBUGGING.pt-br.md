@@ -6,9 +6,10 @@
 
 # Depuração e logs
 
-O Twinverse grava logs de desenvolvedor para diagnosticar falhas de inicialização
-e travamentos. Os logs são descartáveis, ficam apenas na sua máquina e não
-aparecem na interface. Eles usam somente a biblioteca padrão do Python.
+O Twinverse grava logs locais e descartáveis para diagnosticar falhas de
+inicialização, travamentos e problemas de controle ou rede. O log principal usa
+a biblioteca padrão do Python; o log de cada instância também registra a saída
+do Steam e dos auxiliares nativos.
 
 ## Onde ficam os logs
 
@@ -121,6 +122,7 @@ desktop ou do gerenciador de sessão continuam funcionando.
 | `TWINVERSE_LOG_MAX_AGE_DAYS` | `14` | Idade do log mais antigo que é mantido |
 | `TWINVERSE_LOG_MAX_TOTAL_MB` | `256` | Limite de tamanho do diretório de logs inteiro |
 | `TWINVERSE_UINPUT_LOG` | não definida | Defina como `1` para ativar logs detalhados de `twinverse-input-bridge`, `libtwinverse_uinput.so` e `libtwinverse_udev.so` no log da instância |
+| `TWINVERSE_BRIDGE_NO_GRAB` | não definida | Use `1` no ambiente do bridge no host para testar sem captura exclusiva do controle |
 
 As opções de linha de comando têm prioridade sobre o ambiente.
 
@@ -163,17 +165,19 @@ dentro da home de cada jogador:
 │   └── libtwinverse_udev.so     # shim libudev 32 bits
 └── sock/
     ├── tw_event3000.sock        # socket do controle físico encaminhado pelo bridge
-    ├── tw_event2000.sock        # sockets de controles virtuais do Steam Input (2000+)
-    └── tw_hidraw.allow          # lista dinâmica (uma linha por nó) de hidraw permitidos
+    ├── tw_event3000.desc        # descritor do controle encaminhado pelo bridge
+    ├── tw_event3001.sock        # primeiro slot do Steam Input quando o 3000 está reservado ao bridge
+    ├── tw_hidraw.allow          # lista dinâmica (uma linha por nó) de hidraw permitidos
+    └── tw_input.mute            # sinaliza a pausa das leituras hidraw na sandbox; não é log
 ```
 
 Pontos úteis para diagnóstico:
 
-- **Logs detalhados da camada nativa:** Defina `TWINVERSE_UINPUT_LOG=1` nas
-  **Environment variables** do jogador (para `libtwinverse_uinput.so` / `libtwinverse_udev.so`)
-  ou no ambiente antes de iniciar o Twinverse (para registrar também desconexões,
-  reconexões e transições da lista `hidraw` no `twinverse-input-bridge`). A saída
-  fica gravada em `logs/instances/instance-NN-*.log`.
+- **Logs detalhados da camada nativa:** Na execução nativa, rode `TWINVERSE_UINPUT_LOG=1 twinverse --debug`
+  antes de iniciar o jogador. Procure em `logs/instances/instance-NN-*.log` por
+  `[twinverse-input-bridge]` (host), `[twinverse_uinput]` e `[twinverse-udev]`
+  (sandbox). Definir `TWINVERSE_UINPUT_LOG=1` só nas **Variáveis de ambiente**
+  do jogador ativa os logs das bibliotecas na sandbox, não os do bridge no host.
 - **`LD_PRELOAD` adiado:** O Gamescope nunca recebe `LD_PRELOAD`. O Twinverse
   injeta `TWINVERSE_VIRTUAL_UINPUT=1`, `TWINVERSE_UINPUT_SOCKET_DIR`,
   `TWINVERSE_PHYSICAL_BRIDGE` e `TWINVERSE_HIDRAW_FILTER` na sandbox e usa
@@ -187,6 +191,103 @@ Pontos úteis para diagnóstico:
   nativas de uinput virtual não foram encontradas (por exemplo, ao rodar do
   código-fonte sem Rust), o Twinverse usa automaticamente o fallback com
   bind-mounts estáticos de `/dev/input/eventX` e máscara estática de `/dev/hidraw*`.
+
+## Diagnóstico na 2.0.0-alpha.3
+
+No `twinverse.log`, a linha `Launching instance` indica o caminho do log daquele
+jogador naquela inicialização. Ao comparar jogadores, use os arquivos da mesma
+execução: `instances/latest.log` aponta apenas para a inicialização mais recente.
+
+### HOME traz o Steam do host para a frente
+
+1. Procure `hotplug controller bridge enabled for` no `twinverse.log` e confira
+   o caminho do dispositivo atribuído. O bridge solicita `EVIOCGRAB` **naquele
+   nó evdev físico** para que o Steam do host não receba os eventos dos botões.
+   Isso não depende da opção **Capturar mouse**; um bind estático do dispositivo
+   não faz essa captura.
+2. Com os logs nativos ativados, procure `[twinverse-input-bridge] connected`
+   e `event3000, grabbed=true` no log da instância do jogador. É esperado que
+   um leitor evdev do host não veja eventos desse nó até a instância parar ou o
+   controle ser desconectado. Na reconexão, o bridge solicita a captura novamente.
+3. A mensagem `EVIOCGRAB failed for` inclui o nó e o `errno`; o bridge continua
+   com `grabbed=false`, sem isolamento em relação ao host. Verifique se outro
+   programa já detém a captura. Só para comparação, `TWINVERSE_BRIDGE_NO_GRAB=1`
+   ou a opção `--no-grab` do bridge desativa a captura (`--no-grab` não é uma
+   opção do Twinverse). Remova a opção ou variável e reinicie o jogador após o teste.
+
+### HOME + L3 não abre a confirmação, ou o jogo reage por trás dela
+
+Com uma instância iniciando ou em execução, pressione HOME/Guide (`BTN_MODE` ou
+`KEY_HOMEPAGE`) junto com o **clique do analógico esquerdo** (`BTN_THUMBL`, L3)
+no mesmo controle. Não é preciso segurar. No `twinverse.log`, procure `Shortcut monitor attached gamepad`:
+para um controle capturado, o monitor lê `bridge:…/.tw-in/sock/tw_event3000.sock`,
+não os eventos dos botões no nó físico do host. `Controller exit shortcut triggered (HOME + L3)`
+confirma que o Twinverse reconheceu a combinação.
+
+Só o controle que abriu a confirmação pode navegar nela. Solte os dois botões,
+escolha esquerda/direita com o direcional ou analógico e pressione A/Cruz para
+ativar a seleção (inicialmente **Cancelar**) ou B/Círculo para cancelar. Se o
+controle desconectar, Esc também cancela. Confirmar **Encerrar** para todas as
+instâncias, não apenas a daquele jogador.
+
+Enquanto a confirmação está aberta, o bridge neutraliza botões e eixos acionados
+e pausa a entrada desse controle no Steam e no jogo da instância; os outros
+jogadores continuam com seus controles. No log da instância de quem abriu a
+confirmação, procure `sandbox controller input muted by host overlay monitor` ao
+abrir e `sandbox controller input unmuted by host overlay monitor` ao fechar.
+O bridge descarta eventos de soltura pendentes para que cancelar não acione também o jogo.
+
+### Um controle ou monitor não aparece, ou não dá para selecionar um dispositivo
+
+- A interface observa `/dev/input` e `/dev/input/by-id` com inotify e acompanha
+  os monitores pelo GDK. No `twinverse.log`, procure `Input hotplug monitor started for`
+  e `Display hotplug monitor connected to Gdk.Display`, depois `Detected input or display change; refreshing device lists.`
+  quando uma nova varredura encontra alguma mudança. Se a lista não atualizar,
+  use **Atualizar dispositivos**. Se faltar um controle, veja com `ls -l /dev/input/by-id/`
+  se há um link `event-joystick` e se você pode ler o nó de destino (`id -nG`
+  se o host usa o grupo `input`).
+- O ponto amarelo de seleção e **(Desconectado)** indicam que o perfil mantém
+  `PHYSICAL_DEVICE_ID` e `PHYSICAL_DEVICE_NAME`; não é preciso atribuir novamente.
+  Com o bridge ativo, é esperado ver `physical controller disconnected; keeping virtual slot alive for reconnection`
+  no log da instância. Reconecte o mesmo controle e procure uma nova linha
+  `connected` com o nó resolvido e a lista `hidraw`.
+- Um número de jogador no lugar do ponto (por exemplo, **02**) indica que o
+  controle pertence a outro jogador. Selecione **Nenhum** para o dono antes de
+  transferir o controle. Os números nas saídas de áudio também indicam quem usa
+  o dispositivo, mas as saídas são **compartilháveis**; ali o número não impede a seleção.
+
+### Rede compartilhada: Steam sem controle, Session Replaced ou jogo sem conexão
+
+**Confira primeiro o modo de rede.** Na alpha.3 o padrão do perfil é
+`ISOLATE_NETWORK=false` (rede compartilhada com o host); na alpha.2 o padrão
+era isolar, então confira **Preferências → Motor → Isolar rede** em um perfil
+existente. Com o isolamento desativado, o `twinverse.log` registra
+`network isolation disabled; sharing host network`. O `GUEST_IP` salvo por
+jogador não é usado. Ative o isolamento e reinicie as instâncias se um jogo em
+LAN ou servidor dedicado exigir IPs locais distintos. Com `pasta` instalado no
+host, procure no log da instância `Twinverse: isolated network enabled (pasta)`
+e `Twinverse: guest address` (ou `Twinverse: no free guest address; sharing the host address`).
+Se `pasta` não estiver instalado, o inicializador usa a rede compartilhada.
+
+- **O controle funciona no bridge, mas não no Big Picture ou no jogo.**
+  Na rede compartilhada, os clientes Steam podem disputar o endereço IPC do
+  Steam3Master `127.0.0.1:57343`. O Twinverse define a variável de ambiente
+  `steam_master_ipc_name_override` com um endereço de loopback distinto por
+  instância; não adicione a opção `-master_ipc_name_override` ao Steam. Na
+  execução nativa, compare as linhas `using isolated Steam master IPC` no
+  `twinverse.log` (por exemplo, `127.0.0.1:61100` e `127.0.0.1:61116` se
+  estiverem livres). No Flatpak, a porta é escolhida no shell do host sem ser
+  impressa; a ausência da linha da execução nativa não indica colisão.
+- **O Steam do host mostra `Session Replaced` ao entrar com a mesma conta.**
+  Compare os cabeçalhos `# command:` dos logs das instâncias: espere encontrar
+  `-private_ip_override 192.0.2.1` para o jogador 1 e `-private_ip_override 192.0.2.2`
+  para o jogador 2. Nos dois modos de rede, esses endereços TEST-NET-1 servem
+  apenas para identificar as sessões de login no Steam. Não alteram o IP da LAN,
+  os sockets ou as rotas; não são endereços de servidor nem valores para `GUEST_IP`.
+- **Só o multiplayer falha.** Compartilhar a rede do host evita possíveis
+  conflitos de porta UDP de origem no `pasta`; isso não é uma correção confirmada
+  para Factorio. Informe o modo de rede, onde o servidor roda, qual jogador tem
+  a falha e o erro exato do jogo, junto com os logs das instâncias envolvidas.
 
 ## Travamentos e exceções não tratadas
 
@@ -312,29 +413,28 @@ do `steamwebhelper` (SteamRT3) restrita ao grupo de processos daquela instância
 outra instância e o Steam principal do usuário nunca são confundidos ou afetados.
 
 Enquanto o cliente inicia ou se atualiza (o que pode levar alguns minutos),
-a linha do jogador mostra um indicador giratório e o painel Player Setup exibe
-uma linha simples de log em tempo real logo acima do botão **Start player** /
-**Install Steam**, atualizada a cada segundo a partir de
+a linha do jogador mostra um indicador giratório e o painel Configuração do jogador
+exibe uma linha de log em tempo real logo acima do botão **Iniciar Jogador** /
+**Instalar Steam**, atualizada a cada segundo a partir de
 `.local/share/Steam/logs/console-linux.txt`. A última linha é preservada em
-intervalos silenciosos e limpa assim que a instância fica `Running` ou para.
-A janela só é minimizada depois que todas as instâncias são confirmadas como
-abertas.
+intervalos silenciosos e limpa assim que a instância fica **Em execução** ou para.
+**Iniciar Sessão** minimiza a janela quando todas as instâncias são confirmadas
+como abertas; iniciar um jogador individualmente mantém a janela visível.
 
 As mensagens da aplicação são mostradas sobre a janela. Quando a janela está
 minimizada, ou em segundo plano atrás de um jogo, a mesma mensagem também é
 mostrada como notificação de desktop, para que uma falha não passe
 despercebida enquanto se joga. A notificação usa o portal de notificações, que
-não precisa de permissões extra.
+não precisa de permissões extras. O nível da mensagem determina o ícone e a urgência: uma
+falha é um erro crítico, a inicialização ou atualização indica trabalho em
+andamento e as demais mensagens são informativas.
 
-Os botões da interface seguem a mesma regra. Uma instância só mostra "Stop"
-depois do seu cliente da Steam ser confirmado como de pé, e só volta para
-"Start" depois da instância ser confirmada como encerrada. Enquanto a
-instância está a arrancar, o botão mostra "Cancel", que encerra a instância
-que nunca subiu; enquanto está a parar, o botão não pode ser premido. O botão
-do rodapé só vira "Stop" quando todas as instâncias que ele segue estão
-confirmadas em execução, assim um arranque que ainda está a acontecer não é
-interrompido a meio. Um cliente que nunca subiu não deixa nada a preservar,
-então o que sobrou é encerrado e a instância volta para "Start".
+Uma instância só mostra **Parar Jogador** quando o Steam está comprovadamente
+aberto e volta a **Iniciar Jogador** depois de encerrar. Durante a inicialização,
+**Cancelar Inicialização** para aquela instância; enquanto ela está parando, o
+botão fica desativado. O rodapé só oferece **Encerrar Sessão** quando todas as
+instâncias acompanhadas estão em execução. Se um cliente não chegar a abrir, o
+Twinverse encerra a instância que ficou aberta.
 
 O log do próprio cliente da Steam fica na home da instância, em
 `.local/share/Steam/logs/console-linux.txt`. Esse arquivo tem o motivo da

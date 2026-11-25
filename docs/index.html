@@ -18,7 +18,7 @@
   <meta property="og:image" content="https://mall0r.github.io/Twinverse/assets/img/hero-studio-dark.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Twinverse Documentation">
-  <meta name="twitter:description" content="Run up to 8 isolated Steam instances simultaneously on Linux &amp; SteamOS with full Steam Input, controller hotplug, Gamescope, Bubblewrap, and pasta.">
+  <meta name="twitter:description" content="Run up to 8 Steam instances on Linux &amp; SteamOS with isolated Steam Input, controller hotplug, and shared host networking by default.">
   <meta name="twitter:image" content="https://mall0r.github.io/Twinverse/assets/img/hero-studio-dark.png">
 
   <link rel="stylesheet" href="./assets/css/style.css">
@@ -122,12 +122,12 @@
         <ul class="sidebar-list">
           <li><a href="#feature-preferences"><span data-lang-block="en">Preferences &amp; Data</span><span data-lang-block="pt">Preferências e Dados</span></a></li>
           <li><a href="#feature-library-proton"><span data-lang-block="en">Shared Library &amp; Proton</span><span data-lang-block="pt">Biblioteca e Proton</span></a></li>
-          <li><a href="#feature-networking"><span data-lang-block="en">Per-Instance Network</span><span data-lang-block="pt">Rede por Instância</span></a></li>
+          <li><a href="#feature-networking"><span data-lang-block="en">Network Modes &amp; Steam IPC</span><span data-lang-block="pt">Modos de Rede e IPC do Steam</span></a></li>
           <li><a href="#feature-input"><span data-lang-block="en">Input Isolation</span><span data-lang-block="pt">Isolamento de Entrada</span></a></li>
           <li><a href="#feature-kwin-kde"><span data-lang-block="en">KDE / KWin Auto-Tiling</span><span data-lang-block="pt">Auto-Tiling KDE / KWin</span></a></li>
           <li><a href="#feature-overlay-pipewire"><span data-lang-block="en">Overlay, Audio &amp; FPS</span><span data-lang-block="pt">Overlay, Áudio e FPS</span></a></li>
           <li><a href="#feature-multi-gpu"><span data-lang-block="en">Multi-GPU &amp; CPU Affinity</span><span data-lang-block="pt">Multi-GPU e Afinidade CPU</span></a></li>
-          <li><a href="#feature-shortcuts"><span data-lang-block="en">Keyboard Shortcuts</span><span data-lang-block="pt">Atalhos de Teclado</span></a></li>
+          <li><a href="#feature-shortcuts"><span data-lang-block="en">Keyboard &amp; Controller Shortcuts</span><span data-lang-block="pt">Atalhos de Teclado e Controle</span></a></li>
         </ul>
       </div>
 
@@ -158,15 +158,15 @@
           <span data-lang-block="pt">Documentação do Twinverse</span>
         </h1>
         <p class="hero-lead">
-          <span data-lang-block="en">Run up to <strong>8 isolated Steam Big Picture instances</strong> simultaneously on a single Linux or SteamOS computer. Play in splitscreen or across multiple monitors with dedicated controllers (including full isolated <strong>Steam Input</strong> and mid-session hotplug reconnection), audio outputs, home folders, and private LAN IPv4 addresses—without duplicating a single gigabyte of game files.</span>
-          <span data-lang-block="pt">Execute até <strong>8 instâncias isoladas do Steam Big Picture</strong> simultaneamente em um único computador com Linux ou SteamOS. Jogue em tela dividida ou em múltiplos monitores com controles dedicados (incluindo <strong>Steam Input</strong> isolado e reconexão hotplug no meio da partida), saídas de áudio, pastas home e endereços IPv4 dedicados—sem duplicar um único gigabyte de jogos.</span>
+          <span data-lang-block="en">Run up to <strong>8 Steam Big Picture instances</strong> on one Linux or SteamOS computer, in splitscreen or across monitors. Each player has a separate home and isolated <strong>Steam Input</strong>. Players can share installed games and audio outputs. By default they also share the host network; separate LAN addresses are optional.</span>
+          <span data-lang-block="pt">Execute até <strong>8 instâncias do Steam Big Picture</strong> em um computador com Linux ou SteamOS, em tela dividida ou em vários monitores. Cada jogador tem sua própria pasta home e <strong>Steam Input</strong> isolado. Os jogadores podem compartilhar os jogos instalados e as saídas de áudio. Por padrão, também usam a rede do host; endereços distintos na LAN são opcionais.</span>
         </p>
 
         <div class="hero-badges">
           <span class="badge badge-accent">v2.0.0-alpha.3</span>
           <span class="badge">Python + Rust</span>
           <span class="badge">GTK4 &amp; libadwaita</span>
-          <span class="badge">Gamescope + Bubblewrap + pasta</span>
+          <span class="badge">Gamescope + Bubblewrap</span>
           <span class="badge">
             <span data-lang-block="en">Up to 8 Players</span>
             <span data-lang-block="pt">Até 8 Jogadores</span>
@@ -251,12 +251,12 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M6 12h4M8 10v4"></path><circle cx="15.5" cy="11" r="1"></circle><circle cx="17.5" cy="13" r="1"></circle></svg>
             </div>
             <h3>
-              <span data-lang-block="en">Full Steam Input, Hotplug &amp; Audio Isolation</span>
-              <span data-lang-block="pt">Steam Input, Hotplug e Isolamento de Áudio</span>
+              <span data-lang-block="en">Steam Input, Hotplug &amp; Audio Routing</span>
+              <span data-lang-block="pt">Steam Input, Hotplug e Saídas de Áudio</span>
             </h3>
             <p>
-              <span data-lang-block="en">Pure-Rust userspace <code>/dev/uinput</code> virtualization keeps Steam Input strictly per-instance, reconnects unplugged controllers mid-session, filters <code>/dev/hidraw*</code> dynamically, and routes sound to each player's PipeWire/PulseAudio sink.</span>
-              <span data-lang-block="pt">Virtualização de <code>/dev/uinput</code> em Rust puro mantém o Steam Input isolado por instância, reconecta controles desconectados no meio da partida, filtra <code>/dev/hidraw*</code> dinamicamente e direciona o som para a saída PipeWire/PulseAudio de cada jogador.</span>
+              <span data-lang-block="en">Assign a physical controller to one player. The input bridge reconnects it if it drops out mid-game. For sound, choose separate headsets or let several players use the same speakers.</span>
+              <span data-lang-block="pt">Atribua cada controle físico a um só jogador. Se o controle desconectar durante a partida, a ponte de entrada o reconhece quando ele voltar. Para o áudio, escolha fones individuais ou use as mesmas caixas de som para vários jogadores.</span>
             </p>
           </div>
 
@@ -279,12 +279,12 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
             </div>
             <h3>
-              <span data-lang-block="en">Rootless Per-Instance Networking</span>
-              <span data-lang-block="pt">Rede Isolada sem Root</span>
+              <span data-lang-block="en">Shared or Isolated Network</span>
+              <span data-lang-block="pt">Rede Compartilhada ou Isolada</span>
             </h3>
             <p>
-              <span data-lang-block="en">With <code>pasta</code> installed, every instance gets its own free LAN IPv4 address so local co-op and dedicated servers connect directly without relays.</span>
-              <span data-lang-block="pt">Com o <code>pasta</code> instalado, cada instância recebe um IPv4 livre na rede local, evitando conflitos de porta e relays em partidas locais.</span>
+              <span data-lang-block="en">Use the host network for online play and LAN discovery. If a local game needs a different IP per player, enable <a href="#feature-networking">network isolation with <code>pasta</code></a>.</span>
+              <span data-lang-block="pt">Use a rede do host para jogar online e descobrir partidas na LAN. Se um jogo local precisar de um IP por jogador, ative o <a href="#feature-networking">isolamento de rede com <code>pasta</code></a>.</span>
             </p>
           </div>
         </div>
@@ -334,7 +334,7 @@
               </tr>
               <tr>
                 <td><code>gamescope</code></td>
-                <td><strong><span data-lang-block="en">Required (Host)</span><span data-lang-block="pt">Obrigatório (Host)</span></strong></td>
+                <td><strong><span data-lang-block="en">Required for tiling (host)</span><span data-lang-block="pt">Obrigatório para dividir a tela (host)</span></strong></td>
                 <td><span data-lang-block="en">Native package. Micro-compositor that isolates resolution, refresh rate, cursor grabbing, and upscaling per player.</span><span data-lang-block="pt">Pacote nativo. Micro-compositor que isola resolução, taxa de atualização, captura de mouse e upscaling por jogador.</span></td>
               </tr>
               <tr>
@@ -345,15 +345,20 @@
               <tr>
                 <td><code>pactl</code></td>
                 <td><strong><span data-lang-block="en">Required (Host)</span><span data-lang-block="pt">Obrigatório (Host)</span></strong></td>
-                <td><span data-lang-block="en">Provided by <code>pipewire-pulse</code> or <code>pulseaudio-utils</code>. Used to enumerate and assign dedicated audio output sinks.</span><span data-lang-block="pt">Fornecido por <code>pipewire-pulse</code> ou <code>pulseaudio-utils</code>. Usado para listar e atribuir saídas de áudio dedicadas.</span></td>
+                <td><span data-lang-block="en">PulseAudio client tool for listing outputs on PulseAudio or PipeWire with PulseAudio support. An output can serve more than one player.</span><span data-lang-block="pt">Ferramenta cliente do PulseAudio para listar saídas no PulseAudio ou no PipeWire com suporte a PulseAudio. Uma saída pode atender a vários jogadores.</span></td>
               </tr>
               <tr>
                 <td><code>pasta</code> (<code>passt</code>)</td>
-                <td><span data-lang-block="en">Strongly Recommended</span><span data-lang-block="pt">Altamente Recomendado</span></td>
-                <td><span data-lang-block="en">Enables automatic rootless per-instance network namespaces with distinct LAN IPv4 addresses. Must be installed on the host <code>PATH</code> (including for Flatpak users).</span><span data-lang-block="pt">Ativa isolamento de rede sem root por instância com endereços IPv4 distintos na LAN. Deve estar no <code>PATH</code> do host (inclusive para quem usa Flatpak).</span></td>
+                <td><span data-lang-block="en">Optional (host)</span><span data-lang-block="pt">Opcional (host)</span></td>
+                <td><span data-lang-block="en">Not needed for the default shared network. For separate LAN IPs, install <code>pasta</code> on the host <code>PATH</code> (also for Flatpak) and enable <strong>Preferences → Engine → Isolate network</strong>.</span><span data-lang-block="pt">Não é necessário para a rede compartilhada padrão. Para usar IPs distintos na LAN, instale o <code>pasta</code> no <code>PATH</code> do host (inclusive no caso do Flatpak) e ative <strong>Preferências → Motor → Isolar rede</strong>.</span></td>
               </tr>
               <tr>
-                <td><code>mangoapp</code></td>
+                <td><span data-lang-block="en"><code>input</code> group</span><span data-lang-block="pt">Grupo <code>input</code></span></td>
+                                <td><strong><span data-lang-block="en">Required (host user)</span><span data-lang-block="pt">Obrigatório (usuário do host)</span></strong></td>
+                                <td><span data-lang-block="en">Set up <a href="#input-permissions">device permissions</a> before launching players, including players without a physical controller.</span><span data-lang-block="pt">Configure as <a href="#input-permissions">permissões dos dispositivos</a> antes de iniciar os jogadores, inclusive os que não usam controle físico.</span></td>
+                              </tr>
+                              <tr>
+                                <td><code>mangoapp</code></td>
                 <td><span data-lang-block="en">Optional</span><span data-lang-block="pt">Opcional</span></td>
                 <td><span data-lang-block="en">Used when <strong>Steam Deck tag</strong> is enabled in Preferences to provide performance overlay and Gamescope FPS limiter integration.</span><span data-lang-block="pt">Usado quando a opção <strong>Steam Deck tag</strong> está ativa nas Preferências para overlay de desempenho e limitador de FPS do Gamescope.</span></td>
               </tr>
@@ -416,8 +421,8 @@
 
           <div class="tab-panel" data-panel="install-flatpak">
             <p>
-              <span data-lang-block="en">Flatpak provides clean GTK4/libadwaita runtime isolation, automatic desktop menu integration, and sandboxed configuration storage while delegating <code>steam</code>, <code>gamescope</code>, <code>bwrap</code>, and <code>pasta</code> to the host.</span>
-              <span data-lang-block="pt">O Flatpak oferece isolamento limpo de runtime GTK4/libadwaita, integração automática ao menu de aplicativos e armazenamento organizado enquanto delega <code>steam</code>, <code>gamescope</code>, <code>bwrap</code> e <code>pasta</code> para o host.</span>
+              <span data-lang-block="en">Flatpak provides clean GTK4/libadwaita runtime isolation, automatic desktop menu integration, and separate configuration storage. Steam, Gamescope and Bubblewrap run on the host, as does <code>pasta</code> if you opt into network isolation.</span>
+              <span data-lang-block="pt">O Flatpak oferece isolamento limpo de runtime GTK4/libadwaita, integração automática ao menu de aplicativos e armazenamento separado das configurações. Steam, Gamescope e Bubblewrap rodam no host, assim como o <code>pasta</code> se você optar pelo isolamento de rede.</span>
             </p>
             <ol>
               <li>
@@ -503,7 +508,7 @@ cd Twinverse
             <span class="legend-num">1</span>
             <div>
               <h4><span data-lang-block="en">Header Bar, Theme &amp; App Menu</span><span data-lang-block="pt">Cabeçalho, Tema e Menu</span></h4>
-              <p><span data-lang-block="en">Left side switches Dark/Light appearance and opens the app menu (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>About</strong>). The <strong>Player Setup</strong> drawer toggle (<kbd>F9</kbd>) sits on the right side of the Session Layout header.</span><span data-lang-block="pt">À esquerda ficam o botão de tema Claro/Escuro e o menu do app (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>About</strong>). O botão da gaveta <strong>Player Setup</strong> (<kbd>F9</kbd>) fica à direita no cabeçalho do Session Layout.</span></p>
+              <p><span data-lang-block="en">Left side switches Dark/Light appearance and opens the app menu (<strong>Preferences</strong> <kbd>Ctrl+,</kbd>, <strong>Refresh devices</strong> <kbd>F5</kbd>, <strong>Language</strong>, <strong>About Twinverse</strong>). The <strong>Player Setup</strong> drawer toggle (<kbd>F9</kbd>) sits on the right side of the Session Layout header.</span><span data-lang-block="pt">À esquerda ficam o botão de tema Claro/Escuro e o menu do app (<strong>Preferências</strong> <kbd>Ctrl+,</kbd>, <strong>Atualizar dispositivos</strong> <kbd>F5</kbd>, <strong>Idioma</strong>, <strong>Sobre o Twinverse</strong>). O botão da gaveta <strong>Configuração do jogador</strong> (<kbd>F9</kbd>) fica à direita no cabeçalho do Layout da sessão.</span></p>
             </div>
           </div>
 
@@ -511,7 +516,7 @@ cd Twinverse
             <span class="legend-num">2</span>
             <div>
               <h4><span data-lang-block="en">Party Roster (1–8 Players)</span><span data-lang-block="pt">Lista de Jogadores (Party, 1–8)</span></h4>
-              <p><span data-lang-block="en">Add players with <code>+ Add player</code>, include/exclude players with checkboxes, inspect Steam readiness badges (<code>Ready</code> / <code>Not installed</code> / <code>Running</code>), click a row to inspect, or drag rows straight onto a monitor space.</span><span data-lang-block="pt">Adicione jogadores com <code>+ Add player</code>, marque/desmarque participantes, acompanhe o status do Steam (<code>Ready</code> / <code>Not installed</code> / <code>Running</code>), clique para configurar ou arraste diretamente para um espaço de monitor.</span></p>
+              <p><span data-lang-block="en">Add players with <strong>Add Player</strong>, include/exclude players with checkboxes, inspect Steam readiness badges (<code>Ready</code> / <code>Not installed</code> / <code>Running</code>), click a row to inspect, or drag rows straight onto a monitor space.</span><span data-lang-block="pt">Adicione jogadores com <strong>Adicionar Jogador</strong>, marque/desmarque participantes, acompanhe o status do Steam (<code>Pronto</code> / <code>Não instalado</code> / <code>Em execução</code>), clique para configurar ou arraste diretamente para um espaço de monitor.</span></p>
             </div>
           </div>
 
@@ -519,7 +524,7 @@ cd Twinverse
             <span class="legend-num">3</span>
             <div>
               <h4><span data-lang-block="en">Session Status &amp; Launch Bar</span><span data-lang-block="pt">Status da Sessão e Botão Iniciar</span></h4>
-              <p><span data-lang-block="en">Shows live readiness (<code>Ready to play</code>, <code>Setup needed</code>, <code>You're live</code>) and the primary <strong>Launch session</strong> / <strong>End session</strong> button (<kbd>Ctrl+Enter</kbd>).</span><span data-lang-block="pt">Exibe o estado geral (<code>Ready to play</code>, <code>Setup needed</code>, <code>You're live</code>) e o botão principal <strong>Launch session</strong> / <strong>End session</strong> (<kbd>Ctrl+Enter</kbd>).</span></p>
+              <p><span data-lang-block="en">Shows live readiness (<code>Ready to play</code>, <code>Setup needed</code>, <code>You're live</code>) and the primary <strong>Launch Session</strong> / <strong>End Session</strong> button (<kbd>Ctrl+Enter</kbd>).</span><span data-lang-block="pt">Exibe o estado geral (<code>Pronto para jogar</code>, <code>Configuração necessária</code>, <code>Sessão ativa</code>) e o botão principal <strong>Iniciar Sessão</strong> / <strong>Encerrar Sessão</strong> (<kbd>Ctrl+Enter</kbd>).</span></p>
             </div>
           </div>
 
@@ -543,7 +548,7 @@ cd Twinverse
             <span class="legend-num">6</span>
             <div>
               <h4><span data-lang-block="en">Player Setup Inspector</span><span data-lang-block="pt">Inspetor Player Setup</span></h4>
-              <p><span data-lang-block="en">Inline name editor, single-instance action button (<code>Install Steam</code> / <code>Start player</code> / <code>Stop player</code>), Controller &amp; Grab mouse, Audio sink, Guest IP, and per-player Environment variables.</span><span data-lang-block="pt">Edição de nome inline, ação individual (<code>Install Steam</code> / <code>Start player</code> / <code>Stop player</code>), Controle e Grab mouse, saída de Áudio, Guest IP e Variáveis de ambiente por jogador.</span></p>
+              <p><span data-lang-block="en">Inline name editor, single-instance action button (<strong>Install Steam</strong> / <strong>Start Player</strong> / <strong>Stop Player</strong>), exclusive Controller &amp; Grab mouse, shareable Audio output, Guest IP, and per-player Environment variables.</span><span data-lang-block="pt">Edição de nome inline, ação individual (<strong>Instalar Steam</strong> / <strong>Iniciar Jogador</strong> / <strong>Parar Jogador</strong>), Controle exclusivo e Capturar mouse, saída de Áudio compartilhável, IP convidado e Variáveis de ambiente por jogador.</span></p>
             </div>
           </div>
         </div>
@@ -561,18 +566,18 @@ cd Twinverse
         </h2>
 
         <p>
-          <span data-lang-block="en">Follow these five steps the first time you set up Twinverse. Once your players are signed into Steam, future gaming nights take a single click on <strong>Launch session</strong>.</span>
-          <span data-lang-block="pt">Siga estes cinco passos na primeira vez em que configurar o Twinverse. Depois que os jogadores fizerem login no Steam, as próximas sessões exigem apenas um clique em <strong>Launch session</strong>.</span>
+          <span data-lang-block="en">Follow these five steps the first time you set up Twinverse. Once your players are signed into Steam, future gaming nights take a single click on <strong>Launch Session</strong>.</span>
+          <span data-lang-block="pt">Siga estes cinco passos na primeira vez em que configurar o Twinverse. Depois que os jogadores fizerem login no Steam, as próximas sessões exigem apenas um clique em <strong>Iniciar Sessão</strong>.</span>
         </p>
 
-        <div class="callout callout-important">
+        <div id="input-permissions" class="callout callout-important">
           <p class="callout-title">
             <span data-lang-block="en">Mandatory Permission: Add Your User to the <code>input</code> Group</span>
             <span data-lang-block="pt">Permissão Obrigatória: Adicione seu Usuário ao Grupo <code>input</code></span>
           </p>
           <p>
-            <span data-lang-block="en">Twinverse needs read access to <code>/dev/input</code> and <code>/dev/uinput</code> to detect controllers and create automatic virtual joysticks. Run the appropriate command below and <strong>reboot your computer</strong>:</span>
-            <span data-lang-block="pt">O Twinverse precisa de acesso a <code>/dev/input</code> e <code>/dev/uinput</code> para detectar controles e criar joysticks virtuais automáticos. Execute o comando correspondente abaixo e <strong>reinicie o computador</strong>:</span>
+            <span data-lang-block="en">Twinverse needs to read physical controllers under <code>/dev/input</code>. It also needs write access to the host's <code>/dev/uinput</code> to create the placeholder joystick when no controller is assigned. Steam Input's own virtual devices stay inside each instance. Run the command for your distribution, then <strong>reboot</strong>:</span>
+            <span data-lang-block="pt">O Twinverse precisa ler os controles físicos em <code>/dev/input</code>. Também precisa de acesso de escrita a <code>/dev/uinput</code> no host para criar o joystick substituto quando não há controle atribuído. Já os dispositivos virtuais do Steam Input ficam dentro de cada instância. Execute o comando da sua distribuição e <strong>reinicie o computador</strong>:</span>
           </p>
 <pre><code># Most Linux distributions (Arch, Fedora, Ubuntu, Debian, openSUSE, SteamOS)
 sudo usermod -aG input "$USER"
@@ -592,21 +597,21 @@ ujust add-user-to-input-group</code></pre>
           </div>
 
           <p>
-            <span data-lang-block="en">Start in the left-hand <strong>Party</strong> sidebar:</span>
-            <span data-lang-block="pt">Comece pela barra lateral esquerda <strong>Party</strong>:</span>
+            <span data-lang-block="en">Start in the left-hand <strong>Your party</strong> sidebar:</span>
+            <span data-lang-block="pt">Comece pela barra lateral esquerda <strong>Seu grupo</strong>:</span>
           </p>
           <ul>
             <li>
-              <span data-lang-block="en">Click <strong>+ Add player</strong> to add up to 8 players (<code>home_1</code> through <code>home_8</code>). Each slot keeps its own Steam account, saves, and hardware bindings.</span>
-              <span data-lang-block="pt">Clique em <strong>+ Add player</strong> para adicionar até 8 jogadores (<code>home_1</code> a <code>home_8</code>). Cada slot mantém sua própria conta Steam, saves e dispositivos.</span>
+              <span data-lang-block="en">Click <strong>Add Player</strong> to add up to 8 players (<code>home_1</code> through <code>home_8</code>). Each slot keeps its own Steam account, saves, and hardware bindings.</span>
+              <span data-lang-block="pt">Clique em <strong>Adicionar Jogador</strong> para adicionar até 8 jogadores (<code>home_1</code> a <code>home_8</code>). Cada slot mantém sua própria conta Steam, saves e dispositivos.</span>
             </li>
             <li>
               <span data-lang-block="en">Use the <strong>checkbox</strong> next to each player to include or temporarily sit them out of the next session without losing any configuration. Excluded players dim out and free up their screen space.</span>
               <span data-lang-block="pt">Use a <strong>caixa de seleção</strong> ao lado de cada jogador para incluí-lo ou deixá-lo de fora da próxima sessão sem perder configurações. Jogadores desmarcados ficam esmaecidos e liberam espaço na tela.</span>
             </li>
             <li>
-              <span data-lang-block="en">Click the <strong>×</strong> button on a player row to hide them from the roster. Their saved settings and disk home stay intact—clicking <strong>+ Add player</strong> later restores the lowest unused slot automatically.</span>
-              <span data-lang-block="pt">Clique no botão <strong>×</strong> em uma linha para remover o jogador da lista. As configurações e a pasta home permanecem intactas—clicar em <strong>+ Add player</strong> depois restaura automaticamente o menor slot livre.</span>
+              <span data-lang-block="en">Click the <strong>×</strong> button on a player row to hide them from the roster. Their saved settings and disk home stay intact—clicking <strong>Add Player</strong> later restores the lowest unused slot automatically.</span>
+              <span data-lang-block="pt">Clique no botão <strong>×</strong> em uma linha para remover o jogador da lista. As configurações e a pasta home permanecem intactas—clicar em <strong>Adicionar Jogador</strong> depois restaura automaticamente o menor slot livre.</span>
             </li>
             <li>
               <span data-lang-block="en">Click any player row to open their profile in <strong>Player Setup</strong>, where you can also click their name to rename them (up to 32 characters; <kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels).</span>
@@ -636,8 +641,8 @@ ujust add-user-to-input-group</code></pre>
           </div>
 
           <p>
-            <span data-lang-block="en">Beneath every detected monitor header in <strong>Session Layout</strong>, Twinverse displays six miniature tiling template buttons. Each monitor has its own independent template (saved per connector name such as <code>DP-1</code> or <code>HDMI-A-1</code>) and automatically uses that display's native resolution and refresh rate:</span>
-            <span data-lang-block="pt">Abaixo do cabeçalho de cada monitor detectado no <strong>Session Layout</strong>, o Twinverse exibe seis botões de moldes visuais. Cada monitor tem sua escolha independente (salva por conector, como <code>DP-1</code> ou <code>HDMI-A-1</code>) e utiliza automaticamente a resolução e taxa de atualização nativas da tela:</span>
+            <span data-lang-block="en">Connect the displays you want to use. <strong>Session Layout</strong> refreshes its preview automatically when a monitor is plugged in or removed, or its geometry or refresh rate changes. Choose one of the six templates below each display. The choice is saved by connector (e.g., <code>DP-1</code>); Gamescope uses the tile size and detected refresh rate at launch:</span>
+            <span data-lang-block="pt">Conecte os monitores que pretende usar. A prévia do <strong>Layout da sessão</strong> se atualiza automaticamente ao conectar ou remover um monitor ou ao mudar sua geometria ou taxa de atualização. Escolha um dos seis moldes abaixo de cada tela. A escolha é salva por conector (por exemplo, <code>DP-1</code>); ao iniciar, o Gamescope usa o tamanho do espaço e a taxa de atualização detectada:</span>
           </p>
 
           <div class="templates-grid">
@@ -804,29 +809,28 @@ ujust add-user-to-input-group</code></pre>
 
           <ul>
             <li>
-              <strong>Controls — Controller:</strong>
-              <span data-lang-block="en">Searchable dropdown listing every connected joystick (<code>/dev/input/by-id/*-event-joystick</code>) with smooth marquee scrolling for long names, full-name tooltips, and a selection dot marking the active controller. Click the refresh icon (or press <kbd>F5</kbd>) after plugging in new controllers. Leave as <code>None</code> for an automatic virtual gamepad during launch. Assigned physical controllers reconnect automatically if unplugged or replugged mid-session.</span>
-              <span data-lang-block="pt">Menu pesquisável com todos os controles conectados (<code>/dev/input/by-id/*-event-joystick</code>), com rolagem suave (marquee) para nomes longos, tooltip com o nome completo e um ponto indicador no item ativo. Clique em atualizar (ou pressione <kbd>F5</kbd>) após conectar novos controles. Deixe em <code>None</code> para um controle virtual automático. Controles físicos atribuídos se reconectam automaticamente se desconectados no meio da partida.</span>
+              <span data-lang-block="en"><strong>Controls → Controller:</strong> Plug in or turn on the gamepad and select it from the searchable list. The list refreshes automatically on hotplug; use the refresh icon or <kbd>F5</kbd> if needed. A physical controller belongs to one player at a time. In other players’ lists it shows the owner's number (e.g., <code>01</code>) and cannot be selected. To transfer it, select <strong>None</strong> or a different pad for its owner first.</span>
+              <span data-lang-block="pt"><strong>Controles → Controle:</strong> Conecte ou ligue o controle e selecione-o na lista pesquisável. A lista se atualiza automaticamente ao conectar ou desconectar dispositivos; use o ícone de atualização ou <kbd>F5</kbd> se necessário. Cada controle físico pertence a um só jogador por vez. Nas listas dos demais, ele exibe o número do dono (por exemplo, <code>01</code>) e não pode ser selecionado. Para transferi-lo, selecione <strong>Nenhum</strong> ou outro controle para o dono atual primeiro.</span>
             </li>
             <li>
-              <strong>Controls — Grab mouse:</strong>
-              <span data-lang-block="en">Passes <code>--force-grab-cursor</code> to Gamescope for that player. Because mouse and keyboard can only belong to one Gamescope session at a time, turning this on automatically turns it off for all other players and displays a mouse badge on the player's space.</span>
-              <span data-lang-block="pt">Passa <code>--force-grab-cursor</code> ao Gamescope desse jogador. Como mouse e teclado só podem pertencer a uma instância por vez, ativar esta opção desativa automaticamente nos demais jogadores e exibe o ícone de mouse no espaço.</span>
+              <span data-lang-block="en"><strong>Read the selection dot:</strong> Blue marks the current choice; yellow and <strong>(Disconnected)</strong> mean the assigned device is absent. Twinverse saves its ID and name, even across restarts. Leave it selected: the native bridge can wait for it at launch or reconnect it mid-game. Selecting <strong>None</strong> clears the assignment and uses a virtual joystick instead.</span>
+              <span data-lang-block="pt"><strong>Observe o ponto de seleção:</strong> Azul indica a escolha atual; amarelo e <strong>(Desconectado)</strong> indicam que o dispositivo atribuído está ausente. O Twinverse guarda o ID e o nome mesmo após reiniciar. Mantenha a seleção: a ponte nativa pode aguardar o controle ao iniciar ou reconectá-lo durante o jogo. Selecionar <strong>Nenhum</strong> remove a atribuição e usa um joystick virtual no lugar.</span>
             </li>
             <li>
-              <strong>Audio — Output device:</strong>
-              <span data-lang-block="en">Searchable list of all PipeWire/PulseAudio sinks (headsets, HDMI/DisplayPort speakers, USB DACs). Choose <code>Default</code> to follow your system output or bind a dedicated sink per player (<code>PULSE_SINK</code>).</span>
-              <span data-lang-block="pt">Lista pesquisável de todas as saídas PipeWire/PulseAudio (headsets, áudio HDMI/DisplayPort, DACs USB). Escolha <code>Default</code> para seguir a saída do sistema ou vincule um dispositivo dedicado por jogador (<code>PULSE_SINK</code>).</span>
+              <span data-lang-block="en"><strong>Controls → Grab mouse:</strong> Only one player can grab the mouse. Turn it off for the current player before enabling it for another. The mouse icon marks the space whose Gamescope receives <code>--force-grab-cursor</code>.</span>
+              <span data-lang-block="pt"><strong>Controles → Capturar mouse:</strong> Só um jogador pode capturar o mouse. Desative a opção para o jogador atual antes de ativá-la para outro. O ícone de mouse indica o espaço cujo Gamescope recebe <code>--force-grab-cursor</code>.</span>
             </li>
             <li>
-              <strong>Network — Guest IP:</strong>
-              <span data-lang-block="en">Optional fixed IPv4 (or CIDR, e.g., <code>192.168.1.240</code>) used when <code>pasta</code> is installed and <strong>Isolate network</strong> is enabled. Leave blank (<code>Automatic</code>) to let Twinverse safely pick an unused LAN IPv4 automatically. Automatically disabled (preserving any saved IP) when network isolation is turned off in Preferences.</span>
-              <span data-lang-block="pt">IPv4 fixo opcional (ou CIDR, ex.: <code>192.168.1.240</code>) usado quando o <code>pasta</code> está instalado e <strong>Isolate network</strong> está ativado. Deixe em branco (<code>Automatic</code>) para escolher automaticamente um IPv4 livre na LAN. Fica desabilitado automaticamente (preservando o IP salvo) quando o isolamento de rede está desligado nas Preferências.</span>
+              <span data-lang-block="en"><strong>Audio → Output device:</strong> Choose <strong>Default</strong> for the system output, or select a PipeWire/PulseAudio sink (<code>PULSE_SINK</code>). The same blue/yellow dots distinguish a current choice from a remembered, disconnected output. Number badges (e.g., <code>01, 02</code>) show who else uses that sink; unlike a controller, it is still selectable.</span>
+              <span data-lang-block="pt"><strong>Áudio → Dispositivo de saída:</strong> Escolha <strong>Padrão</strong> para usar a saída do sistema ou selecione uma saída PipeWire/PulseAudio (<code>PULSE_SINK</code>). Os mesmos pontos azul e amarelo distinguem a seleção atual de uma saída salva, mas desconectada. Os números (por exemplo, <code>01, 02</code>) indicam quem mais usa a saída; ao contrário de um controle, ela continua disponível para seleção.</span>
             </li>
             <li>
-              <strong>Environment variables:</strong>
-              <span data-lang-block="en">Expand this section and click <strong>Add variable</strong> to inject custom key/value pairs directly into the player's <code>bwrap</code> sandbox (e.g., <code>PROTON_ENABLE_WAYLAND=1</code>, <code>MANGOHUD=1</code>). Values are passed verbatim and override global defaults.</span>
-              <span data-lang-block="pt">Expanda esta seção e clique em <strong>Add variable</strong> para injetar pares chave/valor diretamente na sandbox <code>bwrap</code> do jogador (ex.: <code>PROTON_ENABLE_WAYLAND=1</code>, <code>MANGOHUD=1</code>). Os valores são preservados literalmente e sobrescrevem padrões globais.</span>
+              <span data-lang-block="en"><strong>Network → Guest IP:</strong> Skip this field on the default shared network. It is disabled, but any saved value is kept. Only for <a href="#feature-networking">isolation with <code>pasta</code></a>, leave it blank for automatic selection or enter an unused address on your subnet (e.g., <code>192.168.1.240/24</code> on a <code>192.168.1.0/24</code> LAN).</span>
+              <span data-lang-block="pt"><strong>Rede → IP convidado:</strong> Pule este campo na rede compartilhada padrão. Ele fica desabilitado, mas preserva o valor salvo. Somente para o <a href="#feature-networking">isolamento com <code>pasta</code></a>, deixe-o em branco para seleção automática ou informe um endereço livre na sua sub-rede (por exemplo, <code>192.168.1.240/24</code> em uma LAN <code>192.168.1.0/24</code>).</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>Environment variables:</strong> Expand this section and click <strong>Add Variable</strong> to inject custom key/value pairs directly into the player's <code>bwrap</code> sandbox (e.g., <code>PROTON_ENABLE_WAYLAND=1</code>, <code>MANGOHUD=1</code>). Values are passed verbatim and override global defaults.</span>
+              <span data-lang-block="pt"><strong>Variáveis de ambiente:</strong> Expanda esta seção e clique em <strong>Adicionar Variável</strong> para injetar pares chave/valor diretamente na sandbox <code>bwrap</code> do jogador (ex.: <code>PROTON_ENABLE_WAYLAND=1</code>, <code>MANGOHUD=1</code>). Os valores são preservados literalmente e sobrescrevem padrões globais.</span>
             </li>
           </ul>
 
@@ -853,13 +857,13 @@ ujust add-user-to-input-group</code></pre>
 
           <p>
             <span data-lang-block="en">Every brand-new player slot starts with a clean isolated home directory and shows <code>Not installed</code>. Before launching a full Gamescope session, initialize Steam once per player:</span>
-            <span data-lang-block="pt">Cada novo slot começa com uma pasta home isolada limpa e exibe <code>Not installed</code>. Antes de iniciar uma sessão completa com Gamescope, inicialize o Steam uma vez por jogador:</span>
+            <span data-lang-block="pt">Cada novo slot começa com uma pasta home isolada limpa e exibe <code>Não instalado</code>. Antes de iniciar uma sessão completa com Gamescope, inicialize o Steam uma vez por jogador:</span>
           </p>
 
           <ol>
             <li>
               <span data-lang-block="en">Select a player marked <code>Not installed</code> and click <strong>Install Steam</strong> in Player Setup. Twinverse launches Steam directly inside Bubblewrap (without Gamescope) so you can see the desktop login window clearly.</span>
-              <span data-lang-block="pt">Selecione um jogador marcado como <code>Not installed</code> e clique em <strong>Install Steam</strong> no Player Setup. O Twinverse abre o Steam diretamente dentro do Bubblewrap (sem Gamescope) para facilitar o login em modo desktop.</span>
+              <span data-lang-block="pt">Selecione um jogador marcado como <code>Não instalado</code> e clique em <strong>Instalar Steam</strong> em Configuração do jogador. O Twinverse abre o Steam diretamente dentro do Bubblewrap (sem Gamescope) para facilitar o login em modo desktop.</span>
             </li>
             <li>
               <span data-lang-block="en">Wait a minute for Steam to download its client runtime into that player's isolated home, then <strong>sign in</strong> to that player's Steam account. (Your installed games from the host library appear automatically—no re-downloading!)</span>
@@ -870,8 +874,8 @@ ujust add-user-to-input-group</code></pre>
               <span data-lang-block="pt"><strong>Recomendado:</strong> Dentro do Steam, abra <code>Configurações → Downloads</code> e desative <strong>Ativar download prévio de sombreadores</strong> para economizar espaço em disco e evitar filas duplicadas entre instâncias.</span>
             </li>
             <li>
-              <span data-lang-block="en">Close that Steam window. Twinverse automatically verifies the installation, switches the player's badge to <code>Ready</code>, and enables <strong>Launch session</strong>. (Later, you can always click <strong>Start player</strong> to open a single player in desktop mode for account or Steam settings changes.)</span>
-              <span data-lang-block="pt">Feche essa janela do Steam. O Twinverse verifica a instalação automaticamente, muda o status para <code>Ready</code> e libera o botão <strong>Launch session</strong>. (Depois, você pode usar <strong>Start player</strong> a qualquer momento para abrir um único jogador em modo desktop e ajustar configurações.)</span>
+              <span data-lang-block="en">Close that Steam window. Twinverse automatically verifies the installation, switches the player's badge to <code>Ready</code>, and enables <strong>Launch Session</strong>. (Later, you can always click <strong>Start Player</strong> to open a single player in desktop mode for account or Steam settings changes.)</span>
+              <span data-lang-block="pt">Feche essa janela do Steam. O Twinverse verifica a instalação automaticamente, muda o status para <code>Pronto</code> e libera o botão <strong>Iniciar Sessão</strong>. (Depois, você pode usar <strong>Iniciar Jogador</strong> a qualquer momento para abrir um único jogador em modo desktop e ajustar configurações.)</span>
             </li>
           </ol>
 
@@ -924,8 +928,8 @@ ujust add-user-to-input-group</code></pre>
           </div>
 
           <p>
-            <span data-lang-block="en">Once every checked player is <code>Ready</code> and assigned a valid space, click <strong>Launch session</strong> (or press <kbd>Ctrl+Enter</kbd>). Here is what Twinverse orchestrates behind the scenes:</span>
-            <span data-lang-block="pt">Assim que todos os jogadores marcados estiverem <code>Ready</code> e alocados em espaços válidos, clique em <strong>Launch session</strong> (ou pressione <kbd>Ctrl+Enter</kbd>). Veja o que o Twinverse orquestra automaticamente:</span>
+            <span data-lang-block="en">Once every checked player is <code>Ready</code> and assigned a valid space, click <strong>Launch Session</strong> (or press <kbd>Ctrl+Enter</kbd>). Here is what Twinverse orchestrates behind the scenes:</span>
+            <span data-lang-block="pt">Assim que todos os jogadores marcados estiverem <code>Pronto</code> e alocados em espaços válidos, clique em <strong>Iniciar Sessão</strong> (ou pressione <kbd>Ctrl+Enter</kbd>). Veja o que o Twinverse orquestra automaticamente:</span>
           </p>
 
           <ol>
@@ -934,22 +938,26 @@ ujust add-user-to-input-group</code></pre>
               <span data-lang-block="pt"><strong>Preparação KWin e Painéis (KDE Plasma):</strong> Registra o script de layout do KWin e coloca os painéis do KDE temporariamente em <code>dodgewindows</code> para que os jogos ocupem toda a tela.</span>
             </li>
             <li>
-              <span data-lang-block="en"><strong>Staggered Startup:</strong> Starts each Steam Big Picture instance sequentially (5-second stagger) inside its own <code>twinverse-input-bridge → pasta → bwrap → gamescope</code> stack while showing a live single-line Steam startup log in Player Setup and tracking <code>steamwebhelper</code> readiness—even long Steam client updates won't time out prematurely.</span>
-              <span data-lang-block="pt"><strong>Inicialização Escalonada:</strong> Inicia cada instância do Steam Big Picture sequencialmente (intervalo de 5s) dentro da pilha <code>twinverse-input-bridge → pasta → bwrap → gamescope</code>, exibindo uma linha de log do Steam em tempo real no Player Setup e acompanhando o carregamento do <code>steamwebhelper</code>—sem timeout artificial.</span>
+              <span data-lang-block="en"><strong>Staggered Startup:</strong> Starts each Steam Big Picture instance sequentially (5-second stagger) inside its own <code>twinverse-input-bridge → [pasta] → bwrap → gamescope</code> stack (<code>pasta</code> is added only when <strong>Isolate network</strong> is enabled), while showing a live single-line Steam startup log in Player Setup and tracking <code>steamwebhelper</code> readiness—even long Steam client updates won't time out prematurely.</span>
+              <span data-lang-block="pt"><strong>Inicialização Escalonada:</strong> Inicia cada instância do Steam Big Picture sequencialmente (intervalo de 5s) dentro da pilha <code>twinverse-input-bridge → [pasta] → bwrap → gamescope</code> (o <code>pasta</code> só entra quando <strong>Isolar rede</strong> está ativado), exibindo uma linha de log do Steam em tempo real em Configuração do jogador e acompanhando o carregamento do <code>steamwebhelper</code>—sem timeout artificial.</span>
             </li>
             <li>
-              <span data-lang-block="en"><strong>Auto-Minimize &amp; Live Control:</strong> Once every instance is live, Twinverse minimizes itself out of the way (and sends desktop notifications if it's in the background). You can return to Twinverse anytime to stop a single player with <strong>Stop player</strong> or cleanly end the entire session with <strong>End session</strong> (which restores KDE panels and terminates lingering child/Wine processes safely).</span>
-              <span data-lang-block="pt"><strong>Minimização Automática e Controle ao Vivo:</strong> Quando todas as instâncias estiverem prontas, o Twinverse se minimiza automaticamente (enviando notificações se estiver em segundo plano). Volte ao app quando quiser para encerrar um jogador individual (<strong>Stop player</strong>) ou encerrar toda a sessão com <strong>End session</strong> (restaurando os painéis do KDE e encerrando processos filhos/Wine com segurança).</span>
+              <span data-lang-block="en"><strong>Auto-Minimize &amp; Live Control:</strong> Once every instance is live, Twinverse minimizes itself out of the way (and sends desktop notifications if it's in the background). You can return to Twinverse anytime to stop a single player with <strong>Stop Player</strong> or cleanly end the entire session with <strong>End Session</strong> (which restores KDE panels and terminates lingering child/Wine processes safely).</span>
+              <span data-lang-block="pt"><strong>Minimização Automática e Controle ao Vivo:</strong> Quando todas as instâncias estiverem prontas, o Twinverse se minimiza automaticamente (enviando notificações se estiver em segundo plano). Volte ao app quando quiser para encerrar um jogador individual (<strong>Parar Jogador</strong>) ou encerrar toda a sessão com <strong>Encerrar Sessão</strong> (restaurando os painéis do KDE e encerrando processos filhos/Wine com segurança).</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>End the Session from a Controller (<kbd>HOME</kbd> + <kbd>L3</kbd>):</strong> Press <strong>HOME/Guide + L3</strong> (left stick click) together on the <strong>same controller</strong>—no hold required. The <strong>End Session</strong> confirmation opens immediately with <strong>Cancel</strong> selected. Only the controller that opened it can navigate it, and the native bridge pauses that controller's input to Steam and the game while other players keep playing. Release both buttons, choose with the D-pad or left stick, and press <strong>A</strong> to confirm or <strong>B</strong> (<kbd>Esc</kbd>) to cancel. See <a href="#feature-shortcuts">Keyboard &amp; Controller Shortcuts</a>.</span>
+              <span data-lang-block="pt"><strong>Encerrar a Sessão pelo Controle (<kbd>HOME</kbd> + <kbd>L3</kbd>):</strong> Pressione <strong>HOME/Guia + L3</strong> (clique no analógico esquerdo) juntos no <strong>mesmo controle</strong>—sem precisar segurar. A confirmação <strong>Encerrar Sessão</strong> abre na hora com <strong>Cancelar</strong> selecionado. Só o controle que abriu o diálogo pode navegar nele, e a ponte nativa suspende a entrada desse controle no Steam e no jogo enquanto os demais continuam jogando. Solte os dois botões, escolha com o direcional ou o analógico esquerdo e pressione <strong>A</strong> para confirmar ou <strong>B</strong> (<kbd>Esc</kbd>) para cancelar. Veja <a href="#feature-shortcuts">Atalhos de Teclado e Controle</a>.</span>
             </li>
           </ol>
 
           <figure class="figure">
             <div class="figure-img-wrap">
-              <img src="./assets/img/step-5-live-session.png" alt="Live Twinverse session with both players running, End session button, and toast notice" loading="lazy">
+              <img src="./assets/img/step-5-live-session.png" alt="Live Twinverse session with both players running, End Session button, and toast notice" loading="lazy">
             </div>
             <figcaption>
-              <span data-lang-block="en"><strong>Step 5 — Live Session:</strong> Both players show <code>Running</code>, the footer displays <code>You're live</code> with a red <code>End session</code> action, Player Setup offers <code>Stop player</code>, and a non-intrusive toast confirms launch.</span>
-              <span data-lang-block="pt"><strong>Passo 5 — Sessão Ativa:</strong> Ambos os jogadores exibem <code>Running</code>, o rodapé mostra <code>You're live</code> com o botão vermelho <code>End session</code>, o Player Setup oferece <code>Stop player</code> e o toast flutuante confirma a inicialização.</span>
+              <span data-lang-block="en"><strong>Step 5 — Live Session:</strong> Both players show <code>Running</code>, the footer displays <code>You're live</code> with a red <code>End Session</code> action, Player Setup offers <code>Stop Player</code>, and a non-intrusive toast confirms launch.</span>
+              <span data-lang-block="pt"><strong>Passo 5 — Sessão Ativa:</strong> Ambos os jogadores exibem <code>Em execução</code>, o rodapé mostra <code>Sessão ativa</code> com o botão vermelho <code>Encerrar Sessão</code>, a Configuração do jogador oferece <code>Parar Jogador</code> e o toast flutuante confirma a inicialização.</span>
             </figcaption>
           </figure>
 
@@ -986,7 +994,7 @@ ujust add-user-to-input-group</code></pre>
 
           <p>
             <span data-lang-block="en">Open <strong>Preferences</strong> from the header menu or by pressing <kbd>Ctrl+,</kbd>. It is organized into two tabs: <strong>Engine</strong> and <strong>Instance data</strong>.</span>
-            <span data-lang-block="pt">Abra as <strong>Preferências</strong> pelo menu do cabeçalho ou pressionando <kbd>Ctrl+,</kbd>. Ela é dividida em duas abas: <strong>Engine</strong> e <strong>Instance data</strong>.</span>
+            <span data-lang-block="pt">Abra as <strong>Preferências</strong> pelo menu do cabeçalho ou pressionando <kbd>Ctrl+,</kbd>. Ela é dividida em duas abas: <strong>Motor</strong> e <strong>Dados das instâncias</strong>.</span>
           </p>
 
           <div class="table-wrap">
@@ -1000,7 +1008,15 @@ ujust add-user-to-input-group</code></pre>
               </thead>
               <tbody>
                 <tr>
-                  <td><strong>Use Gamescope</strong></td>
+                  <td><span data-lang-block="en"><strong>Language</strong></span><span data-lang-block="pt"><strong>Idioma</strong></span></td>
+                  <td><span data-lang-block="en"><code>System default</code></span><span data-lang-block="pt"><code>Padrão do sistema</code></span></td>
+                  <td>
+                    <span data-lang-block="en">Switches the UI live between <code>System default</code>, <code>English</code>, and <code>Português (Brasil)</code> without restarting (also available in the main menu).</span>
+                    <span data-lang-block="pt">Alterna o idioma da interface na hora entre <code>Padrão do sistema</code>, <code>English</code> e <code>Português (Brasil)</code> sem reiniciar (também disponível no menu principal).</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span data-lang-block="en"><strong>Use Gamescope</strong></span><span data-lang-block="pt"><strong>Usar Gamescope</strong></span></td>
                   <td><code>On</code></td>
                   <td>
                     <span data-lang-block="en">Runs each player inside a dedicated Gamescope compositor sized to its canvas space. Turning this off switches the center pane to <strong>Direct Steam mode</strong>, launching Steam directly inside Bubblewrap (handy for debugging or systems without Gamescope).</span>
@@ -1032,7 +1048,7 @@ ujust add-user-to-input-group</code></pre>
                   </td>
                 </tr>
                 <tr>
-                  <td><strong>Reset all settings</strong></td>
+                  <td><span data-lang-block="en"><strong>Reset All Settings</strong></span><span data-lang-block="pt"><strong>Redefinir Tudo</strong></span></td>
                   <td>—</td>
                   <td>
                     <span data-lang-block="en">Restores all Twinverse preferences and player bindings to defaults while preserving your Steam login folders on disk.</span>
@@ -1163,33 +1179,33 @@ ujust add-user-to-input-group</code></pre>
         <!-- Feature 3: Per-Instance Networking -->
         <div id="feature-networking" data-toc-sub>
           <h3>
-            <span data-lang-block="en">Rootless Per-Instance Networking (<code>pasta</code>)</span>
-            <span data-lang-block="pt">Rede Isolada por Instância sem Root (<code>pasta</code>)</span>
+            <span data-lang-block="en">Shared Host Network, Steam IPC &amp; Optional <code>pasta</code> Isolation</span>
+            <span data-lang-block="pt">Rede Compartilhada do Host, IPC do Steam e Isolamento Opcional com <code>pasta</code></span>
           </h3>
           <p>
-            <span data-lang-block="en">When multiple Steam clients share the same IP address and port space, games and Steam Link can suffer port collisions or get forced through high-latency Steam relays—especially when hosting a LAN/dedicated server on the same PC.</span>
-            <span data-lang-block="pt">Quando vários clientes Steam compartilham o mesmo endereço IP e portas, jogos e o Steam Link podem sofrer conflitos de porta ou cair em relays do Steam com latência maior—especialmente ao hospedar um servidor local ou dedicado no mesmo PC.</span>
+            <span data-lang-block="en">For online multiplayer or LAN discovery, leave <strong>Preferences → Engine → Isolate network</strong> off (the alpha.3 default). Instances use the host's network stack, so the kernel allocates UDP source ports across players instead of separate <code>pasta</code> helpers competing for the same port. An existing profile keeps its saved setting.</span>
+            <span data-lang-block="pt">Para multiplayer online ou descoberta de partidas na LAN, deixe <strong>Preferências → Motor → Isolar rede</strong> desativado (padrão da alpha.3). As instâncias usam a pilha de rede do host. Assim, o kernel distribui as portas de origem UDP entre os jogadores, sem que processos separados do <code>pasta</code> disputem a mesma porta. Perfis existentes mantêm a opção salva.</span>
           </p>
           <ul>
             <li>
-              <span data-lang-block="en"><strong>Automatic detection:</strong> Simply install the <code>passt</code> package (providing the <code>pasta</code> binary) on your host. Twinverse detects it automatically—even from Flatpak.</span>
-              <span data-lang-block="pt"><strong>Detecção automática:</strong> Basta instalar o pacote <code>passt</code> (que fornece o binário <code>pasta</code>) no host. O Twinverse o detecta automaticamente—inclusive no Flatpak.</span>
+              <span data-lang-block="en"><strong>Steam3Master IPC (shared mode):</strong> Each instance gets its own TCP loopback endpoint via the environment variable <code>steam_master_ipc_name_override</code> (e.g., <code>127.0.0.1:61100</code> for player 01 if free). This keeps Big Picture and games talking to their own Steam client instead of losing controller input to another instance or host Steam. This is not a game-server port.</span>
+              <span data-lang-block="pt"><strong>IPC do Steam3Master (rede compartilhada):</strong> Cada instância recebe uma porta TCP de loopback própria pela variável de ambiente <code>steam_master_ipc_name_override</code> (por exemplo, <code>127.0.0.1:61100</code> para o jogador 01 se estiver livre). Assim, o Big Picture e os jogos falam com o cliente Steam correto e não perdem a entrada do controle para outra instância ou para o Steam do host. Essa porta não é a do servidor do jogo.</span>
             </li>
             <li>
-              <span data-lang-block="en"><strong>Automatic free LAN IPv4:</strong> When <strong>Guest IP</strong> is blank, Twinverse inspects your host's subnet and picks an unused IPv4 address (never reusing the host's own IP or another active player's IP).</span>
-              <span data-lang-block="pt"><strong>IPv4 livre automático na LAN:</strong> Com <strong>Guest IP</strong> em branco, o Twinverse analisa a sub-rede do host e escolhe automaticamente um IPv4 livre (nunca repetindo o IP do host nem de outro jogador).</span>
+              <span data-lang-block="en"><strong>Private IP at Steam sign-in (both modes):</strong> Twinverse passes <code>-private_ip_override 192.0.2.1</code> for player 01, <code>192.0.2.2</code> for player 02, and so on. Only the private IP reported to Steam changes. This avoids <em>Session Replaced</em> when the host and an instance sign in to the same account. It does not assign a LAN address, change routing, or replace the game's licensing requirements.</span>
+              <span data-lang-block="pt"><strong>IP privado no login do Steam (nos dois modos):</strong> O Twinverse passa <code>-private_ip_override 192.0.2.1</code> para o jogador 01, <code>192.0.2.2</code> para o 02 e assim por diante. Só muda o IP privado informado ao Steam. Isso evita o erro <em>Session Replaced</em> quando o host e uma instância entram na mesma conta. Não atribui um endereço na LAN, não altera o roteamento nem dispensa a licença do jogo.</span>
             </li>
             <li>
-              <span data-lang-block="en"><strong>Fixed Guest IP:</strong> Set a specific IPv4 or CIDR in Player Setup if your firewall rules or LAN server expect a static address per player.</span>
-              <span data-lang-block="pt"><strong>Guest IP fixo:</strong> Defina um IPv4 ou CIDR específico no Player Setup se regras de firewall ou um servidor local exigirem endereço estático por jogador.</span>
+              <span data-lang-block="en"><strong>When to use <code>pasta</code>:</strong> If a LAN game or a local dedicated server needs distinct local addresses, install <code>passt</code> (provides <code>pasta</code>) on the host and turn on <strong>Isolate network</strong> before launch. Bubblewrap then creates a network namespace per player and <code>pasta</code> connects it to the network without root.</span>
+              <span data-lang-block="pt"><strong>Quando usar <code>pasta</code>:</strong> Se um jogo em LAN ou servidor dedicado local precisar de endereços distintos, instale o pacote <code>passt</code> (que fornece o <code>pasta</code>) no host e ative <strong>Isolar rede</strong> antes de iniciar. O Bubblewrap cria um namespace de rede por jogador e o <code>pasta</code> o conecta à rede sem exigir root.</span>
             </li>
             <li>
-              <span data-lang-block="en"><strong>Opt-in per-session toggle:</strong> <strong>Isolate network</strong> is off by default in <strong>Preferences → Engine</strong> (sharing the host network for online multiplayer and LAN discovery). Turn it on whenever a LAN game or local dedicated server needs separate local IPs, without losing your saved <code>Guest IP</code> entries.</span>
-              <span data-lang-block="pt"><strong>Alternância opcional por sessão:</strong> <strong>Isolate network</strong> vem desativado por padrão em <strong>Preferências → Engine</strong> (compartilhando a rede do host para multiplayer online e descoberta LAN). Ative quando um jogo em LAN ou servidor dedicado local precisar de IPs locais distintos, sem perder seus valores salvos de <code>Guest IP</code>.</span>
+              <span data-lang-block="en"><strong>Guest IP (isolated mode only):</strong> Leave blank to probe for a free IPv4 on the host's subnet, or enter a different unused IPv4 or CIDR for each player. If no free address is found automatically, <code>pasta</code> uses the host address inside the namespace. Turning isolation off disables the field without erasing it.</span>
+              <span data-lang-block="pt"><strong>IP convidado (somente no modo isolado):</strong> Deixe em branco para procurar um IPv4 livre na sub-rede do host ou informe um IPv4 livre diferente para cada jogador, com ou sem prefixo CIDR. Se a busca automática não encontrar um endereço livre, o <code>pasta</code> usa o endereço do host dentro do namespace. Desativar o isolamento desabilita o campo sem apagar seu valor.</span>
             </li>
             <li>
-              <span data-lang-block="en"><strong>Graceful fallback &amp; DNS resilience:</strong> Twinverse resolves symlinked <code>/etc/resolv.conf</code> targets cleanly for SELinux/systemd-resolved systems. If <code>pasta</code> is not installed, Twinverse transparently falls back to shared host networking.</span>
-              <span data-lang-block="pt"><strong>Fallback transparente e DNS resiliente:</strong> O Twinverse resolve symlinks de <code>/etc/resolv.conf</code> corretamente em sistemas com SELinux/systemd-resolved. Se o <code>pasta</code> não estiver instalado, o app usa a rede compartilhada do host automaticamente.</span>
+              <span data-lang-block="en"><strong>Missing helper:</strong> Even if isolation is enabled, launches fall back to the shared host network if <code>pasta</code> is not on the host <code>PATH</code>. The same choice applies to native, Flatpak and sandboxed terminal launches.</span>
+              <span data-lang-block="pt"><strong>Sem o auxiliar:</strong> Mesmo com o isolamento ativado, as instâncias usam a rede compartilhada se o <code>pasta</code> não estiver no <code>PATH</code> do host. A mesma regra vale para execuções nativas, via Flatpak e para o terminal da sandbox.</span>
             </li>
           </ul>
         </div>
@@ -1197,8 +1213,8 @@ ujust add-user-to-input-group</code></pre>
         <!-- Feature 4: Input Isolation, Steam Input & Hotplug -->
         <div id="feature-input" data-toc-sub>
           <h3>
-            <span data-lang-block="en">Pure-Rust Virtual <code>/dev/uinput</code>, Steam Input &amp; Controller Hotplug</span>
-            <span data-lang-block="pt"><code>/dev/uinput</code> Virtual em Rust, Steam Input e Hotplug de Controles</span>
+            <span data-lang-block="en">Pure-Rust Virtual <code>/dev/uinput</code>, Host Isolation &amp; Controller Hotplug</span>
+            <span data-lang-block="pt"><code>/dev/uinput</code> Virtual em Rust, Isolamento do Host e Hotplug de Controles</span>
           </h3>
           <ul>
             <li>
@@ -1207,9 +1223,19 @@ ujust add-user-to-input-group</code></pre>
               <span data-lang-block="pt">O Twinverse inclui bibliotecas nativas 64 e 32 bits em Rust puro (<code>libtwinverse_uinput.so</code> e <code>libtwinverse_udev.so</code>, carregadas após o Gamescope via <code>GAMESCOPE_RUNTIME_SETUP</code>). Controles virtuais criados pelo Steam Input ficam restritos aos sockets Unix privados de cada jogador (<code>~/.tw-in/sock/</code>), sem tocar no <code>/dev/uinput</code> do host e sem vazar entre instâncias.</span>
             </li>
             <li>
-              <strong><span data-lang-block="en">Mid-Session Hotplug &amp; Sibling Isolation (<code>twinverse-input-bridge</code>):</span><span data-lang-block="pt">Hotplug em Sessão e Isolamento de Controles Idênticos (<code>twinverse-input-bridge</code>):</span></strong>
-              <span data-lang-block="en">A host-side Rust supervisor bridges each player's physical gamepad into a persistent synthetic <code>/dev/input/event3000</code>, emits neutralizer events on unplug so buttons and sticks never get stuck, keeps identical sibling controllers strictly separated, and reconnects gamepads automatically if unplugged and replugged mid-game.</span>
-              <span data-lang-block="pt">Um supervisor em Rust no host encaminha o controle físico de cada jogador para um <code>/dev/input/event3000</code> sintético persistente, emite eventos de neutralização ao desconectar para não travar botões/analógicos, mantém controles idênticos separados e reconecta automaticamente se o controle for desconectado no meio do jogo.</span>
+              <strong><span data-lang-block="en">Host Steam Isolation (<code>EVIOCGRAB</code>):</span><span data-lang-block="pt">Isolamento em Relação ao Steam do Host (<code>EVIOCGRAB</code>):</span></strong>
+              <span data-lang-block="en">While a player's instance runs, <code>twinverse-input-bridge</code> requests exclusive evdev access (<code>EVIOCGRAB</code>) on that assigned physical controller so pressing <strong>HOME/Guide</strong> never pulls the host Steam client to the foreground. Unassigned pads are never grabbed; stopping the instance or unplugging releases the grab, and reconnecting re-acquires it automatically.</span>
+              <span data-lang-block="pt">Enquanto a instância do jogador está em execução, o <code>twinverse-input-bridge</code> solicita acesso evdev exclusivo (<code>EVIOCGRAB</code>) ao controle físico atribuído, impedindo que pressionar <strong>HOME/Guia</strong> traga o Steam do host para a frente. Controles não atribuídos não são capturados; parar a instância ou desconectar libera o controle, e reconectar retoma a captura automaticamente.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Mid-Session Hotplug, Sibling Isolation &amp; Overlay Muting:</span><span data-lang-block="pt">Hotplug em Sessão, Controles Idênticos e Pausa no Diálogo:</span></strong>
+              <span data-lang-block="en">The host bridge forwards each physical gamepad to a persistent synthetic <code>/dev/input/event3000</code>, emits neutralizer events on unplug so buttons and sticks never get stuck, keeps identical sibling controllers separated, and reconnects automatically mid-game. When <kbd>HOME</kbd> + <kbd>L3</kbd> opens the <strong>End Session</strong> overlay, the bridge neutralizes held inputs, pauses that player's evdev and <code>hidraw</code> delivery via <code>tw_input.mute</code> while keeping other players active, and suppresses trailing key-up releases on close.</span>
+              <span data-lang-block="pt">A ponte no host encaminha cada controle físico para um <code>/dev/input/event3000</code> sintético persistente, emite eventos de neutralização ao desconectar para não travar botões/analógicos, mantém controles idênticos separados e reconecta automaticamente durante a partida. Quando <kbd>HOME</kbd> + <kbd>L3</kbd> abre a confirmação <strong>Encerrar Sessão</strong>, a ponte neutraliza botões e eixos pressionados, pausa o evdev e o <code>hidraw</code> daquele jogador via <code>tw_input.mute</code> mantendo os demais ativos e descarta eventos de soltura pendentes ao fechar.</span>
+            </li>
+            <li>
+              <strong><span data-lang-block="en">Exclusive Ownership, Disconnected Memory &amp; Auto-Refresh:</span><span data-lang-block="pt">Exclusividade, Memória ao Desconectar e Atualização Automática:</span></strong>
+              <span data-lang-block="en">Each physical controller belongs to at most one player; other players see the owner's number badge (e.g., <code>01</code>) and cannot select it until the owner switches to <strong>None</strong> or another pad. Profiles remember <code>PHYSICAL_DEVICE_ID</code> and <code>PHYSICAL_DEVICE_NAME</code> across disconnects and restarts (yellow dot + <strong>(Disconnected)</strong>), and an <code>inotify</code> + GDK monitor automatically refreshes controller and display lists on hotplug.</span>
+              <span data-lang-block="pt">Cada controle físico pertence a no máximo um jogador; os demais veem o número do dono (por exemplo, <code>01</code>) e não podem selecioná-lo até o dono escolher <strong>Nenhum</strong> ou outro controle. Os perfis preservam <code>PHYSICAL_DEVICE_ID</code> e <code>PHYSICAL_DEVICE_NAME</code> ao desconectar ou reiniciar (ponto amarelo + <strong>(Desconectado)</strong>), e um monitor via <code>inotify</code> + GDK atualiza automaticamente as listas de controles e monitores.</span>
             </li>
             <li>
               <strong><span data-lang-block="en">Dynamic <code>/dev/hidraw*</code> Filtering:</span><span data-lang-block="pt">Filtragem Dinâmica de <code>/dev/hidraw*</code>:</span></strong>
@@ -1218,13 +1244,13 @@ ujust add-user-to-input-group</code></pre>
             </li>
             <li>
               <strong><span data-lang-block="en">Automatic Virtual Joystick:</span><span data-lang-block="pt">Joystick Virtual Automático:</span></strong>
-              <span data-lang-block="en">If a player has no physical controller selected (<code>None</code>), Twinverse creates a temporary <code>"Virtual Joystick by Twinverse"</code> via <code>evdev.UInput</code> during session launch and cleans it up on stop.</span>
-              <span data-lang-block="pt">Se um jogador não tiver controle físico selecionado (<code>None</code>), o Twinverse cria um <code>"Virtual Joystick by Twinverse"</code> temporário via <code>evdev.UInput</code> durante a sessão e o remove ao encerrar.</span>
+              <span data-lang-block="en">If a player has no physical controller selected (<strong>None</strong>), Twinverse creates a temporary <code>"Virtual Joystick by Twinverse"</code> via <code>evdev.UInput</code> during session launch and cleans it up on stop.</span>
+              <span data-lang-block="pt">Se um jogador não tiver controle físico selecionado (<strong>Nenhum</strong>), o Twinverse cria um <code>"Virtual Joystick by Twinverse"</code> temporário via <code>evdev.UInput</code> durante a sessão e o remove ao encerrar.</span>
             </li>
             <li>
               <strong><span data-lang-block="en">Graceful Source Fallback:</span><span data-lang-block="pt">Fallback Automático no Código-Fonte:</span></strong>
-              <span data-lang-block="en">Only when running from source without compiled native Rust libraries does Twinverse fall back to static <code>/dev/input/eventX</code> bind-mounts and static <code>/dev/hidraw*</code> masks.</span>
-              <span data-lang-block="pt">Somente ao rodar do código-fonte sem as bibliotecas nativas em Rust compiladas o Twinverse recorre a bind-mounts estáticos de <code>/dev/input/eventX</code> e máscaras estáticas de <code>/dev/hidraw*</code>.</span>
+              <span data-lang-block="en">Only when running from source without compiled native Rust libraries does Twinverse fall back to static <code>/dev/input/eventX</code> bind-mounts and static <code>/dev/hidraw*</code> masks (without bridge hotplug reconnection or <code>EVIOCGRAB</code> host isolation).</span>
+              <span data-lang-block="pt">Somente ao rodar do código-fonte sem as bibliotecas nativas em Rust compiladas o Twinverse recorre a bind-mounts estáticos de <code>/dev/input/eventX</code> e máscaras estáticas de <code>/dev/hidraw*</code> (sem reconexão pela ponte nem captura exclusiva <code>EVIOCGRAB</code> no host).</span>
             </li>
           </ul>
         </div>
@@ -1251,6 +1277,10 @@ ujust add-user-to-input-group</code></pre>
             <li>
               <span data-lang-block="en"><strong>Automatic Panel Dodging:</strong> Saves your current Plasma panel hiding policies before launch, sets panels to <code>dodgewindows</code> during gameplay, and restores your exact original panel settings as soon as the session ends.</span>
               <span data-lang-block="pt"><strong>Ocultação Automática de Painéis:</strong> Salva a configuração atual dos painéis do Plasma antes de iniciar, define-os como <code>dodgewindows</code> durante o jogo e restaura o comportamento original assim que a sessão termina.</span>
+            </li>
+            <li>
+              <span data-lang-block="en"><strong>End Session Overlay Focus:</strong> When <kbd>HOME</kbd> + <kbd>L3</kbd> opens the <strong>End Session</strong> confirmation dialog, the KWin script temporarily lowers <code>keepAbove</code> on Gamescope tiles, centers and raises the dialog on the active screen, and restores Gamescope stacking and focus if cancelled.</span>
+              <span data-lang-block="pt"><strong>Foco do Diálogo Encerrar Sessão:</strong> Quando <kbd>HOME</kbd> + <kbd>L3</kbd> abre a confirmação <strong>Encerrar Sessão</strong>, o script do KWin remove temporariamente o <code>keepAbove</code> das janelas Gamescope, centraliza e eleva o diálogo na tela ativa e restaura o empilhamento e o foco se a ação for cancelada.</span>
             </li>
           </ul>
         </div>
@@ -1323,12 +1353,23 @@ DRI_PRIME=1! %command%</code></pre>
 <pre><code>./scripts/apply-game-gamescope-affinity.sh &lt;game_process_name&gt;</code></pre>
         </div>
 
-        <!-- Feature 8: Keyboard Shortcuts -->
+        <!-- Feature 8: Keyboard & Controller Shortcuts -->
         <div id="feature-shortcuts" data-toc-sub>
           <h3>
-            <span data-lang-block="en">Keyboard Shortcuts</span>
-            <span data-lang-block="pt">Atalhos de Teclado</span>
+            <span data-lang-block="en">Keyboard &amp; Controller Shortcuts</span>
+            <span data-lang-block="pt">Atalhos de Teclado e Controle</span>
           </h3>
+
+          <div class="callout callout-note">
+            <p class="callout-title">
+              <span data-lang-block="en">End Session from a Controller (<kbd>HOME</kbd> + <kbd>L3</kbd>)</span>
+              <span data-lang-block="pt">Encerrar a Sessão pelo Controle (<kbd>HOME</kbd> + <kbd>L3</kbd>)</span>
+            </p>
+            <p>
+              <span data-lang-block="en">While any instance is starting or running, press <strong>HOME/Guide</strong> + <strong>L3</strong> (click the left stick) together on the <strong>same controller</strong>—no hold required. The <strong>End Session</strong> confirmation opens immediately with <strong>Cancel</strong> focused. Only the triggering controller can navigate it, and <code>twinverse-input-bridge</code> neutralizes held inputs and pauses that pad's delivery to Steam and the game until the dialog closes (other players keep playing). Release both buttons, choose left or right with the D-pad or left stick, press <strong>A</strong>/Cross to activate the selected option, or <strong>B</strong>/Circle (<kbd>Esc</kbd>) to cancel. Keyboard arrows, <kbd>Enter</kbd>, <kbd>Esc</kbd>, and mouse clicks also work. Confirming <strong>End Session</strong> closes all Twinverse instances and restores the main window.</span>
+              <span data-lang-block="pt">Com qualquer instância iniciando ou em execução, pressione <strong>HOME/Guia</strong> + <strong>L3</strong> (clique no analógico esquerdo) juntos no <strong>mesmo controle</strong>—sem precisar segurar. A confirmação <strong>Encerrar Sessão</strong> abre na hora com <strong>Cancelar</strong> selecionado. Só o controle que abriu o diálogo pode navegar nele, e o <code>twinverse-input-bridge</code> neutraliza os botões/eixos acionados e pausa a entrada desse controle no Steam e no jogo até o diálogo fechar (os demais jogadores continuam jogando). Solte os dois botões, escolha esquerda/direita com o direcional ou o analógico esquerdo, pressione <strong>A</strong>/Cruz para ativar a opção selecionada ou <strong>B</strong>/Círculo (<kbd>Esc</kbd>) para cancelar. As setas do teclado, <kbd>Enter</kbd>, <kbd>Esc</kbd> e cliques do mouse também funcionam. Confirmar <strong>Encerrar</strong> fecha todas as instâncias do Twinverse e traz a janela principal de volta.</span>
+            </p>
+          </div>
 
           <div class="card-grid-2">
             <div>
@@ -1345,10 +1386,11 @@ DRI_PRIME=1! %command%</code></pre>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td><span data-lang-block="en">Launch session / End session</span><span data-lang-block="pt">Iniciar sessão / Encerrar sessão</span></td></tr>
+                    <tr><td><kbd>HOME</kbd> + <kbd>L3</kbd></td><td><span data-lang-block="en">Open <strong>End Session</strong> confirmation from a controller</span><span data-lang-block="pt">Abrir confirmação <strong>Encerrar Sessão</strong> pelo controle</span></td></tr>
+                    <tr><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td><span data-lang-block="en">Launch Session / End Session</span><span data-lang-block="pt">Iniciar Sessão / Encerrar Sessão</span></td></tr>
                     <tr><td><kbd>Ctrl</kbd> + <kbd>,</kbd></td><td><span data-lang-block="en">Open Preferences</span><span data-lang-block="pt">Abrir Preferências</span></td></tr>
-                    <tr><td><kbd>F9</kbd> / <kbd>Alt</kbd>+<kbd>2</kbd></td><td><span data-lang-block="en">Toggle Player Setup panel</span><span data-lang-block="pt">Abrir/fechar painel Player Setup</span></td></tr>
-                    <tr><td><kbd>F5</kbd></td><td><span data-lang-block="en">Refresh controllers &amp; audio devices</span><span data-lang-block="pt">Atualizar controles e dispositivos de áudio</span></td></tr>
+                    <tr><td><kbd>F9</kbd> / <kbd>Alt</kbd>+<kbd>2</kbd></td><td><span data-lang-block="en">Toggle Player Setup panel</span><span data-lang-block="pt">Abrir/fechar painel Configuração do jogador</span></td></tr>
+                    <tr><td><kbd>F5</kbd></td><td><span data-lang-block="en">Manual rescan of controllers, displays &amp; audio devices</span><span data-lang-block="pt">Reescanear manualmente controles, monitores e áudio</span></td></tr>
                     <tr><td><kbd>Enter</kbd> / <kbd>Esc</kbd></td><td><span data-lang-block="en">Commit / cancel inline player rename</span><span data-lang-block="pt">Confirmar / cancelar renomeação do jogador</span></td></tr>
                   </tbody>
                 </table>
@@ -1404,11 +1446,11 @@ DRI_PRIME=1! %command%</code></pre>
           <svg viewBox="0 0 820 318" role="img" aria-label="Twinverse nested sandboxing architecture diagram">
             <!-- Outer twinverse-input-bridge layer -->
             <rect x="10" y="12" width="800" height="294" rx="14" fill="rgba(244, 159, 122, 0.07)" stroke="#f49f7a" stroke-width="2" stroke-dasharray="6 4"></rect>
-            <text x="26" y="35" fill="#f49f7a" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">1. twinverse-input-bridge (Pure-Rust Host Supervisor) — Physical evdev hotplug, sibling isolation, dynamic hidraw allowlist</text>
+            <text x="26" y="35" fill="#f49f7a" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">1. twinverse-input-bridge (Rust Host Supervisor) — EVIOCGRAB host isolation, hotplug, hidraw allowlist, overlay mute</text>
 
             <!-- pasta layer -->
             <rect x="26" y="48" width="768" height="242" rx="13" fill="rgba(134, 217, 162, 0.08)" stroke="#86d9a2" stroke-width="2" stroke-dasharray="6 4"></rect>
-            <text x="42" y="71" fill="#86d9a2" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">2. pasta (Optional Rootless Netns) — Dedicated LAN IPv4 &amp; isolated ports (toggle via Isolate network)</text>
+            <text x="42" y="71" fill="#86d9a2" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">2. pasta (Opt-in Rootless Netns) — Dedicated LAN IPv4 (default: shared host network + isolated Steam3Master IPC)</text>
 
             <!-- bwrap layer -->
             <rect x="42" y="84" width="736" height="190" rx="12" fill="rgba(132, 180, 250, 0.1)" stroke="#84b4fa" stroke-width="2"></rect>
@@ -1421,15 +1463,15 @@ DRI_PRIME=1! %command%</code></pre>
             <!-- Inner boxes -->
             <rect x="74" y="158" width="332" height="84" rx="8" fill="rgba(237, 197, 134, 0.12)" stroke="#edc586" stroke-width="1.8"></rect>
             <text x="88" y="180" fill="#edc586" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">5. Steam Big Picture (-gamepadui -steamos3)</text>
-            <text x="88" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Official unmodified Steam + Proton + Steam Input</text>
+            <text x="88" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Official Steam + -private_ip_override 192.0.2.N</text>
             <text x="88" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• libtwinverse_uinput.so + libtwinverse_udev.so (64/32-bit)</text>
             <text x="88" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Gamescope FPS limiter + SHM startup gate</text>
 
             <rect x="420" y="158" width="326" height="84" rx="8" fill="rgba(132, 180, 250, 0.12)" stroke="#84b4fa" stroke-width="1.5"></rect>
             <text x="434" y="180" fill="#84b4fa" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">Companion Services (Host / Per-Instance)</text>
-            <text x="434" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• KWin D-Bus Layout Resolver &amp; panel dodging</text>
-            <text x="434" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• overlay_focus.py • PipeWire capture rules</text>
-            <text x="434" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Placeholder evdev.UInput joystick (when None)</text>
+            <text x="434" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• KWin D-Bus Resolver, panel dodge &amp; overlay focus</text>
+            <text x="434" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• HOME + L3 shortcut monitor • inotify/GDK hotplug</text>
+            <text x="434" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• overlay_focus.py • PipeWire • Placeholder joystick</text>
           </svg>
         </div>
 
@@ -1561,7 +1603,8 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
                 <tr><td><code>TWINVERSE_LOG_KEEP_HELPERS</code></td><td><code>2</code></td><td><span data-lang-block="en">Newest helper log files kept per run.</span><span data-lang-block="pt">Logs de auxiliares mantidos por execução.</span></td></tr>
                 <tr><td><code>TWINVERSE_LOG_MAX_AGE_DAYS</code></td><td><code>14</code></td><td><span data-lang-block="en">Maximum retention age in days.</span><span data-lang-block="pt">Tempo máximo de retenção em dias.</span></td></tr>
                 <tr><td><code>TWINVERSE_LOG_MAX_TOTAL_MB</code></td><td><code>256</code></td><td><span data-lang-block="en">Total directory cap (oldest files pruned first).</span><span data-lang-block="pt">Limite total do diretório em MiB.</span></td></tr>
-                <tr><td><code>TWINVERSE_UINPUT_LOG</code></td><td>unset</td><td><span data-lang-block="en">Set to <code>1</code> to log verbose native virtual uinput, <code>hidraw</code> filtering, and controller hotplug events into the instance log.</span><span data-lang-block="pt">Defina como <code>1</code> para registrar logs detalhados de uinput virtual, filtragem <code>hidraw</code> e hotplug no log da instância.</span></td></tr>
+                <tr><td><code>TWINVERSE_UINPUT_LOG</code></td><td>unset</td><td><span data-lang-block="en">Set to <code>1</code> to log verbose native <code>twinverse-input-bridge</code>, virtual uinput, <code>hidraw</code> filtering, and hotplug events into the instance log.</span><span data-lang-block="pt">Defina como <code>1</code> para registrar logs detalhados do <code>twinverse-input-bridge</code>, uinput virtual, filtragem <code>hidraw</code> e hotplug no log da instância.</span></td></tr>
+                <tr><td><code>TWINVERSE_BRIDGE_NO_GRAB</code></td><td>unset</td><td><span data-lang-block="en">Set to <code>1</code> in the host bridge's environment to test without exclusive <code>EVIOCGRAB</code> controller capture.</span><span data-lang-block="pt">Defina como <code>1</code> no ambiente do bridge no host para testar sem captura exclusiva <code>EVIOCGRAB</code> do controle.</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1581,18 +1624,20 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
             <span data-lang-block="pt">Quando as bibliotecas nativas de entrada em Rust puro estão disponíveis (sempre empacotadas no Flatpak e no AppImage, e compiladas em <code>res/native/</code> pelo <code>./run.sh</code> ou <code>make build-native</code>), o Twinverse prepara um diretório privado dentro da home de cada jogador:</span>
           </p>
 <pre><code>&lt;home_N&gt;/.tw-in/
-├── bin/twinverse-input-bridge   # host hotplug &amp; hidraw allowlist supervisor
+├── bin/twinverse-input-bridge   # host EVIOCGRAB, hotplug &amp; hidraw supervisor
 ├── lib64/libtwinverse_{uinput,udev}.so
 ├── lib32/libtwinverse_{uinput,udev}.so
 └── sock/
-    ├── tw_event3000.sock        # bridged physical controller socket
-    ├── tw_event2000.sock        # Steam Input virtual controllers (2000+)
-    └── tw_hidraw.allow          # dynamic per-instance hidraw allowlist</code></pre>
+    ├── tw_event3000.sock        # bridged physical controller socket (slot 0)
+    ├── tw_event3000.desc        # descriptor for the bridged controller
+    ├── tw_event3001.sock        # first Steam Input virtual slot (3001+)
+    ├── tw_hidraw.allow          # dynamic per-instance hidraw allowlist
+    └── tw_input.mute            # temporary flag pausing sandbox hidraw reads during overlay</code></pre>
           <ul>
             <li>
               <strong><span data-lang-block="en">Verbose native logs:</span><span data-lang-block="pt">Logs detalhados da camada nativa:</span></strong>
-              <span data-lang-block="en">Set <code>TWINVERSE_UINPUT_LOG=1</code> in the player's <strong>Environment variables</strong> (or before launching Twinverse to also trace <code>twinverse-input-bridge</code> unplug/reconnect and <code>hidraw</code> allowlist updates) and inspect <code>logs/instances/latest.log</code>.</span>
-              <span data-lang-block="pt">Defina <code>TWINVERSE_UINPUT_LOG=1</code> nas <strong>Environment variables</strong> do jogador (ou antes de iniciar o Twinverse para também registrar desconexões, reconexões e atualizações de <code>hidraw</code> do <code>twinverse-input-bridge</code>) e inspecione <code>logs/instances/latest.log</code>.</span>
+              <span data-lang-block="en">Start Twinverse with <code>TWINVERSE_UINPUT_LOG=1 twinverse --debug</code> before launching a player to trace <code>[twinverse-input-bridge]</code> (host), <code>[twinverse_uinput]</code>, and <code>[twinverse-udev]</code> (sandbox) in <code>logs/instances/instance-NN-*.log</code> (<code>latest.log</code> points only to the most recent launch). Setting <code>TWINVERSE_UINPUT_LOG=1</code> only in the player's <strong>Environment variables</strong> traces the sandbox libraries, not the host bridge.</span>
+              <span data-lang-block="pt">Inicie o Twinverse com <code>TWINVERSE_UINPUT_LOG=1 twinverse --debug</code> antes de abrir o jogador para registrar <code>[twinverse-input-bridge]</code> (host), <code>[twinverse_uinput]</code> e <code>[twinverse-udev]</code> (sandbox) em <code>logs/instances/instance-NN-*.log</code> (<code>latest.log</code> aponta só para a inicialização mais recente). Definir <code>TWINVERSE_UINPUT_LOG=1</code> apenas nas <strong>Variáveis de ambiente</strong> do jogador registra as bibliotecas da sandbox, não o bridge no host.</span>
             </li>
             <li>
               <strong><span data-lang-block="en">Deferred <code>LD_PRELOAD</code> &amp; byte-verified staging:</span><span data-lang-block="pt"><code>LD_PRELOAD</code> adiado e staging verificado por bytes:</span></strong>
@@ -1610,26 +1655,52 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
 
           <details class="troubleshoot" open>
             <summary>
-              <span data-lang-block="en">Controllers do not appear or do not respond in-game</span>
-              <span data-lang-block="pt">Controles não aparecem ou não respondem dentro do jogo</span>
+              <span data-lang-block="en">Controllers do not appear, cannot be selected, or stop responding in-game</span>
+              <span data-lang-block="pt">Controles não aparecem, não podem ser selecionados ou param de responder no jogo</span>
             </summary>
             <div class="troubleshoot-body">
               <p>
-                <span data-lang-block="en">1) Verify your user belongs to the <code>input</code> group (<code>groups</code> should list <code>input</code>). If you just ran <code>usermod -aG input "$USER"</code> or <code>ujust add-user-to-input-group</code>, a full reboot is required. 2) Press <kbd>F5</kbd> in Twinverse after plugging in new USB/Bluetooth controllers (controllers assigned before launch reconnect automatically if unplugged mid-session). 3) If running from source without Rust installed, compile the native libraries with <code>make build-native</code> for full isolated Steam Input and hotplug support, or set <code>TWINVERSE_UINPUT_LOG=1</code> and inspect <code>logs/instances/latest.log</code>.</span>
-                <span data-lang-block="pt">1) Confirme se seu usuário faz parte do grupo <code>input</code> (o comando <code>groups</code> deve listar <code>input</code>). Após rodar <code>usermod -aG input "$USER"</code> ou <code>ujust add-user-to-input-group</code>, é obrigatório reiniciar o PC. 2) Pressione <kbd>F5</kbd> no Twinverse após conectar novos controles USB/Bluetooth (controles já atribuídos se reconectam automaticamente se desconectados no meio da partida). 3) Ao rodar do código-fonte sem Rust instalado, compile as bibliotecas nativas com <code>make build-native</code> para suporte completo a Steam Input isolado e hotplug, ou defina <code>TWINVERSE_UINPUT_LOG=1</code> e inspecione <code>logs/instances/latest.log</code>.</span>
+                <span data-lang-block="en">1) Verify your user belongs to the <code>input</code> group (<code>groups</code> should list <code>input</code>) and reboot after adding it. 2) Controller and display lists refresh automatically on hotplug; press <kbd>F5</kbd> (<strong>Refresh devices</strong>) if a list looks stale. 3) A player number instead of a dot (e.g., <strong>02</strong>) means another player owns that controller—select <strong>None</strong> for its owner before moving it. A yellow dot and <strong>(Disconnected)</strong> mean Twinverse still remembers that pad and will reconnect it automatically when turned back on. 4) If the bridge sees input on the shared host network but Big Picture or games do not, check <code>twinverse.log</code> for distinct <code>using isolated Steam master IPC</code> endpoints (<code>steam_master_ipc_name_override</code>) and make sure you did not pass <code>-master_ipc_name_override</code> manually. 5) If running from source without Rust, run <code>make build-native</code> or launch with <code>TWINVERSE_UINPUT_LOG=1 twinverse --debug</code> and inspect <code>logs/instances/instance-NN-*.log</code>.</span>
+                <span data-lang-block="pt">1) Confirme se seu usuário pertence ao grupo <code>input</code> (<code>groups</code> deve listar <code>input</code>) e reinicie após adicioná-lo. 2) As listas de controles e monitores se atualizam automaticamente por hotplug; pressione <kbd>F5</kbd> (<strong>Atualizar dispositivos</strong>) se precisar reescanear. 3) Um número de jogador no lugar do ponto (por exemplo, <strong>02</strong>) indica que outro jogador está usando aquele controle—selecione <strong>Nenhum</strong> para o dono antes de transferi-lo. Um ponto amarelo com <strong>(Desconectado)</strong> indica que o Twinverse ainda lembra desse controle e vai reconectá-lo quando ele for ligado. 4) Se a ponte recebe o controle na rede compartilhada, mas o Big Picture ou os jogos não respondem, confira no <code>twinverse.log</code> se cada instância recebeu uma porta <code>using isolated Steam master IPC</code> distinta (<code>steam_master_ipc_name_override</code>) e não passe <code>-master_ipc_name_override</code> manualmente. 5) Ao rodar do código-fonte sem Rust, execute <code>make build-native</code> ou inicie com <code>TWINVERSE_UINPUT_LOG=1 twinverse --debug</code> e verifique <code>logs/instances/instance-NN-*.log</code>.</span>
               </p>
             </div>
           </details>
 
           <details class="troubleshoot">
             <summary>
-              <span data-lang-block="en">Multiplayer connection errors, port conflicts, or high-latency Steam relays</span>
-              <span data-lang-block="pt">Erros de conexão multiplayer, conflito de portas ou relay lento do Steam</span>
+              <span data-lang-block="en">Pressing HOME brings the host Steam window to the front</span>
+              <span data-lang-block="pt">Pressionar HOME traz o Steam do host para a frente</span>
             </summary>
             <div class="troubleshoot-body">
               <p>
-                <span data-lang-block="en">Install the <code>passt</code> package (which provides <code>pasta</code>) on your host system—even when running Twinverse via Flatpak—and relaunch the session. Each player automatically receives a distinct free IPv4 address on your LAN. If you manually configured <strong>Guest IP</strong>, ensure every player has a different unused address inside your subnet.</span>
-                <span data-lang-block="pt">Instale o pacote <code>passt</code> (que fornece o <code>pasta</code>) no sistema host—mesmo usando o Twinverse via Flatpak—e reinicie a sessão. Cada jogador receberá automaticamente um IPv4 livre distinto na LAN. Se definiu um <strong>Guest IP</strong> manual, garanta que não há conflito com outro dispositivo ou jogador na rede.</span>
+                <span data-lang-block="en">With the native input bridge active, <code>twinverse-input-bridge</code> acquires an exclusive <code>EVIOCGRAB</code> lock on the assigned controller's physical evdev node while its instance runs. Check <code>twinverse.log</code> for <code>hotplug controller bridge enabled for</code> and, with <code>TWINVERSE_UINPUT_LOG=1</code>, confirm <code>event3000, grabbed=true</code> in the player's instance log. If you see <code>EVIOCGRAB failed</code>, another program may already hold the device; remove <code>TWINVERSE_BRIDGE_NO_GRAB=1</code> if set for testing. Static device bind-mounts (source runs without compiled Rust libraries) do not provide <code>EVIOCGRAB</code> isolation.</span>
+                <span data-lang-block="pt">Com a ponte nativa ativa, o <code>twinverse-input-bridge</code> solicita captura exclusiva <code>EVIOCGRAB</code> no nó evdev físico do controle atribuído enquanto a instância está rodando. Procure <code>hotplug controller bridge enabled for</code> no <code>twinverse.log</code> e, com <code>TWINVERSE_UINPUT_LOG=1</code>, confirme <code>event3000, grabbed=true</code> no log da instância do jogador. Se aparecer <code>EVIOCGRAB failed</code>, outro programa pode estar segurando o dispositivo; remova <code>TWINVERSE_BRIDGE_NO_GRAB=1</code> caso tenha sido definido para testes. Montagens estáticas (execução do código-fonte sem as bibliotecas em Rust compiladas) não oferecem isolamento via <code>EVIOCGRAB</code>.</span>
+              </p>
+            </div>
+          </details>
+
+          <details class="troubleshoot">
+            <summary>
+              <span data-lang-block="en">HOME + L3 does not open End Session, or the game reacts behind the dialog</span>
+              <span data-lang-block="pt">HOME + L3 não abre Encerrar Sessão, ou o jogo reage por trás do diálogo</span>
+            </summary>
+            <div class="troubleshoot-body">
+              <p>
+                <span data-lang-block="en">Press <strong>HOME/Guide</strong> and <strong>L3</strong> (left stick click) together on the <strong>same controller</strong> while an instance is starting or running (no hold needed). In <code>twinverse.log</code>, look for <code>Shortcut monitor attached gamepad</code> (reading <code>bridge:…/tw_event3000.sock</code> for grabbed pads) and <code>Controller exit shortcut triggered (HOME + L3)</code>. Only the triggering controller can navigate the dialog; if it disconnects, press <kbd>Esc</kbd> to cancel. In that player's instance log, <code>sandbox controller input muted by host overlay monitor</code> and <code>unmuted</code> confirm that Steam and the game were paused while the overlay was open.</span>
+                <span data-lang-block="pt">Pressione <strong>HOME/Guia</strong> e <strong>L3</strong> (clique no analógico esquerdo) juntos no <strong>mesmo controle</strong> enquanto uma instância estiver iniciando ou rodando (sem precisar segurar). No <code>twinverse.log</code>, procure <code>Shortcut monitor attached gamepad</code> (lendo <code>bridge:…/tw_event3000.sock</code> em controles capturados) e <code>Controller exit shortcut triggered (HOME + L3)</code>. Só o controle que abriu o diálogo pode navegar nele; se ele desconectar, pressione <kbd>Esc</kbd> para cancelar. No log da instância desse jogador, <code>sandbox controller input muted by host overlay monitor</code> e <code>unmuted</code> confirmam que o Steam e o jogo foram pausados enquanto o diálogo esteve aberto.</span>
+              </p>
+            </div>
+          </details>
+
+          <details class="troubleshoot">
+            <summary>
+              <span data-lang-block="en">Online multiplayer issues, Session Replaced, or LAN IP conflicts</span>
+              <span data-lang-block="pt">Problemas no multiplayer online, Session Replaced ou conflitos de IP na LAN</span>
+            </summary>
+            <div class="troubleshoot-body">
+              <p>
+                <span data-lang-block="en">1) <strong>Check your network mode:</strong> In v2.0.0-alpha.3, new profiles default to <strong>Isolate network</strong> off (shared host network) to avoid <code>pasta</code> UDP source-port conflicts in online multiplayer and LAN discovery. Existing profiles from alpha.2 keep their saved toggle, so check <strong>Preferences → Engine → Isolate network</strong>. 2) <strong>Same account on host &amp; instance:</strong> Twinverse passes <code>-private_ip_override 192.0.2.N</code> per instance to avoid Steam's <em>Session Replaced</em> error; these addresses identify Steam login sessions only and are not LAN IPs. 3) <strong>LAN games needing separate local IPs:</strong> Install <code>passt</code> (providing <code>pasta</code>) on the host, enable <strong>Isolate network</strong>, and leave <strong>Guest IP</strong> blank (or give each player a different unused IPv4 on your subnet).</span>
+                <span data-lang-block="pt">1) <strong>Verifique o modo de rede:</strong> Na v2.0.0-alpha.3, novos perfis vêm com <strong>Isolar rede</strong> desativado (rede compartilhada do host) para evitar conflitos de portas de origem UDP do <code>pasta</code> no multiplayer online e na descoberta LAN. Perfis antigos da alpha.2 mantêm a opção salva, então confira <strong>Preferências → Motor → Isolar rede</strong>. 2) <strong>Mesma conta no host e na instância:</strong> O Twinverse passa <code>-private_ip_override 192.0.2.N</code> por instância para evitar o erro <em>Session Replaced</em> do Steam; esses endereços servem apenas para identificar o login no Steam e não são IPs da LAN. 3) <strong>Jogos em LAN que exigem IPs distintos:</strong> Instale o pacote <code>passt</code> (que fornece o <code>pasta</code>) no host, ative <strong>Isolar rede</strong> e deixe <strong>IP convidado</strong> em branco (ou informe um IPv4 livre diferente por jogador).</span>
               </p>
             </div>
           </details>
@@ -1654,8 +1725,8 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
             </summary>
             <div class="troubleshoot-body">
               <p>
-                <span data-lang-block="en">1) Confirm native <code>steam</code>, <code>gamescope</code>, and <code>bwrap</code> are installed on your host by running <code>twinverse --diagnostics</code>. 2) Try toggling <strong>Gamescope WSI</strong> off in <strong>Preferences → Engine</strong> if you are on NVIDIA or hybrid GPUs. 3) Try opening the player via <strong>Start player</strong> (without Gamescope) or inspect the latest log under <code>~/.local/state/twinverse/logs/instances/latest.log</code>.</span>
-                <span data-lang-block="pt">1) Confirme que os pacotes nativos <code>steam</code>, <code>gamescope</code> e <code>bwrap</code> estão instalados no host executando <code>twinverse --diagnostics</code>. 2) Experimente desativar <strong>Gamescope WSI</strong> em <strong>Preferências → Engine</strong> em GPUs NVIDIA ou híbridas. 3) Teste abrir o jogador com <strong>Start player</strong> (sem Gamescope) ou consulte <code>~/.local/state/twinverse/logs/instances/latest.log</code>.</span>
+                <span data-lang-block="en">1) Confirm native <code>steam</code>, <code>gamescope</code>, and <code>bwrap</code> are installed on your host by running <code>twinverse --diagnostics</code>. 2) Try toggling <strong>Gamescope WSI</strong> off in <strong>Preferences → Engine</strong> if you are on NVIDIA or hybrid GPUs. 3) Try opening the player via <strong>Start Player</strong> (without Gamescope) or inspect the player's log under <code>~/.local/state/twinverse/logs/instances/</code>.</span>
+                <span data-lang-block="pt">1) Confirme que os pacotes nativos <code>steam</code>, <code>gamescope</code> e <code>bwrap</code> estão instalados no host executando <code>twinverse --diagnostics</code>. 2) Experimente desativar <strong>Gamescope WSI</strong> em <strong>Preferências → Motor</strong> em GPUs NVIDIA ou híbridas. 3) Teste abrir o jogador com <strong>Iniciar Jogador</strong> (sem Gamescope) ou consulte o log da instância em <code>~/.local/state/twinverse/logs/instances/</code>.</span>
               </p>
             </div>
           </details>

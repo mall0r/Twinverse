@@ -12,8 +12,8 @@
   <a href="https://github.com/mall0r/Twinverse/releases"><img src="https://img.shields.io/badge/Version-2.0.0--alpha.3-blue.svg" alt="Versão"/></a>
   <a href="https://mall0r.github.io/Twinverse/?lang=pt"><img src="https://img.shields.io/badge/Documenta%C3%A7%C3%A3o-Online-84b4fa.svg" alt="Documentação"/></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green.svg" alt="Licença"/></a>
-  <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4.0+-orange.svg" alt="GTK"/></a>
-  <a href="https://gnome.pages.gitlab.gnome.org/libadwaita/"><img src="https://img.shields.io/badge/libadwaita-1.0+-purple.svg" alt="libadwaita"/></a>
+  <a href="https://www.gtk.org/"><img src="https://img.shields.io/badge/GTK-4-orange.svg" alt="GTK"/></a>
+  <a href="https://gnome.pages.gitlab.gnome.org/libadwaita/"><img src="https://img.shields.io/badge/libadwaita-1-purple.svg" alt="libadwaita"/></a>
 </p>
 
 <p align="center">
@@ -26,32 +26,25 @@
 
 # O que é o Twinverse?
 
-O **Twinverse** é um aplicativo open-source para Linux e SteamOS que permite criar e gerenciar até **8 instâncias isoladas do `Steam Big Picture`** simultaneamente. Vários jogadores podem aproveitar suas bibliotecas de jogos em um único computador—em tela dividida ou em múltiplos monitores—com controles dedicados (incluindo **Steam Input** isolado e reconexão hotplug no meio da partida), saídas de áudio, diretórios home e endereços IPv4 privados na LAN.
+O **Twinverse** executa até **8 clientes Steam em um único PC com Linux ou SteamOS**. Cada jogador tem uma pasta pessoal do Steam e pode jogar o mesmo título que os demais ou escolher outro. O Gamescope exibe o Steam Big Picture em tela dividida ou em vários monitores. Por padrão, as instâncias **compartilham a rede do host**.
 
 > [!TIP]
-> **Documentação Interativa Completa:** Acesse o [**Site de Documentação do Twinverse**](https://mall0r.github.io/Twinverse/?lang=pt) (Português BR & English) para ver o guia passo a passo ilustrado, diagramas de layout, todas as funcionalidades, atalhos e solução de problemas.
+> Veja as telas de configuração no [guia ilustrado](https://mall0r.github.io/Twinverse/?lang=pt#step-by-step).
 
 <p align="center">
   <img alt="Twinverse" src="../share/screenshots/twinverse-session-dark.png" />
 </p>
 
 > [!WARNING]
-> Este projeto não apoia a pirataria; todos os jogadores devem possuir (ou ter acesso legítimo ao) jogo em suas bibliotecas Steam para poderem jogá-lo.
+> Cada jogador precisa ter acesso legítimo aos títulos que joga. O Twinverse não fornece jogos nem licenças.
 
 ## ✨ Principais Funcionalidades
 
-> [!NOTE]
-> Mouse e teclado (`Grab mouse`) só podem ser atribuídos a uma instância por vez.
+- **Layout:** Escolha entre seis moldes por monitor (até quatro jogadores por tela) e arraste os jogadores entre os espaços. No KDE Plasma 6, o KWin posiciona as janelas do Gamescope e o Twinverse restaura as configurações dos painéis ao encerrar a sessão.
+- **Controles:** Cada controle físico só pode ser atribuído a um jogador. Os demais veem o número de quem o usa (por exemplo, `01`) e não podem selecioná-lo. O perfil mantém a atribuição mesmo ao desconectar o controle ou reiniciar o aplicativo. A ponte nativa reconecta o mesmo controle até durante a partida.
+- **Áudio:** Mantenha **Padrão** ou escolha uma saída PulseAudio/PipeWire por jogador. Vários jogadores podem usar a mesma saída; os números indicam quem mais a selecionou, sem bloquear a escolha.
 
-1. **Até 8 Instâncias Isoladas:** Execute múltiplos clientes Steam simultaneamente com nomes editáveis, controle de participação por jogador e recuperação automática de sessão em caso de fechamento inesperado.
-2. **Moldes por Monitor e Arrastar-e-Soltar:** Escolha entre 6 moldes visuais independentes por monitor (`Fullscreen`, `Columns`, `Rows`, `Main left`, `Main top`, `Grid` — até 4 jogadores por monitor), combine moldes entre telas e arraste jogadores diretamente entre os espaços.
-3. **Steam Input Completo, Isolamento Real de Entrada e Reconexão Hotplug:** Uma camada de virtualização em espaço de usuário feita em Rust puro para `/dev/uinput` e `libudev` (`libtwinverse_uinput.so` / `libtwinverse_udev.so`) mantém os controles virtuais do Steam Input estritamente restritos a cada instância, sem tocar no `/dev/uinput` do host. Um supervisor no host (`twinverse-input-bridge`) reconecta controles automaticamente se forem desconectados no meio da sessão, isola controles idênticos, filtra `/dev/hidraw*` dinamicamente (preservando giroscópio, vibração, touchpad e LEDs nativos) e fornece um `"Virtual Joystick by Twinverse"` automático quando nenhum controle físico é selecionado.
-4. **Canais de Áudio Dedicados:** Direcione o áudio de cada instância para sua própria saída PipeWire/PulseAudio (`PULSE_SINK`) com isolamento de captura PipeWire por instância.
-5. **Rede Isolada sem Root (`pasta`):** Atribui automaticamente um endereço IPv4 livre na LAN por instância (ou um `Guest IP` fixo opcional), evitando conflitos de porta e relays do Steam em partidas locais. Pode ser ativada ou desativada a qualquer momento em `Preferences -> Engine` (**Isolate network**).
-6. **Diretórios Home Dedicados e Terminal na Sandbox:** Cada jogador possui uma pasta `home_1`–`home_8` isolada com atalhos para abrir a pasta, abrir um terminal interativo dentro da sandbox do jogador ou zerar o slot.
-7. **Pasta de Jogos Compartilhada e Qualquer Proton:** Monta `steamapps/common/` do host (com sincronização automática de manifestos `.acf`) e `compatibilitytools.d/` (incluindo [ProtonGE](https://github.com/GloriousEggroll/proton-ge-custom)), evitando downloads duplicados.
-8. **Jogue Jogos Diferentes ao Mesmo Tempo:** Cada instância é totalmente independente—os jogadores não precisam jogar o mesmo jogo.
-9. **Auto-Tiling no KDE Plasma 6 / KWin:** Posicionamento automático sem bordas via resolvedor D-Bus (`TWINVERSE_KWIN_INSTANCE`) e ocultação automática dos painéis do Plasma, que são restaurados ao encerrar a sessão.
+As listas de controles e monitores se atualizam ao conectar ou desconectar dispositivos; **Atualizar dispositivos** (`F5`) também faz uma busca. Nos menus de controle e áudio, um ponto azul marca a seleção atual. Um ponto amarelo com **(Desconectado)** indica que a seleção foi salva, mas o dispositivo está ausente.
 
 ---
 
@@ -61,10 +54,9 @@ O **Twinverse** é um aplicativo open-source para Linux e SteamOS que permite cr
 
 ## 📦 Requisitos
 
-É necessário ter instalados os pacotes **nativos** da sua distribuição: `steam`, `gamescope`, `bubblewrap` (`bwrap`) e `pactl` (`pipewire-pulse` ou `pulseaudio-utils`).
+Instale o **Steam nativo** e o **Bubblewrap** (`bwrap`) no host, mesmo ao usar Flatpak ou AppImage. Sessões em Big Picture com layout por monitor também precisam do [Gamescope e de um driver gráfico compatível](https://github.com/ValveSoftware/gamescope). A seleção de saída de áudio usa `pactl` com PulseAudio ou PipeWire-Pulse. O `pasta` (do pacote `passt`) é opcional; só a [rede isolada](#rede) precisa dele no `PATH` do host.
 
-- **Altamente recomendado (`pasta` / `passt`):** Ativa o isolamento de rede sem root por instância com endereços IPv4 distintos na LAN. Instale no `PATH` do host, inclusive ao usar o Twinverse via Flatpak. Consulte a [seção de Rede](https://mall0r.github.io/Twinverse/?lang=pt#feature-networking).
-- **Grupo `input` obrigatório:** Adicione seu usuário ao grupo `input` e reinicie o computador para permitir o gerenciamento de controles e joysticks virtuais:
+Seu usuário precisa de acesso a `/dev/input` para os controles e a `/dev/uinput` para o joystick virtual usado na ausência de um controle atribuído. Para conceder acesso pelo grupo `input`, use o comando da sua distribuição e depois saia e entre novamente na sessão do sistema ou reinicie o computador:
 
 ```bash
 # Maioria das distribuições Linux
@@ -74,72 +66,66 @@ sudo usermod -aG input "$USER"
 ujust add-user-to-input-group
 ```
 
-Para o Gamescope funcionar corretamente, conforme sua GPU:
-
-- **AMD:** Mesa 20.3 ou mais recente
-- **Intel:** Mesa 21.2 ou mais recente
-- **NVIDIA:** Drivers proprietários 515.43.04 ou mais recente, ou NVIDIA Open Kernel Module
-
-> [!NOTE]
-> *SteamOS* (AMD) e *Bazzite* já incluem Steam, Gamescope, Bubblewrap e PipeWire por padrão.
 
 ## 📦 Instalação
 
+Escolha o Flatpak, o AppImage ou o arquivo com o código-fonte da versão **2.0.0-alpha.3** em [Releases](https://github.com/mall0r/Twinverse/releases).
+
 ### Flatpak
 
-1. Baixe o arquivo `Twinverse-*.flatpak` mais recente em [**Releases**](https://github.com/mall0r/Twinverse/releases).
-2. Configure o repositório Flathub (se ainda não tiver) e instale:
+No diretório em que baixou o pacote:
 
 ```bash
 flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user Twinverse-*.flatpak
+flatpak install --user ./Twinverse-*.flatpak
+flatpak run io.github.mall0r.Twinverse
 ```
 
 ### AppImage
 
-> [!NOTE]
-> Garanta que o pacote `bubblewrap` esteja instalado no sistema host.
-
-1. Baixe o arquivo `Twinverse-*.AppImage` mais recente em [**Releases**](https://github.com/mall0r/Twinverse/releases).
-2. Torne-o executável e inicie:
+No diretório em que baixou o AppImage:
 
 ```bash
 chmod +x Twinverse-*.AppImage
 ./Twinverse-*.AppImage
 ```
 
-Para integração ao menu de aplicativos e atualizações fáceis, recomendamos usar o **[Gear Lever](https://github.com/mijorus/gearlever)**.
+O [Gear Lever](https://github.com/mijorus/gearlever) é opcional para integrar o AppImage ao menu e gerenciar atualizações.
 
 ### Executando a Partir do Código-Fonte
 
-```bash
-git clone https://github.com/mall0r/Twinverse.git
-cd Twinverse
-./run.sh
-```
+Execute `./run.sh` no diretório do código-fonte extraído. O script compila os GResources, instala as dependências Python em `.venv` e tenta compilar os componentes nativos de entrada que faltarem. Sem eles, o Twinverse usa montagens estáticas de dispositivos, sem reconexão pela ponte nem captura exclusiva no host. Veja os [pré-requisitos para compilar em Rust](../CONTRIBUTING.md#rust-toolchain-prerequisites-native-input-libraries).
 
-O `./run.sh` compila automaticamente os arquivos GResource, compila as bibliotecas nativas em Rust de virtualização `/dev/uinput` e hotplug (quando `cargo` e os alvos `x86_64-unknown-linux-gnu` / `i686-unknown-linux-gnu` estão instalados), cria o `.venv` e inicia o Twinverse. Se o Rust não estiver instalado, o Twinverse ainda executa usando bind-mounts estáticos de dispositivos como fallback. Veja [CONTRIBUTING.md](../CONTRIBUTING.md) para os pré-requisitos completos de desenvolvimento.
+## 🎮 Iniciar uma sessão
+
+1. Em **Seu grupo**, use **Adicionar Jogador** e marque quem vai jogar. No **Layout da sessão**, escolha um molde com espaço para cada jogador marcado.
+2. Selecione cada jogador para abrir a **Configuração do jogador**. Escolha o controle e a saída de áudio. Para transferir um controle, primeiro selecione **Nenhum** para quem o usa. Só um jogador pode ativar **Capturar mouse**.
+3. Para cada jogador com o status **Não instalado**, clique em **Instalar Steam**. O Steam abre em modo desktop, sem Gamescope. Entre na conta desse jogador e depois encerre esse cliente Steam. Após a instalação, **Iniciar Jogador** abre apenas esse cliente para ajustes.
+4. Quando todos os jogadores marcados estiverem com o status **Pronto**, clique em **Iniciar Sessão** (`Ctrl+Enter`). O Twinverse minimiza a janela quando os clientes estão em execução. **Parar Jogador** encerra um cliente; **Encerrar Sessão** na janela principal encerra todos.
+
+### Encerrar a sessão pelo controle
+
+Pressione **HOME + L3** juntos no **mesmo controle** (HOME/Guia + **clique no analógico esquerdo**). A confirmação abre na hora, sem precisar segurar, com **Cancelar** selecionado. Só o controle que abriu o diálogo pode navegar nele. Enquanto o diálogo está aberto, a ponte nativa suspende a entrada desse controle no Steam e no jogo do jogador; os demais continuam jogando.
+
+Solte os dois botões. Escolha entre esquerda e direita com o direcional ou o analógico esquerdo; **A** ativa a opção selecionada e **B** cancela. As setas, Enter, Esc e cliques do mouse também funcionam. Cancelar devolve o controle sem interromper a partida; confirmar **Encerrar** fecha todas as instâncias do Twinverse e traz a janela principal de volta.
 
 ## 📖 Documentação e Guias
 
-- **Documentação Interativa (PT-BR / EN):** [https://mall0r.github.io/Twinverse/?lang=pt](https://mall0r.github.io/Twinverse/?lang=pt)
-- **Guia Passo a Passo:** [Português BR](https://mall0r.github.io/Twinverse/?lang=pt#step-by-step) | [English](https://mall0r.github.io/Twinverse/#step-by-step)
-- **Depuração e Logs:** [docs/DEBUGGING.pt-br.md](DEBUGGING.pt-br.md) | [docs/DEBUGGING.md](DEBUGGING.md)
+- **Guia ilustrado:** [Português BR](https://mall0r.github.io/Twinverse/?lang=pt#step-by-step) | [English](https://mall0r.github.io/Twinverse/#step-by-step)
+- **Depuração e logs:** [Português BR](DEBUGGING.pt-br.md) | [English](DEBUGGING.md)
 
 ---
 
 ## ⚙️ Como Funciona
 
-O Twinverse monta dinamicamente uma pilha de isolamento sem root para cada jogador:
+**Arquivos dos jogadores.** O Bubblewrap monta uma pasta pessoal separada (`home_1`–`home_8`) para cada cliente Steam. Reaproveita as pastas de jogos instalados em `~/.local/share/Steam/steamapps/common/` no host e as versões personalizadas do Proton em `compatibilitytools.d/`; o Twinverse sincroniza os manifestos `.acf` ao iniciar o Steam. Em **Preferências → Dados das instâncias**, é possível abrir a pasta do jogador, iniciar um terminal na sandbox ou redefinir o jogador e apagar essa pasta.
 
-```text
-[twinverse-input-bridge (hotplug no host)] -> [pasta (netns opcional)] -> bwrap (sandbox) -> gamescope (compositor) -> Steam Big Picture
-```
+**Isolamento de entrada.** A ponte `twinverse-input-bridge` solicita acesso exclusivo (`EVIOCGRAB`) à entrada evdev do controle atribuído enquanto a instância está em execução. Durante a captura, pressionar HOME não traz o Steam do host para a frente. Encerrar a instância libera o controle; controles não atribuídos não são capturados. As bibliotecas nativas de `uinput` e `libudev` mantêm os controles virtuais do Steam Input dentro da própria instância. Jogadores sem controle atribuído usam um joystick virtual substituto.
 
-1. **`twinverse-input-bridge`** (Rust puro, quando há um controle físico atribuído) supervisiona o controle do jogador no host, encaminha o fluxo evdev para um socket Unix sintético persistente `/dev/input/event3000`, envia eventos de neutralização ao desconectar, isola controles idênticos, atualiza dinamicamente a lista de permissão de `/dev/hidraw*` e reconecta o controle automaticamente se ele for desconectado e reconectado durante a sessão.
-2. **`pasta`** (quando instalado e com **Isolate network** ativado) cria um namespace de rede isolado com um endereço IPv4 livre na rede local.
-3. **`bwrap` (Bubblewrap)** monta um diretório `home_N` dedicado, mascara `/dev/input`, prepara o interpositor de `/dev/uinput` em espaço de usuário (`libtwinverse_uinput.so`) e o shim de `libudev` (`libtwinverse_udev.so`) para o Steam e jogos (carregados após o Gamescope via `GAMESCOPE_RUNTIME_SETUP`) para manter controles virtuais do Steam Input estritamente privados por instância, compartilha `steamapps/common/` e `compatibilitytools.d/`, e injeta `PULSE_SINK` e variáveis de ambiente personalizadas.
-4. **`gamescope`** renderiza o Steam Big Picture exatamente na resolução e taxa de atualização do espaço escolhido, gerencia a captura exclusiva de mouse e trabalha em conjunto com o resolvedor D-Bus do KWin no KDE Plasma 6.0+ para posicionamento automático sem bordas.
+### Rede
+
+- **Compartilhada (padrão para novos perfis):** Deixe **Preferências → Motor → Isolar rede** desativado para jogar online e descobrir partidas na LAN. Isso evita conflitos de portas de origem UDP do `pasta`. Portas de loopback separadas para o Steam3Master encaminham a entrada ao cliente correto. Cada cliente também informa um IP privado distinto no login do Steam para evitar “Session Replaced”; isso **não** cria outro endereço na LAN.
+- **Isolada (opcional):** Para jogos em LAN ou servidores dedicados que exigem IPs locais distintos, ative **Isolar rede** para a próxima inicialização. Com o `pasta` instalado no host, cada instância recebe um namespace de rede. Deixe **IP convidado** em branco para buscar um IPv4 livre na sub-rede do host ou informe um endereço disponível. Desativar o isolamento desabilita o campo sem apagar o valor. Sem o `pasta`, as instâncias continuam compartilhando a rede do host.
 
 ---
 
@@ -158,9 +144,7 @@ Este projeto está licenciado sob a **Licença Pública Geral GNU v3.0 (GPL-3.0-
 >
 > O Twinverse é um projeto independente de código aberto e não é afiliado, endossado ou oficialmente conectado à Valve Corporation ou ao Steam.
 >
-> Esta ferramenta atua como uma camada de orquestração que aproveita tecnologias de sandboxing para executar múltiplas instâncias isoladas do cliente oficial do Steam. O Twinverse **não modifica, aplica patches, faz engenharia reversa ou altera** quaisquer arquivos do Steam ou seu funcionamento normal. Todas as instâncias iniciadas por esta ferramenta são as versões oficiais e não modificadas fornecidas pela Valve.
->
-> Os usuários são os únicos responsáveis por cumprir os termos do Acordo de Assinante do Steam.
+> O Twinverse inicia o cliente oficial do Steam sem modificar seus binários. Os jogadores são responsáveis por cumprir o [Acordo de Assinante do Steam](https://store.steampowered.com/subscriber_agreement/).
 
 ---
 
