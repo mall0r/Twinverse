@@ -41,16 +41,17 @@ from src.services.shortcut_monitor import (  # noqa: E402
     BTN_DPAD_RIGHT,
     BTN_EAST,
     BTN_MODE,
-    BTN_SELECT,
     BTN_SOUTH,
+    BTN_THUMBL,
     EV_ABS,
     EV_KEY,
-    KEY_BACK,
     KEY_HOMEPAGE,
     ControllerShortcutMonitor,
     _is_gamepad_capabilities,
     _is_ignored_device_name,
 )
+
+BTN_SELECT = 314
 
 
 class _FakeClock:
@@ -82,7 +83,7 @@ class _FakePipeDevice:
         return self._r
 
     def capabilities(self, verbose: bool = False):
-        return {EV_KEY: [BTN_SOUTH, BTN_EAST, BTN_SELECT, BTN_MODE]}
+        return {EV_KEY: [BTN_SOUTH, BTN_EAST, BTN_MODE, BTN_THUMBL]}
 
     def absinfo(self, code: int):
         return SimpleNamespace(min=-32768, max=32767)
@@ -124,66 +125,76 @@ def gtk_display():
     set_language(LANGUAGE_EN)
 
 
-def test_hold_home_and_select_for_two_seconds_triggers_once():
-    """Holding HOME + SELECT for 2 seconds fires exactly once until released."""
-    clock = _FakeClock()
-    triggered = []
-    monitor = ControllerShortcutMonitor(on_trigger=lambda: triggered.append(clock.now), hold_seconds=2.0, clock=clock)
+@pytest.mark.parametrize("first_button,second_button", [(BTN_MODE, BTN_THUMBL), (BTN_THUMBL, BTN_MODE)])
+def test_home_and_l3_triggers_immediately_once_per_press(first_button, second_button):
+    """Trigger immediately in either order and rearm only after a button is released."""
+    triggered = Mock()
+    monitor = ControllerShortcutMonitor(on_trigger=triggered)
 
-    monitor.process_event("pad0", EV_KEY, BTN_MODE, 1, clock.now)
-    clock.advance(0.5)
-    monitor.process_event("pad0", EV_KEY, BTN_SELECT, 1, clock.now)
+    monitor.process_event("pad0", EV_KEY, first_button, 1)
+    triggered.assert_not_called()
+    monitor.process_event("pad0", EV_KEY, second_button, 1)
+    triggered.assert_called_once_with()
 
-    # 1.99s after both buttons are held: still too early.
-    assert not monitor.check_holds(clock.advance(1.99))
-    assert triggered == []
+    # Closing the overlay while both buttons are still pressed must not rearm the shortcut.
+    monitor.set_navigation_mode(True)
+    monitor.set_navigation_mode(False)
+    monitor.process_event("pad0", EV_KEY, first_button, 2)
+    monitor.process_event("pad0", EV_KEY, second_button, 2)
+    triggered.assert_called_once_with()
 
-    # Reaching 2.0s triggers even with no additional evdev events.
-    assert monitor.check_holds(clock.advance(0.02))
-    assert len(triggered) == 1
-
-    # Continuing to hold must not double-trigger.
-    assert not monitor.check_holds(clock.advance(3.0))
-    assert len(triggered) == 1
-
-    # Releasing one button unlatches so a fresh 2s hold can trigger again.
-    monitor.process_event("pad0", EV_KEY, BTN_SELECT, 0, clock.advance(0.1))
-    monitor.process_event("pad0", EV_KEY, BTN_SELECT, 1, clock.advance(0.1))
-    assert not monitor.check_holds(clock.advance(1.5))
-    assert monitor.check_holds(clock.advance(0.6))
-    assert len(triggered) == 2
+    monitor.process_event("pad0", EV_KEY, second_button, 0)
+    monitor.process_event("pad0", EV_KEY, second_button, 1)
+    assert triggered.call_count == 2
 
 
-def test_early_release_cancels_shortcut_hold():
-    """Releasing either HOME or SELECT before 2 seconds must not trigger."""
-    clock = _FakeClock()
-    triggered = []
-    monitor = ControllerShortcutMonitor(on_trigger=lambda: triggered.append(True), hold_seconds=2.0, clock=clock)
+def test_old_shortcut_and_non_overlapping_presses_do_not_trigger():
+    """Reject the old shortcut and presses that do not overlap."""
+    triggered = Mock()
+    monitor = ControllerShortcutMonitor(on_trigger=triggered)
 
-    monitor.process_event("pad0", EV_KEY, BTN_MODE, 1, clock.now)
-    monitor.process_event("pad0", EV_KEY, BTN_SELECT, 1, clock.now)
-    assert not monitor.check_holds(clock.advance(1.5))
+    monitor.process_event("pad0", EV_KEY, BTN_MODE, 1)
+    monitor.process_event("pad0", EV_KEY, BTN_SELECT, 1)
+    triggered.assert_not_called()
 
-    monitor.process_event("pad0", EV_KEY, BTN_MODE, 0, clock.now)
-    assert not monitor.check_holds(clock.advance(2.0))
-    assert triggered == []
+    monitor.process_event("pad0", EV_KEY, BTN_MODE, 0)
+    monitor.process_event("pad0", EV_KEY, BTN_THUMBL, 1)
+    triggered.assert_not_called()
 
 
-def test_combo_must_come_from_same_controller_and_supports_dinput_codes():
-    """Cross-controller presses never combine, while D-Input KEY_HOMEPAGE + KEY_BACK work."""
-    clock = _FakeClock()
-    triggered = []
-    monitor = ControllerShortcutMonitor(on_trigger=lambda: triggered.append(True), hold_seconds=2.0, clock=clock)
+def test_combo_must_come_from_same_controller_and_supports_dinput_home():
+    """Accept D-Input Home without combining presses from different controllers."""
+    triggered = Mock()
+    monitor = ControllerShortcutMonitor(on_trigger=triggered)
 
-    monitor.process_event("pad0", EV_KEY, BTN_MODE, 1, clock.now)
-    monitor.process_event("pad1", EV_KEY, BTN_SELECT, 1, clock.now)
-    assert not monitor.check_holds(clock.advance(3.0))
-    assert triggered == []
+    monitor.process_event("pad0", EV_KEY, BTN_MODE, 1)
+    monitor.process_event("pad1", EV_KEY, BTN_THUMBL, 1)
+    triggered.assert_not_called()
 
-    monitor.process_event("pad2", EV_KEY, KEY_HOMEPAGE, 1, clock.now)
-    monitor.process_event("pad2", EV_KEY, KEY_BACK, 1, clock.now)
-    assert monitor.check_holds(clock.advance(2.0))
-    assert triggered == [True]
+    monitor.process_event("pad2", EV_KEY, KEY_HOMEPAGE, 1)
+    monitor.process_event("pad2", EV_KEY, BTN_THUMBL, 1)
+    triggered.assert_called_once_with()
+    assert monitor.active_navigation_device == "pad2"
+
+
+def test_first_controller_keeps_ownership_while_confirmation_is_pending():
+    """Keep the first controller reserved until its confirmation is handled."""
+    triggered = Mock()
+    monitor = ControllerShortcutMonitor(on_trigger=triggered)
+
+    for device in ("pad0", "pad1"):
+        monitor.process_event(device, EV_KEY, BTN_MODE, 1)
+        monitor.process_event(device, EV_KEY, BTN_THUMBL, 1)
+
+    triggered.assert_called_once_with()
+    assert monitor.active_navigation_device == "pad0"
+
+    # A declined confirmation releases the owner even before the overlay opens.
+    monitor.set_navigation_mode(False)
+    monitor.process_event("pad1", EV_KEY, BTN_THUMBL, 0)
+    monitor.process_event("pad1", EV_KEY, BTN_THUMBL, 1)
+    assert triggered.call_count == 2
+    assert monitor.active_navigation_device == "pad1"
 
 
 def test_navigation_mode_routes_dpad_hat_stick_and_guards_accidental_confirm():
@@ -194,27 +205,25 @@ def test_navigation_mode_routes_dpad_hat_stick_and_guards_accidental_confirm():
     monitor = ControllerShortcutMonitor(
         on_trigger=lambda: triggered.append(True),
         on_navigate=actions.append,
-        hold_seconds=2.0,
         nav_grace_seconds=0.35,
         clock=clock,
     )
     monitor.register_device_state("pad0", abs_x_min=-32768, abs_x_max=32767)
     monitor.register_device_state("dualsense", abs_x_min=0, abs_x_max=255)
 
-    # Triggering hold opens navigation mode while HOME+SELECT are still held.
     monitor.process_event("pad0", EV_KEY, BTN_MODE, 1, clock.now)
-    monitor.process_event("pad0", EV_KEY, BTN_SELECT, 1, clock.now)
-    assert monitor.check_holds(clock.advance(2.0))
+    monitor.process_event("pad0", EV_KEY, BTN_THUMBL, 1, clock.now)
+    assert triggered == [True]
     monitor.set_navigation_mode(True)
 
-    # Confirm/cancel ignored during grace period or while HOME/SELECT remain held.
+    # Confirm/cancel ignored during grace period or while HOME or L3 remains pressed.
     monitor.process_event("pad0", EV_KEY, BTN_SOUTH, 1, clock.advance(0.1))
     monitor.process_event("pad0", EV_KEY, BTN_EAST, 1, clock.advance(0.5))
     assert actions == []
 
-    # Release HOME+SELECT; after grace period confirm/cancel work.
+    # Once both shortcut buttons are released and the grace period passes, confirm/cancel work.
     monitor.process_event("pad0", EV_KEY, BTN_MODE, 0, clock.now)
-    monitor.process_event("pad0", EV_KEY, BTN_SELECT, 0, clock.now)
+    monitor.process_event("pad0", EV_KEY, BTN_THUMBL, 0, clock.now)
 
     # D-Pad buttons & hat axis.
     monitor.process_event("pad0", EV_KEY, BTN_DPAD_RIGHT, 1, clock.now)
@@ -256,12 +265,12 @@ def test_navigation_mode_routes_dpad_hat_stick_and_guards_accidental_confirm():
     assert monitor.active_navigation_device is None
     actions.clear()
     monitor.process_event("dualsense", EV_KEY, BTN_MODE, 1, clock.now)
-    monitor.process_event("dualsense", EV_KEY, BTN_SELECT, 1, clock.now)
-    assert monitor.check_holds(clock.advance(2.0))
+    monitor.process_event("dualsense", EV_KEY, BTN_THUMBL, 1, clock.now)
+    assert triggered == [True, True]
     monitor.set_navigation_mode(True)
     assert monitor.active_navigation_device == "dualsense"
     monitor.process_event("dualsense", EV_KEY, BTN_MODE, 0, clock.advance(0.5))
-    monitor.process_event("dualsense", EV_KEY, BTN_SELECT, 0, clock.now)
+    monitor.process_event("dualsense", EV_KEY, BTN_THUMBL, 0, clock.now)
 
     # pad0 is now ignored while dualsense owns the overlay.
     monitor.process_event("pad0", EV_KEY, BTN_DPAD_RIGHT, 1, clock.now)
@@ -280,13 +289,13 @@ def test_device_filtering_skips_virtual_twinverse_and_steam_pads():
     assert _is_ignored_device_name("Steam Virtual Gamepad")
     assert not _is_ignored_device_name("Sony Interactive Entertainment DualSense Wireless Controller")
 
-    assert _is_gamepad_capabilities({EV_KEY: [BTN_SOUTH, BTN_MODE, BTN_SELECT]})
-    assert _is_gamepad_capabilities({EV_KEY: [KEY_HOMEPAGE, KEY_BACK]})
+    assert _is_gamepad_capabilities({EV_KEY: [BTN_SOUTH, BTN_MODE, BTN_THUMBL]})
+    assert _is_gamepad_capabilities({EV_KEY: [KEY_HOMEPAGE, BTN_THUMBL]})
     assert not _is_gamepad_capabilities({EV_KEY: [30, 31, 32]})  # regular keyboard keys only
 
 
 def test_background_monitor_thread_triggers_on_real_selector_loop():
-    """The background selector thread wakes on evdev events and fires after the hold duration."""
+    """The background selector thread wakes on evdev events and fires on HOME + L3."""
     fake_device = _FakePipeDevice()
     fired = threading.Event()
     nav_events: list[str] = []
@@ -300,7 +309,6 @@ def test_background_monitor_thread_triggers_on_real_selector_loop():
     monitor = ControllerShortcutMonitor(
         on_trigger=fired.set,
         on_navigate=on_nav,
-        hold_seconds=0.15,
         rescan_interval=0.2,
         nav_grace_seconds=0.0,
         device_enumerator=lambda: ["/dev/input/event99"],
@@ -311,7 +319,7 @@ def test_background_monitor_thread_triggers_on_real_selector_loop():
         assert monitor.is_running
         time.sleep(0.05)
         fake_device.push_event(EV_KEY, BTN_MODE, 1)
-        fake_device.push_event(EV_KEY, BTN_SELECT, 1)
+        fake_device.push_event(EV_KEY, BTN_THUMBL, 1)
         assert fired.wait(timeout=1.5)
 
         monitor.set_navigation_mode(True)
@@ -325,7 +333,7 @@ def test_background_monitor_thread_triggers_on_real_selector_loop():
 
 
 def test_shortcut_monitor_reads_bridge_socket_when_controller_is_exclusively_grabbed(tmp_path):
-    """Shortcut monitor receives HOME+SELECT and stick navigation via tw_event3000.sock when EVIOCGRAB hides evdev."""
+    """The bridge socket carries HOME + L3 and stick navigation while evdev is grabbed."""
     sock_dir = tmp_path / "instance_1" / ".tw-in" / "sock"
     sock_dir.mkdir(parents=True)
     sock_path = sock_dir / "tw_event3000.sock"
@@ -355,7 +363,6 @@ def test_shortcut_monitor_reads_bridge_socket_when_controller_is_exclusively_gra
     monitor = ControllerShortcutMonitor(
         on_trigger=fired.set,
         on_navigate=on_nav,
-        hold_seconds=0.15,
         rescan_interval=0.2,
         nav_grace_seconds=0.0,
         device_enumerator=lambda: [],
@@ -366,20 +373,21 @@ def test_shortcut_monitor_reads_bridge_socket_when_controller_is_exclusively_gra
         monitor.start()
         conn, _ = server.accept()
 
-        # Send HOME + SELECT across a split chunk boundary to exercise partial-frame buffering.
+        # Exercise partial-frame buffering and a quick press and release in the same chunk.
         frame_home = struct.pack("<qqHHi", 1, 0, EV_KEY, BTN_MODE, 1)
-        frame_select = struct.pack("<qqHHi", 1, 1000, EV_KEY, BTN_SELECT, 1)
         conn.sendall(frame_home[:10])
         time.sleep(0.02)
-        conn.sendall(frame_home[10:] + frame_select)
+        conn.sendall(
+            frame_home[10:]
+            + struct.pack("<qqHHi", 1, 1000, EV_KEY, BTN_THUMBL, 1)
+            + struct.pack("<qqHHi", 1, 2000, EV_KEY, BTN_MODE, 0)
+            + struct.pack("<qqHHi", 1, 3000, EV_KEY, BTN_THUMBL, 0)
+        )
         assert fired.wait(timeout=1.5)
 
         monitor.set_navigation_mode(True)
         conn.sendall(
-            struct.pack("<qqHHi", 2, 0, EV_KEY, BTN_MODE, 0)
-            + struct.pack("<qqHHi", 2, 100, EV_KEY, BTN_SELECT, 0)
-            + struct.pack("<qqHHi", 2, 200, EV_ABS, ABS_X, 245)
-            + struct.pack("<qqHHi", 2, 300, EV_KEY, BTN_SOUTH, 1)
+            struct.pack("<qqHHi", 2, 0, EV_ABS, ABS_X, 245) + struct.pack("<qqHHi", 2, 100, EV_KEY, BTN_SOUTH, 1)
         )
         assert nav_done.wait(timeout=1.5)
         assert nav_events == ["right", "confirm"]
@@ -402,7 +410,7 @@ def test_shortcut_monitor_reads_bridge_socket_when_controller_is_exclusively_gra
 
 
 def test_shortcut_monitor_mutes_only_triggering_bridge_and_ignores_other_player_bridge(tmp_path):
-    """Only the bridge controller that triggered HOME+SELECT gets muted and controls the End Session overlay."""
+    """Only the controller that pressed HOME + L3 is muted and controls the overlay."""
 
     def make_bridge_socket(instance_name: str):
         sock_dir = tmp_path / instance_name / ".tw-in" / "sock"
@@ -435,7 +443,6 @@ def test_shortcut_monitor_mutes_only_triggering_bridge_and_ignores_other_player_
     monitor = ControllerShortcutMonitor(
         on_trigger=fired.set,
         on_navigate=on_nav,
-        hold_seconds=0.15,
         rescan_interval=0.2,
         nav_grace_seconds=0.0,
         device_enumerator=lambda: [],
@@ -451,9 +458,9 @@ def test_shortcut_monitor_mutes_only_triggering_bridge_and_ignores_other_player_
         assert conn1.recv(8) == b"TWCTL\x01\x00\x00"
         assert conn2.recv(8) == b"TWCTL\x01\x00\x00"
 
-        # Player 1 triggers HOME + SELECT.
+        # Player 1 triggers HOME + L3.
         conn1.sendall(
-            struct.pack("<qqHHi", 1, 0, EV_KEY, BTN_MODE, 1) + struct.pack("<qqHHi", 1, 100, EV_KEY, BTN_SELECT, 1)
+            struct.pack("<qqHHi", 1, 0, EV_KEY, BTN_MODE, 1) + struct.pack("<qqHHi", 1, 100, EV_KEY, BTN_THUMBL, 1)
         )
         assert fired.wait(timeout=1.5)
 
@@ -473,7 +480,7 @@ def test_shortcut_monitor_mutes_only_triggering_bridge_and_ignores_other_player_
 
         conn1.sendall(
             struct.pack("<qqHHi", 3, 0, EV_KEY, BTN_MODE, 0)
-            + struct.pack("<qqHHi", 3, 100, EV_KEY, BTN_SELECT, 0)
+            + struct.pack("<qqHHi", 3, 100, EV_KEY, BTN_THUMBL, 0)
             + struct.pack("<qqHHi", 3, 200, EV_KEY, BTN_DPAD_RIGHT, 1)
             + struct.pack("<qqHHi", 3, 300, EV_KEY, BTN_SOUTH, 1)
         )
@@ -584,6 +591,12 @@ def test_main_presenter_wires_shortcut_monitor_and_confirmation_flow(gtk_display
     presenter._launch_controller.stop_instances.assert_called_once()
     presenter.window.present.assert_called_once()
     assert presenter._instance_states[0] == INSTANCE_STOPPING
+
+    # Reject another confirmation during stop and release its pending controller.
+    presenter._shortcut_monitor.set_navigation_mode.reset_mock()
+    presenter._on_exit_shortcut_triggered()
+    assert presenter._exit_overlay is None
+    presenter._shortcut_monitor.set_navigation_mode.assert_called_once_with(False)
 
     # Returning to idle stops the background monitor.
     presenter._set_instance_state(0, INSTANCE_IDLE)

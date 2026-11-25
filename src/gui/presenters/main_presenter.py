@@ -812,19 +812,21 @@ class MainPresenter:
         GLib.idle_add(self._on_exit_shortcut_navigation, action)
 
     def _on_exit_shortcut_triggered(self) -> bool:
-        """Show the centered confirmation overlay after holding HOME + SELECT."""
+        """Show the centered confirmation overlay after pressing HOME + L3."""
         if getattr(self, "_exit_overlay", None) is not None:
             return False
+        monitor = getattr(self, "_shortcut_monitor", None)
         if not self._has_stoppable_instances() or self._footer_state() == INSTANCE_STOPPING:
+            if monitor is not None:
+                monitor.set_navigation_mode(False)
             return False
-        logger.info("Controller exit shortcut triggered (HOME + SELECT held)")
+        logger.info("Controller exit shortcut triggered (HOME + L3)")
         overlay = EndSessionOverlay(
             self._app,
             on_confirm=self._on_exit_overlay_confirmed,
             on_cancel=self._on_exit_overlay_cancelled,
         )
         self._exit_overlay = overlay
-        monitor = getattr(self, "_shortcut_monitor", None)
         if monitor is not None:
             monitor.set_navigation_mode(True)
         overlay.present()

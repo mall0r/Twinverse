@@ -1,4 +1,4 @@
-"""Background gamepad monitor for the global session-exit shortcut (HOME + SELECT)."""
+"""Background gamepad monitor for the global session-exit shortcut (HOME + L3)."""
 
 from __future__ import annotations
 
@@ -28,19 +28,17 @@ EV_ABS = 3
 
 BTN_SOUTH = 304  # A / Cross (also BTN_GAMEPAD)
 BTN_EAST = 305  # B / Circle
-BTN_SELECT = 314  # Select / View / Share / Minus
 BTN_MODE = 316  # Home / Guide / PS / Steam
+BTN_THUMBL = 317  # L3 / left stick click
 BTN_DPAD_LEFT = 546
 BTN_DPAD_RIGHT = 547
 
-KEY_BACK = 158  # Select on some D-Input / Android controllers
 KEY_HOMEPAGE = 172  # Home on some D-Input / Android controllers
 
 ABS_X = 0
 ABS_HAT0X = 16
 
 HOME_CODES = frozenset({BTN_MODE, KEY_HOMEPAGE})
-SELECT_CODES = frozenset({BTN_SELECT, KEY_BACK})
 CONFIRM_CODES = frozenset({BTN_SOUTH})
 CANCEL_CODES = frozenset({BTN_EAST})
 DPAD_LEFT_CODES = frozenset({BTN_DPAD_LEFT})
@@ -65,7 +63,6 @@ _TWCTL_REGISTER_MONITOR = b"TWCTL\x01\x00\x00"
 _TWCTL_MUTE_SANDBOX = b"TWCTL\x02\x01\x00"
 _TWCTL_UNMUTE_SANDBOX = b"TWCTL\x02\x00\x00"
 
-DEFAULT_HOLD_SECONDS = 2.0
 DEFAULT_RESCAN_INTERVAL = 1.5
 DEFAULT_NAV_GRACE_SECONDS = 0.35
 _STICK_ENGAGE_THRESHOLD = 0.6
@@ -77,9 +74,7 @@ class _DeviceState:
     """Tracked button and axis state for one physical gamepad."""
 
     home_held: bool = False
-    select_held: bool = False
-    combo_since: Optional[float] = None
-    combo_triggered: bool = False
+    l3_held: bool = False
     stick_x_dir: int = 0
     hat_x_dir: int = 0
     abs_x_min: int = -32768
@@ -98,7 +93,7 @@ def _is_gamepad_capabilities(capabilities: dict[int, Any]) -> bool:
         return False
     if BTN_SOUTH in keys:
         return True
-    return bool(keys & HOME_CODES) and bool(keys & SELECT_CODES)
+    return bool(keys & HOME_CODES) and BTN_THUMBL in keys
 
 
 def _normalize_axis(value: int, axis_min: int, axis_max: int) -> float:
@@ -245,14 +240,13 @@ class _BridgeSocketDevice:
 
 
 class ControllerShortcutMonitor:
-    """Watch connected gamepads for a 2-second HOME + SELECT hold and modal navigation."""
+    """Watch connected gamepads for HOME + L3 and modal navigation."""
 
     def __init__(
         self,
         on_trigger: Callable[[], None],
         on_navigate: Optional[Callable[[str], None]] = None,
         *,
-        hold_seconds: float = DEFAULT_HOLD_SECONDS,
         rescan_interval: float = DEFAULT_RESCAN_INTERVAL,
         nav_grace_seconds: float = DEFAULT_NAV_GRACE_SECONDS,
         clock: Callable[[], float] = time.monotonic,
@@ -263,7 +257,6 @@ class ControllerShortcutMonitor:
         """Initialize the shortcut monitor without starting its background thread."""
         self._on_trigger = on_trigger
         self._on_navigate = on_navigate
-        self._hold_seconds = max(0.1, float(hold_seconds))
         self._rescan_interval = max(0.2, float(rescan_interval))
         self._nav_grace_seconds = max(0.0, float(nav_grace_seconds))
         self._clock = clock
@@ -363,31 +356,23 @@ class ControllerShortcutMonitor:
         logger.debug("Controller shortcut monitor stopped")
 
     def set_navigation_mode(self, enabled: bool) -> None:
-        """Toggle routing of gamepad inputs to confirmation-overlay navigation."""
+        """Toggle overlay navigation, releasing the reserved controller when disabled."""
         with self._lock:
             enabled = bool(enabled)
+            if not enabled:
+                self._nav_device_key = None
             if self._navigation_mode == enabled:
                 return
             self._navigation_mode = enabled
+            for state in self._states.values():
+                state.stick_x_dir = 0
+                state.hat_x_dir = 0
+            self._unmute_active_device_locked()
             if enabled:
                 self._nav_enabled_at = self._clock()
-                for state in self._states.values():
-                    state.combo_since = None
-                    state.stick_x_dir = 0
-                    state.hat_x_dir = 0
-                self._unmute_active_device_locked()
                 if self._nav_device_key is not None:
                     self._set_device_sandbox_muted_locked(self._nav_device_key, True)
                     self._muted_device_key = self._nav_device_key
-            else:
-                self._unmute_active_device_locked()
-                self._nav_device_key = None
-                for state in self._states.values():
-                    state.combo_since = None
-                    state.stick_x_dir = 0
-                    state.hat_x_dir = 0
-                    if not (state.home_held and state.select_held):
-                        state.combo_triggered = False
             self._wake_locked()
 
     def _set_device_sandbox_muted_locked(self, device_key: Optional[str], muted: bool) -> None:
@@ -435,6 +420,7 @@ class ControllerShortcutMonitor:
         """Process a single evdev event and return any emitted navigation action."""
         timestamp = self._clock() if now is None else now
         nav_action: Optional[str] = None
+        triggered = False
 
         with self._lock:
             state = self._states.setdefault(device_key, _DeviceState())
@@ -442,13 +428,24 @@ class ControllerShortcutMonitor:
             if ev_type == EV_KEY:
                 pressed = value != 0
                 is_press_edge = value == 1
+                was_combo_pressed = state.home_held and state.l3_held
 
                 if code in HOME_CODES:
                     state.home_held = pressed
-                    self._update_combo_state_locked(state, timestamp)
-                elif code in SELECT_CODES:
-                    state.select_held = pressed
-                    self._update_combo_state_locked(state, timestamp)
+                elif code == BTN_THUMBL:
+                    state.l3_held = pressed
+
+                if (
+                    is_press_edge
+                    and not was_combo_pressed
+                    and state.home_held
+                    and state.l3_held
+                    and not self._navigation_mode
+                    and self._nav_device_key is None
+                ):
+                    # Reserve the controller while the GTK thread opens the overlay.
+                    self._nav_device_key = device_key
+                    triggered = True
 
                 if self._navigation_mode and is_press_edge and self._is_nav_owner_locked(device_key):
                     if code in DPAD_LEFT_CODES:
@@ -482,6 +479,13 @@ class ControllerShortcutMonitor:
                     elif abs(normalized) <= _STICK_RELEASE_THRESHOLD:
                         state.stick_x_dir = 0
 
+        if triggered:
+            try:
+                self._on_trigger()
+            except Exception:
+                self.set_navigation_mode(False)
+                logger.exception("Error invoking controller exit shortcut callback")
+
         if nav_action is not None and self._on_navigate is not None:
             try:
                 self._on_navigate(nav_action)
@@ -490,62 +494,10 @@ class ControllerShortcutMonitor:
 
         return nav_action
 
-    def check_holds(self, now: Optional[float] = None) -> bool:
-        """Check whether any device has held HOME + SELECT long enough to trigger."""
-        timestamp = self._clock() if now is None else now
-        triggered = False
-
-        with self._lock:
-            if self._navigation_mode:
-                return False
-            for device_key, state in self._states.items():
-                if (
-                    state.home_held
-                    and state.select_held
-                    and not state.combo_triggered
-                    and state.combo_since is not None
-                    and (timestamp - state.combo_since) >= self._hold_seconds
-                ):
-                    state.combo_triggered = True
-                    state.combo_since = None
-                    self._nav_device_key = device_key
-                    triggered = True
-                    break
-
-        if triggered:
-            try:
-                self._on_trigger()
-            except Exception:
-                logger.exception("Error invoking controller exit shortcut callback")
-
-        return triggered
-
-    def _update_combo_state_locked(self, state: _DeviceState, now: float) -> None:
-        if state.home_held and state.select_held:
-            if not self._navigation_mode and not state.combo_triggered and state.combo_since is None:
-                state.combo_since = now
-        else:
-            state.combo_since = None
-            state.combo_triggered = False
-
     def _can_accept_nav_button_locked(self, state: _DeviceState, now: float) -> bool:
-        if state.home_held or state.select_held:
+        if state.home_held or state.l3_held:
             return False
         return (now - self._nav_enabled_at) >= self._nav_grace_seconds
-
-    def _next_timeout_locked(self, now: float, next_rescan_at: float) -> float:
-        timeout = max(0.05, min(0.5, next_rescan_at - now))
-        if not self._navigation_mode:
-            for state in self._states.values():
-                if (
-                    state.home_held
-                    and state.select_held
-                    and not state.combo_triggered
-                    and state.combo_since is not None
-                ):
-                    remaining = max(0.0, self._hold_seconds - (now - state.combo_since))
-                    timeout = min(timeout, remaining)
-        return timeout
 
     def _wake_locked(self) -> None:
         if self._wake_w is None:
@@ -731,13 +683,11 @@ class ControllerShortcutMonitor:
                     now = self._clock()
                     next_rescan_at = now + self._rescan_interval
 
-                self.check_holds(now)
-
                 with self._lock:
                     if not self._running:
                         break
-                    timeout = self._next_timeout_locked(now, next_rescan_at)
 
+                timeout = max(0.05, min(0.5, next_rescan_at - now))
                 try:
                     ready = selector.select(timeout=timeout)
                 except OSError as exc:
@@ -752,8 +702,6 @@ class ControllerShortcutMonitor:
                         self._drain_wakeup()
                         continue
                     self._read_device_events(selector, path)
-
-                self.check_holds(self._clock())
         finally:
             selector.close()
             with self._lock:
