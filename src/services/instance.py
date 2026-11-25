@@ -395,7 +395,7 @@ class InstanceService:
         instance_env: dict,
         log: Optional[InstanceLog] = None,
         guest_address: Optional[str] = None,
-        isolate_network: bool = True,
+        isolate_network: bool = False,
         bridge_command: Optional[list[str]] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance within a Flatpak environment."""
@@ -532,7 +532,7 @@ class InstanceService:
         instance_env: dict,
         log: Optional[InstanceLog] = None,
         guest_address: Optional[str] = None,
-        isolate_network: bool = True,
+        isolate_network: bool = False,
         bridge_command: Optional[list[str]] = None,
     ) -> tuple[subprocess.Popen, int]:
         """Launch a Steam instance natively."""

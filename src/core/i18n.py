@@ -204,8 +204,9 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "prefs.wsi.description": "Enable the Gamescope Wayland Support Interface (WSI).",
         "prefs.isolate_network.title": "Isolate network",
         "prefs.isolate_network.description": (
-            "Give each player an isolated network namespace with pasta. "
-            "Turn this off to share the host network for LAN discovery and local P2P."
+            "Give each player an isolated network namespace and LAN IP with pasta. "
+            "Leave off to share the host network (recommended for online play and LAN discovery); "
+            "turn on for local LAN games or dedicated servers that require distinct local IPs."
         ),
         "prefs.reset.title": "Start from defaults",
         "prefs.reset.description": "Reset engine options, player settings and layout. Instance files stay on disk.",
@@ -448,8 +449,9 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "prefs.wsi.description": "Ativa a interface Gamescope Wayland Support Interface (WSI).",
         "prefs.isolate_network.title": "Isolar rede",
         "prefs.isolate_network.description": (
-            "Dá a cada jogador um namespace de rede isolado com pasta. "
-            "Desative para compartilhar a rede do host para descoberta LAN e P2P local."
+            "Dá a cada jogador um namespace de rede e IP local isolados com pasta. "
+            "Deixe desativado para compartilhar a rede do host (recomendado para multiplayer online e descoberta LAN); "
+            "ative para jogos em LAN ou servidores dedicados que exigem IPs locais distintos."
         ),
         "prefs.reset.title": "Restaurar padrões",
         "prefs.reset.description": (

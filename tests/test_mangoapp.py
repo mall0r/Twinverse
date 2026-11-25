@@ -55,10 +55,10 @@ def test_unmanaged_launch_does_not_prepare_overlay(tmp_path, gamescope, steamdec
 @pytest.mark.parametrize(
     "gamescope,steamdeck,expected",
     [
-        (False, False, ["steam"]),
-        (False, True, ["steam"]),
-        (True, False, ["steam", "-gamepadui", "-steamos3"]),
-        (True, True, ["steam", "-steamdeck", "-gamepadui", "-steamos3"]),
+        (False, False, ["steam", "-private_ip_override", "192.0.2.1"]),
+        (False, True, ["steam", "-private_ip_override", "192.0.2.1"]),
+        (True, False, ["steam", "-gamepadui", "-steamos3", "-private_ip_override", "192.0.2.1"]),
+        (True, True, ["steam", "-steamdeck", "-gamepadui", "-steamos3", "-private_ip_override", "192.0.2.1"]),
     ],
 )
 def test_steamdeck_flag_requires_gamescope(tmp_path, gamescope, steamdeck, expected):

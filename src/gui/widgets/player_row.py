@@ -95,7 +95,7 @@ class PlayerRow(Gtk.Box):
         self._is_loading = False
         self._is_verified = False
         self._is_running = False
-        self._network_isolation_enabled = True
+        self._network_isolation_enabled = False
         self._state = INSTANCE_IDLE
         self._status_detail = ""
         self._update_progress: Optional[tuple[str, Optional[int]]] = None
@@ -336,6 +336,7 @@ class PlayerRow(Gtk.Box):
         self._guest_ip_help = self._help_label(t("player.guest_ip_help"))
         guest_field.append(self._guest_ip_help)
         network_section.append(guest_field)
+        self.set_network_isolation_enabled(self._network_isolation_enabled)
 
     def _create_section(self, title: str, icon_name: str, action: Optional[Gtk.Widget] = None):
         section = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)

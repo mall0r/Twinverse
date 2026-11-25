@@ -1025,10 +1025,10 @@ ujust add-user-to-input-group</code></pre>
                 </tr>
                 <tr>
                   <td><strong>Isolate network</strong></td>
-                  <td><code>On</code></td>
+                  <td><code>Off</code></td>
                   <td>
-                    <span data-lang-block="en">Controls per-instance rootless network namespaces via <code>pasta</code> across native, Flatpak, and sandboxed terminal launches. Turn this off to share the host network (for LAN discovery and local P2P); the per-player <code>Guest IP</code> field is disabled while preserving any saved IP value.</span>
-                    <span data-lang-block="pt">Controla namespaces de rede sem root por instância via <code>pasta</code> em execuções nativas, Flatpak e terminais na sandbox. Desative para compartilhar a rede do host (para descoberta LAN e P2P local); o campo <code>Guest IP</code> por jogador fica desabilitado preservando qualquer IP salvo.</span>
+                    <span data-lang-block="en">Controls per-instance rootless network namespaces via <code>pasta</code> across native, Flatpak, and sandboxed terminal launches. Off by default to share the host network (recommended for online multiplayer and LAN discovery); turn it on for local LAN games or dedicated servers that require distinct local IPs. When off, the per-player <code>Guest IP</code> field is disabled while preserving any saved IP value.</span>
+                    <span data-lang-block="pt">Controla namespaces de rede sem root por instância via <code>pasta</code> em execuções nativas, Flatpak e terminais na sandbox. Desativado por padrão para compartilhar a rede do host (recomendado para multiplayer online e descoberta LAN); ative para jogos em LAN ou servidores dedicados que exigem IPs locais distintos. Quando desativado, o campo <code>Guest IP</code> por jogador fica desabilitado preservando qualquer IP salvo.</span>
                   </td>
                 </tr>
                 <tr>
@@ -1184,8 +1184,8 @@ ujust add-user-to-input-group</code></pre>
               <span data-lang-block="pt"><strong>Guest IP fixo:</strong> Defina um IPv4 ou CIDR específico no Player Setup se regras de firewall ou um servidor local exigirem endereço estático por jogador.</span>
             </li>
             <li>
-              <span data-lang-block="en"><strong>Per-session toggle:</strong> Turn <strong>Isolate network</strong> off anytime in <strong>Preferences → Engine</strong> to share the host network for LAN discovery or local P2P (including in sandboxed terminals) without losing your saved <code>Guest IP</code> entries.</span>
-              <span data-lang-block="pt"><strong>Alternância por sessão:</strong> Desative <strong>Isolate network</strong> a qualquer momento em <strong>Preferências → Engine</strong> para compartilhar a rede do host em jogos com descoberta LAN ou P2P local (inclusive em terminais na sandbox) sem perder seus valores salvos de <code>Guest IP</code>.</span>
+              <span data-lang-block="en"><strong>Opt-in per-session toggle:</strong> <strong>Isolate network</strong> is off by default in <strong>Preferences → Engine</strong> (sharing the host network for online multiplayer and LAN discovery). Turn it on whenever a LAN game or local dedicated server needs separate local IPs, without losing your saved <code>Guest IP</code> entries.</span>
+              <span data-lang-block="pt"><strong>Alternância opcional por sessão:</strong> <strong>Isolate network</strong> vem desativado por padrão em <strong>Preferências → Engine</strong> (compartilhando a rede do host para multiplayer online e descoberta LAN). Ative quando um jogo em LAN ou servidor dedicado local precisar de IPs locais distintos, sem perder seus valores salvos de <code>Guest IP</code>.</span>
             </li>
             <li>
               <span data-lang-block="en"><strong>Graceful fallback &amp; DNS resilience:</strong> Twinverse resolves symlinked <code>/etc/resolv.conf</code> targets cleanly for SELinux/systemd-resolved systems. If <code>pasta</code> is not installed, Twinverse transparently falls back to shared host networking.</span>

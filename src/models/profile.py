@@ -125,7 +125,7 @@ class Profile(BaseModel):
     use_steamdeck_tag: bool = Field(default=True, alias="USE_STEAMDECK_TAG")
     use_gamescope: bool = Field(default=True, alias="USE_GAMESCOPE")
     enable_gamescope_wsi: bool = Field(default=Utils.is_wayland(), alias="ENABLE_GAMESCOPE_WSI")
-    isolate_network: bool = Field(default=True, alias="ISOLATE_NETWORK")
+    isolate_network: bool = Field(default=False, alias="ISOLATE_NETWORK")
     language: LanguagePreference = Field(default=LANGUAGE_AUTO, alias="LANGUAGE")
 
     @field_validator("language", mode="before")

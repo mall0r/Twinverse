@@ -10,6 +10,7 @@ import pytest
 
 from src.core import Config, Utils
 from src.models import PlayerInstanceConfig, Profile
+from src.services.cmd_builder import CommandBuilder
 from src.services.instance import InstanceService
 from src.services.network import (
     GUEST_ADDRESS_SETUP,
@@ -18,9 +19,11 @@ from src.services.network import (
     STEAM_MASTER_IPC_BASE_PORT,
     STEAM_MASTER_IPC_BLOCK_SIZE,
     STEAM_MASTER_IPC_ENV,
+    STEAM_PRIVATE_IP_OVERRIDE_PREFIX,
     network_command,
     select_steam_master_ipc_address,
     shared_network_ipc_shell_snippet,
+    steam_private_ip_override,
 )
 
 
@@ -49,7 +52,7 @@ def test_native_optional_network(monkeypatch, installed):
     monkeypatch.setattr("time.sleep", lambda _: None)
     monkeypatch.delenv(STEAM_MASTER_IPC_ENV, raising=False)
     command = ["bwrap", "--dev-bind", "/", "/", "--", "printf", "%s", "spaces ' $ ;"]
-    service._launch_natively(1, command, {})
+    service._launch_natively(1, command, {}, isolate_network=True)
     launched = spawn.call_args.args[0]
     launched_env = spawn.call_args.kwargs["env"]
     if installed:
@@ -78,7 +81,7 @@ def test_flatpak_detects_pasta_in_host_path(monkeypatch, tmp_path, installed):
     printf = shutil.which("printf")
     # Replace only network setup; the dependency check and quoting run for real.
     monkeypatch.setattr("src.services.instance.network_command", lambda *args: [printf, "isolated:%s", value])
-    service._launch_in_flatpak(1, [printf, "shared:%s", value], {})
+    service._launch_in_flatpak(1, [printf, "shared:%s", value], {}, isolate_network=True)
     if installed:
         pasta = tmp_path / "pasta"
         pasta.write_text("#!/bin/sh\nexit 0\n")
@@ -549,12 +552,33 @@ def test_flatpak_exports_steam_master_ipc_only_on_shared_network(
         assert body.strip() == f"ipc=127.0.0.1:{expected_port}"
 
 
-def test_profile_isolate_network_defaults_true_and_serializes():
-    """Network isolation defaults to enabled and round-trips through its profile alias."""
-    assert Profile().isolate_network is True
-    disabled = Profile(ISOLATE_NETWORK=False)
-    assert disabled.isolate_network is False
-    assert disabled.model_dump(by_alias=True)["ISOLATE_NETWORK"] is False
+def test_profile_isolate_network_defaults_false_and_serializes():
+    """Network isolation defaults to disabled and round-trips through its profile alias."""
+    assert Profile().isolate_network is False
+    assert Profile().model_dump(by_alias=True)["ISOLATE_NETWORK"] is False
+    enabled = Profile(ISOLATE_NETWORK=True)
+    assert enabled.isolate_network is True
+    assert enabled.model_dump(by_alias=True)["ISOLATE_NETWORK"] is True
+
+
+def test_steam_private_ip_override_is_distinct_and_rfc5737():
+    """Each instance gets a distinct TEST-NET-1 IPv4 for -private_ip_override."""
+    addresses = [steam_private_ip_override(index) for index in range(8)]
+    assert len(set(addresses)) == 8
+    for index, addr in enumerate(addresses):
+        assert addr == f"{STEAM_PRIVATE_IP_OVERRIDE_PREFIX}.{index + 1}"
+    assert steam_private_ip_override(-3) == f"{STEAM_PRIVATE_IP_OVERRIDE_PREFIX}.1"
+    assert steam_private_ip_override(254) == f"{STEAM_PRIVATE_IP_OVERRIDE_PREFIX}.1"
+
+
+def test_command_builder_passes_distinct_private_ip_override_per_instance(tmp_path):
+    """Sandboxed Steam instances pass distinct -private_ip_override flags to avoid Session Replaced."""
+    devices = Mock()
+    devices.get_instance_dimensions.return_value = (1280, 720)
+    first = CommandBuilder(Profile(), {}, devices, 0, tmp_path / "home_1", None)._build_base_steam_command()
+    second = CommandBuilder(Profile(), {}, devices, 1, tmp_path / "home_2", None)._build_base_steam_command()
+    assert first[-2:] == ["-private_ip_override", "192.0.2.1"]
+    assert second[-2:] == ["-private_ip_override", "192.0.2.2"]
 
 
 @pytest.mark.parametrize("isolate", [True, False])

@@ -19,6 +19,15 @@ STEAM_MASTER_IPC_BLOCK_SIZE = 16
 STEAM_MASTER_IPC_MAX_PORT = 65535
 _STEAM_MASTER_IPC_SLOTS = (STEAM_MASTER_IPC_MAX_PORT - STEAM_MASTER_IPC_BASE_PORT + 1) // STEAM_MASTER_IPC_BLOCK_SIZE
 
+# RFC 5737 TEST-NET-1 block used for Steam's ``-private_ip_override`` CLI flag.
+# Steam CM servers allow only one logon session per account for a given
+# ``(public_ip, obfuscated_private_ip)`` pair. When a sandboxed instance shares
+# the host's LAN IP with the host Steam client (and logs into the same account),
+# Steam kicks the host client with ``Session Replaced`` and refuses to
+# auto-reconnect. Giving each instance a synthetic address in 192.0.2.0/24
+# only overrides the reported logon private IP without affecting real sockets.
+STEAM_PRIVATE_IP_OVERRIDE_PREFIX = "192.0.2"
+
 # Pure-bash host-side port selector for shared-network launches. Runs inside
 # the host shell spawned from Flatpak (which intentionally has no network
 # permission) without external tools, subshells or stdout output.
@@ -49,6 +58,13 @@ SHARED_NETWORK_IPC_SETUP = (
     f'export {STEAM_MASTER_IPC_ENV}="127.0.0.1:$_base"; '
     "}; "
 )
+
+
+def steam_private_ip_override(instance_index: int = 0) -> str:
+    """Return a distinct RFC 5737 TEST-NET-1 IPv4 for ``steam -private_ip_override``."""
+    index = max(0, int(instance_index))
+    octet = 1 + (index % 254)
+    return f"{STEAM_PRIVATE_IP_OVERRIDE_PREFIX}.{octet}"
 
 
 def _is_loopback_tcp_port_available(port: int) -> bool:

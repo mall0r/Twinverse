@@ -10,6 +10,7 @@ from src.core.utils import Utils
 from src.models import Profile
 from src.services.device_manager import DeviceManager
 from src.services.kwin_layout import INSTANCE_ENV
+from src.services.network import steam_private_ip_override
 from src.services.virtual_uinput import (
     ENV_HIDRAW_FILTER,
     ENV_PHYSICAL_BRIDGE,
@@ -192,6 +193,13 @@ stream.rules = [
             cmd.extend(["-gamepadui", "-steamos3"])
         else:
             logger.info("Instance %s: using plain Steam command", self.instance_num + 1)
+
+        # Give each instance a distinct synthetic private IP for Steam's CM
+        # logon session ID so logging into the same account on the shared host
+        # network never kicks host Steam with ``Session Replaced``.
+        private_ip = steam_private_ip_override(self.instance_num)
+        cmd.extend(["-private_ip_override", private_ip])
+        logger.debug("Instance %s: passing -private_ip_override %s to Steam", self.instance_num + 1, private_ip)
 
         return cmd
 

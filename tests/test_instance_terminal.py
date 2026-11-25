@@ -61,7 +61,7 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     service.launch_instance(profile, 1, use_gamescope_override=False)
     service._sync_app_manifests.assert_called_once_with(tmp_path / "player 1")
     _, start_command, start_env = launch.call_args.args
-    steam_command = ["steam"]
+    steam_command = ["steam", "-private_ip_override", "192.0.2.2"]
     assert start_command[-len(steam_command) :] == steam_command
     assert "-steamdeck" not in start_command
     assert command == start_command[: -len(steam_command)] + ["/usr/bin/konsole", "--separate", "-e", "bash", "-i"]

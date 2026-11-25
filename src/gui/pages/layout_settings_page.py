@@ -51,7 +51,7 @@ class LayoutSettingsPage(Gtk.Box):
         self._active_player = 0
         self._screen_settings_sensitive = True
         self._gamescope_enabled = True
-        self._network_isolation_enabled = True
+        self._network_isolation_enabled = False
         self._preview_signature = None
         self._preview_geometry = None
         self._drag_scroll_id = 0
