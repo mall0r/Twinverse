@@ -259,6 +259,7 @@ const _: () = {
     assert!(align_of::<UinputUserDev>() == 4);
     assert!(size_of::<InputEvent32>() == 16);
     assert!(size_of::<InputEvent64>() == 24);
+    assert!(size_of::<UdynDesc>() == 1752);
     #[cfg(target_pointer_width = "64")]
     assert!(size_of::<NativeInputEvent>() == 24);
     #[cfg(target_pointer_width = "32")]
@@ -345,6 +346,14 @@ pub const EVIOCGEFFECTS_NR: u32 = 0x84;
 pub const EVIOCGRAB_NR: u32 = 0x90;
 pub const EVIOCREVOKE_NR: u32 = 0x91;
 
+/// Exclusive evdev device grab ioctl (`_IOW('E', 0x90, int)`).
+pub const EVIOCGRAB: c_ulong = ioc(
+    IOC_WRITE,
+    EVDEV_IOCTL_BASE,
+    EVIOCGRAB_NR,
+    size_of::<c_int>() as u32,
+);
+
 const _: () = {
     assert!(UI_DEV_CREATE == 0x5501);
     assert!(UI_DEV_DESTROY == 0x5502);
@@ -357,6 +366,7 @@ const _: () = {
     assert!(UI_SET_ABSBIT == 0x40045567);
     assert!(UI_SET_MSCBIT == 0x40045568);
     assert!(UI_SET_PROPBIT == 0x4004556e);
+    assert!(EVIOCGRAB == 0x40044590);
 };
 
 /// glibc-compatible `makedev(major, minor)` encoding.
@@ -628,6 +638,17 @@ mod tests {
         let dev = virtual_event_devnum(3000);
         assert_eq!(dev_major(dev), INPUT_MAJOR);
         assert_eq!(dev_minor(dev), 3064);
+    }
+
+    #[test]
+    fn test_udyn_desc_binary_offsets() {
+        let desc = UdynDesc::new_default();
+        let base = (&desc as *const UdynDesc) as usize;
+        let absinfo_off = (&desc.absinfo as *const [InputAbsInfo; ABS_CNT]) as usize - base;
+        let event_size_off = (&desc.event_size as *const u32) as usize - base;
+        assert_eq!(absinfo_off, 212);
+        assert_eq!(event_size_off, 1748);
+        assert_eq!(size_of::<UdynDesc>(), 1752);
     }
 
     #[test]

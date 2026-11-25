@@ -11,8 +11,8 @@ use core::mem::{size_of, zeroed};
 
 use twinverse_uinput_proto::{
     ioc, InputAbsInfo, InputId, EVDEV_IOCTL_BASE, EVIOCGABS_BASE_NR, EVIOCGBIT_BASE_NR,
-    EVIOCGID_NR, EVIOCGKEY_NR, EVIOCGNAME_NR, EVIOCGPHYS_NR, EVIOCGPROP_NR, EVIOCGUNIQ_NR,
-    IOC_READ,
+    EVIOCGID_NR, EVIOCGKEY_NR, EVIOCGNAME_NR, EVIOCGPHYS_NR, EVIOCGPROP_NR, EVIOCGRAB,
+    EVIOCGUNIQ_NR, IOC_READ,
 };
 
 pub type pid_t = c_int;
@@ -26,6 +26,7 @@ pub const EIO: c_int = 5;
 pub const EAGAIN: c_int = 11;
 pub const EWOULDBLOCK: c_int = EAGAIN;
 pub const EACCES: c_int = 13;
+pub const EBUSY: c_int = 16;
 pub const ENODEV: c_int = 19;
 pub const EPIPE: c_int = 32;
 
@@ -160,6 +161,17 @@ pub fn realtime_sec_usec() -> (c_long, c_long) {
         }
     }
     (0, 0)
+}
+
+/// Acquire (`grab = true`) or release (`grab = false`) an exclusive kernel
+/// evdev grab (`EVIOCGRAB`) on `fd` so host applications (including Host Steam)
+/// do not receive events while this controller is bound to a Twinverse session.
+///
+/// Linux `evdev_do_ioctl` interprets the argument directly as an integer
+/// (`if (p) evdev_grab(...) else evdev_ungrab(...)`), not a pointer.
+pub fn eviocgrab(fd: c_int, grab: bool) -> bool {
+    let arg: c_ulong = if grab { 1 } else { 0 };
+    unsafe { ioctl(fd, EVIOCGRAB, arg) == 0 }
 }
 
 pub fn eviocgid(fd: c_int) -> Option<InputId> {

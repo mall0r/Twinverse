@@ -6,9 +6,13 @@ import errno
 import logging
 import os
 import selectors
+import socket
+import struct
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable, Optional
 
 try:
@@ -46,6 +50,17 @@ _IGNORED_DEVICE_SUBSTRINGS = (
     "twinverse",
     "steam virtual gamepad",
 )
+
+# Binary layout constants matching `twinverse-uinput-proto` (`UdynDesc` & `NativeInputEvent`).
+_BRIDGE_KEY_PREFIX = "bridge:"
+_UDYN_DESC_MAGIC = 0x54575549
+_UDYN_DESC_VERSION = 1
+_UDYN_DESC_ABSINFO_OFFSET = 212
+_UDYN_DESC_EVENT_SIZE_OFFSET = 1748
+_UDYN_DESC_MIN_SIZE = 1752
+_INPUT_EVENT_64 = struct.Struct("<qqHHi")
+_INPUT_EVENT_32 = struct.Struct("<iiHHi")
+_INPUT_EVENT_NATIVE = struct.Struct("llHHi")
 
 DEFAULT_HOLD_SECONDS = 2.0
 DEFAULT_RESCAN_INTERVAL = 1.5
@@ -94,6 +109,120 @@ def _normalize_axis(value: int, axis_min: int, axis_max: int) -> float:
     return max(-1.0, min(1.0, normalized))
 
 
+def _parse_bridge_desc(desc_path: Path) -> tuple[tuple[int, int], struct.Struct]:
+    """Read ABS_X bounds and input_event record layout from a bridge ``.desc`` file."""
+    abs_range = (-32768, 32767)
+    event_struct = _INPUT_EVENT_NATIVE
+    try:
+        data = desc_path.read_bytes()
+    except OSError:
+        return abs_range, event_struct
+    if len(data) < _UDYN_DESC_ABSINFO_OFFSET + 24:
+        return abs_range, event_struct
+    magic, version = struct.unpack_from("<II", data, 0)
+    if magic != _UDYN_DESC_MAGIC or version != _UDYN_DESC_VERSION:
+        return abs_range, event_struct
+    _val, abs_min, abs_max, _fuzz, _flat, _res = struct.unpack_from("<iiiiii", data, _UDYN_DESC_ABSINFO_OFFSET)
+    if abs_max > abs_min:
+        abs_range = (int(abs_min), int(abs_max))
+    if len(data) >= _UDYN_DESC_MIN_SIZE:
+        (event_size,) = struct.unpack_from("<I", data, _UDYN_DESC_EVENT_SIZE_OFFSET)
+        if event_size == _INPUT_EVENT_64.size:
+            event_struct = _INPUT_EVENT_64
+        elif event_size == _INPUT_EVENT_32.size:
+            event_struct = _INPUT_EVENT_32
+    return abs_range, event_struct
+
+
+class _BridgeSocketDevice:
+    """Stream client for a ``twinverse-input-bridge`` Unix socket (``tw_event3000.sock``).
+
+    When the bridge holds an exclusive ``EVIOCGRAB`` on the physical controller to
+    isolate it from Host Steam, raw ``/dev/input/event*`` readers stop receiving
+    events; subscribing to the bridge socket lets the exit shortcut and overlay
+    navigation keep working transparently.
+    """
+
+    def __init__(
+        self,
+        sock: socket.socket,
+        sock_path: Path,
+        abs_x_range: tuple[int, int],
+        event_struct: struct.Struct,
+    ) -> None:
+        self._sock = sock
+        self.name = f"twinverse-input-bridge ({sock_path.parent.parent.parent.name})"
+        self._abs_x_min, self._abs_x_max = abs_x_range
+        self._event_struct = event_struct
+        self._buf = bytearray()
+
+    @classmethod
+    def connect(cls, sock_path: Path) -> Optional[_BridgeSocketDevice]:
+        """Connect to a live bridge socket, returning ``None`` if unavailable."""
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        dir_fd: Optional[int] = None
+        try:
+            target = str(sock_path)
+            if len(os.fsencode(target)) >= 108:
+                dir_fd = os.open(sock_path.parent, os.O_RDONLY | os.O_DIRECTORY)
+                target = f"/proc/self/fd/{dir_fd}/{sock_path.name}"
+            sock.settimeout(0.2)
+            sock.connect(target)
+            sock.setblocking(False)
+        except OSError:
+            sock.close()
+            return None
+        finally:
+            if dir_fd is not None:
+                try:
+                    os.close(dir_fd)
+                except OSError:
+                    pass
+
+        abs_range, event_struct = _parse_bridge_desc(sock_path.with_suffix(".desc"))
+        return cls(sock, sock_path, abs_range, event_struct)
+
+    @property
+    def fd(self) -> int:
+        return self._sock.fileno()
+
+    def absinfo(self, code: int) -> Optional[SimpleNamespace]:
+        if code == ABS_X:
+            return SimpleNamespace(min=self._abs_x_min, max=self._abs_x_max)
+        return None
+
+    def read(self) -> list[SimpleNamespace]:
+        while True:
+            try:
+                chunk = self._sock.recv(4096)
+            except BlockingIOError:
+                break
+            if not chunk:
+                raise OSError(errno.ECONNRESET, "Input bridge socket closed")
+            self._buf.extend(chunk)
+            if len(chunk) < 4096:
+                break
+
+        rec_size = self._event_struct.size
+        count = len(self._buf) // rec_size
+        if count <= 0:
+            return []
+
+        events: list[SimpleNamespace] = []
+        unpack_from = self._event_struct.unpack_from
+        for idx in range(count):
+            _sec, _usec, ev_type, code, value = unpack_from(self._buf, idx * rec_size)
+            events.append(SimpleNamespace(type=ev_type, code=code, value=value))
+        del self._buf[: count * rec_size]
+        return events
+
+    def close(self) -> None:
+        try:
+            self._sock.close()
+        except OSError:
+            pass
+
+
 class ControllerShortcutMonitor:
     """Watch connected gamepads for a 2-second HOME + SELECT hold and modal navigation."""
 
@@ -108,6 +237,7 @@ class ControllerShortcutMonitor:
         clock: Callable[[], float] = time.monotonic,
         device_enumerator: Optional[Callable[[], list[str]]] = None,
         device_opener: Optional[Callable[[str], Any]] = None,
+        bridge_socket_enumerator: Optional[Callable[[], list[str]]] = None,
     ) -> None:
         """Initialize the shortcut monitor without starting its background thread."""
         self._on_trigger = on_trigger
@@ -118,11 +248,13 @@ class ControllerShortcutMonitor:
         self._clock = clock
         self._device_enumerator = device_enumerator
         self._device_opener = device_opener
+        self._bridge_socket_enumerator = bridge_socket_enumerator
 
         self._lock = threading.RLock()
         self._running = False
         self._navigation_mode = False
         self._nav_enabled_at = 0.0
+        self._rescan_requested = False
         self._thread: Optional[threading.Thread] = None
         self._wake_r: Optional[int] = None
         self._wake_w: Optional[int] = None
@@ -146,7 +278,7 @@ class ControllerShortcutMonitor:
         with self._lock:
             if self._running:
                 return
-            if evdev is None and self._device_enumerator is None:
+            if evdev is None and self._device_enumerator is None and self._bridge_socket_enumerator is None:
                 logger.warning("python-evdev is not installed; controller exit shortcut disabled")
                 return
             try:
@@ -158,6 +290,7 @@ class ControllerShortcutMonitor:
                 return
             self._wake_r = wake_r
             self._wake_w = wake_w
+            self._rescan_requested = False
             self._running = True
             self._thread = threading.Thread(
                 target=self._run_loop,
@@ -167,6 +300,15 @@ class ControllerShortcutMonitor:
             self._thread.start()
             logger.debug("Controller shortcut monitor started")
 
+    def wake(self, *, rescan: bool = False) -> None:
+        """Wake the background selector loop, optionally requesting an immediate device rescan."""
+        with self._lock:
+            if not self._running:
+                return
+            if rescan:
+                self._rescan_requested = True
+            self._wake_locked()
+
     def stop(self) -> None:
         """Stop the background monitoring thread and close all opened input devices."""
         thread: Optional[threading.Thread] = None
@@ -175,6 +317,7 @@ class ControllerShortcutMonitor:
                 return
             self._running = False
             self._navigation_mode = False
+            self._rescan_requested = False
             thread = self._thread
             self._thread = None
             self._wake_locked()
@@ -398,7 +541,20 @@ class ControllerShortcutMonitor:
         except OSError:
             return []
 
+    def _enumerate_bridge_sockets(self) -> list[str]:
+        if self._bridge_socket_enumerator is None:
+            return []
+        try:
+            return list(self._bridge_socket_enumerator())
+        except Exception:
+            logger.debug("Error enumerating input bridge sockets", exc_info=True)
+            return []
+
     def _open_device(self, path: str) -> Optional[Any]:
+        if path.startswith(_BRIDGE_KEY_PREFIX):
+            sock_path = Path(path[len(_BRIDGE_KEY_PREFIX) :])
+            return _BridgeSocketDevice.connect(sock_path)
+
         opener = self._device_opener
         if opener is None:
             if evdev is None:
@@ -437,6 +593,8 @@ class ControllerShortcutMonitor:
 
     def _sync_devices(self, selector: selectors.BaseSelector) -> None:
         discovered = set(self._enumerate_paths())
+        for sock_path in self._enumerate_bridge_sockets():
+            discovered.add(f"{_BRIDGE_KEY_PREFIX}{sock_path}")
 
         with self._lock:
             existing_paths = set(self._devices.keys())
@@ -506,6 +664,9 @@ class ControllerShortcutMonitor:
                 with self._lock:
                     if not self._running:
                         break
+                    if self._rescan_requested:
+                        self._rescan_requested = False
+                        next_rescan_at = 0.0
                 now = self._clock()
                 if now >= next_rescan_at:
                     self._sync_devices(selector)

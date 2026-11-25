@@ -5,7 +5,7 @@ from typing import Optional
 
 from gi.repository import Adw, GLib, Gtk
 
-from src.core import Utils
+from src.core import Config, Utils
 from src.core.i18n import (
     LANGUAGE_PT_BR,
     get_language,
@@ -37,6 +37,7 @@ from src.services import (
     SteamVerifier,
 )
 from src.services.steam_probe import is_update_progress
+from src.services.virtual_uinput import SOCK_SUBDIR_NAME, STAGED_DIR_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class MainPresenter:
         self._shortcut_monitor = ControllerShortcutMonitor(
             on_trigger=self._schedule_exit_confirmation,
             on_navigate=self._schedule_exit_navigation,
+            bridge_socket_enumerator=self._active_bridge_sockets,
         )
 
         self._load_initial_data()
@@ -533,6 +535,18 @@ class MainPresenter:
         layout_page.update_devices_info(devices_info)
         self._update_launch_button_sensitivity()
 
+    def _active_bridge_sockets(self) -> list[str]:
+        """Return live ``twinverse-input-bridge`` Unix sockets for active instances."""
+        sockets: list[str] = []
+        for instance_num, state in list(self._instance_states.items()):
+            if state in (INSTANCE_STARTING, INSTANCE_RUNNING):
+                sock = (
+                    Config.get_steam_home_path(instance_num) / STAGED_DIR_NAME / SOCK_SUBDIR_NAME / "tw_event3000.sock"
+                )
+                if sock.exists():
+                    sockets.append(str(sock))
+        return sockets
+
     def _on_launch_requested(self):
         """Handle launch request."""
         logger.info("Launch requested by user.")
@@ -724,7 +738,12 @@ class MainPresenter:
         monitor = getattr(self, "_shortcut_monitor", None)
         if self._has_stoppable_instances():
             if monitor is not None:
-                monitor.start()
+                if getattr(monitor, "is_running", False) is True:
+                    wake = getattr(monitor, "wake", None)
+                    if callable(wake):
+                        wake(rescan=True)
+                else:
+                    monitor.start()
             return
         self._dismiss_exit_overlay()
         if monitor is not None and self._footer_state() == INSTANCE_IDLE:

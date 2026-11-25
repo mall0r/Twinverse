@@ -2,13 +2,15 @@
 //!
 //! Usage:
 //!   twinverse-input-bridge --socket-dir <dir> --device-id <path> \
-//!       [--resolved-event <path>] -- <command> [args...]
+//!       [--resolved-event <path>] [--no-grab] -- <command> [args...]
 //!
 //! Runs on the host alongside (and in the same process group as) a sandboxed
 //! Twinverse instance. Bridges the assigned physical evdev controller into
-//! `<socket_dir>/tw_event3000.sock` + `tw_event3000.desc` and maintains
-//! `<socket_dir>/tw_hidraw.allow` across unplug/reconnect cycles, then waits
-//! for `<command>` and exits with its exact status code.
+//! `<socket_dir>/tw_event3000.sock` + `tw_event3000.desc` (holding an exclusive
+//! `EVIOCGRAB` so host applications such as Host Steam ignore it while the
+//! session runs) and maintains `<socket_dir>/tw_hidraw.allow` across
+//! unplug/reconnect cycles, then waits for `<command>` and exits with its exact
+//! status code.
 
 mod bridge;
 mod evdev;
@@ -47,6 +49,7 @@ struct CliArgs {
     socket_dir: PathBuf,
     device_id: PathBuf,
     resolved_event: Option<PathBuf>,
+    grab_exclusive: bool,
     command: Vec<OsString>,
 }
 
@@ -57,6 +60,8 @@ where
     let mut socket_dir: Option<PathBuf> = None;
     let mut device_id: Option<PathBuf> = None;
     let mut resolved_event: Option<PathBuf> = None;
+    let mut grab_exclusive =
+        !std::env::var_os("TWINVERSE_BRIDGE_NO_GRAB").is_some_and(|v| !v.is_empty() && v != "0");
     let mut command: Vec<OsString> = Vec::new();
 
     while let Some(arg) = iter.next() {
@@ -80,6 +85,8 @@ where
             if !val.is_empty() {
                 resolved_event = Some(PathBuf::from(val));
             }
+        } else if arg == "--no-grab" {
+            grab_exclusive = false;
         } else {
             return Err(format!("unknown argument: {}", arg.to_string_lossy()));
         }
@@ -95,6 +102,7 @@ where
         socket_dir,
         device_id,
         resolved_event,
+        grab_exclusive,
         command,
     })
 }
@@ -169,7 +177,8 @@ fn main() -> ExitCode {
         }
     };
 
-    let cfg = BridgeConfig::new(args.socket_dir, args.device_id, args.resolved_event);
+    let mut cfg = BridgeConfig::new(args.socket_dir, args.device_id, args.resolved_event);
+    cfg.grab_exclusive = args.grab_exclusive;
     let prepared = match PreparedBridge::prepare(cfg) {
         Ok(p) => p,
         Err(err) => {
@@ -242,8 +251,25 @@ mod tests {
             args.resolved_event,
             Some(PathBuf::from("/dev/input/event23"))
         );
+        assert!(args.grab_exclusive);
         assert_eq!(args.command.len(), 4);
         assert_eq!(args.command[0], OsString::from("bwrap"));
+
+        let no_grab = parse_args(
+            [
+                "--socket-dir",
+                "/tmp/sock",
+                "--device-id",
+                "/dev/input/event0",
+                "--no-grab",
+                "--",
+                "true",
+            ]
+            .into_iter()
+            .map(OsString::from),
+        )
+        .unwrap();
+        assert!(!no_grab.grab_exclusive);
 
         // Missing child command -> error
         assert!(parse_args(

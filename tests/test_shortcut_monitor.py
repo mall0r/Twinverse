@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import socket
+import struct
 import threading
 import time
 from types import SimpleNamespace
@@ -298,6 +300,72 @@ def test_background_monitor_thread_triggers_on_real_selector_loop():
         monitor.stop()
         assert not monitor.is_running
         assert fake_device.closed
+
+
+def test_shortcut_monitor_reads_bridge_socket_when_controller_is_exclusively_grabbed(tmp_path):
+    """Shortcut monitor receives HOME+SELECT and stick navigation via tw_event3000.sock when EVIOCGRAB hides evdev."""
+    sock_dir = tmp_path / "instance_1" / ".tw-in" / "sock"
+    sock_dir.mkdir(parents=True)
+    sock_path = sock_dir / "tw_event3000.sock"
+    desc_path = sock_dir / "tw_event3000.desc"
+
+    # Build a valid UdynDesc with unsigned DualSense ABS_X [0, 255] and 24-byte 64-bit input_event records.
+    desc = bytearray(1752)
+    struct.pack_into("<II", desc, 0, 0x54575549, 1)
+    struct.pack_into("<iiiiii", desc, 212, 128, 0, 255, 0, 0, 0)
+    struct.pack_into("<I", desc, 1748, 24)
+    desc_path.write_bytes(desc)
+
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(str(sock_path))
+    server.listen(4)
+    server.settimeout(2.0)
+
+    fired = threading.Event()
+    nav_events: list[str] = []
+    nav_done = threading.Event()
+
+    def on_nav(action: str) -> None:
+        nav_events.append(action)
+        if len(nav_events) >= 2:
+            nav_done.set()
+
+    monitor = ControllerShortcutMonitor(
+        on_trigger=fired.set,
+        on_navigate=on_nav,
+        hold_seconds=0.15,
+        rescan_interval=0.2,
+        nav_grace_seconds=0.0,
+        device_enumerator=lambda: [],
+        bridge_socket_enumerator=lambda: [str(sock_path)],
+    )
+    conn = None
+    try:
+        monitor.start()
+        conn, _ = server.accept()
+
+        # Send HOME + SELECT across a split chunk boundary to exercise partial-frame buffering.
+        frame_home = struct.pack("<qqHHi", 1, 0, EV_KEY, BTN_MODE, 1)
+        frame_select = struct.pack("<qqHHi", 1, 1000, EV_KEY, BTN_SELECT, 1)
+        conn.sendall(frame_home[:10])
+        time.sleep(0.02)
+        conn.sendall(frame_home[10:] + frame_select)
+        assert fired.wait(timeout=1.5)
+
+        monitor.set_navigation_mode(True)
+        conn.sendall(
+            struct.pack("<qqHHi", 2, 0, EV_KEY, BTN_MODE, 0)
+            + struct.pack("<qqHHi", 2, 100, EV_KEY, BTN_SELECT, 0)
+            + struct.pack("<qqHHi", 2, 200, EV_ABS, ABS_X, 245)
+            + struct.pack("<qqHHi", 2, 300, EV_KEY, BTN_SOUTH, 1)
+        )
+        assert nav_done.wait(timeout=1.5)
+        assert nav_events == ["right", "confirm"]
+    finally:
+        if conn is not None:
+            conn.close()
+        server.close()
+        monitor.stop()
 
 
 def test_end_session_overlay_defaults_to_cancel_and_supports_navigation_and_i18n(gtk_display):

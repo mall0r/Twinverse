@@ -28,12 +28,12 @@ use crate::evdev::{
     DeviceIdentity,
 };
 use crate::ffi::{
-    accept4, bind, chmod, close, geteuid, getsockopt, inotify_add_watch, inotify_init1, last_errno,
-    listen, pipe2, poll, read, realtime_sec_usec, send, socket, write, PollFd, SockaddrUn, Ucred,
-    AF_UNIX, EAGAIN, EINTR, EWOULDBLOCK, IN_ATTRIB, IN_CLOEXEC, IN_CREATE, IN_DELETE, IN_MOVED_TO,
-    open, IN_NONBLOCK, MSG_DONTWAIT, MSG_NOSIGNAL, O_CLOEXEC, O_DIRECTORY, O_NONBLOCK, O_RDONLY,
-    POLLERR, POLLHUP, POLLIN,
-    POLLNVAL, SOCK_CLOEXEC, SOCK_NONBLOCK, SOCK_STREAM, SOL_SOCKET, SO_PEERCRED,
+    accept4, bind, chmod, close, eviocgrab, geteuid, getsockopt, inotify_add_watch, inotify_init1,
+    last_errno, listen, open, pipe2, poll, read, realtime_sec_usec, send, socket, write, PollFd,
+    SockaddrUn, Ucred, AF_UNIX, EAGAIN, EINTR, EWOULDBLOCK, IN_ATTRIB, IN_CLOEXEC, IN_CREATE,
+    IN_DELETE, IN_MOVED_TO, IN_NONBLOCK, MSG_DONTWAIT, MSG_NOSIGNAL, O_CLOEXEC, O_DIRECTORY,
+    O_NONBLOCK, O_RDONLY, POLLERR, POLLHUP, POLLIN, POLLNVAL, SOCK_CLOEXEC, SOCK_NONBLOCK,
+    SOCK_STREAM, SOL_SOCKET, SO_PEERCRED,
 };
 
 const FAST_RETRY_MS: c_int = 100;
@@ -47,6 +47,7 @@ pub struct BridgeConfig {
     pub device_id: PathBuf,
     pub resolved_event: Option<PathBuf>,
     pub event_num: i32,
+    pub grab_exclusive: bool,
 }
 
 impl BridgeConfig {
@@ -56,6 +57,7 @@ impl BridgeConfig {
             device_id,
             resolved_event,
             event_num: UDYN_EVENT_BASE,
+            grab_exclusive: true,
         }
     }
 }
@@ -254,6 +256,7 @@ struct BridgeState {
     stop_read_fd: c_int,
     listen_fd: c_int,
     phys_fd: c_int,
+    phys_grabbed: bool,
     inotify_fd: c_int,
     by_id_wd: c_int,
     identity: Option<DeviceIdentity>,
@@ -308,6 +311,7 @@ impl BridgeState {
             stop_read_fd,
             listen_fd: -1,
             phys_fd: -1,
+            phys_grabbed: false,
             inotify_fd,
             by_id_wd,
             identity: None,
@@ -324,6 +328,19 @@ impl BridgeState {
     fn log(&self, msg: &str) {
         if self.log_enabled {
             eprintln!("[twinverse-input-bridge] {msg}");
+        }
+    }
+
+    fn release_physical_fd(&mut self) {
+        if self.phys_fd >= 0 {
+            if self.phys_grabbed {
+                let _ = eviocgrab(self.phys_fd, false);
+                self.phys_grabbed = false;
+            }
+            unsafe {
+                close(self.phys_fd);
+            }
+            self.phys_fd = -1;
         }
     }
 
@@ -387,28 +404,43 @@ impl BridgeState {
             self.log(&format!("failed to update {:?}: {err}", self.allow_path));
         }
 
+        let grabbed = if self.cfg.grab_exclusive {
+            let ok = eviocgrab(fd, true);
+            if !ok {
+                self.log(&format!(
+                    "EVIOCGRAB failed for {:?} (errno={}); continuing without exclusive grab",
+                    resolved_path,
+                    last_errno()
+                ));
+            }
+            ok
+        } else {
+            false
+        };
+
         self.pressed_keys = initial_keys;
         for code in 0..ABS_CNT {
             self.abs_values[code] = desc.absinfo[code].value;
         }
         self.desc = Some(desc);
         self.phys_fd = fd;
+        self.phys_grabbed = grabbed;
         self.fast_retry_until = None;
 
         self.log(&format!(
-            "connected {:?} (vid={:04x} pid={:04x}) -> event{}, hidraw={:?}",
-            resolved_path, identity.vendor, identity.product, self.cfg.event_num, allowed_hidraws
+            "connected {:?} (vid={:04x} pid={:04x}) -> event{}, grabbed={}, hidraw={:?}",
+            resolved_path,
+            identity.vendor,
+            identity.product,
+            self.cfg.event_num,
+            grabbed,
+            allowed_hidraws
         ));
         true
     }
 
     fn handle_disconnect(&mut self) {
-        if self.phys_fd >= 0 {
-            unsafe {
-                close(self.phys_fd);
-            }
-            self.phys_fd = -1;
-        }
+        self.release_physical_fd();
         let _ = write_hidraw_allow(&self.cfg.socket_dir, &[]);
 
         if let Some(desc) = self.desc {
@@ -708,12 +740,7 @@ impl BridgeState {
 
 impl Drop for BridgeState {
     fn drop(&mut self) {
-        if self.phys_fd >= 0 {
-            unsafe {
-                close(self.phys_fd);
-            }
-            self.phys_fd = -1;
-        }
+        self.release_physical_fd();
         if self.listen_fd >= 0 {
             unsafe {
                 close(self.listen_fd);
@@ -792,6 +819,17 @@ impl PreparedBridge {
 mod tests {
     use super::*;
     use twinverse_uinput_proto::{InputAbsInfo, ABS_RZ, ABS_Z, BTN_GAMEPAD};
+
+    #[test]
+    fn test_bridge_config_defaults_to_exclusive_grab() {
+        let cfg = BridgeConfig::new(
+            PathBuf::from("/tmp/sock"),
+            PathBuf::from("/dev/input/by-id/usb-pad"),
+            None,
+        );
+        assert!(cfg.grab_exclusive);
+        assert_eq!(cfg.event_num, UDYN_EVENT_BASE);
+    }
 
     #[test]
     fn test_neutralizer_releases_keys_and_recenters_axes() {
