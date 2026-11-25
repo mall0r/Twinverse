@@ -9,7 +9,7 @@
     en: {
       title: "Twinverse Documentation — Multi-Instance Steam Splitscreen & Multi-Monitor Guide",
       description:
-        "Complete step-by-step documentation for Twinverse: run up to 8 isolated Steam instances on Linux & SteamOS in splitscreen or multi-monitor setups.",
+        "Complete step-by-step documentation for Twinverse: run up to 8 isolated Steam instances on Linux in splitscreen or multi-monitor setups.",
       searchPlaceholder: "Search guides, features, shortcuts, CLI flags…",
       searchTrigger: "Search docs…",
       searchEmpty: "No matching sections found. Try another keyword.",
@@ -19,12 +19,11 @@
       langBtn: "PT-BR",
       langAria: "Switch documentation language to Portuguese (Brazil)",
       themeAria: "Toggle light / dark theme",
-      tocTitle: "On this page",
     },
     pt: {
       title: "Documentação do Twinverse — Guia Completo de Tela Dividida e Múltiplos Monitores no Linux",
       description:
-        "Documentação passo a passo completa do Twinverse: execute até 8 instâncias isoladas do Steam no Linux e SteamOS em tela dividida ou múltiplos monitores.",
+        "Documentação passo a passo completa do Twinverse: execute até 8 instâncias isoladas do Steam no Linux em tela dividida ou múltiplos monitores.",
       searchPlaceholder: "Buscar guias, funcionalidades, atalhos, flags CLI…",
       searchTrigger: "Buscar na docs…",
       searchEmpty: "Nenhuma seção encontrada. Tente outro termo.",
@@ -34,7 +33,6 @@
       langBtn: "EN",
       langAria: "Mudar idioma da documentação para Inglês",
       themeAria: "Alternar tema claro / escuro",
-      tocTitle: "Nesta página",
     },
   };
 
@@ -77,9 +75,6 @@
     if (searchLabel) searchLabel.textContent = s.searchTrigger;
     var searchInput = document.getElementById("search-input");
     if (searchInput) searchInput.setAttribute("placeholder", s.searchPlaceholder);
-    var tocTitle = document.getElementById("toc-title");
-    if (tocTitle) tocTitle.textContent = s.tocTitle;
-
     document.querySelectorAll(".copy-btn").forEach(function (btn) {
       if (!btn.classList.contains("copied")) {
         btn.textContent = s.copy;
@@ -89,7 +84,7 @@
       hint.textContent = s.zoomHint;
     });
 
-    rebuildToc();
+    updateActiveNav();
     if (searchModal && searchModal.classList.contains("open")) {
       runSearch(searchInput ? searchInput.value : "");
     }
@@ -100,47 +95,29 @@
     if (persist) {
       localStorage.setItem(STORAGE_THEME, theme);
     }
+    var metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute("content", theme === "light" ? "#ffffff" : "#11191f");
+    }
     var sun = document.getElementById("icon-sun");
     var moon = document.getElementById("icon-moon");
     if (sun && moon) {
       sun.style.display = theme === "dark" ? "block" : "none";
       moon.style.display = theme === "light" ? "block" : "none";
     }
-  }
-
-  // Dynamic On-This-Page TOC
-  function rebuildToc() {
-    var tocList = document.getElementById("toc-list");
-    if (!tocList) return;
-    var lang = html.getAttribute("data-lang") || "en";
-    tocList.innerHTML = "";
-    var sections = document.querySelectorAll("main .doc-section[id]");
-    sections.forEach(function (sec) {
-      var h2 = sec.querySelector("h2 [data-lang-block='" + lang + "']") || sec.querySelector("h2");
-      if (!h2) return;
-      var li = document.createElement("li");
-      var a = document.createElement("a");
-      a.href = "#" + sec.id;
-      a.textContent = h2.textContent.trim();
-      li.appendChild(a);
-      tocList.appendChild(li);
-
-      sec.querySelectorAll("[data-toc-sub][id]").forEach(function (sub) {
-        var subTitle = sub.querySelector("h3 [data-lang-block='" + lang + "']") || sub.querySelector("h3");
-        if (!subTitle) return;
-        var sli = document.createElement("li");
-        var sa = document.createElement("a");
-        sa.href = "#" + sub.id;
-        sa.className = "toc-sub";
-        sa.textContent = subTitle.textContent.trim();
-        sli.appendChild(sa);
-        tocList.appendChild(sli);
-      });
+    document.querySelectorAll("img[data-src-dark][data-src-light]").forEach(function (img) {
+      var nextSrc = img.getAttribute(theme === "light" ? "data-src-light" : "data-src-dark");
+      if (nextSrc && img.getAttribute("src") !== nextSrc) {
+        img.setAttribute("src", nextSrc);
+      }
+      var nextAlt = img.getAttribute(theme === "light" ? "data-alt-light" : "data-alt-dark");
+      if (nextAlt) {
+        img.setAttribute("alt", nextAlt);
+      }
     });
-    updateActiveNav();
   }
 
-  // Scroll-spy for Sidebar & Right TOC
+  // Scroll-spy for Sidebar
   function updateActiveNav() {
     var anchors = Array.prototype.slice.call(
       document.querySelectorAll("main .doc-section[id], main [data-toc-sub][id]")
@@ -158,12 +135,16 @@
         ? sectionEl.closest(".doc-section[id]").id
         : currentId;
 
+    var hasDirectLink = Boolean(
+      currentId && document.querySelector('.sidebar a[href="#' + currentId + '"]')
+    );
     document.querySelectorAll(".sidebar a").forEach(function (a) {
       var href = a.getAttribute("href");
-      a.classList.toggle("active", href === "#" + currentId || href === "#" + parentSectionId);
-    });
-    document.querySelectorAll("#toc-list a").forEach(function (a) {
-      a.classList.toggle("active", a.getAttribute("href") === "#" + currentId);
+      var isDirect = href === "#" + currentId;
+      var isParent =
+        parentSectionId !== currentId && href === "#" + parentSectionId;
+      a.classList.toggle("active", hasDirectLink ? isDirect : isParent || isDirect);
+      a.classList.toggle("active-parent", hasDirectLink && isParent);
     });
   }
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Twinverse Documentation — Multi-Instance Steam Splitscreen &amp; Multi-Monitor Guide</title>
   <meta name="description" content="Complete step-by-step documentation for Twinverse: run up to 8 isolated Steam instances on Linux &amp; SteamOS in splitscreen or multi-monitor setups.">
-  <meta name="theme-color" content="#141414">
+  <meta name="theme-color" content="#11191f">
   <link rel="canonical" href="https://mall0r.github.io/Twinverse/">
   <link rel="icon" type="image/svg+xml" href="./assets/img/twinverse-logo.svg">
 
@@ -13,7 +13,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Twinverse Documentation">
   <meta property="og:title" content="Twinverse Documentation — Multi-Instance Steam Splitscreen for Linux">
-  <meta property="og:description" content="Step-by-step guides and complete feature reference for running up to 8 isolated Steam Big Picture instances on Linux and SteamOS.">
+  <meta property="og:description" content="Step-by-step guides and complete feature reference for running up to 8 isolated Steam Big Picture instances on Linux.">
   <meta property="og:url" content="https://mall0r.github.io/Twinverse/">
   <meta property="og:image" content="https://mall0r.github.io/Twinverse/assets/img/hero-studio-dark.png">
   <meta name="twitter:card" content="summary_large_image">
@@ -105,12 +105,16 @@
           <span data-lang-block="pt">Guia Passo a Passo</span>
         </p>
         <ul class="sidebar-list">
-          <li><a href="#step-by-step"><span data-lang-block="en">Walkthrough Overview</span><span data-lang-block="pt">Resumo do Fluxo</span></a></li>
-          <li><a href="#step-1-party"><span data-lang-block="en">1. Build Your Party</span><span data-lang-block="pt">1. Monte o Grupo</span></a></li>
-          <li><a href="#step-2-layout"><span data-lang-block="en">2. Configure Layout</span><span data-lang-block="pt">2. Configure o Layout</span></a></li>
-          <li><a href="#step-3-player-setup"><span data-lang-block="en">3. Player Setup</span><span data-lang-block="pt">3. Configurar Jogadores</span></a></li>
-          <li><a href="#step-4-install-steam"><span data-lang-block="en">4. Install &amp; Sign In</span><span data-lang-block="pt">4. Instalar e Logar</span></a></li>
-          <li><a href="#step-5-launch"><span data-lang-block="en">5. Launch &amp; Play</span><span data-lang-block="pt">5. Iniciar e Jogar</span></a></li>
+          <li>
+            <a href="#step-by-step"><span data-lang-block="en">Walkthrough Overview</span><span data-lang-block="pt">Resumo do Fluxo</span></a>
+            <ul class="sidebar-sublist">
+              <li><a href="#step-1-party"><span data-lang-block="en">Build Your Party</span><span data-lang-block="pt">Monte o Grupo</span></a></li>
+              <li><a href="#step-2-layout"><span data-lang-block="en">Configure Layout</span><span data-lang-block="pt">Configure o Layout</span></a></li>
+              <li><a href="#step-3-player-setup"><span data-lang-block="en">Player Setup</span><span data-lang-block="pt">Configurar Jogadores</span></a></li>
+              <li><a href="#step-4-install-steam"><span data-lang-block="en">Install &amp; Sign In</span><span data-lang-block="pt">Instalar e Logar</span></a></li>
+              <li><a href="#step-5-launch"><span data-lang-block="en">Launch &amp; Play</span><span data-lang-block="pt">Iniciar e Jogar</span></a></li>
+            </ul>
+          </li>
         </ul>
       </div>
 
@@ -138,7 +142,15 @@
         </p>
         <ul class="sidebar-list">
           <li><a href="#architecture"><span data-lang-block="en">Architecture &amp; Paths</span><span data-lang-block="pt">Arquitetura e Caminhos</span></a></li>
-          <li><a href="#cli-debugging"><span data-lang-block="en">CLI, Logs &amp; Troubleshooting</span><span data-lang-block="pt">CLI, Logs e Solução</span></a></li>
+          <li>
+            <a href="#cli-debugging"><span data-lang-block="en">CLI, Logs &amp; Troubleshooting</span><span data-lang-block="pt">CLI, Logs e Solução</span></a>
+            <ul class="sidebar-sublist">
+              <li><a href="#cli-flags"><span data-lang-block="en">Command-Line Flags</span><span data-lang-block="pt">Flags de Linha de Comando</span></a></li>
+              <li><a href="#log-env-vars"><span data-lang-block="en">Logging Env Variables</span><span data-lang-block="pt">Variáveis de Log</span></a></li>
+              <li><a href="#virtual-uinput-debugging"><span data-lang-block="en">Virtual Input Debugging</span><span data-lang-block="pt">Depuração de Entrada Virtual</span></a></li>
+              <li><a href="#troubleshooting"><span data-lang-block="en">Troubleshooting FAQ</span><span data-lang-block="pt">Solução de Problemas (FAQ)</span></a></li>
+            </ul>
+          </li>
           <li><a href="#credits-license"><span data-lang-block="en">Credits &amp; License</span><span data-lang-block="pt">Créditos e Licença</span></a></li>
         </ul>
       </div>
@@ -150,16 +162,16 @@
       <!-- SECTION 1: OVERVIEW -->
       <section id="overview" class="doc-section hero">
         <p class="eyebrow">
-          <span data-lang-block="en">Linux &amp; SteamOS Multi-Instance Gaming</span>
-          <span data-lang-block="pt">Multi-Instância Steam para Linux e SteamOS</span>
+          <span data-lang-block="en">Linux Multi-Instance Steam</span>
+          <span data-lang-block="pt">Multi-Instância Steam para Linux</span>
         </p>
         <h1>
           <span data-lang-block="en">Twinverse Documentation</span>
           <span data-lang-block="pt">Documentação do Twinverse</span>
         </h1>
         <p class="hero-lead">
-          <span data-lang-block="en">Run up to <strong>8 Steam Big Picture instances</strong> on one Linux or SteamOS computer, in splitscreen or across monitors. Each player has a separate home and isolated <strong>Steam Input</strong>. Players can share installed games and audio outputs. By default they also share the host network; separate LAN addresses are optional.</span>
-          <span data-lang-block="pt">Execute até <strong>8 instâncias do Steam Big Picture</strong> em um computador com Linux ou SteamOS, em tela dividida ou em vários monitores. Cada jogador tem sua própria pasta home e <strong>Steam Input</strong> isolado. Os jogadores podem compartilhar os jogos instalados e as saídas de áudio. Por padrão, também usam a rede do host; endereços distintos na LAN são opcionais.</span>
+          <span data-lang-block="en">Run up to <strong>8 Steam Big Picture instances</strong> on one Linux computer, in splitscreen or across monitors. Each player has a separate home and isolated <strong>Steam Input</strong>. Players can share installed games and audio outputs. By default they also share the host network; separate LAN addresses are optional.</span>
+          <span data-lang-block="pt">Execute até <strong>8 instâncias do Steam Big Picture</strong> em um computador com Linux, em tela dividida ou em vários monitores. Cada jogador tem sua própria pasta home e <strong>Steam Input</strong> isolado. Os jogadores podem compartilhar os jogos instalados e as saídas de áudio. Por padrão, também usam a rede do host; endereços distintos na LAN são opcionais.</span>
         </p>
 
         <div class="hero-badges">
@@ -167,11 +179,6 @@
           <span class="badge">Python + Rust</span>
           <span class="badge">GTK4 &amp; libadwaita</span>
           <span class="badge">Gamescope + Bubblewrap</span>
-          <span class="badge">
-            <span data-lang-block="en">Up to 8 Players</span>
-            <span data-lang-block="pt">Até 8 Jogadores</span>
-          </span>
-          <span class="badge">GPL-3.0</span>
         </div>
 
         <div class="hero-actions">
@@ -189,47 +196,46 @@
           </a>
         </div>
 
+        <dl class="hero-stats" aria-label="Twinverse highlights">
+          <div class="hero-stat">
+            <dt class="hero-stat-label">
+              <span data-lang-block="en">Max Players</span>
+              <span data-lang-block="pt">Máx. Jogadores</span>
+            </dt>
+            <dd class="hero-stat-value">8</dd>
+          </div>
+          <div class="hero-stat-divider" aria-hidden="true"></div>
+          <div class="hero-stat">
+            <dt class="hero-stat-label">
+              <span data-lang-block="en">Tiling Templates</span>
+              <span data-lang-block="pt">Moldes de Tela</span>
+            </dt>
+            <dd class="hero-stat-value">6</dd>
+          </div>
+          <div class="hero-stat-divider" aria-hidden="true"></div>
+          <div class="hero-stat">
+            <dt class="hero-stat-label">
+              <span data-lang-block="en">Free &amp; Open Source</span>
+              <span data-lang-block="pt">Livre e Código Aberto</span>
+            </dt>
+            <dd class="hero-stat-value">GPLv3</dd>
+          </div>
+        </dl>
+
         <h2 style="display: none;">
           <span data-lang-block="en">Overview</span>
           <span data-lang-block="pt">Visão Geral</span>
         </h2>
 
-        <div class="tabs">
-          <div class="tab-list" role="tablist">
-            <button class="tab-btn" role="tab" aria-selected="true" data-tab="theme-dark">
-              <span data-lang-block="en">Dark Theme</span>
-              <span data-lang-block="pt">Tema Escuro</span>
-            </button>
-            <button class="tab-btn" role="tab" aria-selected="false" data-tab="theme-light">
-              <span data-lang-block="en">Light Theme</span>
-              <span data-lang-block="pt">Tema Claro</span>
-            </button>
+        <figure class="figure">
+          <div class="figure-img-wrap">
+            <img src="./assets/img/hero-studio-dark.png" data-src-dark="./assets/img/hero-studio-dark.png" data-src-light="./assets/img/studio-light-mode.png" alt="Twinverse in Dark Mode" data-alt-dark="Twinverse in Dark Mode" data-alt-light="Twinverse in Light Mode">
           </div>
-
-          <div class="tab-panel" data-panel="theme-dark">
-            <figure class="figure">
-              <div class="figure-img-wrap">
-                <img src="./assets/img/hero-studio-dark.png" alt="Twinverse in Dark Mode">
-              </div>
-              <figcaption>
-                <span data-lang-block="en"><strong>Twinverse (Dark Mode)</strong> — Three-pane workspace with the Party Roster on the left, live monitor tiling canvas in the center, and Player Setup inspector on the right.</span>
-                <span data-lang-block="pt"><strong>Twinverse (Modo Escuro)</strong> — Área de trabalho em três painéis com a lista de jogadores (Party) à esquerda, pré-visualização interativa de monitores ao centro e o inspetor Player Setup à direita.</span>
-              </figcaption>
-            </figure>
-          </div>
-
-          <div class="tab-panel" data-panel="theme-light" hidden>
-            <figure class="figure">
-              <div class="figure-img-wrap">
-                <img src="./assets/img/studio-light-mode.png" alt="Twinverse in Light Mode" loading="lazy">
-              </div>
-              <figcaption>
-                <span data-lang-block="en"><strong>Twinverse (Light Mode)</strong> — Switch themes anytime with the header button. Theme preference is persisted across restarts.</span>
-                <span data-lang-block="pt"><strong>Twinverse (Modo Claro)</strong> — Alterne o tema a qualquer momento pelo botão no cabeçalho. A preferência é salva automaticamente.</span>
-              </figcaption>
-            </figure>
-          </div>
-        </div>
+          <figcaption>
+            <span data-lang-block="en"><strong>Twinverse</strong> — Three-pane workspace with the Party Roster on the left, live monitor tiling canvas in the center, and Player Setup inspector on the right.</span>
+            <span data-lang-block="pt"><strong>Twinverse</strong> — Área de trabalho em três painéis com a lista de jogadores (Party) à esquerda, pré-visualização interativa de monitores ao centro e o inspetor Player Setup à direita.</span>
+          </figcaption>
+        </figure>
 
         <div class="card-grid">
           <div class="feature-card">
@@ -648,8 +654,8 @@ ujust add-user-to-input-group</code></pre>
           <div class="templates-grid">
             <div class="template-card">
               <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
-                <rect x="6" y="6" width="148" height="88" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <text x="80" y="55" text-anchor="middle" fill="#84b4fa" font-size="16" font-weight="700">1</text>
+                <rect x="6" y="6" width="148" height="88" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <text x="80" y="55" text-anchor="middle" fill="var(--accent)" font-size="16" font-weight="700">1</text>
               </svg>
               <h4>Fullscreen <span class="template-cap">1 space</span></h4>
               <p><span data-lang-block="en">One full-monitor space. Ideal for dedicated multi-monitor setups.</span><span data-lang-block="pt">Um espaço ocupando o monitor inteiro. Ideal para múltiplos monitores.</span></p>
@@ -657,10 +663,10 @@ ujust add-user-to-input-group</code></pre>
 
             <div class="template-card">
               <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
-                <rect x="6" y="6" width="71" height="88" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="83" y="6" width="71" height="88" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <text x="41" y="55" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">1</text>
-                <text x="119" y="55" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">2</text>
+                <rect x="6" y="6" width="71" height="88" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="83" y="6" width="71" height="88" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <text x="41" y="55" text-anchor="middle" fill="var(--accent)" font-size="15" font-weight="700">1</text>
+                <text x="119" y="55" text-anchor="middle" fill="var(--accent)" font-size="15" font-weight="700">2</text>
               </svg>
               <h4>Columns <span class="template-cap">2 spaces</span></h4>
               <p><span data-lang-block="en">Side-by-side vertical split. Great for ultrawide and 16:9 co-op.</span><span data-lang-block="pt">Divisão vertical lado a lado. Ótima para monitores ultrawide e 16:9.</span></p>
@@ -668,10 +674,10 @@ ujust add-user-to-input-group</code></pre>
 
             <div class="template-card">
               <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
-                <rect x="6" y="6" width="148" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="6" y="53" width="148" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <text x="80" y="32" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">1</text>
-                <text x="80" y="79" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">2</text>
+                <rect x="6" y="6" width="148" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="6" y="53" width="148" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <text x="80" y="32" text-anchor="middle" fill="var(--accent)" font-size="15" font-weight="700">1</text>
+                <text x="80" y="79" text-anchor="middle" fill="var(--accent)" font-size="15" font-weight="700">2</text>
               </svg>
               <h4>Rows <span class="template-cap">2 spaces</span></h4>
               <p><span data-lang-block="en">Top-and-bottom horizontal split for wider field of view.</span><span data-lang-block="pt">Divisão horizontal empilhada para maior campo de visão lateral.</span></p>
@@ -679,12 +685,12 @@ ujust add-user-to-input-group</code></pre>
 
             <div class="template-card">
               <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
-                <rect x="6" y="6" width="71" height="88" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="83" y="6" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="83" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <text x="41" y="55" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">1</text>
-                <text x="119" y="32" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">2</text>
-                <text x="119" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">3</text>
+                <rect x="6" y="6" width="71" height="88" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="83" y="6" width="71" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="83" y="53" width="71" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <text x="41" y="55" text-anchor="middle" fill="var(--accent)" font-size="15" font-weight="700">1</text>
+                <text x="119" y="32" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">2</text>
+                <text x="119" y="79" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">3</text>
               </svg>
               <h4>Main left <span class="template-cap">3 spaces</span></h4>
               <p><span data-lang-block="en">Tall main space on the left + two stacked spaces on the right.</span><span data-lang-block="pt">Espaço principal à esquerda + dois espaços empilhados à direita.</span></p>
@@ -692,12 +698,12 @@ ujust add-user-to-input-group</code></pre>
 
             <div class="template-card">
               <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
-                <rect x="6" y="6" width="148" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="6" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="83" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <text x="80" y="32" text-anchor="middle" fill="#84b4fa" font-size="15" font-weight="700">1</text>
-                <text x="41" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">2</text>
-                <text x="119" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">3</text>
+                <rect x="6" y="6" width="148" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="6" y="53" width="71" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="83" y="53" width="71" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <text x="80" y="32" text-anchor="middle" fill="var(--accent)" font-size="15" font-weight="700">1</text>
+                <text x="41" y="79" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">2</text>
+                <text x="119" y="79" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">3</text>
               </svg>
               <h4>Main top <span class="template-cap">3 spaces</span></h4>
               <p><span data-lang-block="en">Wide main space on top + two side-by-side spaces below.</span><span data-lang-block="pt">Espaço principal largo no topo + dois espaços lado a lado abaixo.</span></p>
@@ -705,14 +711,14 @@ ujust add-user-to-input-group</code></pre>
 
             <div class="template-card">
               <svg class="template-svg" viewBox="0 0 160 100" aria-hidden="true">
-                <rect x="6" y="6" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="83" y="6" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="6" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <rect x="83" y="53" width="71" height="41" rx="6" fill="rgba(132,180,250,0.22)" stroke="#84b4fa" stroke-width="2"></rect>
-                <text x="41" y="32" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">1</text>
-                <text x="119" y="32" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">2</text>
-                <text x="41" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">3</text>
-                <text x="119" y="79" text-anchor="middle" fill="#84b4fa" font-size="14" font-weight="700">4</text>
+                <rect x="6" y="6" width="71" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="83" y="6" width="71" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="6" y="53" width="71" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <rect x="83" y="53" width="71" height="41" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+                <text x="41" y="32" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">1</text>
+                <text x="119" y="32" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">2</text>
+                <text x="41" y="79" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">3</text>
+                <text x="119" y="79" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="700">4</text>
               </svg>
               <h4>Grid <span class="template-cap">4 spaces</span></h4>
               <p><span data-lang-block="en">Classic 2×2 four-player splitscreen quadrants on one monitor.</span><span data-lang-block="pt">Clássica tela dividida em grade 2×2 para quatro jogadores em um monitor.</span></p>
@@ -1083,13 +1089,9 @@ ujust add-user-to-input-group</code></pre>
 
           <div class="tabs">
             <div class="tab-list" role="tablist">
-              <button class="tab-btn" role="tab" aria-selected="true" data-tab="pref-engine-dark">
-                <span data-lang-block="en">Engine (Dark)</span>
-                <span data-lang-block="pt">Engine (Escuro)</span>
-              </button>
-              <button class="tab-btn" role="tab" aria-selected="false" data-tab="pref-engine-light">
-                <span data-lang-block="en">Engine (Light)</span>
-                <span data-lang-block="pt">Engine (Claro)</span>
+              <button class="tab-btn" role="tab" aria-selected="true" data-tab="pref-engine">
+                <span data-lang-block="en">Engine</span>
+                <span data-lang-block="pt">Engine</span>
               </button>
               <button class="tab-btn" role="tab" aria-selected="false" data-tab="pref-data">
                 <span data-lang-block="en">Instance Data</span>
@@ -1101,26 +1103,14 @@ ujust add-user-to-input-group</code></pre>
               </button>
             </div>
 
-            <div class="tab-panel" data-panel="pref-engine-dark">
+            <div class="tab-panel" data-panel="pref-engine">
               <figure class="figure">
                 <div class="figure-img-wrap">
-                  <img src="./assets/img/preferences-engine-dark.png" alt="Preferences Engine tab in dark mode" loading="lazy">
+                  <img src="./assets/img/preferences-engine-dark.png" data-src-dark="./assets/img/preferences-engine-dark.png" data-src-light="./assets/img/preferences-engine-light.png" alt="Preferences Engine tab in dark mode" data-alt-dark="Preferences Engine tab in dark mode" data-alt-light="Preferences Engine tab in light mode" loading="lazy">
                 </div>
                 <figcaption>
-                  <span data-lang-block="en"><strong>Preferences → Engine (Dark):</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI, Isolate network, or reset all profile settings.</span>
-                  <span data-lang-block="pt"><strong>Preferências → Engine (Escuro):</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI, Isolate network ou redefina as configurações do perfil.</span>
-                </figcaption>
-              </figure>
-            </div>
-
-            <div class="tab-panel" data-panel="pref-engine-light" hidden>
-              <figure class="figure">
-                <div class="figure-img-wrap">
-                  <img src="./assets/img/preferences-engine-light.png" alt="Preferences Engine tab in light mode" loading="lazy">
-                </div>
-                <figcaption>
-                  <span data-lang-block="en"><strong>Preferences → Engine (Light):</strong> Light mode parity across all dialogs and preference sheets.</span>
-                  <span data-lang-block="pt"><strong>Preferências → Engine (Claro):</strong> Consistência total do modo claro em todas as janelas e diálogos.</span>
+                  <span data-lang-block="en"><strong>Preferences → Engine:</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI, Isolate network, or reset all profile settings.</span>
+                  <span data-lang-block="pt"><strong>Preferências → Engine:</strong> Configure Gamescope, Steam Deck tag, Gamescope WSI, Isolate network ou redefina as configurações do perfil.</span>
                 </figcaption>
               </figure>
             </div>
@@ -1453,8 +1443,8 @@ DRI_PRIME=1! %command%</code></pre>
             <text x="42" y="71" fill="#86d9a2" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">2. pasta (Opt-in Rootless Netns) — Dedicated LAN IPv4 (default: shared host network + isolated Steam3Master IPC)</text>
 
             <!-- bwrap layer -->
-            <rect x="42" y="84" width="736" height="190" rx="12" fill="rgba(132, 180, 250, 0.1)" stroke="#84b4fa" stroke-width="2"></rect>
-            <text x="58" y="107" fill="#84b4fa" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">3. bwrap (Bubblewrap Sandbox) — Isolated home_N, masked /dev/input, ~/.tw-in/ sockets, shared steamapps &amp; Proton, PULSE_SINK</text>
+            <rect x="42" y="84" width="736" height="190" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
+            <text x="58" y="107" fill="var(--accent)" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">3. bwrap (Bubblewrap Sandbox) — Isolated home_N, masked /dev/input, ~/.tw-in/ sockets, shared steamapps &amp; Proton, PULSE_SINK</text>
 
             <!-- gamescope layer -->
             <rect x="58" y="120" width="704" height="138" rx="10" fill="rgba(192, 168, 240, 0.1)" stroke="#c0a8f0" stroke-width="2"></rect>
@@ -1467,8 +1457,8 @@ DRI_PRIME=1! %command%</code></pre>
             <text x="88" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• libtwinverse_uinput.so + libtwinverse_udev.so (64/32-bit)</text>
             <text x="88" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Gamescope FPS limiter + SHM startup gate</text>
 
-            <rect x="420" y="158" width="326" height="84" rx="8" fill="rgba(132, 180, 250, 0.12)" stroke="#84b4fa" stroke-width="1.5"></rect>
-            <text x="434" y="180" fill="#84b4fa" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">Companion Services (Host / Per-Instance)</text>
+            <rect x="420" y="158" width="326" height="84" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"></rect>
+            <text x="434" y="180" fill="var(--accent)" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">Companion Services (Host / Per-Instance)</text>
             <text x="434" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• KWin D-Bus Resolver, panel dodge &amp; overlay focus</text>
             <text x="434" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• HOME + L3 shortcut monitor • inotify/GDK hotplug</text>
             <text x="434" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• overlay_focus.py • PipeWire • Placeholder joystick</text>
@@ -1800,11 +1790,6 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
       </section>
     </main>
 
-    <!-- Right On-This-Page TOC -->
-    <aside class="toc" aria-label="On this page">
-      <p id="toc-title" class="toc-title">On this page</p>
-      <ul id="toc-list" class="toc-list"></ul>
-    </aside>
   </div>
 
   <!-- Search Modal -->
