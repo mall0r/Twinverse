@@ -34,15 +34,15 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.2/share/screenshots/twinverse-session-dark.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.3/share/screenshots/twinverse-session-dark.png</image>
       <caption>Twinverse main window in dark mode</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.2/share/screenshots/twinverse-player-light.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.3/share/screenshots/twinverse-player-light.png</image>
       <caption>Twinverse main window in light mode</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.2/share/screenshots/twinverse-session-custom.png</image>
+      <image>https://raw.githubusercontent.com/mall0r/Twinverse/v2.0.0-alpha.3/share/screenshots/twinverse-session-custom.png</image>
       <caption>Multi-monitor mixed tiling templates and custom placement</caption>
     </screenshot>
   </screenshots>
@@ -58,6 +58,14 @@
   </provides>
 
   <releases>
+    <release version="2.0.0-alpha.3" date="2026-12-26" type="development">
+      <description>
+        <p>Press HOME + L3 to open the End Session confirmation without holding either button. Only the controller that opened it can navigate it, and its game input is paused while the confirmation is open.</p>
+        <p>Remember controller assignments across disconnects, refresh controllers and displays on hotplug, and prevent assigning the same controller to more than one player.</p>
+        <p>Keep assigned controllers separate from host Steam input so pressing Home no longer brings the host Steam window to the foreground.</p>
+        <p>Share host networking by default while keeping optional pasta isolation. Give each instance a separate Steam IPC port on shared networks and avoid replacing the host Steam login when it uses the same account.</p>
+      </description>
+    </release>
     <release version="2.0.0-alpha.2" date="2026-11-22" type="development">
       <description>
         <p>Add pure-Rust userspace /dev/uinput and libudev virtualization (64-bit and 32-bit) together with the twinverse-input-bridge host supervisor for full per-instance Steam Input, mid-session controller hotplug reconnection, identical controller isolation, and dynamic /dev/hidraw* filtering.</p>

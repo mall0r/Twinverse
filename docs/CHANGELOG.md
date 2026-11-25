@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file. This projec
 
 ## [Unreleased]
 
+## [2.0.0-alpha.3] - 2026-12-26
+
+### Added
+
+- Open the **End Session** confirmation by pressing `HOME + L3` together, without holding the buttons. Only the controller that opened it can navigate it, and its input to Steam and the game is paused until the confirmation closes.
+- Refresh the controller and display lists on hotplug, remember player controller assignments across disconnects, and mark disconnected controllers with a yellow indicator.
+- Show audio output badges and selection indicators while keeping audio outputs shareable.
+
+### Changed
+
+- Share the host network by default to avoid `pasta` UDP source-port conflicts when multiple local players join online multiplayer sessions. Per-instance `pasta` isolation remains available in **Preferences → Engine**.
+- Prevent assigning the same controller to multiple players and show the owning player's number in other players' dropdowns.
+- Use title case for action buttons.
+
+### Fixed
+
+- Keep the host Steam window from taking focus when `HOME` is pressed on an assigned controller by isolating its evdev input for the duration of the session.
+- Prevent loss of controller input in Big Picture and games on the shared host network by giving each instance a separate Steam3Master IPC port.
+- Avoid Steam's `Session Replaced` error when an instance and host Steam use the same account by passing a distinct private IP override for each instance.
+
 ## [2.0.0-alpha.2] - 2026-11-22
 
 ### Added
