@@ -138,8 +138,10 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "player.refresh_controllers": "Refresh controllers",
         "player.controller_label": "_Controller",
         "player.controller_none": "None",
+        "player.controller_disconnected_label": "{name} (Disconnected)",
         "player.controller_tooltip": (
-            "Assign a gamepad to this player. If controllers are missing after refreshing, "
+            "Assign a gamepad to this player. The last assigned controller is remembered even when disconnected "
+            "and connects automatically once turned on. If controllers are missing after refreshing, "
             "check that your user belongs to the input group; see the guide for details."
         ),
         "player.grab_mouse_label": "_Grab mouse",
@@ -378,8 +380,10 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "player.refresh_controllers": "Atualizar controles",
         "player.controller_label": "_Controle",
         "player.controller_none": "Nenhum",
+        "player.controller_disconnected_label": "{name} (Desconectado)",
         "player.controller_tooltip": (
-            "Atribua um controle a este jogador. Se os controles não aparecerem após atualizar, "
+            "Atribua um controle a este jogador. O último controle atribuído é lembrado mesmo desconectado "
+            "e conecta automaticamente ao ser ligado. Se os controles não aparecerem após atualizar, "
             "verifique se seu usuário pertence ao grupo input; consulte o guia para mais detalhes."
         ),
         "player.grab_mouse_label": "_Capturar mouse",

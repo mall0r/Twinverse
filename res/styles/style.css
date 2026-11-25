@@ -544,6 +544,12 @@
 .light .slot-mouse-icon {
     opacity: 0.92;
 }
+.slot-controller-icon.slot-controller-disconnected {
+    opacity: 0.42;
+}
+.light .slot-controller-icon.slot-controller-disconnected {
+    opacity: 0.45;
+}
 .slot-number {
     font-size: 39px;
     font-weight: 300;
@@ -937,6 +943,12 @@
 }
 .light .inspector-dropdown > button:not(:disabled):active {
     background: #e2e2e2;
+}
+.inspector-dropdown.controller-disconnected > button label {
+    color: @studio_muted;
+}
+.light .inspector-dropdown.controller-disconnected > button label {
+    color: @studio_muted_light;
 }
 .inspector-controller-option {
     min-height: 22px;

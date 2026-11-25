@@ -10,11 +10,18 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, GLib, Gtk, Pango  # noqa: E402
 
+from src.core.i18n import (  # noqa: E402
+    LANGUAGE_EN,
+    LANGUAGE_PT_BR,
+    get_language_preference,
+    set_language,
+)
 from src.gui.widgets.marquee_label import (  # noqa: E402
     MarqueeLabel,
     compute_marquee_offset,
 )
 from src.gui.widgets.player_row import PlayerRow, _ControllerOptionRow  # noqa: E402
+from src.models import PlayerInstanceConfig  # noqa: E402
 
 
 def _pump_events(duration_seconds: float = 0.15) -> None:
@@ -229,5 +236,89 @@ def test_controller_dropdown_marks_selected_option_with_dot_and_scrolls_long_nam
     finally:
         if settings is not None:
             settings.set_property("gtk-enable-animations", previous_animations)
+        win.destroy()
+        _pump_events(0.05)
+
+
+def test_controller_dropdown_remembers_disconnected_option_and_retranslates():
+    """Remembered disconnected controllers appear in the popover, retranslate live, and prune on clear."""
+    _require_gtk_display()
+    previous_lang = get_language_preference()
+    devices = {
+        "joystick": [
+            {"id": "/dev/input/by-id/usb-xbox-event-joystick", "name": "Xbox Wireless Controller"},
+        ],
+        "audio": [],
+    }
+    remembered_id = "/dev/input/by-id/usb-dualsense-event-joystick"
+
+    win = Gtk.Window()
+    win.set_default_size(360, 520)
+    player_row = PlayerRow(1, devices)
+    win.set_child(player_row)
+
+    try:
+        set_language(LANGUAGE_EN)
+        player_row.retranslate()
+        player_row.load_config(
+            PlayerInstanceConfig(
+                PHYSICAL_DEVICE_ID=remembered_id,
+                PHYSICAL_DEVICE_NAME="DualSense Controller",
+            )
+        )
+        win.present()
+        _pump_events(0.15)
+
+        button = player_row.joystick_row.get_first_child()
+        for popover in _find_descendants(player_row.joystick_row, Gtk.Popover):
+            popover.set_autohide(False)
+
+        button.emit("clicked")
+        _pump_events(0.15)
+
+        option_rows = _find_descendants(player_row.joystick_row, _ControllerOptionRow)
+        assert [opt.label.get_text() for opt in option_rows] == [
+            "None",
+            "Xbox Wireless Controller",
+            "DualSense Controller (Disconnected)",
+        ]
+        assert [opt.is_selected_option() for opt in option_rows] == [False, False, True]
+        assert player_row.joystick_row.has_css_class("controller-disconnected")
+
+        # Switching language retranslates the disconnected label in place while preserving selection.
+        set_language(LANGUAGE_PT_BR)
+        player_row.retranslate()
+        _pump_events(0.1)
+        model = player_row.joystick_row.get_model()
+        assert [model.get_string(i) for i in range(model.get_n_items())] == [
+            "Nenhum",
+            "Xbox Wireless Controller",
+            "DualSense Controller (Desconectado)",
+        ]
+        assert player_row.joystick_row.get_selected() == 2
+        assert player_row.get_config().physical_device_id == remembered_id
+        assert player_row.get_config().physical_device_name == "DualSense Controller"
+
+        set_language(LANGUAGE_EN)
+        player_row.retranslate()
+        _pump_events(0.1)
+        assert [model.get_string(i) for i in range(model.get_n_items())] == [
+            "None",
+            "Xbox Wireless Controller",
+            "DualSense Controller (Disconnected)",
+        ]
+
+        # Selecting None prunes the stale disconnected entry cleanly even while the popover is open.
+        player_row.joystick_row.set_selected(0)
+        _pump_events(0.1)
+        assert [model.get_string(i) for i in range(model.get_n_items())] == [
+            "None",
+            "Xbox Wireless Controller",
+        ]
+        assert not player_row.joystick_row.has_css_class("controller-disconnected")
+        assert player_row.get_config().physical_device_id is None
+        assert player_row.get_config().physical_device_name is None
+    finally:
+        set_language(previous_lang)
         win.destroy()
         _pump_events(0.05)

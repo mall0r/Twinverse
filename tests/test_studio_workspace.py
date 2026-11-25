@@ -710,38 +710,101 @@ def test_opening_player_setup_in_light_mode_does_not_shift_session_layout(window
         style.set_color_scheme(previous_scheme)
 
 
-def test_disconnected_controllers_are_omitted_from_ui_and_canvas(window):
-    """Unplugged controllers must not appear as Unavailable entries or show a canvas badge."""
+def test_disconnected_controllers_are_remembered_across_refresh_reconnect_and_clear(window):
+    """Remembered controllers persist while unplugged, reconnect cleanly, and clear only on explicit change."""
     page = window.get_layout_page()
     displays = [{"name": "HDMI-A-1", "width": 1920, "height": 1080}]
+    pad_id = "/dev/input/by-id/usb-xbox_pad-event-joystick"
+    other_pad_id = "/dev/input/by-id/usb-dualsense_pad-event-joystick"
+
+    # Legacy profile with only PHYSICAL_DEVICE_ID derives a clean readable name (never raw path).
     profile = Profile(
         num_players=2,
         PLAYERS=[
-            PlayerInstanceConfig(PHYSICAL_DEVICE_ID="/dev/input/by-id/usb-disconnected-event-joystick"),
+            PlayerInstanceConfig(PHYSICAL_DEVICE_ID=pad_id),
             PlayerInstanceConfig(),
         ],
     )
     page.load_data(profile, {"displays": displays, "joystick": [], "audio": []}, {0: True, 1: True})
     row = page.player_rows[0]
+    icon = page.layout_preview._slots[0].controller_icon
     model = row.joystick_row.get_model()
     labels = [model.get_string(i) for i in range(model.get_n_items())]
-    assert labels == ["None"]
-    assert row.joystick_row.get_selected() == 0
-    assert not row.has_controller_selected()
-    assert row.get_config().physical_device_id is None
-    assert not page.layout_preview._slots[0].controller_icon.get_visible()
-
-    # Connecting and selecting a controller shows the badge; unplugging clears it cleanly.
-    connected = [{"id": "/dev/input/by-id/usb-pad-event-joystick", "name": "Xbox Pad"}]
-    page.update_devices_info({"displays": displays, "joystick": connected, "audio": []})
-    row.joystick_row.set_selected(1)
+    assert labels == ["None", "Xbox Pad (Disconnected)"]
+    assert row.joystick_row.get_selected() == 1
     assert row.has_controller_selected()
-    assert page.layout_preview._slots[0].controller_icon.get_visible()
+    assert not row.is_controller_connected()
+    assert row.joystick_row.has_css_class("controller-disconnected")
+    assert row.get_config().physical_device_id == pad_id
+    assert icon.get_visible()
+    assert icon.has_css_class("slot-controller-disconnected")
+    assert icon.get_tooltip_text() == "Xbox Pad (Disconnected)"
 
+    # Refreshing while still unplugged keeps the remembered entry without duplicating suffixes.
     page.update_devices_info({"displays": displays, "joystick": [], "audio": []})
     model = row.joystick_row.get_model()
-    labels = [model.get_string(i) for i in range(model.get_n_items())]
-    assert labels == ["None"]
-    assert row.joystick_row.get_selected() == 0
+    assert [model.get_string(i) for i in range(model.get_n_items())] == ["None", "Xbox Pad (Disconnected)"]
+    assert row.joystick_row.get_selected() == 1
+    assert row.get_config().physical_device_id == pad_id
+
+    # Reconnecting the same controller resolves to the live connected entry without duplicates.
+    connected = [{"id": pad_id, "name": "Xbox Wireless Controller"}]
+    page.update_devices_info({"displays": displays, "joystick": connected, "audio": []})
+    model = row.joystick_row.get_model()
+    assert [model.get_string(i) for i in range(model.get_n_items())] == ["None", "Xbox Wireless Controller"]
+    assert row.joystick_row.get_selected() == 1
+    assert row.has_controller_selected()
+    assert row.is_controller_connected()
+    assert not row.joystick_row.has_css_class("controller-disconnected")
+    assert icon.get_visible()
+    assert not icon.has_css_class("slot-controller-disconnected")
+    assert icon.get_tooltip_text() == "Xbox Wireless Controller"
+
+    # Turning the controller off remembers its friendly name and dims the badge.
+    page.update_devices_info({"displays": displays, "joystick": [], "audio": []})
+    model = row.joystick_row.get_model()
+    assert [model.get_string(i) for i in range(model.get_n_items())] == [
+        "None",
+        "Xbox Wireless Controller (Disconnected)",
+    ]
+    assert row.joystick_row.get_selected() == 1
+    assert row.has_controller_selected()
+    assert not row.is_controller_connected()
+    assert row.joystick_row.has_css_class("controller-disconnected")
+    saved_cfg = row.get_config()
+    assert saved_cfg.physical_device_id == pad_id
+    assert saved_cfg.physical_device_name == "Xbox Wireless Controller"
+    assert page.get_data()["player_configs"][0].physical_device_id == pad_id
+    assert icon.get_visible()
+    assert icon.has_css_class("slot-controller-disconnected")
+    assert icon.get_tooltip_text() == "Xbox Wireless Controller (Disconnected)"
+
+    # Selecting a different connected controller replaces the remembered entry and prunes the stale one.
+    other_connected = [{"id": other_pad_id, "name": "DualSense Controller"}]
+    page.update_devices_info({"displays": displays, "joystick": other_connected, "audio": []})
+    model = row.joystick_row.get_model()
+    assert [model.get_string(i) for i in range(model.get_n_items())] == [
+        "None",
+        "DualSense Controller",
+        "Xbox Wireless Controller (Disconnected)",
+    ]
+    assert row.joystick_row.get_selected() == 2
+    row.joystick_row.set_selected(1)
+    model = row.joystick_row.get_model()
+    assert [model.get_string(i) for i in range(model.get_n_items())] == ["None", "DualSense Controller"]
+    assert row.is_controller_connected()
+    assert row.get_config().physical_device_id == other_pad_id
+    assert row.get_config().physical_device_name == "DualSense Controller"
+
+    # Unplugging again and explicitly choosing None clears the assignment permanently.
+    page.update_devices_info({"displays": displays, "joystick": [], "audio": []})
+    assert row.joystick_row.get_selected() == 1
+    row.joystick_row.set_selected(0)
+    model = row.joystick_row.get_model()
+    assert [model.get_string(i) for i in range(model.get_n_items())] == ["None"]
     assert not row.has_controller_selected()
-    assert not page.layout_preview._slots[0].controller_icon.get_visible()
+    assert not row.is_controller_connected()
+    assert not row.joystick_row.has_css_class("controller-disconnected")
+    assert row.get_config().physical_device_id is None
+    assert row.get_config().physical_device_name is None
+    assert not icon.get_visible()

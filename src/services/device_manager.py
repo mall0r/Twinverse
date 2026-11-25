@@ -18,6 +18,7 @@ from screeninfo import get_monitors
 
 from src.core import LayoutCalculator
 from src.core.tiling import build_tiling_plan
+from src.core.utils import format_input_device_name
 from src.models import Profile
 
 logger = logging.getLogger(__name__)
@@ -73,12 +74,7 @@ class DeviceManager:
         Returns:
             The name with path prefixes and technical suffixes stripped.
         """
-        name_part = device_id_full.replace("/dev/input/by-id/", "")
-        name_part = re.sub(r"-event-(kbd|mouse|joystick)", "", name_part)
-        name_part = re.sub(r"-if\d+", "", name_part)
-        name_part = name_part.replace("usb-", "").replace("_", " ")
-        name_part = " ".join([word.capitalize() for word in name_part.split(" ")]).strip()
-        return name_part
+        return format_input_device_name(device_id_full)
 
     def get_input_devices(self) -> Dict[str, List[Dict[str, str]]]:
         """

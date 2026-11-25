@@ -13,6 +13,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, GObject, Gtk, Pango
 
 from src.core.i18n import TRANSLATIONS, t
+from src.core.utils import format_input_device_name
 from src.gui.widgets.env_variable_row import EnvVariableRow
 from src.gui.widgets.marquee_label import MarqueeLabel
 from src.gui.widgets.spinner import StudioSpinner
@@ -89,6 +90,7 @@ class PlayerRow(Gtk.Box):
         self._player_name = t("player.default_name")
         self._editing_name = False
         self._devices_info = {kind: list(devices_info.get(kind, [])) for kind in ("joystick", "audio")}
+        self._joystick_options, _ = self._build_joystick_options(self._devices_info["joystick"])
         self._parent_page = None
         self._is_loading = False
         self._is_verified = False
@@ -285,9 +287,8 @@ class PlayerRow(Gtk.Box):
         controls, self._controls_heading_label = self._create_section(
             t("player.controls_section"), "twinverse-gamepad-symbolic", action=self.refresh_controllers_button
         )
-        joysticks = self._devices_info["joystick"]
         self.joystick_row = self._create_dropdown(
-            [t("player.controller_none")] + [device["name"] for device in joysticks]
+            self._joystick_dropdown_labels(), on_selected=self._on_joystick_selected
         )
         self.joystick_row.set_list_factory(self._create_controller_list_factory(self.joystick_row))
         self._controller_field, self._controller_label = self._create_field(
@@ -442,6 +443,96 @@ class PlayerRow(Gtk.Box):
         item.get_child().set_text(text)
         item.get_child().set_tooltip_text(text)
 
+    @staticmethod
+    def _format_joystick_label(option: dict) -> str:
+        name = (option.get("name") or "").strip() or format_input_device_name(option.get("id") or "")
+        if option.get("disconnected"):
+            return t("player.controller_disconnected_label", name=name)
+        return name
+
+    def _joystick_dropdown_labels(self) -> list[str]:
+        return [t("player.controller_none")] + [self._format_joystick_label(opt) for opt in self._joystick_options]
+
+    @staticmethod
+    def _find_connected_device_index(device_list: list[dict], device_id: str) -> Optional[int]:
+        canonical_id = os.path.realpath(device_id) if os.path.isabs(device_id) else None
+        for index, device in enumerate(device_list):
+            if device["id"] == device_id or (
+                canonical_id is not None and os.path.realpath(device["id"]) == canonical_id
+            ):
+                return index
+        return None
+
+    @classmethod
+    def _build_joystick_options(
+        cls,
+        connected_devices: list[dict],
+        remembered_id: Optional[str] = None,
+        remembered_name: Optional[str] = None,
+    ) -> tuple[list[dict], int]:
+        options = [
+            {
+                "id": device["id"],
+                "name": (device.get("name") or "").strip() or format_input_device_name(device["id"]),
+                "disconnected": False,
+            }
+            for device in connected_devices
+        ]
+        cleaned_id = (remembered_id or "").strip()
+        if not cleaned_id:
+            return options, 0
+
+        connected_idx = cls._find_connected_device_index(connected_devices, cleaned_id)
+        if connected_idx is not None:
+            return options, connected_idx + 1
+
+        display_name = (remembered_name or "").strip() or format_input_device_name(cleaned_id) or cleaned_id
+        options.append({"id": cleaned_id, "name": display_name, "disconnected": True})
+        return options, len(options)
+
+    def _rebuild_joystick_model(self, device_id: Optional[str], device_name: Optional[str] = None) -> None:
+        self._joystick_options, selected_idx = self._build_joystick_options(
+            self._devices_info["joystick"], device_id, device_name
+        )
+        self.joystick_row.set_model(Gtk.StringList.new(self._joystick_dropdown_labels()))
+        self.joystick_row.set_selected(selected_idx)
+        self._sync_joystick_disconnected_style()
+
+    def _selected_joystick_option(self) -> Optional[dict]:
+        selected_idx = self.joystick_row.get_selected()
+        if 0 < selected_idx <= len(self._joystick_options):
+            return self._joystick_options[selected_idx - 1]
+        return None
+
+    def _prune_unselected_disconnected_joystick(self) -> None:
+        if not self._joystick_options or not self._joystick_options[-1].get("disconnected"):
+            return
+        if self.joystick_row.get_selected() == len(self._joystick_options):
+            return
+        self._joystick_options.pop()
+        model = self.joystick_row.get_model()
+        if isinstance(model, Gtk.StringList) and model.get_n_items() == len(self._joystick_options) + 2:
+            was_loading = self._is_loading
+            self._is_loading = True
+            try:
+                model.remove(model.get_n_items() - 1)
+            finally:
+                self._is_loading = was_loading
+
+    def _sync_joystick_disconnected_style(self) -> None:
+        opt = self._selected_joystick_option()
+        if opt is not None and opt.get("disconnected"):
+            self.joystick_row.add_css_class("controller-disconnected")
+        else:
+            self.joystick_row.remove_css_class("controller-disconnected")
+
+    def _on_joystick_selected(self, *_args):
+        if self._is_loading:
+            return
+        self._prune_unselected_disconnected_joystick()
+        self._sync_joystick_disconnected_style()
+        self._on_setting_changed()
+
     def _create_env_section(self):
         self.env_expander = Gtk.Expander()
         self.env_expander.add_css_class("inspector-env-expander")
@@ -502,20 +593,34 @@ class PlayerRow(Gtk.Box):
             for env_row in self._env_rows:
                 env_row.retranslate()
 
-            for dropdown, default_label in (
-                (self.joystick_row, t("player.controller_none")),
-                (self.audio_row, t("player.audio_default")),
+            joystick_model = self.joystick_row.get_model()
+            expected_joystick_labels = self._joystick_dropdown_labels()
+            if isinstance(joystick_model, Gtk.StringList) and joystick_model.get_n_items() == len(
+                expected_joystick_labels
             ):
-                model = dropdown.get_model()
-                if isinstance(model, Gtk.StringList) and model.get_n_items() >= 1:
-                    selected_idx = dropdown.get_selected()
-                    if model.get_string(0) != default_label:
-                        model.splice(0, 1, [default_label])
-                        if dropdown.get_selected() != selected_idx:
-                            dropdown.set_selected(selected_idx)
-                else:
-                    self.update_devices(self._devices_info)
-                    break
+                selected_idx = self.joystick_row.get_selected()
+                for idx, label in enumerate(expected_joystick_labels):
+                    if joystick_model.get_string(idx) != label:
+                        joystick_model.splice(idx, 1, [label])
+                if self.joystick_row.get_selected() != selected_idx:
+                    self.joystick_row.set_selected(selected_idx)
+            else:
+                selected_joystick = self._selected_joystick_option()
+                self._rebuild_joystick_model(
+                    selected_joystick["id"] if selected_joystick is not None else None,
+                    selected_joystick.get("name") if selected_joystick is not None else None,
+                )
+
+            audio_model = self.audio_row.get_model()
+            audio_default = t("player.audio_default")
+            if isinstance(audio_model, Gtk.StringList) and audio_model.get_n_items() >= 1:
+                selected_idx = self.audio_row.get_selected()
+                if audio_model.get_string(0) != audio_default:
+                    audio_model.splice(0, 1, [audio_default])
+                    if self.audio_row.get_selected() != selected_idx:
+                        self.audio_row.set_selected(selected_idx)
+            else:
+                self.update_devices(self._devices_info)
 
             self._update_button_state()
             self._update_status_icon()
@@ -567,17 +672,20 @@ class PlayerRow(Gtk.Box):
         return self.checkbox.get_active()
 
     def has_controller_selected(self) -> bool:
-        """Return whether this player currently has a controller assigned."""
-        return self._get_combo_device_id(self.joystick_row, self._devices_info["joystick"]) is not None
+        """Return whether this player currently has a controller assigned (connected or remembered)."""
+        return self._selected_joystick_option() is not None
+
+    def is_controller_connected(self) -> bool:
+        """Return whether this player's assigned controller is currently connected."""
+        opt = self._selected_joystick_option()
+        return opt is not None and not opt.get("disconnected", False)
 
     def get_selected_controller_name(self) -> Optional[str]:
-        """Return the name of the controller currently assigned to this player."""
-        selected_idx = self.joystick_row.get_selected()
-        devices = self._devices_info["joystick"]
-        if 0 < selected_idx <= len(devices):
-            name = (devices[selected_idx - 1].get("name") or "").strip()
-            return name or devices[selected_idx - 1].get("id") or None
-        return None
+        """Return the display label of the controller currently assigned to this player."""
+        opt = self._selected_joystick_option()
+        if opt is None:
+            return None
+        return self._format_joystick_label(opt) or opt.get("id") or None
 
     def has_grab_mouse(self) -> bool:
         """Return whether this player currently has mouse capture enabled."""
@@ -595,31 +703,32 @@ class PlayerRow(Gtk.Box):
         self._parent_page = parent_page
 
     def update_devices(self, devices_info: dict):
-        """Replace device models while retaining assignments by ID, not index."""
-        current_joystick = self._get_combo_device_id(self.joystick_row, self._devices_info["joystick"])
+        """Replace device models while retaining assignments by ID, even when disconnected."""
+        selected_joystick = self._selected_joystick_option()
+        current_joystick_id = selected_joystick["id"] if selected_joystick is not None else None
+        current_joystick_name = selected_joystick.get("name") if selected_joystick is not None else None
         current_audio = self._get_combo_device_id(self.audio_row, self._devices_info["audio"])
         was_loading = self._is_loading
         self._is_loading = True
         try:
             self._devices_info = {kind: list(devices_info.get(kind, [])) for kind in ("joystick", "audio")}
-            for dropdown, kind, default, device_id in (
-                (self.joystick_row, "joystick", t("player.controller_none"), current_joystick),
-                (self.audio_row, "audio", t("player.audio_default"), current_audio),
-            ):
-                devices = self._devices_info[kind]
-                dropdown.set_model(Gtk.StringList.new([default] + [device["name"] for device in devices]))
-                self._set_combo_selection(dropdown, devices, device_id)
+            self._rebuild_joystick_model(current_joystick_id, current_joystick_name)
+            audio_devices = self._devices_info["audio"]
+            self.audio_row.set_model(
+                Gtk.StringList.new([t("player.audio_default")] + [device["name"] for device in audio_devices])
+            )
+            self._set_combo_selection(self.audio_row, audio_devices, current_audio)
         finally:
             self._is_loading = was_loading
 
     def load_config(self, config: PlayerInstanceConfig):
-        """Restore settings silently, replacing any previous variable editors."""
+        """Restore settings silently, retaining remembered controllers even when disconnected."""
         was_loading = self._is_loading
         self._is_loading = True
         try:
             self.set_player_name(config.name)
             self.grab_input_switch.set_active(config.grab_input_devices)
-            self._set_combo_selection(self.joystick_row, self._devices_info["joystick"], config.physical_device_id)
+            self._rebuild_joystick_model(config.physical_device_id, config.physical_device_name)
             self._set_combo_selection(self.audio_row, self._devices_info["audio"], config.audio_device_id)
             self.guest_ip_row.set_text(config.guest_ip or "")
             for env_row in self._env_rows:
@@ -633,9 +742,13 @@ class PlayerRow(Gtk.Box):
 
     def get_config(self) -> PlayerInstanceConfig:
         """Read settings; environment values are deliberately not stripped."""
+        selected_joystick = self._selected_joystick_option()
+        joystick_id = selected_joystick["id"] if selected_joystick is not None else None
+        joystick_name = (selected_joystick.get("name") or "").strip() or None if selected_joystick is not None else None
         return PlayerInstanceConfig(
             NAME=self._custom_name,
-            PHYSICAL_DEVICE_ID=self._get_combo_device_id(self.joystick_row, self._devices_info["joystick"]),
+            PHYSICAL_DEVICE_ID=joystick_id,
+            PHYSICAL_DEVICE_NAME=joystick_name,
             GRAB_INPUT_DEVICES=self.grab_input_switch.get_active(),
             AUDIO_DEVICE_ID=self._get_combo_device_id(self.audio_row, self._devices_info["audio"]),
             ENV=self._collect_env_vars(),
@@ -782,14 +895,8 @@ class PlayerRow(Gtk.Box):
         if not device_id:
             combo_row.set_selected(0)
             return
-        canonical_id = os.path.realpath(device_id) if os.path.isabs(device_id) else None
-        for index, device in enumerate(device_list):
-            if device["id"] == device_id or (
-                canonical_id is not None and os.path.realpath(device["id"]) == canonical_id
-            ):
-                combo_row.set_selected(index + 1)
-                return
-        combo_row.set_selected(0)
+        index = self._find_connected_device_index(device_list, device_id)
+        combo_row.set_selected(index + 1 if index is not None else 0)
 
     def _get_combo_device_id(self, combo_row, device_list):
         selected_idx = combo_row.get_selected()

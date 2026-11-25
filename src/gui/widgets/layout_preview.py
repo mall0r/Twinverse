@@ -239,6 +239,7 @@ class LayoutPreview(Gtk.Box):
         self._active_player: int | None = None
         self._player_statuses: dict[int, str] = {}
         self._player_controllers: dict[int, str | None] = {}
+        self._player_controllers_disconnected: dict[int, bool] = {}
         self._player_mouse_grabs: dict[int, bool] = {}
         self._player_names: dict[int, str] = {}
         self._updating = False
@@ -566,7 +567,12 @@ class LayoutPreview(Gtk.Box):
         for slot in range(len(self._slots)):
             self._refresh_slot(slot)
 
-    def set_player_controllers(self, controllers: Mapping[int, bool | str | None]):
+    def set_player_controllers(
+        self,
+        controllers: Mapping[int, bool | str | None],
+        *,
+        disconnected: Mapping[int, bool] | None = None,
+    ):
         """Update per-player controller badges in place, preserving widgets and keyboard focus."""
         normalized: dict[int, str | None] = {}
         for player, assigned in controllers.items():
@@ -577,6 +583,11 @@ class LayoutPreview(Gtk.Box):
             else:
                 normalized[player] = None
         self._player_controllers = normalized
+        self._player_controllers_disconnected = (
+            {player: bool(is_disconnected) for player, is_disconnected in disconnected.items()}
+            if disconnected is not None
+            else {}
+        )
         for slot in range(len(self._slots)):
             self._refresh_slot(slot)
 
@@ -1053,6 +1064,7 @@ class LayoutPreview(Gtk.Box):
         if instance is None:
             widgets.controller_icon.set_visible(False)
             widgets.controller_icon.set_tooltip_text(None)
+            widgets.controller_icon.remove_css_class("slot-controller-disconnected")
             widgets.mouse_icon.set_visible(False)
             widgets.status_icon.set_from_icon_name("twinverse-dot-symbolic")
             widgets.status_icon.set_pixel_size(8)
@@ -1070,8 +1082,13 @@ class LayoutPreview(Gtk.Box):
             )
             return
         controller_name = self._player_controllers.get(instance)
+        controller_disconnected = bool(controller_name) and self._player_controllers_disconnected.get(instance, False)
         widgets.controller_icon.set_visible(bool(controller_name))
         widgets.controller_icon.set_tooltip_text(controller_name)
+        if controller_disconnected:
+            widgets.controller_icon.add_css_class("slot-controller-disconnected")
+        else:
+            widgets.controller_icon.remove_css_class("slot-controller-disconnected")
         widgets.mouse_icon.set_visible(bool(self._player_mouse_grabs.get(instance, False)))
         widgets.mouse_icon.set_tooltip_text(t("preview.mouse_grab_tooltip"))
         raw_name = self._player_names.get(instance)

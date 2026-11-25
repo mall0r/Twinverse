@@ -33,6 +33,7 @@ class PlayerInstanceConfig(BaseModel):
 
     name: Optional[str] = Field(default=None, alias="NAME")
     physical_device_id: Optional[str] = Field(default=None, alias="PHYSICAL_DEVICE_ID")
+    physical_device_name: Optional[str] = Field(default=None, alias="PHYSICAL_DEVICE_NAME")
     grab_input_devices: bool = Field(default=False, alias="GRAB_INPUT_DEVICES")
     audio_device_id: Optional[str] = Field(default=None, alias="AUDIO_DEVICE_ID")
     env: Optional[Dict[str, str]] = Field(default=None, alias="ENV")
@@ -48,6 +49,17 @@ class PlayerInstanceConfig(BaseModel):
         if not cleaned or cleaned in _DEFAULT_PLAYER_NAMES:
             return None
         return cleaned
+
+    @model_validator(mode="after")
+    def normalize_physical_device(self):
+        """Trim saved controller metadata and drop stale names when unassigned."""
+        if self.physical_device_id is not None:
+            self.physical_device_id = self.physical_device_id.strip() or None
+        if self.physical_device_id is None:
+            self.physical_device_name = None
+        elif self.physical_device_name is not None:
+            self.physical_device_name = self.physical_device_name.strip() or None
+        return self
 
     @property
     def display_name(self) -> str:

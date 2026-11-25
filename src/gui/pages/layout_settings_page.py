@@ -613,6 +613,7 @@ class LayoutSettingsPage(Gtk.Box):
             return
         statuses = {}
         controllers = {}
+        disconnected_controllers = {}
         mouse_grabs = {}
         names = {}
         for pos, player in enumerate(self.player_rows):
@@ -623,6 +624,9 @@ class LayoutSettingsPage(Gtk.Box):
             names[instance_num] = player_name
             statuses[instance_num] = status
             controllers[instance_num] = player.get_selected_controller_name()
+            disconnected_controllers[instance_num] = (
+                player.has_controller_selected() and not player.is_controller_connected()
+            )
             mouse_grabs[instance_num] = player.has_grab_mouse()
             self._roster_names[pos].set_label(player_name)
             self._roster_names[pos].set_tooltip_text(player_name if player_name not in _DEFAULT_PLAYER_NAMES else None)
@@ -648,7 +652,7 @@ class LayoutSettingsPage(Gtk.Box):
                 item.add_css_class("party-excluded")
         self.layout_preview.set_player_names(names)
         self.layout_preview.set_player_statuses(statuses)
-        self.layout_preview.set_player_controllers(controllers)
+        self.layout_preview.set_player_controllers(controllers, disconnected=disconnected_controllers)
         self.layout_preview.set_player_mouse_grabs(mouse_grabs)
 
         count = len(self._displays)

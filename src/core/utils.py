@@ -1,10 +1,35 @@
 """Utilities shared across the application."""
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 from typing import List, Literal, Optional, Union, overload
+
+
+def format_input_device_name(device_id_full: str) -> str:
+    """
+    Generate a human-readable name from an input device path.
+
+    Args:
+        device_id_full: A path under ``/dev/input/by-id/`` (or another input device path).
+
+    Returns:
+        The name with path prefixes and technical suffixes stripped, or the
+        trimmed input when stripping leaves nothing.
+    """
+    cleaned = (device_id_full or "").strip()
+    if not cleaned:
+        return ""
+    name_part = cleaned.replace("/dev/input/by-id/", "")
+    name_part = name_part.replace("/dev/input/by-path/", "")
+    name_part = name_part.replace("/dev/input/", "")
+    name_part = re.sub(r"-event-(kbd|mouse|joystick)", "", name_part)
+    name_part = re.sub(r"-if\d+", "", name_part)
+    name_part = name_part.replace("usb-", "").replace("_", " ")
+    name_part = " ".join([word.capitalize() for word in name_part.split(" ") if word]).strip()
+    return name_part or cleaned
 
 
 class Utils:
