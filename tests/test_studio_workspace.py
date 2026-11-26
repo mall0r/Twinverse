@@ -527,6 +527,8 @@ def test_controls_section_has_right_aligned_icon_only_refresh_button(window):
 
     collect_labels(row)
     assert labels.count("Controls") == 1
+    assert "Controller" not in labels
+    assert heading.get_next_sibling() is row.joystick_row
 
     assert button.get_icon_name() == "twinverse-refresh-symbolic"
     assert button.get_label() is None
@@ -539,6 +541,21 @@ def test_controls_section_has_right_aligned_icon_only_refresh_button(window):
 
     button.emit("clicked")
     window._presenter.on_devices_refresh_requested.assert_called_once_with()
+
+
+def test_grab_mouse_has_its_own_section_with_a_mouse_icon(window):
+    """Keep mouse capture visually separate from controller selection."""
+    row = window.get_layout_page().player_rows[0]
+    heading = row.grab_input_switch.get_parent()
+    section = heading.get_parent()
+    separator = section.get_prev_sibling()
+
+    assert isinstance(separator, Gtk.Separator)
+    assert separator.get_prev_sibling() is row.joystick_row.get_parent()
+    assert heading.get_first_child().get_icon_name() == "mouse-wireless-symbolic"
+    assert row._grab_heading_label.get_text() == "Grab mouse"
+    assert heading.get_last_child() is row.grab_input_switch
+    assert section.get_last_child() is row._grab_help
 
 
 def test_toast_levels_replace_previous_styles_and_preserve_base_classes(window):

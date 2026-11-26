@@ -234,6 +234,7 @@ def test_player_row_and_layout_page_live_language_switch(gtk_display):
     assert page._inspector_eyebrow_label.get_label() == "CONFIGURAÇÃO DO JOGADOR"
     assert page.display_summary.get_label() == "1 monitor"
     assert row0.get_player_name() == "Jogador"
+    assert row0._grab_heading_label.get_text() == "Capturar mouse"
     assert row0.get_status_text() == "Pronto"
     assert row0.launch_button.get_label() == "Iniciar Jogador"
     assert row1.get_status_text() == "Não instalado"

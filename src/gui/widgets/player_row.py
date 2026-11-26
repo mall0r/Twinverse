@@ -364,27 +364,21 @@ class PlayerRow(Gtk.Box):
         )
         self._sync_joystick_item_map()
         self.joystick_row.set_list_factory(self._create_controller_list_factory(self.joystick_row))
-        self._controller_field, self._controller_label = self._create_field(
-            t("player.controller_label"), self.joystick_row
-        )
-        self._controller_field.set_tooltip_text(t("player.controller_tooltip"))
-        controls.append(self._controller_field)
+        self.joystick_row.set_tooltip_text(t("player.controller_tooltip"))
+        self.joystick_row.update_property([Gtk.AccessibleProperty.LABEL], [t("player.controller_label")])
+        controls.append(self.joystick_row)
 
-        grab_line = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        grab_line.add_css_class("inspector-toggle")
-        grab_labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
-        self._grab_label = Gtk.Label(label=t("player.grab_mouse_label"), use_underline=True, xalign=0)
-        self._grab_label.add_css_class("inspector-field-label")
-        grab_labels.append(self._grab_label)
-        self._grab_help = self._help_label(t("player.grab_mouse_help"))
-        grab_labels.append(self._grab_help)
-        grab_line.append(grab_labels)
+        self._content.append(Gtk.Separator())
         self.grab_input_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         self.grab_input_switch.add_css_class("inspector-switch")
-        self._grab_label.set_mnemonic_widget(self.grab_input_switch)
         self.grab_input_switch.connect("notify::active", self._on_grab_input_toggled)
-        grab_line.append(self.grab_input_switch)
-        controls.append(grab_line)
+        grab_section, self._grab_heading_label = self._create_section(
+            t("player.grab_mouse_label"), "mouse-wireless-symbolic", action=self.grab_input_switch
+        )
+        self._grab_heading_label.set_use_underline(True)
+        self._grab_heading_label.set_mnemonic_widget(self.grab_input_switch)
+        self._grab_help = self._help_label(t("player.grab_mouse_help"))
+        grab_section.append(self._grab_help)
 
         self._content.append(Gtk.Separator())
         audio_section, self._audio_heading_label = self._create_section(
@@ -900,9 +894,9 @@ class PlayerRow(Gtk.Box):
                 [Gtk.AccessibleProperty.LABEL], [t("player.refresh_controllers")]
             )
             self._controls_heading_label.set_label(t("player.controls_section"))
-            self._controller_label.set_label(t("player.controller_label"))
-            self._controller_field.set_tooltip_text(t("player.controller_tooltip"))
-            self._grab_label.set_label(t("player.grab_mouse_label"))
+            self.joystick_row.set_tooltip_text(t("player.controller_tooltip"))
+            self.joystick_row.update_property([Gtk.AccessibleProperty.LABEL], [t("player.controller_label")])
+            self._grab_heading_label.set_label(t("player.grab_mouse_label"))
             self._grab_help.set_text(t("player.grab_mouse_help"))
 
             self._audio_heading_label.set_label(t("player.audio_section"))

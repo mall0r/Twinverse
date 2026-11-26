@@ -141,7 +141,7 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "player.include_a11y": "Include {label}",
         "player.controls_section": "Controls",
         "player.refresh_controllers": "Refresh controllers",
-        "player.controller_label": "_Controller",
+        "player.controller_label": "Controller",
         "player.controller_none": "None",
         "player.controller_disconnected_label": "{name} (Disconnected)",
         "player.controller_tooltip": (
@@ -150,7 +150,10 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
             "check that your user belongs to the input group; see the guide for details."
         ),
         "player.grab_mouse_label": "_Grab mouse",
-        "player.grab_mouse_help": "Only one player can capture the mouse.",
+        "player.grab_mouse_help": (
+            "Enable this if you want to play with the mouse. "
+            "It also forces the cursor to stay in this player's window."
+        ),
         "player.audio_section": "Audio",
         "player.audio_default": "Default",
         "player.output_device_label": "_Output device",
@@ -394,7 +397,7 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "player.include_a11y": "Incluir {label}",
         "player.controls_section": "Controles",
         "player.refresh_controllers": "Atualizar controles",
-        "player.controller_label": "_Controle",
+        "player.controller_label": "Controle",
         "player.controller_none": "Nenhum",
         "player.controller_disconnected_label": "{name} (Desconectado)",
         "player.controller_tooltip": (
@@ -403,7 +406,9 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
             "verifique se seu usuário pertence ao grupo input; consulte o guia para mais detalhes."
         ),
         "player.grab_mouse_label": "_Capturar mouse",
-        "player.grab_mouse_help": "Apenas um jogador pode capturar o mouse.",
+        "player.grab_mouse_help": (
+            "Habilite se quiser jogar com o mouse. Isso também força o cursor a ficar na janela desse player."
+        ),
         "player.audio_section": "Áudio",
         "player.audio_default": "Padrão",
         "player.output_device_label": "_Dispositivo de saída",
