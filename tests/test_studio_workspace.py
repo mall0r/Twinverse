@@ -279,6 +279,35 @@ def test_preferences_use_custom_native_fields_and_keep_callbacks(window, monkeyp
         prefs.destroy()
 
 
+def test_gamescope_pointer_compatibility_follows_engine_availability_and_resets(window):
+    """Keep the saved choice without Gamescope, but clear it when restoring defaults."""
+    profile = Profile(use_gamescope=False)
+    changed = Mock()
+    prefs = PreferencesWindow(window, profile, changed)
+    try:
+        pointer_switch = prefs.gamescope_pointer_row
+        assert not pointer_switch.get_active()
+        assert not pointer_switch.get_sensitive()
+
+        prefs.gamescope_row.set_active(True)
+        assert pointer_switch.get_sensitive()
+        pointer_switch.set_active(True)
+        assert profile.enable_gamescope_pointer_compatibility is True
+        changed.assert_called_with("enable_gamescope_pointer_compatibility", True)
+
+        prefs.gamescope_row.set_active(False)
+        assert not pointer_switch.get_sensitive()
+        assert pointer_switch.get_active()
+
+        prefs._on_reset_clicked(None)
+        assert pointer_switch.get_sensitive()
+        assert not pointer_switch.get_active()
+        assert profile.enable_gamescope_pointer_compatibility is False
+        changed.assert_any_call("enable_gamescope_pointer_compatibility", False)
+    finally:
+        prefs.destroy()
+
+
 def test_disabling_network_isolation_disables_guest_ip_but_preserves_value(window):
     """Turning off network isolation grays out Guest IP without discarding saved addresses."""
     page = window.get_layout_page()

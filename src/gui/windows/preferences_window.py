@@ -162,6 +162,20 @@ class PreferencesWindow(Adw.Window):
         self._engine_page.append(compatibility)
 
         (
+            pointer_compatibility,
+            self.gamescope_pointer_row,
+            self._pointer_title_label,
+            self._pointer_desc_label,
+        ) = self._create_toggle(
+            t("prefs.gamescope_pointer.title"),
+            t("prefs.gamescope_pointer.description"),
+            self._profile.enable_gamescope_pointer_compatibility,
+            self._on_gamescope_pointer_toggled,
+        )
+        self.gamescope_pointer_row.set_sensitive(self._profile.use_gamescope)
+        self._engine_page.append(pointer_compatibility)
+
+        (
             network_isolation,
             self.network_isolation_row,
             self._network_title_label,
@@ -345,6 +359,15 @@ class PreferencesWindow(Adw.Window):
         self.gamescope_wsi_row.update_property(
             [Gtk.AccessibleProperty.LABEL, Gtk.AccessibleProperty.DESCRIPTION],
             [t("prefs.wsi.title"), t("prefs.wsi.description")],
+        )
+
+        pointer_title = t("prefs.gamescope_pointer.title")
+        pointer_description = t("prefs.gamescope_pointer.description")
+        self._pointer_title_label.set_label(pointer_title)
+        self._pointer_desc_label.set_label(pointer_description)
+        self.gamescope_pointer_row.update_property(
+            [Gtk.AccessibleProperty.LABEL, Gtk.AccessibleProperty.DESCRIPTION],
+            [pointer_title, pointer_description],
         )
 
         self._network_title_label.set_label(t("prefs.isolate_network.title"))
@@ -562,6 +585,7 @@ class PreferencesWindow(Adw.Window):
         self._profile.use_steamdeck_tag = default_profile.use_steamdeck_tag
         self._profile.use_gamescope = default_profile.use_gamescope
         self._profile.enable_gamescope_wsi = default_profile.enable_gamescope_wsi
+        self._profile.enable_gamescope_pointer_compatibility = default_profile.enable_gamescope_pointer_compatibility
         self._profile.isolate_network = default_profile.isolate_network
         self._profile.num_players = default_profile.num_players
         self._profile.party_players = default_profile.party_players
@@ -578,11 +602,15 @@ class PreferencesWindow(Adw.Window):
         self.steamdeck_row.set_active(self._profile.use_steamdeck_tag)
         self.gamescope_row.set_active(self._profile.use_gamescope)
         self.gamescope_wsi_row.set_active(self._profile.enable_gamescope_wsi)
+        self.gamescope_pointer_row.set_active(self._profile.enable_gamescope_pointer_compatibility)
         self.network_isolation_row.set_active(self._profile.isolate_network)
 
         self._on_settings_changed("use_steamdeck_tag", self._profile.use_steamdeck_tag)
         self._on_settings_changed("use_gamescope", self._profile.use_gamescope)
         self._on_settings_changed("enable_gamescope_wsi", self._profile.enable_gamescope_wsi)
+        self._on_settings_changed(
+            "enable_gamescope_pointer_compatibility", self._profile.enable_gamescope_pointer_compatibility
+        )
         self._on_settings_changed("isolate_network", self._profile.isolate_network)
         self._on_settings_changed("player_configs", self._profile.player_configs)
 
@@ -596,6 +624,7 @@ class PreferencesWindow(Adw.Window):
         """Handle Gamescope toggle."""
         state = switch_row.get_active()
         self._profile.use_gamescope = state
+        self.gamescope_pointer_row.set_sensitive(state)
         self._on_settings_changed("use_gamescope", state)
 
     def _on_gamescope_wsi_toggled(self, switch_row, pspec):
@@ -603,6 +632,11 @@ class PreferencesWindow(Adw.Window):
         state = switch_row.get_active()
         self._profile.enable_gamescope_wsi = state
         self._on_settings_changed("enable_gamescope_wsi", state)
+
+    def _on_gamescope_pointer_toggled(self, switch_row, _pspec):
+        state = switch_row.get_active()
+        self._profile.enable_gamescope_pointer_compatibility = state
+        self._on_settings_changed("enable_gamescope_pointer_compatibility", state)
 
     def _on_isolate_network_toggled(self, switch_row, pspec):
         """Handle network isolation toggle."""

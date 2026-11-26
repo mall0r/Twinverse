@@ -209,6 +209,11 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "prefs.steamdeck.description": "Add --mangoapp to Gamescope and -steamdeck to Steam.",
         "prefs.wsi.title": "Gamescope WSI",
         "prefs.wsi.description": "Enable the Gamescope Wayland Support Interface (WSI).",
+        "prefs.gamescope_pointer.title": "Gamescope Pointer Compatibility",
+        "prefs.gamescope_pointer.description": (
+            "Work around a frozen pointer by replacing touch passthrough (mode 4) with left-click emulation "
+            "(mode 1). This may affect touchscreen gestures. Restart the session to apply."
+        ),
         "prefs.isolate_network.title": "Isolate network",
         "prefs.isolate_network.description": (
             "Give each player an isolated network namespace and LAN IP with pasta. "
@@ -461,6 +466,11 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "prefs.steamdeck.description": "Adiciona --mangoapp ao Gamescope e -steamdeck ao Steam.",
         "prefs.wsi.title": "Gamescope WSI",
         "prefs.wsi.description": "Ativa a interface Gamescope Wayland Support Interface (WSI).",
+        "prefs.gamescope_pointer.title": "Compatibilidade do ponteiro no Gamescope",
+        "prefs.gamescope_pointer.description": (
+            "Contorna o travamento do ponteiro ao substituir o repasse de toque (modo 4) pela emulação de clique "
+            "esquerdo (modo 1). Pode afetar gestos na tela sensível ao toque. Reinicie a sessão para aplicar."
+        ),
         "prefs.isolate_network.title": "Isolar rede",
         "prefs.isolate_network.description": (
             "Dá a cada jogador um namespace de rede e IP local isolados com pasta. "

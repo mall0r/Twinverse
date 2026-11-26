@@ -30,6 +30,14 @@ class CommandBuilder:
     """Builds the launch commands for Steam instances."""
 
     MANGOAPP_CONFIG = Path(".config/twinverse/mangoapp.conf")
+    GAMESCOPE_TOUCH_MODE_ENV = "gamescope_touch_click_mode"
+    # Steam can change the mode after startup (Gamescope #2582). Gamescope's
+    # ConVar environment parser splits on "=", so avoid Lua's equality operator.
+    GAMESCOPE_POINTER_COMPATIBILITY = (
+        '(function(m) gamescope.hook("OnPostPaint", function() '
+        'if m.value > 3 and m.value < 5 then m:call("1") end end); '
+        "return m.value end)(gamescope.convars.touch_click_mode)"
+    )
 
     # Gamescope creates this path at startup, so expand it in its child, not
     # while building the command. Proton's runtime otherwise hides the file
@@ -343,6 +351,8 @@ stream.rules = [
             extra_env = (
                 self.profile.get_env_for_instance(instance_idx) if hasattr(self.profile, "get_env_for_instance") else {}
             ) or {}
+            if self.profile.use_gamescope and self.profile.enable_gamescope_pointer_compatibility:
+                extra_env.setdefault(self.GAMESCOPE_TOUCH_MODE_ENV, self.GAMESCOPE_POINTER_COMPATIBILITY)
             for k, v in extra_env.items():
                 if v is None:
                     v = ""
