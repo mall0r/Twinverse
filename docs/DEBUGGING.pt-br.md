@@ -243,7 +243,7 @@ O bridge descarta eventos de soltura pendentes para que cancelar não acione tam
   os monitores pelo GDK. No `twinverse.log`, procure `Input hotplug monitor started for`
   e `Display hotplug monitor connected to Gdk.Display`, depois `Detected input or display change; refreshing device lists.`
   quando uma nova varredura encontra alguma mudança. Se a lista não atualizar,
-  use **Atualizar dispositivos**. Se faltar um controle, veja com `ls -l /dev/input/by-id/`
+  pressione `F5`. Se faltar um controle, veja com `ls -l /dev/input/by-id/`
   se há um link `event-joystick` e se você pode ler o nó de destino (`id -nG`
   se o host usa o grupo `input`).
 - O ponto amarelo de seleção e **(Desconectado)** indicam que o perfil mantém

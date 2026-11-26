@@ -235,7 +235,7 @@ The bridge suppresses trailing button releases so canceling does not also act in
 - The UI watches `/dev/input` and `/dev/input/by-id` using inotify and monitors
   displays through GDK. In `twinverse.log`, look for `Input hotplug monitor started for`
   and `Display hotplug monitor connected to Gdk.Display`, then `Detected input or display change; refreshing device lists.`
-  when a rescan finds a change. If the list stays stale, use **Refresh devices**.
+  when a rescan finds a change. If the list stays stale, press `F5`.
   For a missing pad, check `ls -l /dev/input/by-id/` for an `event-joystick` link
   and read access to its target (`id -nG` if the host uses the `input` group).
 - A yellow selection dot and **(Disconnected)** mean the profile remembers

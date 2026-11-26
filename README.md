@@ -44,7 +44,7 @@
 - **Controllers:** A physical pad belongs to one player. Other players see its owner's number (e.g. `01`) and cannot select it. The profile remembers the assignment across disconnects and restarts. The native bridge reconnects the same pad even mid-session.
 - **Audio:** Choose **Default** or a PulseAudio/PipeWire output per player. Several players can use the same output; number badges show who else has selected it without blocking selection.
 
-Controller and monitor lists refresh automatically on plug or unplug; **Refresh devices** (`F5`) also rescans them. In the controller and audio menus, a blue dot marks the current selection. A yellow dot and **(Disconnected)** mean the selection is saved but the device is absent.
+Controller and monitor lists refresh automatically on plug or unplug; press `F5` to refresh them manually. In the controller and audio menus, a blue dot marks the current selection. A yellow dot and **(Disconnected)** mean the selection is saved but the device is absent.
 
 ---
 

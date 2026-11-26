@@ -44,7 +44,7 @@ O **Twinverse** executa até **8 clientes Steam em um único PC com Linux**. Cad
 - **Controles:** Cada controle físico só pode ser atribuído a um jogador. Os demais veem o número de quem o usa (por exemplo, `01`) e não podem selecioná-lo. O perfil mantém a atribuição mesmo ao desconectar o controle ou reiniciar o aplicativo. A ponte nativa reconecta o mesmo controle até durante a partida.
 - **Áudio:** Mantenha **Padrão** ou escolha uma saída PulseAudio/PipeWire por jogador. Vários jogadores podem usar a mesma saída; os números indicam quem mais a selecionou, sem bloquear a escolha.
 
-As listas de controles e monitores se atualizam ao conectar ou desconectar dispositivos; **Atualizar dispositivos** (`F5`) também faz uma busca. Nos menus de controle e áudio, um ponto azul marca a seleção atual. Um ponto amarelo com **(Desconectado)** indica que a seleção foi salva, mas o dispositivo está ausente.
+As listas de controles e monitores se atualizam ao conectar ou desconectar dispositivos; pressione `F5` para atualizá-las manualmente. Nos menus de controle e áudio, um ponto azul marca a seleção atual. Um ponto amarelo com **(Desconectado)** indica que a seleção foi salva, mas o dispositivo está ausente.
 
 ---
 

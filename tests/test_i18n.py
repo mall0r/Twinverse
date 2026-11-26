@@ -13,7 +13,7 @@ import pytest
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gtk  # noqa: E402
 
 from src.core.config import Config
 from src.core.exceptions import DependencyError, TwinverseError, VirtualDeviceError
@@ -282,7 +282,6 @@ def test_main_window_and_preferences_language_switching(gtk_display):
             setattr(profile, key, value)
         if key == "language":
             set_language(str(value))
-            win.sync_language_action(str(value))
 
     presenter = SimpleNamespace(
         on_settings_changed=lambda: None,
@@ -293,7 +292,6 @@ def test_main_window_and_preferences_language_switching(gtk_display):
         on_about_clicked=lambda: None,
         on_preferences_clicked=lambda: None,
         on_close_requested=lambda: None,
-        on_language_changed=lambda lang: on_pref_changed("language", lang),
     )
 
     win = MainWindow(app, presenter)
@@ -311,10 +309,9 @@ def test_main_window_and_preferences_language_switching(gtk_display):
     assert prefs._gamescope_title_label.get_label() == "Usar Gamescope"
     assert prefs._reset_button.get_label() == "Redefinir Tudo"
     assert win.launch_label.get_label() == "Iniciar Sessão"
-    assert win.language_action.get_state().get_string() == LANGUAGE_PT_BR
 
-    # Switch back to English via MainWindow stateful menu action
-    win.language_action.activate(GLib.Variant("s", LANGUAGE_EN))
+    # Switch back to English via Preferences dropdown
+    prefs.language_row.set_selected(1)
     assert profile.language == LANGUAGE_EN
     assert get_language() == LANGUAGE_EN
     assert prefs.get_title() == "Preferences"
@@ -343,7 +340,7 @@ def test_main_presenter_applies_saved_profile_language_on_startup(gtk_display):
         assert presenter.window.launch_label.get_label() == "Iniciar Sessão"
         assert presenter.window.session_title.get_label() == "Pronto para jogar"
 
-        presenter.on_language_changed(LANGUAGE_EN)
+        presenter._on_preference_changed("language", LANGUAGE_EN)
         assert get_language() == LANGUAGE_EN
         assert presenter.window.launch_label.get_label() == "Launch Session"
         assert Profile.load().language == LANGUAGE_EN

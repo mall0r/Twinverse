@@ -457,12 +457,12 @@ def test_header_has_only_left_aligned_tools_and_inspector_toggle_sits_on_stage_h
         win.destroy()
 
 
-def test_secondary_actions_have_a_single_menu_entry(window):
-    """Preferences and discovery each have one visible entry point, plus keyboard shortcuts."""
+def test_app_menu_only_lists_preferences_and_about(window):
+    """Device refresh remains available via F5 without a menu entry."""
     menu = window.menu_button.get_menu_model()
     actions = [menu.get_item_attribute_value(index, "action", None).unpack() for index in range(menu.get_n_items())]
-    assert actions.count("win.preferences") == 1
-    assert actions.count("win.refresh-devices") == 1
+    assert actions == ["win.preferences", "win.about"]
+    assert window.get_application().get_accels_for_action("win.refresh-devices") == ["F5"]
     window.lookup_action("refresh-devices").activate(None)
     window._presenter.on_devices_refresh_requested.assert_called_once_with()
     window.lookup_action("preferences").activate(None)

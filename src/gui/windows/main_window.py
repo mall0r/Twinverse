@@ -6,18 +6,9 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GLib, GObject, Gtk, Pango  # noqa: E402
+from gi.repository import Adw, Gio, GObject, Gtk, Pango  # noqa: E402
 
-from src.core.i18n import (
-    LANGUAGE_AUTO,
-    LANGUAGE_EN,
-    LANGUAGE_PT_BR,
-    get_language_preference,
-    ngettext,
-    normalize_language_preference,
-    subscribe,
-    t,
-)
+from src.core.i18n import ngettext, subscribe, t
 from src.gui.dialogs import ErrorDialog
 from src.gui.notifications import INFO, send_desktop_notification
 from src.gui.pages import LayoutSettingsPage
@@ -34,7 +25,6 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(*args, application=application, **kwargs)
         self._presenter = presenter
         self._session_state = "idle"
-        self._syncing_language_action = False
         self.set_title("Twinverse")
         self.set_default_size(1080, 720)
         self.set_size_request(660, 560)
@@ -113,14 +103,6 @@ class MainWindow(Adw.ApplicationWindow):
     def _build_menu_model(self) -> Gio.Menu:
         menu = Gio.Menu()
         menu.append(t("menu.preferences"), "win.preferences")
-        menu.append(t("menu.refresh_devices"), "win.refresh-devices")
-        language_menu = Gio.Menu()
-        language_menu.append(t("lang.auto"), f"win.language::{LANGUAGE_AUTO}")
-        language_menu.append(t("lang.en"), f"win.language::{LANGUAGE_EN}")
-        language_menu.append(t("lang.pt_BR"), f"win.language::{LANGUAGE_PT_BR}")
-        language_item = Gio.MenuItem.new(t("menu.language"), "win.language-menu")
-        language_item.set_submenu(language_menu)
-        menu.append_item(language_item)
         menu.append(t("menu.about"), "win.about")
         return menu
 
@@ -168,7 +150,6 @@ class MainWindow(Adw.ApplicationWindow):
             "preferences": self._presenter.on_preferences_clicked,
             "inspector": self._toggle_inspector,
             "refresh-devices": self._presenter.on_devices_refresh_requested,
-            "language-menu": lambda: None,
             "launch": lambda: self._presenter.on_launch_clicked() if self.launch_button.get_sensitive() else None,
         }
         for name, callback in actions.items():
@@ -176,46 +157,17 @@ class MainWindow(Adw.ApplicationWindow):
             action.connect("activate", lambda _a, _p, target=callback: target())
             self.add_action(action)
 
-        self.language_action = Gio.SimpleAction.new_stateful(
-            "language",
-            GLib.VariantType.new("s"),
-            GLib.Variant("s", get_language_preference()),
-        )
-        self.language_action.connect("activate", self._on_language_action_activated)
-        self.add_action(self.language_action)
-
         app = self.get_application()
         app.set_accels_for_action("win.preferences", ["<Control>comma"])
         app.set_accels_for_action("win.inspector", ["F9", "<Alt>2"])
         app.set_accels_for_action("win.refresh-devices", ["F5"])
         app.set_accels_for_action("win.launch", ["<Control>Return"])
 
-    def _on_language_action_activated(self, action, parameter):
-        if parameter is None or self._syncing_language_action:
-            return
-        requested = normalize_language_preference(parameter.get_string())
-        action.set_state(GLib.Variant("s", requested))
-        on_changed = getattr(self._presenter, "on_language_changed", None)
-        if callable(on_changed):
-            on_changed(requested)
-
-    def sync_language_action(self, preference: str):
-        """Update the stateful menu radio action without re-triggering the presenter."""
-        if not hasattr(self, "language_action"):
-            return
-        normalized = normalize_language_preference(preference)
-        self._syncing_language_action = True
-        try:
-            self.language_action.set_state(GLib.Variant("s", normalized))
-        finally:
-            self._syncing_language_action = False
-
     def retranslate(self, *_args):
         """Update header tooltips, application menu, panel toggle, and session summary."""
         self.theme_toggle_button.set_tooltip_text(t("header.theme_tooltip"))
         self.menu_button.set_tooltip_text(t("header.menu_tooltip"))
         self.menu_button.set_menu_model(self._build_menu_model())
-        self.sync_language_action(get_language_preference())
         for split, button, title_key, shortcut in self._panel_controls:
             self._sync_panel_toggle(split, None, button, title_key, shortcut)
         if self._session_state == "starting":

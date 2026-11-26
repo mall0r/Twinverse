@@ -7,13 +7,7 @@ from typing import Optional
 from gi.repository import Adw, GLib, Gtk
 
 from src.core import Config, Utils
-from src.core.i18n import (
-    LANGUAGE_PT_BR,
-    get_language,
-    normalize_language_preference,
-    set_language,
-    t,
-)
+from src.core.i18n import LANGUAGE_PT_BR, get_language, set_language, t
 from src.core.logging import log_context
 from src.gui.controllers import (
     LaunchController,
@@ -379,11 +373,6 @@ class MainPresenter:
         self._save_timeout_id = 0
         self._settings_controller.save_profile()
         return False
-
-    def on_language_changed(self, language: str):
-        """Persist and apply a live UI language change from the main window menu."""
-        normalized = normalize_language_preference(language)
-        self._on_preference_changed("language", normalized)
 
     def on_settings_changed(self):
         """Handle settings changed in UI."""
@@ -879,9 +868,6 @@ class MainPresenter:
 
         if key == "language":
             set_language(value)
-            sync_lang = getattr(self.window, "sync_language_action", None)
-            if callable(sync_lang):
-                sync_lang(value)
 
         if key == "use_gamescope":
             self.window.get_layout_page().set_gamescope_enabled(bool(value))

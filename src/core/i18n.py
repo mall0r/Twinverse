@@ -30,8 +30,6 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "player.default_name": "Player",
         # Main window header, menu & shortcuts
         "menu.preferences": "Preferences",
-        "menu.refresh_devices": "Refresh devices",
-        "menu.language": "Language",
         "menu.about": "About Twinverse",
         "header.theme_tooltip": "Switch light / dark appearance",
         "header.menu_tooltip": "Application menu",
@@ -284,8 +282,6 @@ TRANSLATIONS: dict[ResolvedLanguage, dict[str, str]] = {
         "player.default_name": "Jogador",
         # Main window header, menu & shortcuts
         "menu.preferences": "Preferências",
-        "menu.refresh_devices": "Atualizar dispositivos",
-        "menu.language": "Idioma",
         "menu.about": "Sobre o Twinverse",
         "header.theme_tooltip": "Alternar aparência clara / escura",
         "header.menu_tooltip": "Menu do aplicativo",
