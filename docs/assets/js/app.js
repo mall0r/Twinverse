@@ -83,6 +83,12 @@
     document.querySelectorAll(".figure-zoom-hint").forEach(function (hint) {
       hint.textContent = s.zoomHint;
     });
+    document.querySelectorAll(".path-copy-btn").forEach(function (btn) {
+      if (!btn.classList.contains("copied")) {
+        btn.setAttribute("aria-label", s.copy);
+        btn.setAttribute("title", s.copy);
+      }
+    });
 
     updateActiveNav();
     if (searchModal && searchModal.classList.contains("open")) {
@@ -179,6 +185,34 @@
         }
       });
       wrap.appendChild(btn);
+    });
+
+    var ICON_COPY =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var ICON_CHECK =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    document.querySelectorAll(".path-copy-btn[data-copy]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var text = btn.getAttribute("data-copy") || "";
+        var curLang = html.getAttribute("data-lang") || "en";
+        var s = UI_STRINGS[curLang] || UI_STRINGS.en;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            btn.innerHTML = ICON_CHECK;
+            btn.classList.add("copied");
+            btn.setAttribute("aria-label", s.copied);
+            btn.setAttribute("title", s.copied);
+            setTimeout(function () {
+              var latest = UI_STRINGS[html.getAttribute("data-lang") || "en"] || UI_STRINGS.en;
+              btn.innerHTML = ICON_COPY;
+              btn.classList.remove("copied");
+              btn.setAttribute("aria-label", latest.copy);
+              btn.setAttribute("title", latest.copy);
+            }, 1600);
+          });
+        }
+      });
     });
   }
 

@@ -1436,84 +1436,911 @@ DRI_PRIME=1! %command%</code></pre>
         </h2>
 
         <p>
-          <span data-lang-block="en">Each launched player runs inside a dynamically assembled nested stack where every isolation layer has a clear responsibility—without requiring root privileges or modifying any Steam binaries:</span>
-          <span data-lang-block="pt">Cada jogador iniciado roda dentro de uma pilha encapsulada montada dinamicamente, onde cada camada de isolamento tem uma responsabilidade clara—sem exigir privilégios root e sem modificar binários do Steam:</span>
+          <span data-lang-block="en">Each player runs inside an isolated host stack assembled at launch (natively or via <code>flatpak-spawn --host</code>)—separating controllers, accounts, saves, audio, Steam IPC, and screen tiles without root access or modifying Steam:</span>
+          <span data-lang-block="pt">Cada jogador roda em uma pilha isolada no host montada ao iniciar (nativamente ou via <code>flatpak-spawn --host</code>)—separando controles, contas, saves, áudio, IPC do Steam e espaços da tela sem exigir root nem modificar o Steam:</span>
         </p>
 
-        <div class="arch-card">
-          <svg viewBox="0 0 820 318" role="img" aria-label="Twinverse nested sandboxing architecture diagram">
-            <!-- Outer twinverse-input-bridge layer -->
-            <rect x="10" y="12" width="800" height="294" rx="14" fill="rgba(244, 159, 122, 0.07)" stroke="#f49f7a" stroke-width="2" stroke-dasharray="6 4"></rect>
-            <text x="26" y="35" fill="#f49f7a" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">1. twinverse-input-bridge (Rust Host Supervisor) — EVIOCGRAB host isolation, hotplug, hidraw allowlist, overlay mute</text>
+        <div class="arch-flow-stack">
+          <!-- DIAGRAM 1: NESTED CONTAINMENT STACK + STEP-BY-STEP FLOW -->
+          <div class="arch-card">
+            <svg class="arch-svg" viewBox="0 0 1280 572" role="img" aria-labelledby="arch-f1-title arch-f1-desc">
+              <title id="arch-f1-title">How Twinverse isolates each player in nested layers</title>
+              <desc id="arch-f1-desc">Nested box diagram showing how Twinverse isolates each player: the host Input Bridge grabs the assigned gamepad via EVIOCGRAB and handles HOME+L3 muting, a Network Layer isolates Steam3Master IPC and logon IP on the shared host network (or attaches an optional rootless pasta LAN IP), a Bubblewrap Sandbox shadows HOME, masks /dev/input, and keeps /dev/uinput read-only while sharing installed games and Proton, and Gamescope runs deferred 32/64-bit Rust input shims, a /dev/shm UI startup gate, splitscreen overlay focus repair, and official Steam Big Picture + Proton.</desc>
+              <defs>
+                <linearGradient id="arch-bg-1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" class="arch-bg-stop-1"/>
+                  <stop offset="1" class="arch-bg-stop-2"/>
+                </linearGradient>
+                <linearGradient id="arch-ink-1" gradientUnits="userSpaceOnUse" x1="220" y1="0" x2="1060" y2="0">
+                  <stop offset="0" class="arch-ink-stop-1"/>
+                  <stop offset="1" class="arch-ink-stop-2"/>
+                </linearGradient>
+                <linearGradient id="arch-core-1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" class="arch-core-stop-1"/>
+                  <stop offset="1" class="arch-core-stop-2"/>
+                </linearGradient>
+                <radialGradient id="arch-glow-1" cx="50%" cy="54%" r="48%">
+                  <stop offset="0" class="arch-glow-stop-1"/>
+                  <stop offset="1" class="arch-glow-stop-2"/>
+                </radialGradient>
+                <marker id="arch-arrow-1" viewBox="0 0 16 16" refX="4.2" refY="8" markerWidth="16" markerHeight="16" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+                  <path d="M7.2 2.2L13.4 8L7.2 13.8" fill="none" class="arch-arrow-head" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
 
-            <!-- pasta layer -->
-            <rect x="26" y="48" width="768" height="242" rx="13" fill="rgba(134, 217, 162, 0.08)" stroke="#86d9a2" stroke-width="2" stroke-dasharray="6 4"></rect>
-            <text x="42" y="71" fill="#86d9a2" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">2. pasta (Opt-in Rootless Netns) — Dedicated LAN IPv4 (default: shared host network + isolated Steam3Master IPC)</text>
+              <!-- Outer Canvas -->
+              <rect x="1" y="1" width="1278" height="570" rx="22" fill="url(#arch-bg-1)" class="arch-frame-stroke"/>
+              <ellipse cx="645" cy="320" rx="370" ry="215" fill="url(#arch-glow-1)"/>
 
-            <!-- bwrap layer -->
-            <rect x="42" y="84" width="736" height="190" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></rect>
-            <text x="58" y="107" fill="var(--accent)" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">3. bwrap (Bubblewrap Sandbox) — Isolated home_N, masked /dev/input, ~/.tw-in/ sockets, shared steamapps &amp; Proton, PULSE_SINK</text>
+              <!-- Title & Legend -->
+              <text class="arch-h" x="28" y="42">
+                <tspan data-lang-block="en">1. How Each Player Is Isolated (1–8 Players)</tspan>
+                <tspan data-lang-block="pt">1. Como Cada Jogador é Isolado (1–8 Jogadores)</tspan>
+              </text>
+              <g transform="translate(860, 28)">
+                <line x1="0" y1="10" x2="28" y2="10" class="arch-legend-flow"/>
+                <text class="arch-legend-t" x="36" y="14">
+                  <tspan data-lang-block="en">Data / sharing</tspan>
+                  <tspan data-lang-block="pt">Fluxo / compartilhado</tspan>
+                </text>
+                <line x1="196" y1="10" x2="224" y2="10" class="arch-legend-block"/>
+                <text class="arch-legend-t" x="232" y="14">
+                  <tspan data-lang-block="en">Blocked / isolated</tspan>
+                  <tspan data-lang-block="pt">Bloqueado / isolado</tspan>
+                </text>
+              </g>
 
-            <!-- gamescope layer -->
-            <rect x="58" y="120" width="704" height="138" rx="10" fill="rgba(192, 168, 240, 0.1)" stroke="#c0a8f0" stroke-width="2"></rect>
-            <text x="74" y="143" fill="#c0a8f0" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">4. gamescope (Micro-Compositor) — Exact tile W×H &amp; Hz, --force-grab-cursor, --mangoapp, deferred LD_PRELOAD</text>
+              <!-- LEFT SIDEBAR: YOUR PC -->
+              <text class="arch-micro" x="32" y="76">
+                <tspan data-lang-block="en">ON YOUR PC</tspan>
+                <tspan data-lang-block="pt">NO SEU PC</tspan>
+              </text>
 
-            <!-- Inner boxes -->
-            <rect x="74" y="158" width="332" height="84" rx="8" fill="rgba(237, 197, 134, 0.12)" stroke="#edc586" stroke-width="1.8"></rect>
-            <text x="88" y="180" fill="#edc586" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">5. Steam Big Picture (-gamepadui -steamos3)</text>
-            <text x="88" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Official Steam + -private_ip_override 192.0.2.N</text>
-            <text x="88" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• libtwinverse_uinput.so + libtwinverse_udev.so (64/32-bit)</text>
-            <text x="88" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• Gamescope FPS limiter + SHM startup gate</text>
+              <rect x="28" y="86" width="204" height="72" rx="13" class="arch-single-node"/>
+              <circle cx="44" cy="102" r="4.5" class="arch-dot arch-dot-indigo"/>
+              <text class="arch-r-xs" x="130" y="116">
+                <tspan data-lang-block="en">Physical Controller</tspan>
+                <tspan data-lang-block="pt">Controle Físico</tspan>
+              </text>
+              <text class="arch-s-xs" x="130" y="138">
+                <tspan data-lang-block="en">Gamepad · gyro · rumble</tspan>
+                <tspan data-lang-block="pt">Gamepad · giro · vibração</tspan>
+              </text>
 
-            <rect x="420" y="158" width="326" height="84" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"></rect>
-            <text x="434" y="180" fill="var(--accent)" font-size="12.5" font-weight="700" font-family="system-ui, sans-serif">Companion Services (Host / Per-Instance)</text>
-            <text x="434" y="199" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• KWin D-Bus Resolver, panel dodge &amp; overlay focus</text>
-            <text x="434" y="216" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• HOME + L3 shortcut monitor • inotify/GDK hotplug</text>
-            <text x="434" y="233" fill="#939aa6" font-size="11.2" font-family="system-ui, sans-serif">• overlay_focus.py • PipeWire • Placeholder joystick</text>
-          </svg>
+              <!-- Blocked vertical connector: Pad -> Host Steam -->
+              <line x1="130" y1="158" x2="130" y2="196" class="arch-block-line"/>
+              <circle cx="130" cy="177" r="9.5" class="arch-block-badge"/>
+              <text class="arch-block-x" x="130" y="180.5">✕</text>
+              <text class="arch-block-lbl" x="145" y="181">
+                <tspan data-lang-block="en">Exclusive lock</tspan>
+                <tspan data-lang-block="pt">Uso exclusivo</tspan>
+              </text>
+
+              <rect x="28" y="198" width="204" height="66" rx="13" class="arch-blocked-node"/>
+              <text class="arch-r-block" x="130" y="226">
+                <tspan data-lang-block="en">Host Steam (if open)</tspan>
+                <tspan data-lang-block="pt">Steam do Host (aberto)</tspan>
+              </text>
+              <text class="arch-s-block" x="130" y="247">
+                <tspan data-lang-block="en">HOME never steals focus</tspan>
+                <tspan data-lang-block="pt">HOME não rouba o foco</tspan>
+              </text>
+
+              <rect x="28" y="286" width="204" height="96" rx="13" class="arch-single-node"/>
+              <circle cx="44" cy="302" r="4.5" class="arch-dot arch-dot-cyan"/>
+              <text class="arch-r-xs" x="130" y="316">
+                <tspan data-lang-block="en">Your Games &amp; Saves</tspan>
+                <tspan data-lang-block="pt">Seus Jogos e Saves</tspan>
+              </text>
+              <text class="arch-s-xs" x="130" y="338">
+                <tspan data-lang-block="en">Installed games &amp; Proton</tspan>
+                <tspan data-lang-block="pt">Jogos instalados e Proton</tspan>
+              </text>
+              <text class="arch-s-xs" x="130" y="358">
+                <tspan data-lang-block="en">Separate home per player</tspan>
+                <tspan data-lang-block="pt">Home própria por jogador</tspan>
+              </text>
+
+              <rect x="28" y="404" width="204" height="90" rx="13" class="arch-single-node"/>
+              <circle cx="44" cy="420" r="4.5" class="arch-dot arch-dot-green"/>
+              <text class="arch-r-xs" x="130" y="434">
+                <tspan data-lang-block="en">Internet &amp; LAN</tspan>
+                <tspan data-lang-block="pt">Internet e LAN</tspan>
+              </text>
+              <text class="arch-s-xs" x="130" y="456">
+                <tspan data-lang-block="en">PC network by default</tspan>
+                <tspan data-lang-block="pt">Rede do PC por padrão</tspan>
+              </text>
+              <text class="arch-s-xs" x="130" y="476">
+                <tspan data-lang-block="en">Optional separate LAN IP</tspan>
+                <tspan data-lang-block="pt">IP separado na LAN (opc.)</tspan>
+              </text>
+
+              <!-- ============================================================ -->
+              <!-- CENTER: NESTED CONTAINMENT LAYERS (CAIXA DENTRO DE CAIXA)    -->
+              <!-- ============================================================ -->
+
+              <!-- LAYER 1: Input Bridge -->
+              <rect x="282" y="64" width="724" height="482" rx="19" class="arch-nest-1"/>
+              <circle cx="308" cy="87" r="11" class="arch-step-badge arch-step-indigo"/>
+              <text class="arch-step-num" x="308" y="91">1</text>
+              <text class="arch-nest-title" x="328" y="92">Input Bridge</text>
+              <text class="arch-nest-sub" x="442" y="92">
+                <tspan data-lang-block="en">Locks each pad (EVIOCGRAB) · auto-reconnect · pauses on HOME + L3</tspan>
+                <tspan data-lang-block="pt">Trava o controle (EVIOCGRAB) · reconexão · pausa no HOME + L3</tspan>
+              </text>
+
+              <!-- LAYER 2: Network Layer -->
+              <rect x="302" y="108" width="684" height="418" rx="17" class="arch-nest-2"/>
+              <circle cx="328" cy="131" r="11" class="arch-step-badge arch-step-green"/>
+              <text class="arch-step-num" x="328" y="135">2</text>
+              <text class="arch-nest-title" x="348" y="136">
+                <tspan data-lang-block="en">Network Layer</tspan>
+                <tspan data-lang-block="pt">Camada de Rede</tspan>
+              </text>
+              <text class="arch-nest-sub" x="492" y="136">
+                <tspan data-lang-block="en">Host network + isolated Steam IPC &amp; login IP  |  optional pasta LAN IP</tspan>
+                <tspan data-lang-block="pt">Rede do PC + IPC e IP de login isolados  |  IP na LAN opcional (pasta)</tspan>
+              </text>
+
+              <!-- LAYER 3: Bubblewrap Sandbox (Luminous Core) -->
+              <rect x="322" y="152" width="644" height="354" rx="16" fill="url(#arch-core-1)" class="arch-core-stroke-box"/>
+              <circle cx="348" cy="176" r="11" class="arch-step-badge arch-step-cyan"/>
+              <text class="arch-step-num" x="348" y="180">3</text>
+              <text class="arch-nest-title" x="368" y="181">
+                <tspan data-lang-block="en">Bubblewrap Sandbox</tspan>
+                <tspan data-lang-block="pt">Sandbox Bubblewrap</tspan>
+              </text>
+              <rect x="698" y="164" width="248" height="24" rx="12" class="arch-pill"/>
+              <text class="arch-pill-t" x="822" y="180">
+                <tspan data-lang-block="en">Private files · other pads hidden</tspan>
+                <tspan data-lang-block="pt">Arquivos privados · outros pads ocultos</tspan>
+              </text>
+
+              <!-- Mounts Strip inside Layer 3 -->
+              <g class="arch-core-nodes">
+                <rect x="342" y="200" width="192" height="42" rx="10"/>
+                <rect x="548" y="200" width="192" height="42" rx="10"/>
+                <rect x="754" y="200" width="192" height="42" rx="10"/>
+              </g>
+              <text class="arch-chip-t" x="438" y="218">
+                <tspan data-lang-block="en">Private Player Folder</tspan>
+                <tspan data-lang-block="pt">Pasta do Jogador</tspan>
+              </text>
+              <text class="arch-chip-s" x="438" y="233">
+                <tspan data-lang-block="en">Shares games, Proton &amp; .acf</tspan>
+                <tspan data-lang-block="pt">Jogos, Proton e .acf do PC</tspan>
+              </text>
+
+              <text class="arch-chip-t" x="644" y="218">
+                <tspan data-lang-block="en">Masked /dev/input</tspan>
+                <tspan data-lang-block="pt">/dev/input Mascarado</tspan>
+              </text>
+              <text class="arch-chip-s" x="644" y="233">
+                <tspan data-lang-block="en">Only own pad · ro uinput</tspan>
+                <tspan data-lang-block="pt">Só o próprio pad · uinput ro</tspan>
+              </text>
+
+              <text class="arch-chip-t" x="850" y="218">
+                <tspan data-lang-block="en">Isolated Space</tspan>
+                <tspan data-lang-block="pt">Espaço Isolado</tspan>
+              </text>
+              <text class="arch-chip-s" x="850" y="233">
+                <tspan data-lang-block="en">Own /tmp, shm, IPC &amp; audio</tspan>
+                <tspan data-lang-block="pt">Próprio /tmp, shm, IPC e áudio</tspan>
+              </text>
+
+              <!-- LAYER 4: Gamescope (Nested inside Layer 3) -->
+              <rect x="342" y="258" width="604" height="228" rx="15" class="arch-nest-4"/>
+              <circle cx="368" cy="282" r="11" class="arch-step-badge arch-step-purple"/>
+              <text class="arch-step-num" x="368" y="286">4</text>
+              <text class="arch-nest-title" x="388" y="287">Gamescope</text>
+              <text class="arch-nest-sub" x="502" y="287">
+                <tspan data-lang-block="en">Tile size &amp; Hz · cursor grab · FPS HUD  (optional Direct Mode)</tspan>
+                <tspan data-lang-block="pt">Resolução e Hz · trava mouse · HUD FPS  (Modo Direto opc.)</tspan>
+              </text>
+
+              <!-- INNER STEP-BY-STEP FLOWCHART inside Gamescope -->
+              <text class="arch-micro" x="362" y="314">
+                <tspan data-lang-block="en">STEP-BY-STEP STARTUP INSIDE GAMESCOPE</tspan>
+                <tspan data-lang-block="pt">PASSO A PASSO DENTRO DO GAMESCOPE</tspan>
+              </text>
+
+              <g class="arch-core-nodes">
+                <rect x="362" y="326" width="164" height="106" rx="12"/>
+                <rect x="562" y="326" width="164" height="106" rx="12"/>
+              </g>
+              <rect x="762" y="326" width="164" height="106" rx="12" class="arch-accent-node"/>
+
+              <!-- Step 4a -->
+              <rect x="424" y="336" width="40" height="18" rx="9" class="arch-mini-step arch-mini-step-orange"/>
+              <text class="arch-mini-step-t arch-mini-step-solid-t" x="444" y="349">4a</text>
+              <text class="arch-r-xs" x="444" y="374">
+                <tspan data-lang-block="en">Runtime Setup</tspan>
+                <tspan data-lang-block="pt">Ajuste Runtime</tspan>
+              </text>
+              <text class="arch-s-xs" x="444" y="394">
+                <tspan data-lang-block="en">Loads 32/64-bit Rust</tspan>
+                <tspan data-lang-block="pt">Ativa Rust 32/64 bits</tspan>
+              </text>
+              <text class="arch-s-xs" x="444" y="412">
+                <tspan data-lang-block="en">Proton FPS cap link</tspan>
+                <tspan data-lang-block="pt">FPS cap no Proton</tspan>
+              </text>
+
+              <!-- Step 4b -->
+              <rect x="624" y="336" width="40" height="18" rx="9" class="arch-mini-step arch-mini-step-purple"/>
+              <text class="arch-mini-step-t arch-mini-step-solid-t" x="644" y="349">4b</text>
+              <text class="arch-r-xs" x="644" y="374">
+                <tspan data-lang-block="en">UI &amp; Overlay Sync</tspan>
+                <tspan data-lang-block="pt">Sync UI e Overlay</tspan>
+              </text>
+              <text class="arch-s-xs" x="644" y="394">
+                <tspan data-lang-block="en">Waits for pad /dev/shm</tspan>
+                <tspan data-lang-block="pt">Aguarda /dev/shm pad</tspan>
+              </text>
+              <text class="arch-s-xs" x="644" y="412">
+                <tspan data-lang-block="en">Split overlay focus fix</tspan>
+                <tspan data-lang-block="pt">Foco overlay dividido</tspan>
+              </text>
+
+              <!-- Step 5 -->
+              <rect x="826" y="336" width="36" height="18" rx="9" class="arch-mini-step arch-mini-step-purple"/>
+              <text class="arch-mini-step-t arch-mini-step-solid-t" x="844" y="349">5</text>
+              <text class="arch-r-xs" x="844" y="374">
+                <tspan data-lang-block="en">Steam + Game</tspan>
+                <tspan data-lang-block="pt">Steam + Jogo</tspan>
+              </text>
+              <text class="arch-s-xs" x="844" y="394">
+                <tspan data-lang-block="en">Big Picture &amp; Proton</tspan>
+                <tspan data-lang-block="pt">Big Picture e Proton</tspan>
+              </text>
+              <text class="arch-s-xs" x="844" y="412">
+                <tspan data-lang-block="en">Own login, pad &amp; saves</tspan>
+                <tspan data-lang-block="pt">Login, pad e saves</tspan>
+              </text>
+
+              <!-- Step-by-step Flowchart Arrows inside Gamescope -->
+              <path class="arch-line-1" d="M526 379H550" marker-end="url(#arch-arrow-1)"/>
+              <path class="arch-line-1" d="M726 379H750" marker-end="url(#arch-arrow-1)"/>
+
+              <!-- Footer note inside Gamescope -->
+              <text class="arch-note-t" x="644" y="464">
+                <tspan data-lang-block="en">Official Steam &amp; Gamescope stay untouched — Rust shims load only inside Steam and games</tspan>
+                <tspan data-lang-block="pt">Steam oficial e Gamescope intactos — os shims Rust atuam apenas no Steam e nos jogos</tspan>
+              </text>
+
+              <!-- RIGHT SIDEBAR: DESKTOP & OUTPUT -->
+              <text class="arch-micro" x="1056" y="76">
+                <tspan data-lang-block="en">DESKTOP &amp; OUTPUT</tspan>
+                <tspan data-lang-block="pt">TELA E AUXILIARES</tspan>
+              </text>
+
+              <rect x="1056" y="86" width="198" height="96" rx="13" class="arch-single-node"/>
+              <circle cx="1072" cy="102" r="4.5" class="arch-dot arch-dot-rose"/>
+              <text class="arch-r-xs" x="1155" y="116">
+                <tspan data-lang-block="en">Session Controls</tspan>
+                <tspan data-lang-block="pt">Controles da Sessão</tspan>
+              </text>
+              <text class="arch-s-xs" x="1155" y="138">
+                <tspan data-lang-block="en">End session: HOME + L3</tspan>
+                <tspan data-lang-block="pt">Encerrar: HOME + L3</tspan>
+              </text>
+              <text class="arch-s-xs" x="1155" y="158">
+                <tspan data-lang-block="en">Mutes pad · hotplug scan</tspan>
+                <tspan data-lang-block="pt">Pausa o pad · lê hotplug</tspan>
+              </text>
+
+              <rect x="1056" y="200" width="198" height="94" rx="13" class="arch-single-node"/>
+              <circle cx="1072" cy="216" r="4.5" class="arch-dot arch-dot-lime"/>
+              <text class="arch-r-xs" x="1155" y="230">
+                <tspan data-lang-block="en">Audio &amp; Capture</tspan>
+                <tspan data-lang-block="pt">Áudio e Captura</tspan>
+              </text>
+              <text class="arch-s-xs" x="1155" y="252">
+                <tspan data-lang-block="en">Own headset or speakers</tspan>
+                <tspan data-lang-block="pt">Fone próprio ou caixas</tspan>
+              </text>
+              <text class="arch-s-xs" x="1155" y="272">
+                <tspan data-lang-block="en">PULSE_SINK &amp; PipeWire</tspan>
+                <tspan data-lang-block="pt">PULSE_SINK e PipeWire</tspan>
+              </text>
+
+              <rect x="1056" y="312" width="198" height="106" rx="13" class="arch-single-node"/>
+              <circle cx="1072" cy="328" r="4.5" class="arch-dot arch-dot-amber"/>
+              <text class="arch-r-xs" x="1155" y="344">
+                <tspan data-lang-block="en">Window Placement</tspan>
+                <tspan data-lang-block="pt">Posição na Tela</tspan>
+              </text>
+              <text class="arch-s-xs" x="1155" y="366">
+                <tspan data-lang-block="en">Auto-tiled on KDE / KWin</tspan>
+                <tspan data-lang-block="pt">Auto-tiling no KDE / KWin</tspan>
+              </text>
+              <text class="arch-s-xs" x="1155" y="386">
+                <tspan data-lang-block="en">D-Bus slot · hides panels</tspan>
+                <tspan data-lang-block="pt">Slot D-Bus · oculta painéis</tspan>
+              </text>
+
+              <rect x="1056" y="438" width="198" height="108" rx="14" class="arch-multi-card"/>
+              <circle cx="1072" cy="454" r="4.5" class="arch-dot arch-dot-rose"/>
+              <text class="arch-multi-num" x="1155" y="476">
+                <tspan data-lang-block="en">× 1–8 Players</tspan>
+                <tspan data-lang-block="pt">× 1–8 Jogadores</tspan>
+              </text>
+              <text class="arch-s-xs" x="1155" y="500">
+                <tspan data-lang-block="en">Each player gets their own</tspan>
+                <tspan data-lang-block="pt">Cada jogador tem sua</tspan>
+              </text>
+              <text class="arch-s-xs" x="1155" y="519">
+                <tspan data-lang-block="en">isolated stack — no leaks</tspan>
+                <tspan data-lang-block="pt">pilha isolada — sem conflito</tspan>
+              </text>
+
+              <!-- HORIZONTAL CONNECTORS: Your PC -> Exact Target Nested Layer -->
+              <path class="arch-line-1" d="M232 106H270" marker-end="url(#arch-arrow-1)"/>
+              <path class="arch-line-1" d="M232 332C274 332 274 222 310 222" marker-end="url(#arch-arrow-1)"/>
+              <path class="arch-line-1" d="M232 448H290" marker-end="url(#arch-arrow-1)"/>
+
+              <!-- HORIZONTAL CONNECTORS: Exact Nested Layer -> Desktop & Output -->
+              <path class="arch-line-1" d="M1006 128H1044" marker-end="url(#arch-arrow-1)"/>
+              <path class="arch-line-1" d="M966 244H1044" marker-end="url(#arch-arrow-1)"/>
+              <path class="arch-line-1" d="M946 365H1044" marker-end="url(#arch-arrow-1)"/>
+            </svg>
+          </div>
+
+          <!-- DIAGRAM 2: STEP-BY-STEP CONTROLLER & STEAM INPUT ISOLATION FLOWCHART -->
+          <div class="arch-card">
+            <svg class="arch-svg" viewBox="0 0 1280 426" role="img" aria-labelledby="arch-f2-title arch-f2-desc">
+              <title id="arch-f2-title">How controllers and Steam Input stay private per player</title>
+              <desc id="arch-f2-desc">Step-by-step flowchart: (1) Physical Pad is grabbed exclusively by (2) twinverse-input-bridge via EVIOCGRAB so Host Steam ignores it, and streamed into (3) ~/.tw-in/sock/. Inside the sandbox, (4) libtwinverse_uinput.so (32/64-bit) virtualizes event3000..3015, filters /dev/hidraw*, and captures (5) Steam Input's virtual pad in userspace without touching read-only Host /dev/uinput, while (6) libtwinverse_udev.so synthesizes virtual udev hotplug events and exposes only this player's controller to (7) Your Game.</desc>
+              <defs>
+                <linearGradient id="arch-bg-2" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" class="arch-bg-stop-1"/>
+                  <stop offset="1" class="arch-bg-stop-2"/>
+                </linearGradient>
+                <linearGradient id="arch-ink-2" gradientUnits="userSpaceOnUse" x1="220" y1="0" x2="1180" y2="0">
+                  <stop offset="0" class="arch-ink-stop-1"/>
+                  <stop offset="1" class="arch-ink-stop-2"/>
+                </linearGradient>
+                <linearGradient id="arch-core-2" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" class="arch-core-stop-1"/>
+                  <stop offset="1" class="arch-core-stop-2"/>
+                </linearGradient>
+                <radialGradient id="arch-glow-2" cx="72%" cy="52%" r="48%">
+                  <stop offset="0" class="arch-glow-stop-1"/>
+                  <stop offset="1" class="arch-glow-stop-2"/>
+                </radialGradient>
+                <marker id="arch-arrow-2" viewBox="0 0 16 16" refX="4.2" refY="8" markerWidth="16" markerHeight="16" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+                  <path d="M7.2 2.2L13.4 8L7.2 13.8" fill="none" class="arch-arrow-head" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+
+              <!-- Outer Canvas -->
+              <rect x="1" y="1" width="1278" height="424" rx="22" fill="url(#arch-bg-2)" class="arch-frame-stroke"/>
+              <ellipse cx="920" cy="230" rx="340" ry="175" fill="url(#arch-glow-2)"/>
+
+              <!-- Title & Pill -->
+              <text class="arch-h" x="28" y="42">
+                <tspan data-lang-block="en">2. How Controllers &amp; Steam Input Stay Private</tspan>
+                <tspan data-lang-block="pt">2. Como Controles e Steam Input Ficam Privados</tspan>
+              </text>
+              <g data-lang-block="en">
+                <rect x="1032" y="24" width="222" height="24" rx="12" class="arch-pill"/>
+                <text class="arch-pill-t" x="1143" y="40">Zero leaks between players</text>
+              </g>
+              <g data-lang-block="pt">
+                <rect x="1018" y="24" width="236" height="24" rx="12" class="arch-pill"/>
+                <text class="arch-pill-t" x="1136" y="40">Zero vazamento entre jogadores</text>
+              </g>
+
+              <!-- LEFT PANEL: ON YOUR PC -->
+              <rect x="26" y="64" width="462" height="334" rx="18" class="arch-panel"/>
+              <text class="arch-zone-h" x="46" y="95">
+                <tspan data-lang-block="en">On Your PC</tspan>
+                <tspan data-lang-block="pt">No Seu PC</tspan>
+              </text>
+
+              <!-- Host Nodes -->
+              <rect x="44" y="116" width="184" height="98" rx="13" class="arch-single-node"/>
+              <rect x="266" y="112" width="204" height="106" rx="14" class="arch-accent-node"/>
+              <rect x="44" y="278" width="184" height="98" rx="13" class="arch-blocked-node"/>
+              <rect x="266" y="278" width="204" height="98" rx="13" class="arch-blocked-node"/>
+
+              <!-- Step 1 -->
+              <circle cx="62" cy="134" r="9.5" class="arch-step-badge arch-step-indigo"/>
+              <text class="arch-step-num" x="62" y="137.8">1</text>
+              <text class="arch-r-sm" x="142" y="148">
+                <tspan data-lang-block="en">Physical Pad</tspan>
+                <tspan data-lang-block="pt">Controle Físico</tspan>
+              </text>
+              <text class="arch-s-xs" x="136" y="172">
+                <tspan data-lang-block="en">USB or Bluetooth</tspan>
+                <tspan data-lang-block="pt">USB ou Bluetooth</tspan>
+              </text>
+              <text class="arch-s-xs" x="136" y="192">
+                <tspan data-lang-block="en">Assigned to Player 1</tspan>
+                <tspan data-lang-block="pt">Atribuído ao Jogador 1</tspan>
+              </text>
+
+              <!-- Step 2 -->
+              <circle cx="284" cy="130" r="9.5" class="arch-step-badge arch-step-indigo"/>
+              <text class="arch-step-num" x="284" y="133.8">2</text>
+              <text class="arch-r-xs" x="376" y="146">Input Bridge</text>
+              <text class="arch-s-xs" x="368" y="170">
+                <tspan data-lang-block="en">EVIOCGRAB · anti-steal</tspan>
+                <tspan data-lang-block="pt">EVIOCGRAB · anti-roubo</tspan>
+              </text>
+              <text class="arch-s-xs" x="368" y="190">
+                <tspan data-lang-block="en">Hotplug · mute HOME+L3</tspan>
+                <tspan data-lang-block="pt">Hotplug · pausa HOME+L3</tspan>
+              </text>
+
+              <!-- Step 1 -> 2 Flow -->
+              <path class="arch-line-2" d="M228 165H254" marker-end="url(#arch-arrow-2)"/>
+
+              <!-- Blocked: Pad -> Host Steam -->
+              <line x1="136" y1="214" x2="136" y2="276" class="arch-block-line"/>
+              <circle cx="136" cy="245" r="10" class="arch-block-badge"/>
+              <text class="arch-block-x" x="136" y="248.5">✕</text>
+              <text class="arch-block-lbl" x="152" y="249">
+                <tspan data-lang-block="en">Locked</tspan>
+                <tspan data-lang-block="pt">Bloqueado</tspan>
+              </text>
+
+              <text class="arch-r-block" x="136" y="310">
+                <tspan data-lang-block="en">Host Steam</tspan>
+                <tspan data-lang-block="pt">Steam do Host</tspan>
+              </text>
+              <text class="arch-s-block" x="136" y="332">
+                <tspan data-lang-block="en">Cannot see this pad</tspan>
+                <tspan data-lang-block="pt">Não recebe comandos</tspan>
+              </text>
+              <text class="arch-s-block" x="136" y="352">
+                <tspan data-lang-block="en">HOME never steals focus</tspan>
+                <tspan data-lang-block="pt">HOME não rouba o foco</tspan>
+              </text>
+
+              <text class="arch-r-block" x="368" y="310">
+                <tspan data-lang-block="en">Host /dev/uinput</tspan>
+                <tspan data-lang-block="pt">/dev/uinput do Host</tspan>
+              </text>
+              <text class="arch-s-block" x="368" y="332">
+                <tspan data-lang-block="en">Mounted as read-only</tspan>
+                <tspan data-lang-block="pt">Montado somente leitura</tspan>
+              </text>
+              <text class="arch-s-block" x="368" y="352">
+                <tspan data-lang-block="en">Never leaks to Players 2–8</tspan>
+                <tspan data-lang-block="pt">Não vaza p/ Jogadores 2–8</tspan>
+              </text>
+
+              <!-- RIGHT PANEL: INSIDE PLAYER'S SANDBOX -->
+              <rect x="580" y="64" width="674" height="334" rx="18" fill="url(#arch-core-2)" class="arch-core-stroke-box"/>
+              <text class="arch-zone-h" x="600" y="95">
+                <tspan data-lang-block="en">Inside Player's Sandbox</tspan>
+                <tspan data-lang-block="pt">Dentro da Sandbox do Jogador</tspan>
+              </text>
+              <rect x="976" y="76" width="260" height="24" rx="12" class="arch-pill"/>
+              <text class="arch-pill-t" x="1106" y="92">
+                <tspan data-lang-block="en">Only this player's controller is visible</tspan>
+                <tspan data-lang-block="pt">Só o controle deste jogador aparece</tspan>
+              </text>
+
+              <!-- Sandbox Top Row: Step 3, Step 5, Step 7 -->
+              <g class="arch-core-nodes">
+                <rect x="600" y="116" width="186" height="98" rx="13"/>
+                <rect x="824" y="116" width="192" height="98" rx="13"/>
+              </g>
+              <rect x="1054" y="116" width="182" height="98" rx="13" class="arch-accent-node"/>
+
+              <!-- Step 3: .tw-in/sock -->
+              <circle cx="618" cy="134" r="9.5" class="arch-step-badge arch-step-cyan"/>
+              <text class="arch-step-num" x="618" y="137.8">3</text>
+              <text class="arch-r-xs" x="702" y="148">
+                <tspan data-lang-block="en">Private Sockets</tspan>
+                <tspan data-lang-block="pt">Sockets Privados</tspan>
+              </text>
+              <text class="arch-s-xs" x="693" y="172">
+                <tspan data-lang-block="en">~/.tw-in/sock/ stream</tspan>
+                <tspan data-lang-block="pt">Stream ~/.tw-in/sock/</tspan>
+              </text>
+              <text class="arch-s-xs" x="693" y="192">
+                <tspan data-lang-block="en">tw_hidraw.allow &amp; mute</tspan>
+                <tspan data-lang-block="pt">tw_hidraw.allow e mute</tspan>
+              </text>
+
+              <!-- Step 5: Steam Input -->
+              <circle cx="842" cy="134" r="9.5" class="arch-step-badge arch-step-orange"/>
+              <text class="arch-step-num" x="842" y="137.8">5</text>
+              <text class="arch-r-xs" x="926" y="148">Steam Input</text>
+              <text class="arch-s-xs" x="920" y="172">
+                <tspan data-lang-block="en">Reads synthetic event3000</tspan>
+                <tspan data-lang-block="pt">Lê o event3000 sintético</tspan>
+              </text>
+              <text class="arch-s-xs" x="920" y="192">
+                <tspan data-lang-block="en">Creates virtual event3001+</tspan>
+                <tspan data-lang-block="pt">Cria virtual event3001+</tspan>
+              </text>
+
+              <!-- Step 7: Result -->
+              <circle cx="1072" cy="134" r="9.5" class="arch-step-badge arch-step-purple"/>
+              <text class="arch-step-num" x="1072" y="137.8">7</text>
+              <text class="arch-r-xs" x="1152" y="148">
+                <tspan data-lang-block="en">Your Game</tspan>
+                <tspan data-lang-block="pt">Seu Jogo</tspan>
+              </text>
+              <text class="arch-s-xs" x="1145" y="172">
+                <tspan data-lang-block="en">Sees ONLY own pad</tspan>
+                <tspan data-lang-block="pt">Vê SÓ o próprio controle</tspan>
+              </text>
+              <text class="arch-s-xs" x="1145" y="192">
+                <tspan data-lang-block="en">Full gyro, rumble &amp; LEDs</tspan>
+                <tspan data-lang-block="pt">Giro, vibração e LEDs</tspan>
+              </text>
+
+              <!-- Sandbox Bottom Row: Step 4 -> Step 6 (Paired 32/64-bit Rust LD_PRELOAD Shims) -->
+              <g class="arch-core-nodes">
+                <rect x="600" y="278" width="308" height="98" rx="13"/>
+                <rect x="946" y="278" width="290" height="98" rx="13"/>
+              </g>
+
+              <!-- Step 4: libtwinverse_uinput.so -->
+              <circle cx="618" cy="296" r="9.5" class="arch-step-badge arch-step-orange"/>
+              <text class="arch-step-num" x="618" y="299.8">4</text>
+              <text class="arch-r-xs" x="760" y="308">
+                <tspan data-lang-block="en">uinput &amp; Hidraw Shim (Rust)</tspan>
+                <tspan data-lang-block="pt">Shim uinput e Hidraw (Rust)</tspan>
+              </text>
+              <text class="arch-s-xs" x="754" y="330">
+                <tspan data-lang-block="en">32/64-bit · virtual event3000..3015</tspan>
+                <tspan data-lang-block="pt">32/64 bits · event3000..3015 virtuais</tspan>
+              </text>
+              <text class="arch-s-xs" x="754" y="350">
+                <tspan data-lang-block="en">Intercepts uinput · filters hidraw</tspan>
+                <tspan data-lang-block="pt">Intercepta uinput · filtra hidraw</tspan>
+              </text>
+
+              <!-- Step 6: libtwinverse_udev.so -->
+              <circle cx="964" cy="296" r="9.5" class="arch-step-badge arch-step-orange"/>
+              <text class="arch-step-num" x="964" y="299.8">6</text>
+              <text class="arch-r-xs" x="1098" y="308">
+                <tspan data-lang-block="en">libudev.so.1 Shim (Rust)</tspan>
+                <tspan data-lang-block="pt">Shim libudev.so.1 (Rust)</tspan>
+              </text>
+              <text class="arch-s-xs" x="1091" y="330">
+                <tspan data-lang-block="en">Virtual USB/input tree &amp; hotplug</tspan>
+                <tspan data-lang-block="pt">Árvore USB/input virtual e hotplug</tspan>
+              </text>
+              <text class="arch-s-xs" x="1091" y="350">
+                <tspan data-lang-block="en">Hides other players' devices</tspan>
+                <tspan data-lang-block="pt">Oculta dispositivos de terceiros</tspan>
+              </text>
+
+              <!-- Step 2 -> 3 (Crossing the Wall) -->
+              <path class="arch-line-2" d="M470 165H588" marker-end="url(#arch-arrow-2)"/>
+              <rect x="492" y="137" width="84" height="20" rx="10" class="arch-wall-pill"/>
+              <text class="arch-flow-lbl" x="534" y="151">
+                <tspan data-lang-block="en">Private link</tspan>
+                <tspan data-lang-block="pt">Link privado</tspan>
+              </text>
+
+              <!-- Blocked: Step 4 -> Host /dev/uinput -->
+              <line x1="600" y1="327" x2="472" y2="327" class="arch-block-line"/>
+              <circle cx="534" cy="327" r="10.5" class="arch-block-badge"/>
+              <text class="arch-block-x" x="534" y="330.8">✕</text>
+              <rect x="496" y="344" width="76" height="20" rx="10" class="arch-barrier-pill"/>
+              <text class="arch-block-lbl-c" x="534" y="357.5">
+                <tspan data-lang-block="en">Blocked</tspan>
+                <tspan data-lang-block="pt">Bloqueado</tspan>
+              </text>
+
+              <!-- Sandbox Internal Flowchart Arrows: 3 -> 4 <-> 5, 4 -> 6 -> 7 -->
+              <path class="arch-line-2" d="M656 214V266" marker-end="url(#arch-arrow-2)"/>
+              <text class="arch-flow-lbl-l" x="666" y="249">
+                <tspan data-lang-block="en">pad + hidraw</tspan>
+                <tspan data-lang-block="pt">pad e hidraw</tspan>
+              </text>
+              <path class="arch-sub-line" d="M842 278V226" marker-end="url(#arch-arrow-2)"/>
+              <text class="arch-flow-lbl" x="802" y="249">event3000</text>
+              <path class="arch-line-2" d="M920 214C920 244 886 242 886 266" marker-end="url(#arch-arrow-2)"/>
+              <text class="arch-flow-lbl-l" x="922" y="249">
+                <tspan data-lang-block="en">virtual pad</tspan>
+                <tspan data-lang-block="pt">pad virtual</tspan>
+              </text>
+              <path class="arch-line-2" d="M908 327H934" marker-end="url(#arch-arrow-2)"/>
+              <path class="arch-line-2" d="M1145 278V226" marker-end="url(#arch-arrow-2)"/>
+              <text class="arch-flow-lbl-l" x="1155" y="249">
+                <tspan data-lang-block="en">isolated pad</tspan>
+                <tspan data-lang-block="pt">pad isolado</tspan>
+              </text>
+            </svg>
+          </div>
         </div>
+        <div class="arch-layers-grid">
+          <div class="arch-layer-card">
+            <div class="arch-layer-head">
+              <span class="arch-layer-dot arch-layer-dot-indigo" aria-hidden="true"></span>
+              <h4>
+                <span data-lang-block="en">Host Input Bridge</span>
+                <span data-lang-block="pt">Input Bridge no Host</span>
+              </h4>
+            </div>
+            <p>
+              <span data-lang-block="en"><code>twinverse-input-bridge</code> locks each assigned physical pad on the host via <code>EVIOCGRAB</code> (so pressing <strong>HOME</strong> never wakes Host Steam), neutralizes disconnects, reconnects without stealing identical sibling pads, pauses sandbox input on <kbd>HOME</kbd>+<kbd>L3</kbd>, and spawns a virtual joystick fallback when no physical pad is assigned.</span>
+              <span data-lang-block="pt">O <code>twinverse-input-bridge</code> trava cada controle físico no host via <code>EVIOCGRAB</code> (impedindo o <strong>HOME</strong> de abrir o Steam do host), neutraliza desconexões, reconecta sem roubar controles idênticos, pausa a entrada no <kbd>HOME</kbd>+<kbd>L3</kbd> e fornece um joystick virtual automático quando nenhum controle físico é atribuído.</span>
+            </p>
+          </div>
 
+          <div class="arch-layer-card">
+            <div class="arch-layer-head">
+              <span class="arch-layer-dot arch-layer-dot-green" aria-hidden="true"></span>
+              <h4>
+                <span data-lang-block="en">Shared Network, Steam IPC &amp; Optional <code>pasta</code></span>
+                <span data-lang-block="pt">Rede Compartilhada, IPC do Steam e <code>pasta</code> Opcional</span>
+              </h4>
+            </div>
+            <p>
+              <span data-lang-block="en">Players share the host network by default with disjoint <code>steam_master_ipc_name_override</code> loopback ports (<code>61100+</code>) and synthetic <code>-private_ip_override 192.0.2.N</code> sign-in IPs so Valve CM never triggers <em>Session Replaced</em>. When distinct LAN IPs are needed, rootless <code>pasta</code> attaches a user+net namespace with an ARP-probed LAN subnet IP.</span>
+              <span data-lang-block="pt">Por padrão, os jogadores usam a rede do host com portas de loopback distintas via <code>steam_master_ipc_name_override</code> (<code>61100+</code>) e IPs sintéticos de login <code>-private_ip_override 192.0.2.N</code>, evitando quedas por <em>Session Replaced</em>. Quando um servidor local exige IPs distintos, o <code>pasta</code> cria um namespace sem root com IP livre verificado via ARP na sub-rede da LAN.</span>
+            </p>
+          </div>
+
+          <div class="arch-layer-card">
+            <div class="arch-layer-head">
+              <span class="arch-layer-dot arch-layer-dot-cyan" aria-hidden="true"></span>
+              <h4>
+                <span data-lang-block="en">Bubblewrap Sandbox &amp; Shared Library</span>
+                <span data-lang-block="pt">Sandbox Bubblewrap e Biblioteca Compartilhada</span>
+              </h4>
+            </div>
+            <p>
+              <span data-lang-block="en"><strong>Bubblewrap</strong> binds an isolated <code>home_1..8</code> over <code>$HOME</code> alongside private <code>/tmp</code>, <code>/dev/shm</code>, masked <code>/dev/input</code>, read-only <code>/dev/uinput</code>, private <code>~/.tw-in/sock/</code> endpoints, and isolated SysV IPC—while re-mounting host <code>steamapps/common/</code> and <code>compatibilitytools.d/</code> and syncing <code>appmanifest_*.acf</code> with zero game duplication.</span>
+              <span data-lang-block="pt">O <strong>Bubblewrap</strong> monta uma pasta <code>home_1..8</code> isolada sobre <code>$HOME</code> junto com <code>/tmp</code>, <code>/dev/shm</code>, <code>/dev/input</code> mascarado, <code>/dev/uinput</code> somente leitura, sockets privados em <code>~/.tw-in/sock/</code> e IPC SysV próprio—remontando <code>steamapps/common/</code> e <code>compatibilitytools.d/</code> do host e sincronizando <code>appmanifest_*.acf</code> sem duplicar jogos.</span>
+            </p>
+          </div>
+
+          <div class="arch-layer-card">
+            <div class="arch-layer-head">
+              <span class="arch-layer-dot arch-layer-dot-purple" aria-hidden="true"></span>
+              <h4>
+                <span data-lang-block="en">Gamescope, Startup Gate &amp; Overlay Focus</span>
+                <span data-lang-block="pt">Gamescope, Gate de Inicialização e Foco do Overlay</span>
+              </h4>
+            </div>
+            <p>
+              <span data-lang-block="en"><strong>Gamescope</strong> enforces per-tile resolution, refresh rate, cursor grab, and MangoApp HUD for official Steam Big Picture and Proton (or can be bypassed in Direct Steam Mode). A <code>BASH_ENV</code> gate waits for controller <code>/dev/shm</code> segments before the Steam UI renders, while <code>overlay_focus.py</code> repairs gamepad focus on narrow (<code>&le; 1200px</code>) splitscreen overlays.</span>
+              <span data-lang-block="pt">O <strong>Gamescope</strong> aplica resolução, Hz, captura de mouse e HUD MangoApp para o Steam Big Picture oficial e o Proton (ou pode ser desativado no Modo Direto). Um gate via <code>BASH_ENV</code> aguarda os segmentos <code>/dev/shm</code> dos controles antes da interface subir, e o <code>overlay_focus.py</code> corrige o foco do controle em overlays estreitos (<code>&le; 1200px</code>).</span>
+            </p>
+          </div>
+
+          <div class="arch-layer-card">
+            <div class="arch-layer-head">
+              <span class="arch-layer-dot arch-layer-dot-orange" aria-hidden="true"></span>
+              <h4>
+                <span data-lang-block="en">32/64-bit Rust Shims &amp; Userspace Steam Input</span>
+                <span data-lang-block="pt">Shims Rust 32/64 bits e Steam Input em Userspace</span>
+              </h4>
+            </div>
+            <p>
+              <span data-lang-block="en">Promoted <em>after</em> Gamescope via <code>GAMESCOPE_RUNTIME_SETUP</code> (which also exposes <code>GAMESCOPE_LIMITER_FILE</code> to Proton), <code>libtwinverse_uinput.so</code> virtualizes <code>event3000..3015</code>, filters <code>/dev/hidraw*</code> via <code>tw_hidraw.allow</code>, and captures Steam Input's virtual pads in userspace without touching Host <code>/dev/uinput</code>, while <code>libtwinverse_udev.so</code> synthesizes the virtual USB/input tree and hotplug uevents.</span>
+              <span data-lang-block="pt">Ativados <em>após</em> o Gamescope via <code>GAMESCOPE_RUNTIME_SETUP</code> (que também expõe <code>GAMESCOPE_LIMITER_FILE</code> ao Proton), o <code>libtwinverse_uinput.so</code> virtualiza <code>event3000..3015</code>, filtra <code>/dev/hidraw*</code> via <code>tw_hidraw.allow</code> e captura os pads virtuais do Steam Input sem tocar no <code>/dev/uinput</code> do host, enquanto o <code>libtwinverse_udev.so</code> gera a árvore USB/input virtual e eventos de hotplug.</span>
+            </p>
+          </div>
+
+          <div class="arch-layer-card">
+            <div class="arch-layer-head">
+              <span class="arch-layer-dot arch-layer-dot-rose" aria-hidden="true"></span>
+              <h4>
+                <span data-lang-block="en">Host Lifecycle, Session Controls &amp; Recovery</span>
+                <span data-lang-block="pt">Ciclo de Vida no Host, Controles da Sessão e Recuperação</span>
+              </h4>
+            </div>
+            <p>
+              <span data-lang-block="en">Whether running as AppImage, source, or Flatpak (<code>flatpak-spawn --host</code>), each of the 1–8 instances leads its own host process group, streams to its rotated log, listens for <kbd>HOME</kbd>+<kbd>L3</kbd>, and registers in <code>instances.json</code> so live sessions survive UI restarts. On stop, Twinverse walks <code>/proc</code> descendant trees to end SteamRT3 <code>setsid()</code> sub-sessions cleanly without touching Host Steam.</span>
+              <span data-lang-block="pt">Via AppImage, código-fonte ou Flatpak (<code>flatpak-spawn --host</code>), cada uma das 1–8 instâncias lidera seu próprio grupo de processos no host, grava em seu log rotacionado, escuta o atalho <kbd>HOME</kbd>+<kbd>L3</kbd> e fica registrada em <code>instances.json</code> para reconexão se a UI reiniciar. Ao encerrar, o Twinverse percorre a árvore em <code>/proc</code> para finalizar sub-sessões <code>setsid()</code> do SteamRT3 sem afetar o Steam do host.</span>
+            </p>
+          </div>
+
+          <div class="arch-layer-card">
+            <div class="arch-layer-head">
+              <span class="arch-layer-dot arch-layer-dot-lime" aria-hidden="true"></span>
+              <h4>
+                <span data-lang-block="en">Per-Player Audio &amp; PipeWire Video Capture</span>
+                <span data-lang-block="pt">Áudio por Jogador e Captura de Vídeo PipeWire</span>
+              </h4>
+            </div>
+            <p>
+              <span data-lang-block="en">Each player can output to a dedicated headset or share the same speakers via per-instance <code>PULSE_SINK</code> routing (discovered with <code>pactl</code> on PulseAudio or PipeWire). Separately, Twinverse stages <code>90-twinverse-gamescope.conf</code> per home so every Gamescope compositor exposes an isolated PipeWire <code>Video/Source</code> node for Steam game recording and capture.</span>
+              <span data-lang-block="pt">Cada jogador pode usar um fone dedicado ou compartilhar as mesmas caixas de som via roteamento individual de <code>PULSE_SINK</code> (detectado com <code>pactl</code> no PulseAudio ou PipeWire). Separadamente, o Twinverse grava <code>90-twinverse-gamescope.conf</code> em cada home para que cada compositor Gamescope exponha um nó <code>Video/Source</code> isolado no PipeWire para captura de vídeo do Steam.</span>
+            </p>
+          </div>
+
+          <div class="arch-layer-card">
+            <div class="arch-layer-head">
+              <span class="arch-layer-dot arch-layer-dot-amber" aria-hidden="true"></span>
+              <h4>
+                <span data-lang-block="en">KDE / KWin 6 Dynamic Auto-Tiling</span>
+                <span data-lang-block="pt">Auto-Tiling Dinâmico no KDE / KWin 6</span>
+              </h4>
+            </div>
+            <p>
+              <span data-lang-block="en">On KDE Plasma 6, a dynamic <strong>KWin</strong> script queries Twinverse's session D-Bus service (<code>ResolveInstance</code> matching <code>TWINVERSE_KWIN_INSTANCE</code>) to snap every player window into borderless splitscreen or multi-monitor tiles, temporarily switches Plasma panels to <code>dodgewindows</code>, and floats the <strong>End Session</strong> confirmation dialog on top.</span>
+              <span data-lang-block="pt">No KDE Plasma 6, um script dinâmico do <strong>KWin</strong> consulta o serviço D-Bus da sessão (<code>ResolveInstance</code> lendo <code>TWINVERSE_KWIN_INSTANCE</code>) para encaixar cada janela sem bordas nos moldes de tela dividida ou múltiplos monitores, alterna os painéis do Plasma temporariamente para <code>dodgewindows</code> e mantém o diálogo <strong>Encerrar Sessão</strong> flutuando no topo.</span>
+            </p>
+          </div>
+        </div>
         <h3>
           <span data-lang-block="en">XDG Base Directory Locations</span>
           <span data-lang-block="pt">Diretórios XDG Base Directory</span>
         </h3>
         <p>
-          <span data-lang-block="en">Twinverse strictly follows the XDG Base Directory Specification for both native/AppImage and Flatpak installations:</span>
-          <span data-lang-block="pt">O Twinverse segue rigorosamente a especificação XDG Base Directory tanto em execuções nativas/AppImage quanto em Flatpak:</span>
+          <span data-lang-block="en">Twinverse strictly follows the XDG Base Directory Specification for both native/AppImage and Flatpak (<code>io.github.mall0r.Twinverse</code>) installations:</span>
+          <span data-lang-block="pt">O Twinverse segue rigorosamente a especificação XDG Base Directory tanto em execuções nativas/AppImage quanto no Flatpak (<code>io.github.mall0r.Twinverse</code>):</span>
         </p>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th><span data-lang-block="en">Data Type</span><span data-lang-block="pt">Tipo de Dado</span></th>
-                <th><span data-lang-block="en">Native / AppImage / Source</span><span data-lang-block="pt">Nativo / AppImage / Fonte</span></th>
-                <th>Flatpak (<code>io.github.mall0r.Twinverse</code>)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span data-lang-block="en">Player Homes (<code>home_1..8</code>)</span><span data-lang-block="pt">Pastas Home (<code>home_1..8</code>)</span></td>
-                <td><code>~/.local/share/twinverse/</code></td>
-                <td><code>~/.var/app/io.github.mall0r.Twinverse/data/twinverse/</code></td>
-              </tr>
-              <tr>
-                <td><span data-lang-block="en">Configuration &amp; Profiles</span><span data-lang-block="pt">Configuração e Perfis</span></td>
-                <td><code>~/.config/twinverse/</code></td>
-                <td><code>~/.var/app/io.github.mall0r.Twinverse/config/twinverse/</code></td>
-              </tr>
-              <tr>
-                <td><span data-lang-block="en">Cache &amp; Temporary Helpers</span><span data-lang-block="pt">Cache e Auxiliares</span></td>
-                <td><code>~/.cache/twinverse/</code></td>
-                <td><code>~/.var/app/io.github.mall0r.Twinverse/cache/twinverse/</code></td>
-              </tr>
-              <tr>
-                <td><span data-lang-block="en">Logs &amp; Live Session Registry</span><span data-lang-block="pt">Logs e Registro de Sessão</span></td>
-                <td><code>~/.local/state/twinverse/logs/</code></td>
-                <td><code>~/.var/app/io.github.mall0r.Twinverse/.local/state/twinverse/logs/</code></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="paths-list">
+          <div class="path-card">
+            <div class="path-card-meta">
+              <div class="path-card-icon path-icon-blue" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+              <div>
+                <h4>
+                  <span data-lang-block="en">Player Homes</span>
+                  <span data-lang-block="pt">Pastas Home</span>
+                  <span class="path-tag">home_1..8</span>
+                </h4>
+                <p>
+                  <span data-lang-block="en">Isolated Steam logins, saves &amp; <code>.tw-in/</code> sockets</span>
+                  <span data-lang-block="pt">Logins isolados do Steam, saves e sockets <code>.tw-in/</code></span>
+                </p>
+              </div>
+            </div>
+            <div class="path-rows">
+              <div class="path-row">
+                <span class="path-env path-env-native">
+                  <span data-lang-block="en">Native</span>
+                  <span data-lang-block="pt">Nativo</span>
+                </span>
+                <code class="path-code">~/.local/share/twinverse/</code>
+                <button class="path-copy-btn" type="button" data-copy="~/.local/share/twinverse/" aria-label="Copy path">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+              <div class="path-row">
+                <span class="path-env path-env-flatpak">Flatpak</span>
+                <code class="path-code">~/.var/app/io.github.mall0r.Twinverse/data/twinverse/</code>
+                <button class="path-copy-btn" type="button" data-copy="~/.var/app/io.github.mall0r.Twinverse/data/twinverse/" aria-label="Copy path">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="path-card">
+            <div class="path-card-meta">
+              <div class="path-card-icon path-icon-purple" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
+                  <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
+                  <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
+                  <line x1="17" y1="16" x2="23" y2="16"></line>
+                </svg>
+              </div>
+              <div>
+                <h4>
+                  <span data-lang-block="en">Configuration &amp; Profiles</span>
+                  <span data-lang-block="pt">Configuração e Perfis</span>
+                </h4>
+                <p>
+                  <span data-lang-block="en">Preferences, monitor layouts &amp; device bindings</span>
+                  <span data-lang-block="pt">Preferências, layouts de tela e vínculos de controles</span>
+                </p>
+              </div>
+            </div>
+            <div class="path-rows">
+              <div class="path-row">
+                <span class="path-env path-env-native">
+                  <span data-lang-block="en">Native</span>
+                  <span data-lang-block="pt">Nativo</span>
+                </span>
+                <code class="path-code">~/.config/twinverse/</code>
+                <button class="path-copy-btn" type="button" data-copy="~/.config/twinverse/" aria-label="Copy path">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+              <div class="path-row">
+                <span class="path-env path-env-flatpak">Flatpak</span>
+                <code class="path-code">~/.var/app/io.github.mall0r.Twinverse/config/twinverse/</code>
+                <button class="path-copy-btn" type="button" data-copy="~/.var/app/io.github.mall0r.Twinverse/config/twinverse/" aria-label="Copy path">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="path-card">
+            <div class="path-card-meta">
+              <div class="path-card-icon path-icon-cyan" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+              </div>
+              <div>
+                <h4>
+                  <span data-lang-block="en">Cache &amp; Temporary Helpers</span>
+                  <span data-lang-block="pt">Cache e Auxiliares</span>
+                </h4>
+                <p>
+                  <span data-lang-block="en">Disposable launch helpers &amp; generated scripts</span>
+                  <span data-lang-block="pt">Auxiliares temporários e scripts gerados na sessão</span>
+                </p>
+              </div>
+            </div>
+            <div class="path-rows">
+              <div class="path-row">
+                <span class="path-env path-env-native">
+                  <span data-lang-block="en">Native</span>
+                  <span data-lang-block="pt">Nativo</span>
+                </span>
+                <code class="path-code">~/.cache/twinverse/</code>
+                <button class="path-copy-btn" type="button" data-copy="~/.cache/twinverse/" aria-label="Copy path">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+              <div class="path-row">
+                <span class="path-env path-env-flatpak">Flatpak</span>
+                <code class="path-code">~/.var/app/io.github.mall0r.Twinverse/cache/twinverse/</code>
+                <button class="path-copy-btn" type="button" data-copy="~/.var/app/io.github.mall0r.Twinverse/cache/twinverse/" aria-label="Copy path">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="path-card">
+            <div class="path-card-meta">
+              <div class="path-card-icon path-icon-green" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="4 17 10 11 4 5"></polyline>
+                  <line x1="12" y1="19" x2="20" y2="19"></line>
+                </svg>
+              </div>
+              <div>
+                <h4>
+                  <span data-lang-block="en">Logs &amp; Live Session Registry</span>
+                  <span data-lang-block="pt">Logs e Registro de Sessão</span>
+                </h4>
+                <p>
+                  <span data-lang-block="en">Rotated main logs, per-instance logs &amp; <code>crash.log</code></span>
+                  <span data-lang-block="pt">Logs rotacionados, logs por instância e <code>crash.log</code></span>
+                </p>
+              </div>
+            </div>
+            <div class="path-rows">
+              <div class="path-row">
+                <span class="path-env path-env-native">
+                  <span data-lang-block="en">Native</span>
+                  <span data-lang-block="pt">Nativo</span>
+                </span>
+                <code class="path-code">~/.local/state/twinverse/logs/</code>
+                <button class="path-copy-btn" type="button" data-copy="~/.local/state/twinverse/logs/" aria-label="Copy path">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+              <div class="path-row">
+                <span class="path-env path-env-flatpak">Flatpak</span>
+                <code class="path-code">~/.var/app/io.github.mall0r.Twinverse/.local/state/twinverse/logs/</code>
+                <button class="path-copy-btn" type="button" data-copy="~/.var/app/io.github.mall0r.Twinverse/.local/state/twinverse/logs/" aria-label="Copy path">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
