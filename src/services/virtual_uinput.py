@@ -82,6 +82,11 @@ def is_virtual_uinput_available(base_path: Optional[Path] = None) -> bool:
     return find_native_libraries(base_path) is not None
 
 
+def is_input_bridge_available(base_path: Optional[Path] = None) -> bool:
+    """Return True when both the native uinput libraries and ``twinverse-input-bridge`` are built."""
+    return is_virtual_uinput_available(base_path) and find_input_bridge_binary(base_path) is not None
+
+
 def _files_have_same_content(src: Path, dst: Path) -> bool:
     """Return True when ``src`` and ``dst`` have identical byte contents."""
     chunk_size = 65536
@@ -228,15 +233,28 @@ def build_input_bridge_command(
     config: Optional[VirtualUinputConfig],
     device_id: Optional[str],
     resolved_event: Optional[str] = None,
+    *,
+    placeholder: bool = False,
 ) -> Optional[list[str]]:
     """
-    Build the ``twinverse-input-bridge`` supervisor prefix for a physical controller.
+    Build the ``twinverse-input-bridge`` supervisor prefix for an instance.
 
-    Returns ``None`` when no physical controller is configured or when the native
-    bridge binary is unavailable (allowing graceful fallback to static binding).
+    When ``placeholder=True``, launches the bridge in userspace placeholder mode
+    (exposing ``"Virtual Joystick by Twinverse"`` on ``event3000`` with an empty
+    ``tw_hidraw.allow`` and zero host ``/dev/uinput`` access). Returns ``None``
+    when the native bridge binary is unavailable or when neither a physical
+    controller nor placeholder mode is requested.
     """
     if config is None or config.bridge_binary is None or config.host_socket_dir is None:
         return None
+
+    if placeholder:
+        return [
+            str(config.bridge_binary),
+            "--socket-dir",
+            str(config.host_socket_dir),
+            "--placeholder",
+        ]
 
     target_id = (device_id or "").strip()
     resolved = (resolved_event or "").strip()

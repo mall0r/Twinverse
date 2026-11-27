@@ -56,7 +56,7 @@ As listas de controles e monitores se atualizam ao conectar ou desconectar dispo
 
 Instale o **Steam nativo** e o **Bubblewrap** (`bwrap`) no host, mesmo ao usar Flatpak ou AppImage. Sessões em Big Picture com layout por monitor também precisam do [Gamescope e de um driver gráfico compatível](https://github.com/ValveSoftware/gamescope). A seleção de saída de áudio usa `pactl` com PulseAudio ou PipeWire-Pulse. O `pasta` (do pacote `passt`) é opcional; só a [rede isolada](#rede) precisa dele no `PATH` do host.
 
-Seu usuário precisa de acesso a `/dev/input` para os controles e a `/dev/uinput` para o joystick virtual usado na ausência de um controle atribuído. Para conceder acesso pelo grupo `input`, use o comando da sua distribuição e depois saia e entre novamente na sessão do sistema ou reinicie o computador:
+Controles padrão costumam funcionar automaticamente em desktops Linux modernos via `systemd-logind` (`uaccess`), e o Twinverse nunca toca no `/dev/uinput` do host (tanto o Steam Input quanto o joystick substituto rodam em userspace). Somente se algum controle genérico ou adaptador USB não tiver permissão em `/dev/input`, adicione seu usuário ao grupo `input` e depois saia e entre novamente na sessão ou reinicie o computador:
 
 ```bash
 # Maioria das distribuições Linux

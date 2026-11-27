@@ -576,14 +576,14 @@ cd Twinverse
           <span data-lang-block="pt">Siga estes cinco passos na primeira vez em que configurar o Twinverse. Depois que os jogadores fizerem login no Steam, as próximas sessões exigem apenas um clique em <strong>Iniciar Sessão</strong>.</span>
         </p>
 
-        <div id="input-permissions" class="callout callout-important">
+        <div id="input-permissions" class="callout callout-note">
           <p class="callout-title">
-            <span data-lang-block="en">Mandatory Permission: Add Your User to the <code>input</code> Group</span>
-            <span data-lang-block="pt">Permissão Obrigatória: Adicione seu Usuário ao Grupo <code>input</code></span>
+            <span data-lang-block="en">Optional Permission: Controller Access (<code>input</code> Group)</span>
+            <span data-lang-block="pt">Permissão Opcional: Acesso a Controles (Grupo <code>input</code>)</span>
           </p>
           <p>
-            <span data-lang-block="en">Twinverse needs to read physical controllers under <code>/dev/input</code>. It also needs write access to the host's <code>/dev/uinput</code> to create the placeholder joystick when no controller is assigned. Steam Input's own virtual devices stay inside each instance. Run the command for your distribution, then <strong>reboot</strong>:</span>
-            <span data-lang-block="pt">O Twinverse precisa ler os controles físicos em <code>/dev/input</code>. Também precisa de acesso de escrita a <code>/dev/uinput</code> no host para criar o joystick substituto quando não há controle atribuído. Já os dispositivos virtuais do Steam Input ficam dentro de cada instância. Execute o comando da sua distribuição e <strong>reinicie o computador</strong>:</span>
+            <span data-lang-block="en">On modern Linux desktops (<code>systemd-logind</code> + <code>uaccess</code>), standard gamepads already work out of the box without changing groups—and Twinverse never touches the host's <code>/dev/uinput</code> (both Steam Input and the placeholder joystick run in userspace). Only run the command below and <strong>sign out/reboot</strong> if a generic controller or USB adapter fails to respond under <code>/dev/input</code>:</span>
+            <span data-lang-block="pt">Em desktops Linux modernos (<code>systemd-logind</code> + <code>uaccess</code>), controles padrão já funcionam sem alterar grupos—e o Twinverse nunca toca no <code>/dev/uinput</code> do host (tanto o Steam Input quanto o joystick substituto rodam em userspace). Só execute o comando abaixo e <strong>saia da sessão/reinicie</strong> se algum controle genérico ou adaptador USB não responder em <code>/dev/input</code>:</span>
           </p>
 <pre><code># Most Linux distributions (Arch, Fedora, Ubuntu, Debian, openSUSE, SteamOS)
 sudo usermod -aG input "$USER"
@@ -1241,14 +1241,14 @@ ujust add-user-to-input-group</code></pre>
               <span data-lang-block="pt">Mantém uma lista dinâmica <code>tw_hidraw.allow</code> por instância e sintetiza eventos udev de hotplug <code>hidraw</code>, preservando giroscópio, vibração, touchpad e LEDs nativos do controle de cada jogador sem expor os dispositivos dos demais.</span>
             </li>
             <li>
-              <strong><span data-lang-block="en">Automatic Virtual Joystick:</span><span data-lang-block="pt">Joystick Virtual Automático:</span></strong>
-              <span data-lang-block="en">If a player has no physical controller selected (<strong>None</strong>), Twinverse creates a temporary <code>"Virtual Joystick by Twinverse"</code> via <code>evdev.UInput</code> during session launch and cleans it up on stop.</span>
-              <span data-lang-block="pt">Se um jogador não tiver controle físico selecionado (<strong>Nenhum</strong>), o Twinverse cria um <code>"Virtual Joystick by Twinverse"</code> temporário via <code>evdev.UInput</code> durante a sessão e o remove ao encerrar.</span>
+              <strong><span data-lang-block="en">Userspace Placeholder Virtual Joystick:</span><span data-lang-block="pt">Joystick Virtual Substituto em Userspace:</span></strong>
+              <span data-lang-block="en">If a player has no physical controller selected (<strong>None</strong>), <code>twinverse-input-bridge --placeholder</code> exposes a quiet <code>"Virtual Joystick by Twinverse"</code> on <code>event3000</code> with an empty <code>tw_hidraw.allow</code>—preventing Gamescope cursor issues while blocking all physical controllers dynamically and never touching the host's <code>/dev/uinput</code>.</span>
+              <span data-lang-block="pt">Se um jogador não tiver controle físico selecionado (<strong>Nenhum</strong>), o <code>twinverse-input-bridge --placeholder</code> expõe um <code>"Virtual Joystick by Twinverse"</code> silencioso em <code>event3000</code> com <code>tw_hidraw.allow</code> vazio—evitando bugs de cursor no Gamescope enquanto bloqueia dinamicamente todos os controles físicos sem nunca tocar no <code>/dev/uinput</code> do host.</span>
             </li>
             <li>
               <strong><span data-lang-block="en">Graceful Source Fallback:</span><span data-lang-block="pt">Fallback Automático no Código-Fonte:</span></strong>
-              <span data-lang-block="en">Only when running from source without compiled native Rust libraries does Twinverse fall back to static <code>/dev/input/eventX</code> bind-mounts and static <code>/dev/hidraw*</code> masks (without bridge hotplug reconnection or <code>EVIOCGRAB</code> host isolation).</span>
-              <span data-lang-block="pt">Somente ao rodar do código-fonte sem as bibliotecas nativas em Rust compiladas o Twinverse recorre a bind-mounts estáticos de <code>/dev/input/eventX</code> e máscaras estáticas de <code>/dev/hidraw*</code> (sem reconexão pela ponte nem captura exclusiva <code>EVIOCGRAB</code> no host).</span>
+              <span data-lang-block="en">Only when running from source without compiled native Rust libraries does Twinverse fall back to host <code>evdev.UInput</code>, static <code>/dev/input/eventX</code> bind-mounts, and static <code>/dev/hidraw*</code> masks (without bridge hotplug reconnection or <code>EVIOCGRAB</code> host isolation).</span>
+              <span data-lang-block="pt">Somente ao rodar do código-fonte sem as bibliotecas nativas em Rust compiladas o Twinverse recorre ao <code>evdev.UInput</code> do host, bind-mounts estáticos de <code>/dev/input/eventX</code> e máscaras estáticas de <code>/dev/hidraw*</code> (sem reconexão pela ponte nem captura exclusiva <code>EVIOCGRAB</code> no host).</span>
             </li>
           </ul>
         </div>

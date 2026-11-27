@@ -283,8 +283,10 @@ def test_navigation_mode_routes_dpad_hat_stick_and_guards_accidental_confirm():
     assert actions == ["right", "left"]
 
 
-def test_device_filtering_skips_virtual_twinverse_and_steam_pads():
+def test_device_filtering_skips_virtual_twinverse_and_steam_pads(tmp_path):
     """Virtual Twinverse / Steam gamepads and keyboards are excluded from shortcut monitoring."""
+    from src.services.shortcut_monitor import _BridgeSocketDevice
+
     assert _is_ignored_device_name("Virtual Joystick by Twinverse")
     assert _is_ignored_device_name("Steam Virtual Gamepad")
     assert not _is_ignored_device_name("Sony Interactive Entertainment DualSense Wireless Controller")
@@ -292,6 +294,16 @@ def test_device_filtering_skips_virtual_twinverse_and_steam_pads():
     assert _is_gamepad_capabilities({EV_KEY: [BTN_SOUTH, BTN_MODE, BTN_THUMBL]})
     assert _is_gamepad_capabilities({EV_KEY: [KEY_HOMEPAGE, BTN_THUMBL]})
     assert not _is_gamepad_capabilities({EV_KEY: [30, 31, 32]})  # regular keyboard keys only
+
+    # Bridge sockets publishing the userspace placeholder joystick must also be skipped.
+    sock_path = tmp_path / "tw_event3000.sock"
+    desc_path = tmp_path / "tw_event3000.desc"
+    desc = bytearray(1752)
+    struct.pack_into("<II", desc, 0, 0x54575549, 1)
+    placeholder_name = b"Virtual Joystick by Twinverse"
+    desc[16 : 16 + len(placeholder_name)] = placeholder_name
+    desc_path.write_bytes(desc)
+    assert _BridgeSocketDevice.connect(sock_path) is None
 
 
 def test_background_monitor_thread_triggers_on_real_selector_loop():

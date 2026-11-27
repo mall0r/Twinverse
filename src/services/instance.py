@@ -655,12 +655,24 @@ class InstanceService:
                     break
 
             if needs_virtual_joystick:
-                logger.info("One or more instances lack a physical joystick. Creating a virtual one.")
-                try:
-                    self._virtual_joystick_path = self.virtual_device.create_virtual_joystick()
-                except VirtualDeviceError as e:
-                    logger.error(f"Halting launch due to virtual joystick creation failure: {str(e)}")
-                    raise
+                from .virtual_uinput import is_input_bridge_available
+
+                if is_input_bridge_available():
+                    logger.info(
+                        "One or more instances lack a physical joystick; "
+                        "using userspace placeholder joystick via input bridge."
+                    )
+                    self._virtual_joystick_path = None
+                else:
+                    logger.info(
+                        "One or more instances lack a physical joystick and native input bridge "
+                        "is unavailable. Creating a host virtual joystick."
+                    )
+                    try:
+                        self._virtual_joystick_path = self.virtual_device.create_virtual_joystick()
+                    except VirtualDeviceError as e:
+                        logger.error(f"Halting launch due to virtual joystick creation failure: {str(e)}")
+                        raise
 
         active_profile = profile
         if use_gamescope_override is not None:

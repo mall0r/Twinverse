@@ -3,14 +3,17 @@
 //! Usage:
 //!   twinverse-input-bridge --socket-dir <dir> --device-id <path> \
 //!       [--resolved-event <path>] [--no-grab] -- <command> [args...]
+//!   twinverse-input-bridge --socket-dir <dir> --placeholder -- <command> [args...]
 //!
 //! Runs on the host alongside (and in the same process group as) a sandboxed
-//! Twinverse instance. Bridges the assigned physical evdev controller into
-//! `<socket_dir>/tw_event3000.sock` + `tw_event3000.desc` (holding an exclusive
-//! `EVIOCGRAB` so host applications such as Host Steam ignore it while the
-//! session runs) and maintains `<socket_dir>/tw_hidraw.allow` across
-//! unplug/reconnect cycles, then waits for `<command>` and exits with its exact
-//! status code.
+//! Twinverse instance. In physical mode, bridges the assigned evdev controller
+//! into `<socket_dir>/tw_event3000.sock` + `tw_event3000.desc` (holding an
+//! exclusive `EVIOCGRAB` so host applications such as Host Steam ignore it
+//! while the session runs) and maintains `<socket_dir>/tw_hidraw.allow` across
+//! unplug/reconnect cycles. In `--placeholder` mode, publishes a quiet
+//! userspace `"Virtual Joystick by Twinverse"` on `event3000` with an empty
+//! `tw_hidraw.allow` (never touching host `/dev/input` or `/dev/uinput`). Then
+//! waits for `<command>` and exits with its exact status code.
 
 mod bridge;
 mod evdev;
@@ -47,8 +50,9 @@ extern "C" fn forward_signal_handler(sig: c_int) {
 
 struct CliArgs {
     socket_dir: PathBuf,
-    device_id: PathBuf,
+    device_id: Option<PathBuf>,
     resolved_event: Option<PathBuf>,
+    placeholder: bool,
     grab_exclusive: bool,
     command: Vec<OsString>,
 }
@@ -60,6 +64,7 @@ where
     let mut socket_dir: Option<PathBuf> = None;
     let mut device_id: Option<PathBuf> = None;
     let mut resolved_event: Option<PathBuf> = None;
+    let mut placeholder = false;
     let mut grab_exclusive =
         !std::env::var_os("TWINVERSE_BRIDGE_NO_GRAB").is_some_and(|v| !v.is_empty() && v != "0");
     let mut command: Vec<OsString> = Vec::new();
@@ -85,6 +90,8 @@ where
             if !val.is_empty() {
                 resolved_event = Some(PathBuf::from(val));
             }
+        } else if arg == "--placeholder" {
+            placeholder = true;
         } else if arg == "--no-grab" {
             grab_exclusive = false;
         } else {
@@ -93,7 +100,15 @@ where
     }
 
     let socket_dir = socket_dir.ok_or_else(|| "--socket-dir is required".to_string())?;
-    let device_id = device_id.ok_or_else(|| "--device-id is required".to_string())?;
+    if placeholder {
+        if device_id.is_some() || resolved_event.is_some() {
+            return Err(
+                "--placeholder cannot be combined with --device-id or --resolved-event".to_string(),
+            );
+        }
+    } else if device_id.is_none() {
+        return Err("--device-id or --placeholder is required".to_string());
+    }
     if command.is_empty() {
         return Err("missing child command after '--'".to_string());
     }
@@ -102,6 +117,7 @@ where
         socket_dir,
         device_id,
         resolved_event,
+        placeholder,
         grab_exclusive,
         command,
     })
@@ -177,8 +193,17 @@ fn main() -> ExitCode {
         }
     };
 
-    let mut cfg = BridgeConfig::new(args.socket_dir, args.device_id, args.resolved_event);
-    cfg.grab_exclusive = args.grab_exclusive;
+    let cfg = if args.placeholder {
+        BridgeConfig::new_placeholder(args.socket_dir)
+    } else {
+        let mut cfg = BridgeConfig::new(
+            args.socket_dir,
+            args.device_id.unwrap_or_default(),
+            args.resolved_event,
+        );
+        cfg.grab_exclusive = args.grab_exclusive;
+        cfg
+    };
     let prepared = match PreparedBridge::prepare(cfg) {
         Ok(p) => p,
         Err(err) => {
@@ -246,11 +271,15 @@ mod tests {
         .unwrap();
 
         assert_eq!(args.socket_dir, PathBuf::from("/tmp/sock"));
-        assert_eq!(args.device_id, PathBuf::from("/dev/input/by-id/usb-pad"));
+        assert_eq!(
+            args.device_id,
+            Some(PathBuf::from("/dev/input/by-id/usb-pad"))
+        );
         assert_eq!(
             args.resolved_event,
             Some(PathBuf::from("/dev/input/event23"))
         );
+        assert!(!args.placeholder);
         assert!(args.grab_exclusive);
         assert_eq!(args.command.len(), 4);
         assert_eq!(args.command[0], OsString::from("bwrap"));
@@ -270,6 +299,48 @@ mod tests {
         )
         .unwrap();
         assert!(!no_grab.grab_exclusive);
+
+        let placeholder = parse_args(
+            [
+                "--socket-dir",
+                "/tmp/sock",
+                "--placeholder",
+                "--",
+                "bwrap",
+                "--",
+                "steam",
+            ]
+            .into_iter()
+            .map(OsString::from),
+        )
+        .unwrap();
+        assert!(placeholder.placeholder);
+        assert_eq!(placeholder.device_id, None);
+        assert_eq!(placeholder.command[0], OsString::from("bwrap"));
+
+        // Conflicting --placeholder and --device-id -> error
+        assert!(parse_args(
+            [
+                "--socket-dir",
+                "/tmp/sock",
+                "--placeholder",
+                "--device-id",
+                "/dev/input/event0",
+                "--",
+                "true",
+            ]
+            .into_iter()
+            .map(OsString::from)
+        )
+        .is_err());
+
+        // Neither --device-id nor --placeholder -> error
+        assert!(parse_args(
+            ["--socket-dir", "/tmp/sock", "--", "true"]
+                .into_iter()
+                .map(OsString::from)
+        )
+        .is_err());
 
         // Missing child command -> error
         assert!(parse_args(

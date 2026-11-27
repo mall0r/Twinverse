@@ -268,22 +268,30 @@ stream.rules = [
 
         physical_joystick_path = self.device_info.get("joystick_path_str_for_instance")
         physical_device_id = self.device_info.get("joystick_device_id_for_instance")
+        has_physical_controller = bool((physical_device_id or "").strip() or (physical_joystick_path or "").strip())
         bridge_cmd = build_input_bridge_command(
             virtual_uinput,
             device_id=physical_device_id,
             resolved_event=physical_joystick_path,
+            placeholder=not has_physical_controller,
         )
 
         if bridge_cmd is not None:
-            # The host-side hotplug bridge exposes this physical controller as
-            # virtual /dev/input/event3000 and dynamically manages /dev/hidraw*
-            # visibility via tw_hidraw.allow across unplug/reconnect cycles.
+            # The host-side bridge exposes either the assigned physical controller
+            # or a quiet userspace placeholder joystick on /dev/input/event3000,
+            # and dynamically manages /dev/hidraw* visibility via tw_hidraw.allow.
             self.input_bridge_command = bridge_cmd
-            logger.info(
-                "Instance %s: hotplug controller bridge enabled for '%s'",
-                self.instance_num + 1,
-                physical_device_id or physical_joystick_path,
-            )
+            if has_physical_controller:
+                logger.info(
+                    "Instance %s: hotplug controller bridge enabled for '%s'",
+                    self.instance_num + 1,
+                    physical_device_id or physical_joystick_path,
+                )
+            else:
+                logger.info(
+                    "Instance %s: userspace placeholder virtual joystick enabled via input bridge",
+                    self.instance_num + 1,
+                )
         else:
             joystick_path = physical_joystick_path
             if not joystick_path and self.virtual_joystick_path:

@@ -59,7 +59,8 @@ def test_the_command_never_executes_a_program_named_dashes(manager, tmp_path):
 
 
 def test_the_virtual_joystick_follows_the_selected_instances(monkeypatch, tmp_path):
-    """Only the instances that take part in the launch need a device."""
+    """Only the instances that take part in the launch need a fallback host virtual device."""
+    monkeypatch.setattr("src.services.virtual_uinput.is_input_bridge_available", lambda *a, **kw: False)
     service = InstanceService.__new__(InstanceService)
     service.logger = Mock()
     service.virtual_device = Mock()
@@ -74,6 +75,23 @@ def test_the_virtual_joystick_follows_the_selected_instances(monkeypatch, tmp_pa
     service._prepare_launch_profile(profile, None)
 
     service.virtual_device.create_virtual_joystick.assert_called_once()
+
+
+def test_host_virtual_joystick_is_skipped_when_input_bridge_is_available(monkeypatch, tmp_path):
+    """Never touch host /dev/uinput when the native userspace placeholder bridge is available."""
+    monkeypatch.setattr("src.services.virtual_uinput.is_input_bridge_available", lambda *a, **kw: True)
+    service = InstanceService.__new__(InstanceService)
+    service.logger = Mock()
+    service.virtual_device = Mock()
+    service._virtual_joystick_path = None
+    service._virtual_joystick_checked = False
+
+    profile = _profile([0, 1])
+
+    service._prepare_launch_profile(profile, None)
+
+    service.virtual_device.create_virtual_joystick.assert_not_called()
+    assert service._virtual_joystick_path is None
 
 
 def test_the_virtual_joystick_is_not_created_when_every_instance_has_one(monkeypatch, tmp_path):

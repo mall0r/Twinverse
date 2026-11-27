@@ -207,8 +207,17 @@ def test_stage_virtual_uinput_stages_bridge_binary_and_builds_command(tmp_path: 
         "/dev/input/by-id/usb-pad",
     ]
 
-    # No physical controller assigned -> no bridge command.
+    # No physical controller assigned without placeholder -> no bridge command.
     assert build_input_bridge_command(cfg, None, None) is None
+
+    # Placeholder mode -> launches userspace placeholder joystick on event3000.
+    cmd_placeholder = build_input_bridge_command(cfg, None, None, placeholder=True)
+    assert cmd_placeholder == [
+        str(expected_bin),
+        "--socket-dir",
+        str(home / ".tw-in/sock"),
+        "--placeholder",
+    ]
 
 
 def test_find_hidraw_devices_to_mask_isolates_controllers(tmp_path: Path) -> None:
@@ -383,8 +392,8 @@ def test_command_builder_enables_hotplug_bridge_for_physical_controller(monkeypa
     assert not any(cmd[i : i + 3] == ["--ro-bind", "/dev/null", "/dev/hidraw9"] for i in range(len(cmd) - 2))
 
 
-def test_command_builder_keeps_static_bind_for_placeholder_virtual_joystick(monkeypatch, tmp_path: Path) -> None:
-    """Keep static bind for placeholder virtual joystick when no physical controller is configured."""
+def test_command_builder_uses_placeholder_bridge_when_no_physical_controller(monkeypatch, tmp_path: Path) -> None:
+    """Use userspace placeholder bridge and dynamic hidraw blocking when no physical controller is configured."""
     home = tmp_path / "home_1"
     home.mkdir()
     fake_cfg = VirtualUinputConfig(
@@ -392,6 +401,38 @@ def test_command_builder_keeps_static_bind_for_placeholder_virtual_joystick(monk
         preload_paths=(Path("/home/user/.tw-in/lib64/libtwinverse_uinput.so"),),
         host_socket_dir=home / ".tw-in/sock",
         bridge_binary=home / ".tw-in/bin/twinverse-input-bridge",
+    )
+    monkeypatch.setattr("src.services.cmd_builder.stage_virtual_uinput", lambda *a, **kw: fake_cfg)
+    monkeypatch.setattr("src.services.cmd_builder.find_hidraw_devices_to_mask", lambda *a, **kw: ["/dev/hidraw9"])
+    monkeypatch.setattr("src.services.cmd_builder.build_webhelper_mounts", lambda *a, **kw: [])
+
+    profile = Profile()
+    profile.use_gamescope = True
+    builder = CommandBuilder(profile, {}, _mock_device_manager(), 0, home, None)
+    cmd = builder.build_command(["steam"])
+
+    assert cmd[0] == "bwrap"
+    assert builder.input_bridge_command == [
+        str(home / ".tw-in/bin/twinverse-input-bridge"),
+        "--socket-dir",
+        str(home / ".tw-in/sock"),
+        "--placeholder",
+    ]
+    env = _setenv_map(cmd)
+    assert env[ENV_PHYSICAL_BRIDGE] == "1"
+    assert env[ENV_HIDRAW_FILTER] == "1"
+    assert not any(cmd[i : i + 3] == ["--ro-bind", "/dev/null", "/dev/hidraw9"] for i in range(len(cmd) - 2))
+
+
+def test_command_builder_falls_back_to_static_virtual_joystick_without_bridge(monkeypatch, tmp_path: Path) -> None:
+    """Fall back to static bind for host virtual joystick when the native bridge binary is unavailable."""
+    home = tmp_path / "home_1"
+    home.mkdir()
+    fake_cfg = VirtualUinputConfig(
+        socket_dir=Path("/home/user/.tw-in/sock"),
+        preload_paths=(Path("/home/user/.tw-in/lib64/libtwinverse_uinput.so"),),
+        host_socket_dir=home / ".tw-in/sock",
+        bridge_binary=None,
     )
     monkeypatch.setattr("src.services.cmd_builder.stage_virtual_uinput", lambda *a, **kw: fake_cfg)
     monkeypatch.setattr("src.services.cmd_builder.find_hidraw_devices_to_mask", lambda *a, **kw: ["/dev/hidraw9"])

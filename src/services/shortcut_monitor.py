@@ -53,6 +53,8 @@ _IGNORED_DEVICE_SUBSTRINGS = (
 _BRIDGE_KEY_PREFIX = "bridge:"
 _UDYN_DESC_MAGIC = 0x54575549
 _UDYN_DESC_VERSION = 1
+_UDYN_DESC_NAME_OFFSET = 16
+_UDYN_DESC_NAME_LEN = 80
 _UDYN_DESC_ABSINFO_OFFSET = 212
 _UDYN_DESC_EVENT_SIZE_OFFSET = 1748
 _UDYN_DESC_MIN_SIZE = 1752
@@ -107,19 +109,22 @@ def _normalize_axis(value: int, axis_min: int, axis_max: int) -> float:
     return max(-1.0, min(1.0, normalized))
 
 
-def _parse_bridge_desc(desc_path: Path) -> tuple[tuple[int, int], struct.Struct]:
-    """Read ABS_X bounds and input_event record layout from a bridge ``.desc`` file."""
+def _parse_bridge_desc(desc_path: Path) -> tuple[tuple[int, int], struct.Struct, str]:
+    """Read ABS_X bounds, input_event record layout, and device name from a bridge ``.desc`` file."""
     abs_range = (-32768, 32767)
     event_struct = _INPUT_EVENT_NATIVE
+    device_name = ""
     try:
         data = desc_path.read_bytes()
     except OSError:
-        return abs_range, event_struct
+        return abs_range, event_struct, device_name
     if len(data) < _UDYN_DESC_ABSINFO_OFFSET + 24:
-        return abs_range, event_struct
+        return abs_range, event_struct, device_name
     magic, version = struct.unpack_from("<II", data, 0)
     if magic != _UDYN_DESC_MAGIC or version != _UDYN_DESC_VERSION:
-        return abs_range, event_struct
+        return abs_range, event_struct, device_name
+    raw_name = data[_UDYN_DESC_NAME_OFFSET : _UDYN_DESC_NAME_OFFSET + _UDYN_DESC_NAME_LEN]
+    device_name = raw_name.split(b"\x00", 1)[0].decode("utf-8", errors="ignore")
     _val, abs_min, abs_max, _fuzz, _flat, _res = struct.unpack_from("<iiiiii", data, _UDYN_DESC_ABSINFO_OFFSET)
     if abs_max > abs_min:
         abs_range = (int(abs_min), int(abs_max))
@@ -129,7 +134,7 @@ def _parse_bridge_desc(desc_path: Path) -> tuple[tuple[int, int], struct.Struct]
             event_struct = _INPUT_EVENT_64
         elif event_size == _INPUT_EVENT_32.size:
             event_struct = _INPUT_EVENT_32
-    return abs_range, event_struct
+    return abs_range, event_struct, device_name
 
 
 class _BridgeSocketDevice:
@@ -157,7 +162,11 @@ class _BridgeSocketDevice:
 
     @classmethod
     def connect(cls, sock_path: Path) -> Optional[_BridgeSocketDevice]:
-        """Connect to a live bridge socket, returning ``None`` if unavailable."""
+        """Connect to a live bridge socket, returning ``None`` if unavailable or ignored."""
+        abs_range, event_struct, device_name = _parse_bridge_desc(sock_path.with_suffix(".desc"))
+        if device_name and _is_ignored_device_name(device_name):
+            return None
+
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         dir_fd: Optional[int] = None
         try:
@@ -179,7 +188,6 @@ class _BridgeSocketDevice:
                 except OSError:
                     pass
 
-        abs_range, event_struct = _parse_bridge_desc(sock_path.with_suffix(".desc"))
         return cls(sock, sock_path, abs_range, event_struct)
 
     @property

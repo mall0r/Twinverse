@@ -37,6 +37,8 @@ def test_terminal_matches_start_except_application(monkeypatch, tmp_path, flatpa
     monkeypatch.setattr(Config, "logs_dir", lambda: tmp_path / "logs")
     monkeypatch.setattr(Config, "cache_dir", lambda: tmp_path / "cache")
     monkeypatch.setattr(Utils, "is_flatpak", lambda: flatpak)
+    monkeypatch.setattr("src.services.virtual_uinput.is_input_bridge_available", lambda *a, **kw: False)
+    monkeypatch.setattr("src.services.cmd_builder.stage_virtual_uinput", lambda *a, **kw: None)
     run = Mock(return_value=CompletedProcess([], 0, "/usr/bin/konsole\n", ""))
     monkeypatch.setattr("subprocess.run", run)
     value = "spaces; $(touch unexpected)"

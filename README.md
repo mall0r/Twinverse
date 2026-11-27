@@ -56,7 +56,7 @@ Controller and monitor lists refresh automatically on plug or unplug; press `F5`
 
 Install **native Steam** and **Bubblewrap** (`bwrap`) on the host, even when using Flatpak or AppImage. Tiled Big Picture sessions also need [Gamescope and a compatible graphics driver](https://github.com/ValveSoftware/gamescope). Audio output selection uses `pactl` with PulseAudio or PipeWire-Pulse. `pasta` (from `passt`) is optional; only [isolated networking](#networking) needs it on the host `PATH`.
 
-Your user needs access to `/dev/input` for controllers and to `/dev/uinput` for the placeholder joystick. To grant access via the `input` group, use the command for your distribution, then sign out and back in or reboot:
+Standard gamepads usually work automatically on modern Linux desktops via `systemd-logind` (`uaccess`), and Twinverse never touches the host's `/dev/uinput` (both Steam Input and the placeholder joystick run in userspace). Only if a generic controller or USB adapter is denied access under `/dev/input`, add your user to the `input` group and then sign out and back in or reboot:
 
 ```bash
 # Most Linux distributions

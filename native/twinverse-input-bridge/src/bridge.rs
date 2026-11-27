@@ -18,10 +18,11 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use twinverse_uinput_proto::{
-    clear_bit, default_abs_rest_value, set_bit, test_bit, udyn_bytes, NativeInputEvent, UdynDesc,
-    ABS_CNT, ABS_MAX, EV_ABS, EV_KEY, EV_SYN, HIDRAW_ALLOW_FILENAME, INPUT_MUTE_FILENAME, KEY_MAX,
-    SYN_REPORT, TWCTL_CMD_REGISTER_MONITOR, TWCTL_CMD_SET_SANDBOX_MUTE, TWCTL_MAGIC,
-    TWCTL_PACKET_LEN, UDYN_EVENT_BASE, UDYN_MAX_CLIENTS,
+    clear_bit, default_abs_rest_value, set_bit, test_bit, udyn_bytes, InputAbsInfo,
+    NativeInputEvent, UdynDesc, ABS_CNT, ABS_MAX, BTN_GAMEPAD, BUS_USB, EV_ABS, EV_KEY, EV_MAX,
+    EV_SYN, HIDRAW_ALLOW_FILENAME, INPUT_MUTE_FILENAME, KEY_MAX, SYN_REPORT,
+    TWCTL_CMD_REGISTER_MONITOR, TWCTL_CMD_SET_SANDBOX_MUTE, TWCTL_MAGIC, TWCTL_PACKET_LEN,
+    UDYN_EVENT_BASE, UDYN_MAX_CLIENTS,
 };
 
 use crate::evdev::{
@@ -42,7 +43,7 @@ const FALLBACK_POLL_MS: c_int = 500;
 const FAST_RETRY_WINDOW: Duration = Duration::from_secs(3);
 const UNMUTE_SUPPRESS_TIMEOUT: Duration = Duration::from_millis(1500);
 
-/// Configuration for the physical controller bridge.
+/// Configuration for the physical controller bridge (or userspace placeholder joystick).
 #[derive(Clone, Debug)]
 pub struct BridgeConfig {
     pub socket_dir: PathBuf,
@@ -50,6 +51,7 @@ pub struct BridgeConfig {
     pub resolved_event: Option<PathBuf>,
     pub event_num: i32,
     pub grab_exclusive: bool,
+    pub placeholder: bool,
 }
 
 impl BridgeConfig {
@@ -60,8 +62,53 @@ impl BridgeConfig {
             resolved_event,
             event_num: UDYN_EVENT_BASE,
             grab_exclusive: true,
+            placeholder: false,
         }
     }
+
+    pub fn new_placeholder(socket_dir: PathBuf) -> Self {
+        Self {
+            socket_dir,
+            device_id: PathBuf::new(),
+            resolved_event: None,
+            event_num: UDYN_EVENT_BASE,
+            grab_exclusive: false,
+            placeholder: true,
+        }
+    }
+}
+
+/// Build the minimal descriptor for the userspace placeholder joystick exposed
+/// to instances without a physical controller (matching the legacy evdev.UInput
+/// capabilities without touching the host kernel's `/dev/uinput`).
+pub fn build_placeholder_desc() -> UdynDesc {
+    let mut desc = UdynDesc::new_default();
+    desc.bustype = BUS_USB;
+    desc.vendor = 0x1234;
+    desc.product = 0x5678;
+    desc.version_id = 1;
+    let name = b"Virtual Joystick by Twinverse";
+    desc.name[..name.len()].copy_from_slice(name);
+    desc.name[name.len()] = 0;
+
+    set_bit(&mut desc.evbits, EV_SYN as c_int, EV_MAX);
+    set_bit(&mut desc.evbits, EV_KEY as c_int, EV_MAX);
+    set_bit(&mut desc.evbits, EV_ABS as c_int, EV_MAX);
+    set_bit(&mut desc.keybits, BTN_GAMEPAD as c_int, KEY_MAX);
+    set_bit(&mut desc.absbits, 0, ABS_MAX); // ABS_X
+    set_bit(&mut desc.absbits, 1, ABS_MAX); // ABS_Y
+
+    let stick = InputAbsInfo {
+        value: 0,
+        minimum: -32768,
+        maximum: 32767,
+        fuzz: 0,
+        flat: 0,
+        resolution: 0,
+    };
+    desc.absinfo[0] = stick;
+    desc.absinfo[1] = stick;
+    desc
 }
 
 /// Handle to a running background bridge thread.
@@ -195,7 +242,8 @@ fn bind_unix_listener(sock_path: &Path) -> Option<c_int> {
         if dir_fd < 0 {
             return None;
         }
-        bind_path_owned = format!("/proc/self/fd/{dir_fd}/{}", fname.to_string_lossy()).into_bytes();
+        bind_path_owned =
+            format!("/proc/self/fd/{dir_fd}/{}", fname.to_string_lossy()).into_bytes();
         if bind_path_owned.len() >= 108 {
             unsafe {
                 close(dir_fd);
@@ -309,7 +357,11 @@ impl BridgeState {
         let log_enabled =
             std::env::var_os("TWINVERSE_UINPUT_LOG").is_some_and(|v| !v.is_empty() && v != "0");
 
-        let inotify_fd = unsafe { inotify_init1(IN_NONBLOCK | IN_CLOEXEC) };
+        let inotify_fd = if cfg.placeholder {
+            -1
+        } else {
+            unsafe { inotify_init1(IN_NONBLOCK | IN_CLOEXEC) }
+        };
         let mut by_id_wd = -1;
         if inotify_fd >= 0 {
             unsafe {
@@ -384,12 +436,32 @@ impl BridgeState {
         // Always start with an explicit allowlist file so hidraw filtering has
         // deterministic state before the sandbox starts.
         let _ = write_hidraw_allow(&self.cfg.socket_dir, &[]);
-        if !self.try_connect_physical() {
+        if self.cfg.placeholder {
+            self.init_placeholder();
+        } else if !self.try_connect_physical() {
             self.log(&format!(
                 "controller {:?} not currently present; waiting for hotplug",
                 self.cfg.device_id
             ));
         }
+    }
+
+    fn init_placeholder(&mut self) {
+        let desc = build_placeholder_desc();
+        if let Err(err) = write_desc_atomic(&self.desc_path, &desc) {
+            self.log(&format!("failed to write {:?}: {err}", self.desc_path));
+            return;
+        }
+        let Some(lfd) = bind_unix_listener(&self.sock_path) else {
+            self.log(&format!("failed to bind {:?}", self.sock_path));
+            return;
+        };
+        self.listen_fd = lfd;
+        self.desc = Some(desc);
+        self.log(&format!(
+            "placeholder virtual joystick ready -> event{} (hidraw blocked)",
+            self.cfg.event_num
+        ));
     }
 
     fn try_connect_physical(&mut self) -> bool {
@@ -520,13 +592,8 @@ impl BridgeState {
                 // Neutralize sandbox state from a copy so physical held-key tracking remains exact.
                 let mut sandbox_keys = self.pressed_keys;
                 let mut sandbox_abs = self.abs_values;
-                let neutral = build_neutralizer_events(
-                    &desc,
-                    &mut sandbox_keys,
-                    &mut sandbox_abs,
-                    sec,
-                    usec,
-                );
+                let neutral =
+                    build_neutralizer_events(&desc, &mut sandbox_keys, &mut sandbox_abs, sec, usec);
                 if !neutral.is_empty() {
                     self.broadcast_events_to(&neutral, false);
                 }
@@ -904,7 +971,7 @@ impl BridgeState {
                 });
             }
 
-            let mut timeout_ms = if self.phys_fd >= 0 {
+            let mut timeout_ms = if self.phys_fd >= 0 || self.cfg.placeholder {
                 -1
             } else if self
                 .fast_retry_until
@@ -986,7 +1053,7 @@ impl BridgeState {
                 }
             }
 
-            if self.phys_fd < 0 {
+            if !self.cfg.placeholder && self.phys_fd < 0 {
                 if hotplug_hint {
                     self.fast_retry_until = Some(Instant::now() + FAST_RETRY_WINDOW);
                 }
@@ -1077,7 +1144,7 @@ impl PreparedBridge {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use twinverse_uinput_proto::{InputAbsInfo, ABS_RZ, ABS_Z, BTN_GAMEPAD};
+    use twinverse_uinput_proto::{ABS_RZ, ABS_Z};
 
     #[test]
     fn test_bridge_config_defaults_to_exclusive_grab() {
@@ -1153,7 +1220,10 @@ mod tests {
         fs::create_dir_all(&tmp).unwrap();
 
         let mut pipe_fds = [-1 as c_int; 2];
-        assert_eq!(unsafe { pipe2(pipe_fds.as_mut_ptr(), O_NONBLOCK | O_CLOEXEC) }, 0);
+        assert_eq!(
+            unsafe { pipe2(pipe_fds.as_mut_ptr(), O_NONBLOCK | O_CLOEXEC) },
+            0
+        );
         let cfg = BridgeConfig::new(tmp.clone(), PathBuf::from("/dev/input/nonexistent"), None);
         let mut state = BridgeState::new(cfg, pipe_fds[0]);
         let lfd = bind_unix_listener(&state.sock_path).expect("bind listener");
@@ -1195,9 +1265,15 @@ mod tests {
         fs::create_dir_all(&tmp).unwrap();
 
         let mut stop_pipe = [-1 as c_int; 2];
-        assert_eq!(unsafe { pipe2(stop_pipe.as_mut_ptr(), O_NONBLOCK | O_CLOEXEC) }, 0);
+        assert_eq!(
+            unsafe { pipe2(stop_pipe.as_mut_ptr(), O_NONBLOCK | O_CLOEXEC) },
+            0
+        );
         let mut phys_pipe = [-1 as c_int; 2];
-        assert_eq!(unsafe { pipe2(phys_pipe.as_mut_ptr(), O_NONBLOCK | O_CLOEXEC) }, 0);
+        assert_eq!(
+            unsafe { pipe2(phys_pipe.as_mut_ptr(), O_NONBLOCK | O_CLOEXEC) },
+            0
+        );
 
         let cfg = BridgeConfig::new(tmp.clone(), PathBuf::from("/dev/input/nonexistent"), None);
         let mut state = BridgeState::new(cfg, stop_pipe[0]);
@@ -1214,19 +1290,44 @@ mod tests {
 
         let mut sandbox = UnixStream::connect(&sock_path).expect("connect sandbox");
         let mut monitor = UnixStream::connect(&sock_path).expect("connect monitor");
-        sandbox.set_read_timeout(Some(Duration::from_millis(400))).unwrap();
-        monitor.set_read_timeout(Some(Duration::from_millis(400))).unwrap();
+        sandbox
+            .set_read_timeout(Some(Duration::from_millis(400)))
+            .unwrap();
+        monitor
+            .set_read_timeout(Some(Duration::from_millis(400)))
+            .unwrap();
 
         // Register monitor client via TWCTL.
         monitor
-            .write_all(&[b'T', b'W', b'C', b'T', b'L', TWCTL_CMD_REGISTER_MONITOR, 0, 0])
+            .write_all(&[
+                b'T',
+                b'W',
+                b'C',
+                b'T',
+                b'L',
+                TWCTL_CMD_REGISTER_MONITOR,
+                0,
+                0,
+            ])
             .unwrap();
         thread::sleep(Duration::from_millis(40));
 
         let send_phys = |ev_type: u16, code: u16, value: i32| {
             let events = [
-                NativeInputEvent { sec: 1, usec: 0, ev_type, code, value },
-                NativeInputEvent { sec: 1, usec: 1, ev_type: EV_SYN as u16, code: SYN_REPORT, value: 0 },
+                NativeInputEvent {
+                    sec: 1,
+                    usec: 0,
+                    ev_type,
+                    code,
+                    value,
+                },
+                NativeInputEvent {
+                    sec: 1,
+                    usec: 1,
+                    ev_type: EV_SYN as u16,
+                    code: SYN_REPORT,
+                    value: 0,
+                },
             ];
             let bytes = unsafe {
                 std::slice::from_raw_parts(
@@ -1263,7 +1364,16 @@ mod tests {
         // 2. Monitor enables sandbox mute -> sandbox gets neutralizer releasing BTN_MODE,
         //    and tw_input.mute flag file is created.
         monitor
-            .write_all(&[b'T', b'W', b'C', b'T', b'L', TWCTL_CMD_SET_SANDBOX_MUTE, 1, 0])
+            .write_all(&[
+                b'T',
+                b'W',
+                b'C',
+                b'T',
+                b'L',
+                TWCTL_CMD_SET_SANDBOX_MUTE,
+                1,
+                0,
+            ])
             .unwrap();
         let sb_neutral = read_events(&mut sandbox, 2);
         assert_eq!(sb_neutral[0].ev_type, EV_KEY as u16);
@@ -1282,7 +1392,9 @@ mod tests {
         assert_eq!(mon_while_muted[2].code, 305);
         assert_eq!(mon_while_muted[2].value, 1);
 
-        sandbox.set_read_timeout(Some(Duration::from_millis(80))).unwrap();
+        sandbox
+            .set_read_timeout(Some(Duration::from_millis(80)))
+            .unwrap();
         let mut probe = [0u8; 24];
         assert!(sandbox.read(&mut probe).is_err());
 
@@ -1290,13 +1402,24 @@ mod tests {
         //    the trailing release is swallowed for sandbox, tw_input.mute clears,
         //    and the next fresh BTN_SOUTH (304) press reaches sandbox cleanly.
         monitor
-            .write_all(&[b'T', b'W', b'C', b'T', b'L', TWCTL_CMD_SET_SANDBOX_MUTE, 0, 0])
+            .write_all(&[
+                b'T',
+                b'W',
+                b'C',
+                b'T',
+                b'L',
+                TWCTL_CMD_SET_SANDBOX_MUTE,
+                0,
+                0,
+            ])
             .unwrap();
         thread::sleep(Duration::from_millis(40));
         send_phys(EV_KEY as u16, 305, 0); // trailing release -> suppressed
         send_phys(EV_KEY as u16, 304, 1); // fresh press -> forwarded
 
-        sandbox.set_read_timeout(Some(Duration::from_millis(400))).unwrap();
+        sandbox
+            .set_read_timeout(Some(Duration::from_millis(400)))
+            .unwrap();
         let sb_after = read_events(&mut sandbox, 2);
         assert_eq!(sb_after[0].code, 304);
         assert_eq!(sb_after[0].value, 1);
@@ -1304,7 +1427,16 @@ mod tests {
 
         // 5. Re-mute and drop monitor abruptly -> sandbox auto-unmutes and mute file clears.
         monitor
-            .write_all(&[b'T', b'W', b'C', b'T', b'L', TWCTL_CMD_SET_SANDBOX_MUTE, 1, 0])
+            .write_all(&[
+                b'T',
+                b'W',
+                b'C',
+                b'T',
+                b'L',
+                TWCTL_CMD_SET_SANDBOX_MUTE,
+                1,
+                0,
+            ])
             .unwrap();
         // Neutralizer for held BTN_SOUTH (304)
         let _ = read_events(&mut sandbox, 2);
@@ -1322,6 +1454,54 @@ mod tests {
             close(phys_pipe[1]);
         }
         worker.join().expect("bridge worker panicked");
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_placeholder_mode_publishes_virtual_joystick_without_host_evdev() {
+        use std::os::unix::net::UnixStream;
+
+        let tmp = std::env::temp_dir().join(format!(
+            "twinverse-bridge-placeholder-test-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+
+        let cfg = BridgeConfig::new_placeholder(tmp.clone());
+        assert!(cfg.placeholder);
+        assert!(!cfg.grab_exclusive);
+
+        let prepared = PreparedBridge::prepare(cfg).expect("prepare placeholder bridge");
+        let desc_path = tmp.join("tw_event3000.desc");
+        let sock_path = tmp.join("tw_event3000.sock");
+        let allow_path = tmp.join(HIDRAW_ALLOW_FILENAME);
+
+        assert!(desc_path.is_file());
+        assert!(sock_path.exists());
+        assert_eq!(fs::read_to_string(&allow_path).unwrap(), "");
+
+        let raw_desc = fs::read(&desc_path).unwrap();
+        assert_eq!(raw_desc.len(), size_of::<UdynDesc>());
+        let desc: UdynDesc = unsafe { ptr::read_unaligned(raw_desc.as_ptr() as *const UdynDesc) };
+        assert_eq!(desc.name_bytes(), b"Virtual Joystick by Twinverse");
+        assert_eq!(desc.bustype, BUS_USB);
+        assert_eq!(desc.vendor, 0x1234);
+        assert_eq!(desc.product, 0x5678);
+        assert!(test_bit(&desc.keybits, BTN_GAMEPAD, KEY_MAX));
+        assert!(test_bit(&desc.absbits, 0, ABS_MAX));
+        assert!(test_bit(&desc.absbits, 1, ABS_MAX));
+        assert_eq!(desc.absinfo[0].minimum, -32768);
+        assert_eq!(desc.absinfo[0].maximum, 32767);
+
+        let handle = prepared.spawn_thread().expect("spawn placeholder bridge");
+        let client = UnixStream::connect(&sock_path).expect("connect to placeholder socket");
+        drop(client);
+
+        handle.stop_and_join();
+        assert!(!desc_path.exists());
+        assert!(!sock_path.exists());
+        assert!(!allow_path.exists());
         let _ = fs::remove_dir_all(&tmp);
     }
 }
