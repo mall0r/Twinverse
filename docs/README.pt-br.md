@@ -129,6 +129,12 @@ Solte os dois botões. Escolha entre esquerda e direita com o direcional ou o an
 
 ---
 
+## 💬 Ajuda e Feedback
+
+[Relate um bug ou sugira uma melhoria](https://github.com/mall0r/Twinverse/issues/new/choose) em português ou inglês. Para ajuda com a configuração ou problemas comuns, consulte a [seção de solução de problemas](https://mall0r.github.io/Twinverse/?lang=pt#troubleshooting).
+
+---
+
 ## 🛠️ Para Desenvolvedores
 
 Se deseja contribuir com o Twinverse, consulte [CONTRIBUTING.md](../CONTRIBUTING.md) para instruções de ambiente, fluxo de trabalho e padrões de código.

@@ -141,8 +141,8 @@ Flatpak, tipo de sessão, caminhos XDG, tamanhos dos logs, dependências opciona
 disponíveis (`bwrap`, `pasta`, `gamescope`, `steam`) e o final dos logs
 recentes. Ele não inclui o ambiente completo nem as variáveis das instâncias.
 
-Ao relatar um problema, inclua o relatório e os arquivos relevantes do
-diretório de logs. Revise o conteúdo antes de compartilhar: caminhos e linhas de
+Ao relatar um problema, você pode anexar o relatório de diagnóstico ou trechos
+relevantes dos logs. Revise o conteúdo antes de compartilhar: caminhos e linhas de
 comando ainda podem identificar sua configuração, mesmo com senhas e tokens
 comuns mascarados.
 

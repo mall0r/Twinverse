@@ -5,7 +5,15 @@ Want to help out with the project? We'd love it! There are lots of different way
 
 ## Issue Contribution
 
-If you encounter an issue while using Twinverse, or have an idea for a new feature, you can [create an issue](https://github.com/mall0r/Twinverse/issues/new/choose). This will take you to a selection page where you can choose the most relevant template for your issue. We are always open to suggestions!
+Use the [issue chooser](https://github.com/mall0r/Twinverse/issues/new/choose) to report a bug or suggest an improvement in English or Brazilian Portuguese. For setup questions and common problems, see [Troubleshooting](https://mall0r.github.io/Twinverse/#troubleshooting).
+
+Logs and diagnostics are optional. If you have a report or relevant log excerpt, follow the [debugging guide](docs/DEBUGGING.md) ([Português](docs/DEBUGGING.pt-br.md)) and remove private information before posting.
+
+### Issue triage
+
+The forms apply `bug` or `enhancement` together with `needs-triage`. GitHub only applies labels that already exist in the [repository](https://github.com/mall0r/Twinverse/labels).
+
+Remove `needs-triage` after review. Add an area label if it helps routing. If a report needs more information, ask for the specific detail in a comment and mark it `needs-info`.
 
 
 ## Security Note

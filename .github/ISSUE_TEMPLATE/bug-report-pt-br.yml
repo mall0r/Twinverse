@@ -1,0 +1,57 @@
+name: Reportar um bug (PT-BR)
+description: Relate algo que não está funcionando como esperado no Twinverse.
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Se puder, [confira as issues existentes](https://github.com/mall0r/Twinverse/issues?q=is%3Aissue) antes de abrir um relato.
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o que aconteceu e o que você esperava que acontecesse.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      description: Se não conseguir reproduzir, diga o que estava fazendo quando o problema ocorreu.
+      placeholder: |
+        1. Abra o Twinverse.
+        2. ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Versão do Twinverse
+      description: Confira em Sobre o Twinverse. Se não encontrar a versão, escreva "Não sei".
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Como você instalou o Twinverse?
+      options:
+        - Flatpak
+        - AppImage
+        - Pelo código-fonte
+        - Não sei
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Capturas de tela, logs ou diagnóstico (opcional)
+      description: |
+        Anexe somente o que ajuda a explicar o bug. Veja [como coletar um diagnóstico](https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.pt-br.md#diagn%C3%B3stico-sem-abrir-a-janela).
+        As issues são públicas. Revise o conteúdo e remova informações pessoais, senhas e tokens antes de publicar.
+    validations:
+      required: false

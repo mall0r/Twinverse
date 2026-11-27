@@ -140,8 +140,8 @@ metadata, session type, XDG paths, log sizes, available optional dependencies
 (`bwrap`, `pasta`, `gamescope`, `steam`), and the end of the recent logs. It
 does not include the full environment or the instance environments.
 
-When reporting a problem, include the report and the relevant files from the
-log directory. Review them before sharing: paths and command lines can still
+When reporting a problem, you can attach the diagnostic report or relevant
+log excerpts. Review them before sharing: paths and command lines can still
 identify your setup, even though common passwords and tokens are masked.
 
 ## Virtual uinput, Steam Input & controller hotplug

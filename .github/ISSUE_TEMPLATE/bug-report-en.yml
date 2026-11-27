@@ -1,0 +1,57 @@
+name: Report a bug (EN)
+description: Report something that is not working as expected in Twinverse.
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you can, [check existing issues](https://github.com/mall0r/Twinverse/issues?q=is%3Aissue) before reporting.
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe what happened and what you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: If you cannot reproduce it, describe what you were doing when it happened.
+      placeholder: |
+        1. Open Twinverse.
+        2. ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Twinverse version
+      description: Check About Twinverse. If you cannot find the version, enter "Not sure".
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: How did you install Twinverse?
+      options:
+        - Flatpak
+        - AppImage
+        - From source
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Screenshots, logs or diagnostics (optional)
+      description: |
+        Attach only what helps explain the bug. See [how to collect diagnostics](https://github.com/mall0r/Twinverse/blob/main/docs/DEBUGGING.md#diagnostics-without-opening-the-window).
+        Issues are public. Review the report and remove personal information, passwords and tokens before posting.
+    validations:
+      required: false

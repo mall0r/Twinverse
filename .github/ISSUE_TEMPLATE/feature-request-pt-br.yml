@@ -1,0 +1,32 @@
+name: Sugerir uma melhoria (PT-BR)
+description: Sugira um recurso ou uma mudança no funcionamento do Twinverse.
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Se puder, [confira as issues existentes](https://github.com/mall0r/Twinverse/issues?q=is%3Aissue) antes de enviar a sugestão.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: O que essa melhoria ajudaria você a fazer?
+      description: Conte o que está tentando fazer e o que dificulta isso hoje.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Como deveria funcionar?
+      description: Descreva o resultado que você gostaria de ver. Não precisa explicar como implementar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Exemplos (opcional)
+      description: Adicione uma captura de tela, um esboço ou um link se isso ajudar a explicar sua ideia.
+    validations:
+      required: false

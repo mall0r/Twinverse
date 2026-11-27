@@ -499,7 +499,7 @@ class MainPresenter:
             version=Utils.get_version(),
             developers=["Mallor"],
             website=website,
-            issue_url="https://github.com/mall0r/Twinverse/issues",
+            issue_url="https://github.com/mall0r/Twinverse/issues/new/choose",
             license_type=Gtk.License.GPL_3_0,
             comments=t("about.comments"),
             support_url=support_url,

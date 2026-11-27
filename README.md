@@ -129,6 +129,12 @@ Release both buttons. Choose left or right with the D-pad or left stick; **A** a
 
 ---
 
+## 💬 Feedback and Support
+
+[Report a bug or suggest an improvement](https://github.com/mall0r/Twinverse/issues/new/choose) in English or Brazilian Portuguese. For help with setup or common problems, see [Troubleshooting](https://mall0r.github.io/Twinverse/?lang=en#troubleshooting).
+
+---
+
 ## 🛠️ For Developers
 
 If you wish to contribute to Twinverse, please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, workflows, and code standards.
