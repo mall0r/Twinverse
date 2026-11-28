@@ -34,6 +34,7 @@ from .network import (
     select_steam_master_ipc_address,
     shared_network_ipc_shell_snippet,
 )
+from .steam_library import sync_all_steam_manifests
 from .steam_probe import ClientUpdate, SteamClientProbe
 
 logger = logging.getLogger(__name__)
@@ -1141,33 +1142,13 @@ class InstanceService:
         logger.info("Isolated Steam directories are ready.")
 
     def _sync_app_manifests(self, home_path: Path) -> None:
-        """Copy host manifests before removing obsolete instance manifests."""
-        host_steamapps = Path.home() / ".local/share/Steam/steamapps"
-        dest_steamapps = home_path / ".local/share/Steam/steamapps"
-
-        # Use iterdir rather than glob so inaccessible sources raise an error.
-        try:
-            manifests = [path for path in host_steamapps.iterdir() if path.suffix == ".acf"]
-        except OSError as e:
-            logger.warning(f"Cannot read host Steam directory '{host_steamapps}'; preserving instance manifests: {e}")
-            return
-
-        if not manifests:
-            # An empty host library means the games live somewhere else, so
-            # the manifests of the instance are kept instead of being wiped.
-            logger.warning(
-                f"Host Steam directory '{host_steamapps}' has no game manifests; preserving instance manifests."
-            )
-            return
+        """Copy and sanitize host Steam manifests before removing obsolete instance manifests."""
+        visible_steam_root = Path.home() / ".local/share/Steam"
+        host_home = Utils.get_host_home() if Utils.is_flatpak() else None
+        host_steam_root = host_home / ".local/share/Steam" if host_home is not None else visible_steam_root
 
         try:
-            for manifest in manifests:
-                shutil.copy(manifest, dest_steamapps / manifest.name)
-
-            host_names = {manifest.name for manifest in manifests}
-            for manifest in dest_steamapps.iterdir():
-                if manifest.suffix == ".acf" and manifest.name not in host_names:
-                    manifest.unlink()
+            sync_all_steam_manifests(home_path, visible_steam_root, host_steam_root)
         except OSError as e:
             raise TwinverseError(f"Failed to synchronize Steam app manifests: {e}") from e
 

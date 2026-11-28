@@ -11,6 +11,7 @@ from src.models import Profile
 from src.services.device_manager import DeviceManager
 from src.services.kwin_layout import INSTANCE_ENV
 from src.services.network import steam_private_ip_override
+from src.services.steam_library import build_shared_steam_mounts
 from src.services.virtual_uinput import (
     ENV_HIDRAW_FILTER,
     ENV_PHYSICAL_BRIDGE,
@@ -330,20 +331,13 @@ stream.rules = [
         sandbox_steam_path = orig_local / "share/Steam"
         host_steam_path = self._host_steam_path(sandbox_steam_path)
 
-        visible_common = sandbox_steam_path / "steamapps/common"
-        host_common = host_steam_path / "steamapps/common"
-        if visible_common.exists():
-            for folder in visible_common.iterdir():
-                if folder.is_dir():
-                    cmd.extend(["--bind", str(host_common / folder.name), str(visible_common / folder.name)])
-
-        visible_compat = sandbox_steam_path / "compatibilitytools.d"
-        host_compat = host_steam_path / "compatibilitytools.d"
-        if visible_compat.exists():
-            ignore = {"LegacyRuntime"}
-            for folder in visible_compat.iterdir():
-                if folder.is_dir() and folder.name not in ignore:
-                    cmd.extend(["--bind", str(host_compat / folder.name), str(visible_compat / folder.name)])
+        steam_mounts = build_shared_steam_mounts(
+            self.home_path,
+            orig_home,
+            sandbox_steam_path,
+            host_steam_path,
+        )
+        cmd.extend(steam_mounts.bwrap_args)
 
         # The UI must not open placeholder controller memory before Steam does.
         cmd.extend(
@@ -356,9 +350,16 @@ stream.rules = [
 
         extra_env: Dict = {}
         try:
-            extra_env = (
-                self.profile.get_env_for_instance(instance_idx) if hasattr(self.profile, "get_env_for_instance") else {}
-            ) or {}
+            extra_env = dict(
+                (
+                    self.profile.get_env_for_instance(instance_idx)
+                    if hasattr(self.profile, "get_env_for_instance")
+                    else {}
+                )
+                or {}
+            )
+            for k, v in steam_mounts.extra_env.items():
+                extra_env.setdefault(k, v)
             if self.profile.use_gamescope and self.profile.enable_gamescope_pointer_compatibility:
                 extra_env.setdefault(self.GAMESCOPE_TOUCH_MODE_ENV, self.GAMESCOPE_POINTER_COMPATIBILITY)
             for k, v in extra_env.items():
