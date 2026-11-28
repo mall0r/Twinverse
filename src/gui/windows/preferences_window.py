@@ -542,15 +542,16 @@ class PreferencesWindow(Adw.Window):
         Returns:
             True when the directory is gone, and the error when it is not.
         """
-        import shutil
         from pathlib import Path
+
+        from src.services.steam_library import remove_tree_force
 
         path = Path(home_path)
         if not path.exists():
             return True, None
 
         try:
-            shutil.rmtree(path)
+            remove_tree_force(path)
         except Exception as e:
             logger.exception("Error removing directory %s", path)
             return False, str(e)

@@ -80,6 +80,40 @@ The cleanup also happens on its own: the rotated files are replaced when they
 reach the size limit, the instance and helper logs expire, and the total size
 of the directory is kept under the limit below.
 
+## Cleaning a player home manually
+
+The easiest way to wipe a player's isolated home (`home_1`–`home_8`) is
+**Preferences → Instance data → Reset player**, which handles directory
+permissions automatically and leaves your host Steam library untouched.
+
+If you prefer to delete a `home_N` directory manually from a terminal or file
+manager, plain `rm -rf` or graphical deletion can fail with `Permission denied`
+inside `.tw-overlays/*/work/work`. That is expected: Twinverse isolates shared
+host Steam folders (`steamapps/common/` and `compatibilitytools.d/`) behind
+per-instance OverlayFS layers under `<home_N>/.tw-overlays/`, and the Linux
+OverlayFS kernel driver creates internal `work/work` directories with mode
+`0000` (`d---------`).
+
+To remove a player home manually without affecting your host Steam games:
+
+1. Stop all running Twinverse instances and close any sandboxed terminal opened
+   for that player.
+2. Restore owner permissions on the folder before removing it (replace `home_2`
+   with the target slot):
+
+```bash
+# Native / AppImage
+chmod -R u+rwx ~/.local/share/twinverse/home_2
+rm -rf ~/.local/share/twinverse/home_2
+
+# Flatpak
+chmod -R u+rwx ~/.var/app/io.github.mall0r.Twinverse/data/twinverse/home_2
+rm -rf ~/.var/app/io.github.mall0r.Twinverse/data/twinverse/home_2
+```
+
+Twinverse recreates the folder automatically the next time you set up or start
+that player. Host Steam games, Proton builds, and host saves are never deleted.
+
 ## Running with debug logs
 
 The graphical interface has no log controls. Start Twinverse from a terminal

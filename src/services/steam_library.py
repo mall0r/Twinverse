@@ -47,7 +47,13 @@ STEAM_TOOL_NAMES = frozenset({"Steamworks Shared", "Steam Controller Configs"})
 TOOL_SENTINEL_FILES = ("toolmanifest.vdf", "version", "VERSIONS.txt", "steampipe_fixups.json")
 STEAM_SUBDIRS = ("common", "compatdata", "downloading", "shadercache", "sourcemods", "temp", "workshop")
 
+STATE_UPDATE_REQUIRED = 2
 STATE_FULLY_INSTALLED = 4
+STATE_FILES_MISSING = 32
+STATE_FILES_CORRUPT = 128
+STATE_BROKEN_MASK = STATE_FILES_MISSING | STATE_FILES_CORRUPT
+
+_COMPAT_TOOL_DIR_RE = re.compile(r"^(?:SteamLinuxRuntime\b|Proton(?:\s+\d|\s*-\s*|\s+(?:Next|Hotfix|Experimental)\b))")
 
 DIRTY_MANIFEST_SCALAR_KEYS = frozenset(
     {
@@ -116,8 +122,14 @@ def _safe_folder_key(name: str) -> str:
     return f"{cleaned}_{digest}" if cleaned else digest
 
 
-def _force_rmtree(path: Path) -> None:
-    """Remove a directory tree even if it contains read-only files or folders."""
+def remove_tree_force(path: Path) -> None:
+    """Remove a directory tree even if it contains read-only or ``0000`` entries.
+
+    Linux OverlayFS creates ``work/work`` directories with mode ``0000``, which
+    causes plain ``shutil.rmtree`` to raise ``PermissionError``.  This helper
+    restores owner permissions inside ``path`` without following symlinks before
+    deleting the tree.
+    """
     if not path.exists() and not path.is_symlink():
         return
     if path.is_symlink() or not path.is_dir():
@@ -128,6 +140,11 @@ def _force_rmtree(path: Path) -> None:
             path.unlink()
         return
 
+    try:
+        path.chmod(0o700)
+    except OSError:
+        pass
+
     for root, dirs, files in os.walk(path, topdown=True, followlinks=False):
         root_path = Path(root)
         try:
@@ -135,10 +152,12 @@ def _force_rmtree(path: Path) -> None:
         except OSError:
             pass
         for name in dirs:
-            try:
-                (root_path / name).chmod(0o700)
-            except OSError:
-                pass
+            dir_path = root_path / name
+            if not dir_path.is_symlink():
+                try:
+                    dir_path.chmod(0o700)
+                except OSError:
+                    pass
         for name in files:
             file_path = root_path / name
             if not file_path.is_symlink():
@@ -147,6 +166,9 @@ def _force_rmtree(path: Path) -> None:
                 except OSError:
                     pass
     shutil.rmtree(path)
+
+
+_force_rmtree = remove_tree_force
 
 
 def _remove_file_if_exists(path: Path) -> None:
@@ -512,6 +534,34 @@ def _invalidate_drifted_overlay(
     _prune_stale_game_upper(upper, host_folder, prev_synced_at_ns=0)
 
 
+def _host_app_incomplete_reason(host_info: AppManifestInfo, host_steamapps: Path) -> Optional[str]:
+    """Return a reason string when a host Steam app is broken or incomplete.
+
+    Syncing a manifest for an app that is missing files or corrupt on the host
+    causes every sandboxed Steam client to immediately launch its own full
+    repair download on startup.
+    """
+    if not (host_info.state_flags & STATE_FULLY_INSTALLED):
+        return "not fully installed on host"
+    if host_info.state_flags & STATE_BROKEN_MASK:
+        return "missing or corrupt files on host"
+
+    common_dir = host_steamapps / "common"
+    if host_info.installdir and common_dir.is_dir():
+        install_path = common_dir / host_info.installdir
+        if not install_path.is_dir():
+            return f"install directory '{host_info.installdir}' missing on host"
+        if _COMPAT_TOOL_DIR_RE.match(host_info.installdir):
+            has_entrypoint = (
+                (install_path / "toolmanifest.vdf").is_file()
+                or (install_path / "proton").is_file()
+                or (install_path / "_v2-entry-point").is_file()
+            )
+            if not has_entrypoint:
+                return f"compatibility tool '{host_info.installdir}' missing toolmanifest.vdf on host"
+    return None
+
+
 def sync_library_manifests(
     host_steamapps: Path,
     dest_steamapps: Path,
@@ -522,8 +572,11 @@ def sync_library_manifests(
     """Copy and sanitize host ``appmanifest_*.acf`` files into ``dest_steamapps``.
 
     Existing instance manifests are preserved if ``host_steamapps`` cannot be
-    read or contains no ``.acf`` files.  Obsolete instance manifests are only
-    removed after every host manifest has been written cleanly.
+    read or contains no ``.acf`` files.  Host apps with missing or corrupt files
+    are skipped (and removed from ``dest_steamapps`` after healthy manifests are
+    synced) so sandboxes do not start repair downloads for broken host installs.
+    Obsolete instance manifests are only removed after every healthy host
+    manifest has been written cleanly.
     """
     try:
         manifests = [path for path in host_steamapps.iterdir() if path.suffix == ".acf"]
@@ -537,6 +590,8 @@ def sync_library_manifests(
 
     dest_steamapps.mkdir(parents=True, exist_ok=True)
     synced: Dict[str, AppManifestInfo] = {}
+    synced_names: Set[str] = set()
+    skipped_apps: List[AppManifestInfo] = []
 
     for manifest in sorted(manifests, key=lambda p: p.name):
         raw_content = manifest.read_text(encoding="utf-8", errors="replace")
@@ -551,10 +606,23 @@ def sync_library_manifests(
                 prev_info = None
 
         if host_info is not None:
+            incomplete_reason = _host_app_incomplete_reason(host_info, host_steamapps)
+            if incomplete_reason is not None:
+                logger.warning(
+                    "Skipping host Steam app %s (%s): %s (StateFlags=%s); "
+                    "repair or finish downloading it in host Steam first.",
+                    host_info.appid or manifest.name,
+                    host_info.name or host_info.installdir,
+                    incomplete_reason,
+                    host_info.state_flags,
+                )
+                skipped_apps.append(host_info)
+                continue
+
             if not host_info.is_clean_installed:
                 logger.warning(
-                    "Host Steam app %s (%s) has StateFlags=%s (pending or incomplete update); "
-                    "complete updates in host Steam to avoid version mismatches.",
+                    "Host Steam app %s (%s) has StateFlags=%s (pending update); "
+                    "update it in host Steam to avoid version mismatches.",
                     host_info.appid or manifest.name,
                     host_info.name or host_info.installdir,
                     host_info.state_flags,
@@ -564,6 +632,7 @@ def sync_library_manifests(
 
         sanitized = sanitize_sandbox_manifest(raw_content)
         _write_manifest_file(dest_path, sanitized)
+        synced_names.add(manifest.name)
 
         if host_info is not None and (host_info.state_flags & STATE_FULLY_INSTALLED):
             build_changed = prev_info is not None and prev_info.buildid != host_info.buildid
@@ -578,9 +647,11 @@ def sync_library_manifests(
                     host_info.installdir,
                 )
 
-    host_names = {manifest.name for manifest in manifests}
+    for skipped in skipped_apps:
+        _cleanup_sandbox_downloads(dest_steamapps, skipped)
+
     for existing in dest_steamapps.iterdir():
-        if existing.suffix == ".acf" and existing.name not in host_names:
+        if existing.suffix == ".acf" and existing.name not in synced_names:
             _remove_file_if_exists(existing)
         elif existing.name.startswith("appmanifest_") and existing.name.endswith(".acf.tmp"):
             _remove_file_if_exists(existing)

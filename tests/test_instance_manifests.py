@@ -14,17 +14,17 @@ from src.services.steam_library import (
     parse_app_manifest,
 )
 
-DIRTY_PROTON_MANIFEST = """"AppState"
+PENDING_UPDATE_PROTON_MANIFEST = """"AppState"
 {
 \t"appid"\t\t"4628710"
 \t"Universe"\t\t"1"
 \t"name"\t\t"Proton 11.0"
-\t"StateFlags"\t\t"1702"
+\t"StateFlags"\t\t"6"
 \t"installdir"\t\t"Proton 11.0"
 \t"LastUpdated"\t\t"1791588906"
 \t"StagingSize"\t\t"487868177"
 \t"buildid"\t\t"25833067"
-\t"UpdateResult"\t\t"38"
+\t"UpdateResult"\t\t"0"
 \t"BytesToDownload"\t\t"250717168"
 \t"BytesDownloaded"\t\t"20286128"
 \t"BytesToStage"\t\t"1030159970"
@@ -52,6 +52,8 @@ DIRTY_PROTON_MANIFEST = """"AppState"
 \t}
 }
 """
+
+BROKEN_PROTON_MANIFEST = PENDING_UPDATE_PROTON_MANIFEST.replace('"6"', '"1702"')
 
 
 @pytest.fixture
@@ -113,10 +115,10 @@ def test_copy_failure_does_not_remove_obsolete_manifests(manifest_setup, monkeyp
     assert (dest / "appmanifest_2.acf").read_text() == "keep"
 
 
-def test_sync_sanitizes_dirty_host_manifest_and_cleans_stale_downloads(manifest_setup):
-    """Sanitize pending/corrupt host manifests and clear read-only sandbox downloads."""
+def test_sync_sanitizes_pending_update_manifest_and_cleans_stale_downloads(manifest_setup):
+    """Sanitize pending-update host manifests and clear read-only sandbox downloads."""
     service, home, host, dest = manifest_setup
-    (host / "appmanifest_4628710.acf").write_text(DIRTY_PROTON_MANIFEST)
+    (host / "appmanifest_4628710.acf").write_text(PENDING_UPDATE_PROTON_MANIFEST)
 
     stale_dir = dest / "downloading/4628710/files/lib/wine/i386-unix"
     stale_dir.mkdir(parents=True)
@@ -147,6 +149,49 @@ def test_sync_sanitizes_dirty_host_manifest_and_cleans_stale_downloads(manifest_
     assert not (dest / "appmanifest_4628710.acf.tmp").exists()
 
 
+def test_sync_skips_broken_host_manifests_and_cleans_stale_sandbox_copy(manifest_setup):
+    """Skip host apps with FilesMissing/FilesCorrupt or incomplete tool folders."""
+    service, home, host, dest = manifest_setup
+    (host / "common/Proton 11.0").mkdir(parents=True)
+    (host / "common/Proton BattlEye Runtime").mkdir(parents=True)
+    (host / "common/Hollow Knight").mkdir(parents=True)
+
+    # Corrupt/missing-files manifest (StateFlags=1702) must be skipped and purged from sandbox.
+    (host / "appmanifest_4628710.acf").write_text(BROKEN_PROTON_MANIFEST)
+    (dest / "appmanifest_4628710.acf").write_text(PENDING_UPDATE_PROTON_MANIFEST)
+    stale_dir = dest / "downloading/4628710"
+    stale_dir.mkdir(parents=True)
+    (stale_dir / "chunk.bin").write_bytes(b"stale")
+
+    # Proton tool with clean StateFlags=4 but missing toolmanifest.vdf/proton on host must also be skipped.
+    (host / "common/Proton 10.0").mkdir(parents=True)
+    (host / "appmanifest_3658110.acf").write_text(
+        PENDING_UPDATE_PROTON_MANIFEST.replace("4628710", "3658110")
+        .replace("Proton 11.0", "Proton 10.0")
+        .replace('"6"', '"4"')
+    )
+
+    # Anti-cheat runtime without toolmanifest.vdf and regular game must still sync normally.
+    (host / "appmanifest_1161040.acf").write_text(
+        PENDING_UPDATE_PROTON_MANIFEST.replace("4628710", "1161040")
+        .replace("Proton 11.0", "Proton BattlEye Runtime")
+        .replace('"6"', '"4"')
+    )
+    (host / "appmanifest_367520.acf").write_text(
+        PENDING_UPDATE_PROTON_MANIFEST.replace("4628710", "367520")
+        .replace("Proton 11.0", "Hollow Knight")
+        .replace('"6"', '"4"')
+    )
+
+    service._sync_app_manifests(home)
+
+    assert not (dest / "appmanifest_4628710.acf").exists()
+    assert not stale_dir.exists()
+    assert not (dest / "appmanifest_3658110.acf").exists()
+    assert (dest / "appmanifest_1161040.acf").is_file()
+    assert (dest / "appmanifest_367520.acf").is_file()
+
+
 def test_sync_resets_drifted_tool_overlay_when_sandbox_buildid_diverges(manifest_setup):
     """Reset a tool overlay when the sandbox updated to a different buildid than the host."""
     service, home, host, dest = manifest_setup
@@ -154,7 +199,7 @@ def test_sync_resets_drifted_tool_overlay_when_sandbox_buildid_diverges(manifest
     proton_host_dir.mkdir(parents=True)
     (proton_host_dir / "toolmanifest.vdf").write_text('"manifest"\n{\n}\n')
 
-    host_manifest = DIRTY_PROTON_MANIFEST.replace('"1702"', '"4"')
+    host_manifest = PENDING_UPDATE_PROTON_MANIFEST.replace('"6"', '"4"')
     sandbox_drifted = host_manifest.replace('"25833067"', '"26870980"')
     (host / "appmanifest_4628710.acf").write_text(host_manifest)
     (dest / "appmanifest_4628710.acf").write_text(sandbox_drifted)
@@ -178,7 +223,7 @@ def test_sync_mirrors_external_library_manifests(manifest_setup, tmp_path):
     ext_steamapps.mkdir(parents=True)
     (ext_root / "libraryfolder.vdf").write_text('"libraryfolder"\n{\n\t"label"\t\t"Games"\n}\n')
     (ext_steamapps / "appmanifest_3321460.acf").write_text(
-        DIRTY_PROTON_MANIFEST.replace("4628710", "3321460").replace("Proton 11.0", "Crimson Desert")
+        PENDING_UPDATE_PROTON_MANIFEST.replace("4628710", "3321460").replace("Proton 11.0", "Crimson Desert")
     )
 
     (host / "appmanifest_1.acf").write_text("primary")

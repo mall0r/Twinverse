@@ -82,6 +82,41 @@ A limpeza também acontece sozinha: os arquivos rotacionados são substituídos
 quando chegam ao limite de tamanho, os logs de instância e de auxiliar expiram
 e o tamanho total do diretório é mantido abaixo do limite informado abaixo.
 
+## Limpeza manual da home de um jogador
+
+A forma mais simples de apagar a home isolada de um jogador (`home_1`–`home_8`)
+é usar **Preferências → Dados das instâncias → Redefinir jogador**, que ajusta
+as permissões automaticamente e mantém sua biblioteca Steam do host intacta.
+
+Se você preferir apagar uma pasta `home_N` manualmente pelo terminal ou pelo
+gerenciador de arquivos, um `rm -rf` comum ou a exclusão gráfica pode falhar com
+`Permissão negada` em `.tw-overlays/*/work/work`. Isso é esperado: o Twinverse
+isola as pastas compartilhadas do Steam no host (`steamapps/common/` e
+`compatibilitytools.d/`) sob camadas OverlayFS por instância em
+`<home_N>/.tw-overlays/`, e o driver OverlayFS do kernel Linux cria os
+subdiretórios internos `work/work` com permissão `0000` (`d---------`).
+
+Para remover a home de um jogador manualmente sem afetar seus jogos no host:
+
+1. Encerre todas as instâncias do Twinverse em execução e feche qualquer
+   terminal na sandbox aberto para esse jogador.
+2. Restaure as permissões do usuário na pasta antes de removê-la (troque
+   `home_2` pelo slot desejado):
+
+```bash
+# Nativo / AppImage
+chmod -R u+rwx ~/.local/share/twinverse/home_2
+rm -rf ~/.local/share/twinverse/home_2
+
+# Flatpak
+chmod -R u+rwx ~/.var/app/io.github.mall0r.Twinverse/data/twinverse/home_2
+rm -rf ~/.var/app/io.github.mall0r.Twinverse/data/twinverse/home_2
+```
+
+O Twinverse recria a pasta automaticamente na próxima vez que você configurar ou
+iniciar esse jogador. Jogos, versões do Proton e saves do Steam no host nunca
+são apagados.
+
 ## Executando com logs de depuração
 
 A interface gráfica não tem controles de log. Inicie o Twinverse pelo terminal

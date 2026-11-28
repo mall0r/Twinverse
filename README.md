@@ -118,7 +118,7 @@ Release both buttons. Choose left or right with the D-pad or left stick; **A** a
 
 ## ⚙️ How It Works
 
-**Player files.** Bubblewrap mounts a separate home (`home_1`–`home_8`) for each Steam client. It reuses installed game folders from the host's `~/.local/share/Steam/steamapps/common/` and custom Proton builds from `compatibilitytools.d/`; Twinverse syncs `.acf` manifests at Steam launch. Under **Preferences → Instance data** you can open a player's folder, launch a sandboxed terminal, or reset the player and delete that home.
+**Player files.** Bubblewrap mounts a separate home (`home_1`–`home_8`) for each Steam client. Host game folders (`~/.local/share/Steam/steamapps/common/`), custom Proton builds (`compatibilitytools.d/`), and external Steam libraries are mounted read-only underneath per-instance OverlayFS layers (falling back to `--ro-bind` on older `bwrap` versions), so instances never mutate or corrupt host Steam files; Twinverse syncs sanitized `.acf` manifests at Steam launch. Under **Preferences → Instance data** you can open a player's folder, launch a sandboxed terminal, or reset the player and delete that home (if deleting a `home_N` folder manually from a terminal or file manager, see [Cleaning a player home manually](docs/DEBUGGING.md#cleaning-a-player-home-manually)).
 
 **Input isolation.** `twinverse-input-bridge` requests exclusive access (`EVIOCGRAB`) to the assigned pad's evdev input while its instance runs. While grabbed, pressing HOME does not bring host Steam to the front. Stopping the instance releases the pad; unassigned pads are not grabbed. Native `uinput` and `libudev` shims keep Steam Input's virtual controllers inside their instance. A player with no assigned pad uses a placeholder virtual joystick instead.
 

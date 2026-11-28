@@ -1157,9 +1157,9 @@ ujust add-user-to-input-group</code></pre>
           </h3>
           <ul>
             <li>
-              <strong><span data-lang-block="en">Zero game duplication:</span><span data-lang-block="pt">Zero duplicação de jogos:</span></strong>
-              <span data-lang-block="en">Twinverse bind-mounts your host <code>~/.local/share/Steam/steamapps/common/</code> into every instance and synchronizes <code>appmanifest_*.acf</code> files automatically, so every player sees already-installed titles instantly.</span>
-              <span data-lang-block="pt">O Twinverse monta <code>~/.local/share/Steam/steamapps/common/</code> do host em todas as instâncias e sincroniza os arquivos <code>appmanifest_*.acf</code> automaticamente, exibindo os jogos instalados de imediato.</span>
+              <strong><span data-lang-block="en">Zero game duplication &amp; host protection:</span><span data-lang-block="pt">Zero duplicação de jogos e proteção do host:</span></strong>
+              <span data-lang-block="en">Twinverse mounts your host <code>~/.local/share/Steam/steamapps/common/</code> read-only underneath per-instance OverlayFS layers (with a <code>--ro-bind</code> fallback on older <code>bwrap</code>) and synchronizes sanitized <code>appmanifest_*.acf</code> files automatically, so every player sees installed titles instantly without ever mutating or corrupting host Steam files.</span>
+              <span data-lang-block="pt">O Twinverse monta <code>~/.local/share/Steam/steamapps/common/</code> do host somente leitura sob camadas OverlayFS por instância (com fallback <code>--ro-bind</code> em versões antigas do <code>bwrap</code>) e sincroniza arquivos <code>appmanifest_*.acf</code> saneados automaticamente, exibindo os jogos instalados de imediato sem nunca modificar ou corromper o Steam do host.</span>
             </li>
             <li>
               <strong><span data-lang-block="en">Any Proton version:</span><span data-lang-block="pt">Qualquer versão do Proton:</span></strong>
@@ -2192,8 +2192,8 @@ DRI_PRIME=1! %command%</code></pre>
                   <span class="path-tag">home_1..8</span>
                 </h4>
                 <p>
-                  <span data-lang-block="en">Isolated Steam logins, saves &amp; <code>.tw-in/</code> sockets</span>
-                  <span data-lang-block="pt">Logins isolados do Steam, saves e sockets <code>.tw-in/</code></span>
+                  <span data-lang-block="en">Isolated Steam logins, saves, <code>.tw-overlays/</code> &amp; <code>.tw-in/</code> sockets</span>
+                  <span data-lang-block="pt">Logins isolados do Steam, saves, <code>.tw-overlays/</code> e sockets <code>.tw-in/</code></span>
                 </p>
               </div>
             </div>
@@ -2552,6 +2552,19 @@ flatpak run io.github.mall0r.Twinverse --diagnostics</code></pre>
               <p>
                 <span data-lang-block="en">1) Confirm native <code>steam</code>, <code>gamescope</code>, and <code>bwrap</code> are installed on your host by running <code>twinverse --diagnostics</code>. 2) Try toggling <strong>Gamescope WSI</strong> off in <strong>Preferences → Engine</strong> if you are on NVIDIA or hybrid GPUs. 3) Try opening the player via <strong>Start Player</strong> (without Gamescope) or inspect the player's log under <code>~/.local/state/twinverse/logs/instances/</code>.</span>
                 <span data-lang-block="pt">1) Confirme que os pacotes nativos <code>steam</code>, <code>gamescope</code> e <code>bwrap</code> estão instalados no host executando <code>twinverse --diagnostics</code>. 2) Experimente desativar <strong>Gamescope WSI</strong> em <strong>Preferências → Motor</strong> em GPUs NVIDIA ou híbridas. 3) Teste abrir o jogador com <strong>Iniciar Jogador</strong> (sem Gamescope) ou consulte o log da instância em <code>~/.local/state/twinverse/logs/instances/</code>.</span>
+              </p>
+            </div>
+          </details>
+
+          <details class="troubleshoot">
+            <summary>
+              <span data-lang-block="en">Permission denied when deleting a player's <code>home_N</code> folder manually</span>
+              <span data-lang-block="pt">Permissão negada ao apagar manualmente a pasta <code>home_N</code> de um jogador</span>
+            </summary>
+            <div class="troubleshoot-body">
+              <p>
+                <span data-lang-block="en">Use <strong>Preferences → Instance data → Reset player</strong> whenever possible—Twinverse handles OverlayFS permissions automatically. If you delete a <code>home_N</code> directory manually from a file manager or terminal, Linux OverlayFS leaves internal <code>.tw-overlays/*/work/work</code> directories with mode <code>0000</code>. First close all Twinverse instances and sandboxed terminals for that player, then restore permissions and delete it: <code>chmod -R u+rwx ~/.local/share/twinverse/home_N &amp;&amp; rm -rf ~/.local/share/twinverse/home_N</code> (or <code>~/.var/app/io.github.mall0r.Twinverse/data/twinverse/home_N</code> on Flatpak). Host Steam games are unaffected.</span>
+                <span data-lang-block="pt">Sempre que possível, use <strong>Preferências → Dados das instâncias → Redefinir jogador</strong>—o Twinverse ajusta as permissões do OverlayFS automaticamente. Ao apagar uma pasta <code>home_N</code> manualmente pelo gerenciador de arquivos ou terminal, o OverlayFS do Linux deixa subdiretórios internos <code>.tw-overlays/*/work/work</code> com permissão <code>0000</code>. Primeiro feche todas as instâncias e terminais na sandbox desse jogador, depois restaure as permissões e remova a pasta: <code>chmod -R u+rwx ~/.local/share/twinverse/home_N &amp;&amp; rm -rf ~/.local/share/twinverse/home_N</code> (ou <code>~/.var/app/io.github.mall0r.Twinverse/data/twinverse/home_N</code> no Flatpak). Os jogos do Steam no host não são afetados.</span>
               </p>
             </div>
           </details>

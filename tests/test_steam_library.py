@@ -17,6 +17,7 @@ from src.services.steam_library import (
     external_library_mirror_dir,
     parse_app_manifest,
     parse_external_library_folders,
+    remove_tree_force,
     sanitize_sandbox_manifest,
 )
 
@@ -371,3 +372,29 @@ def test_command_builder_preserves_env_invariants_with_steam_library_isolation(m
     assert command[unset_idx + 1] == "MANGOHUD_CONFIG"
     assert command.index("full") < unset_idx
     assert command[-3:] == ["--setenv", "TWINVERSE_KWIN_INSTANCE", "0"]
+
+
+def test_remove_tree_force_deletes_overlay_0000_workdirs_without_touching_symlink_targets(tmp_path):
+    """Remove trees containing 0000 OverlayFS work/work dirs while leaving symlink targets intact."""
+    external_dir = tmp_path / "external_target"
+    external_dir.mkdir()
+    external_file = external_dir / "keep.txt"
+    external_file.write_text("safe")
+    external_dir.chmod(0o555)
+
+    home = tmp_path / "home_1"
+    work_inner = home / ".tw-overlays/common/Proton_11.0_abc/work/work"
+    work_inner.mkdir(parents=True)
+    ro_file = home / "ro.so"
+    ro_file.write_bytes(b"ELF")
+    ro_file.chmod(0o555)
+    (home / "ext_link").symlink_to(external_dir)
+    work_inner.chmod(0o000)
+
+    try:
+        remove_tree_force(home)
+        assert not home.exists()
+        assert external_file.read_text() == "safe"
+        assert (external_dir.stat().st_mode & 0o777) == 0o555
+    finally:
+        external_dir.chmod(0o700)
